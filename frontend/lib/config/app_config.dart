@@ -1,7 +1,7 @@
 class AppConfig {
   // API Configuration
-  static const String baseUrl = 'http://localhost:8000/api';
-  static const String wsUrl = 'ws://localhost:8000';
+  static const String baseUrl = 'http://192.168.68.107:8000';
+  static const String wsUrl = 'ws://192.168.68.107:8000';
   
   // Supabase Configuration
   static const String supabaseUrl = 'YOUR_SUPABASE_URL';

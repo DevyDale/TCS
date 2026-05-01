@@ -1,96 +1,691 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../config/app_config.dart';
+// lib/services/api_service.dart
+// ALL auth URLs corrected: /api/auth/ → /api/accounts/
+// to match TCS/urls.py: path("accounts/", include("apps.accounts.urls"))
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────
+
+class ApiConfig {
+  // Android emulator → host machine
+  static const String baseUrl = 'http://10.0.2.2:8000';
+
+  // iOS simulator / same Mac
+  // static const String baseUrl = 'http://127.0.0.1:8000';
+
+  // Physical device on same WiFi — replace with your Mac IP
+  // Run: ipconfig getifaddr en0
+  // static const String baseUrl = 'http://192.168.x.x:8000';
+
+  static String get api => '$baseUrl/api';
+  static String get ws  => baseUrl.replaceFirst('http', 'ws');
+}
+
+// ─────────────────────────────────────────────────────────────
+// EXCEPTION
+// ─────────────────────────────────────────────────────────────
+
+class ApiException implements Exception {
+  final String message;
+  final int?   statusCode;
+  const ApiException(this.message, {this.statusCode});
+  @override String toString() => message;
+}
+
+// ─────────────────────────────────────────────────────────────
+// TOKEN STORE
+// ─────────────────────────────────────────────────────────────
+
+class _Tokens {
+  static const _a = 'access_token';   // matches auth_service.dart keys
+  static const _r = 'refresh_token';
+  static const _u = 'sh_current_user';
+
+  static Future<void> save(String a, String r) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_a, a);
+    await p.setString(_r, r);
+  }
+
+  static Future<String?> access() async =>
+      (await SharedPreferences.getInstance()).getString(_a);
+
+  static Future<String?> refresh() async =>
+      (await SharedPreferences.getInstance()).getString(_r);
+
+  static Future<void> saveUser(Map<String, dynamic> u) async =>
+      (await SharedPreferences.getInstance()).setString(_u, jsonEncode(u));
+
+  static Future<Map<String, dynamic>?> user() async {
+    final raw = (await SharedPreferences.getInstance()).getString(_u);
+    return raw != null ? jsonDecode(raw) as Map<String, dynamic> : null;
+  }
+
+  static Future<bool> has() async {
+    final t = await access();
+    return t != null && t.isNotEmpty;
+  }
+
+  static Future<void> clear() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_a);
+    await p.remove(_r);
+    await p.remove(_u);
+    await p.remove('fullName');
+    await p.remove('preferredName');
+    await p.remove('role');
+    await p.remove('userId');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// API SERVICE
+// ─────────────────────────────────────────────────────────────
 
 class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
-  
-  final Dio _dio = Dio();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  
+  ApiService._();
+  static final ApiService instance = ApiService._();
+  factory ApiService() => instance;
+
+  final _client = http.Client();
+
   Future<void> initialize() async {
-    _dio.options.baseUrl = AppConfig.baseUrl;
-    _dio.options.connectTimeout = AppConfig.connectionTimeout;
-    _dio.options.receiveTimeout = AppConfig.receiveTimeout;
-    
-    // Add interceptor for authentication
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _storage.read(key: 'access_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        return handler.next(options);
-      },
-      onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
-          // Token expired, try to refresh
-          await _refreshToken();
-          return handler.resolve(await _retry(error.requestOptions));
-        }
-        return handler.next(error);
-      },
-    ));
+    if (await _Tokens.has()) await _tryRefresh();
   }
-  
-  Future<Response> _retry(RequestOptions requestOptions) async {
-    final options = Options(
-      method: requestOptions.method,
-      headers: requestOptions.headers,
-    );
-    return _dio.request(
-      requestOptions.path,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-      options: options,
-    );
+
+  Future<bool> get isLoggedIn              => _Tokens.has();
+  Future<void> clearTokens()               => _Tokens.clear();
+  Future<String?> get accessToken          => _Tokens.access();
+  Future<Map<String, dynamic>?> get cachedUser => _Tokens.user();
+
+  // ── Headers ───────────────────────────────────────────────
+
+  Future<Map<String, String>> _h({bool auth = true}) async {
+    final h = {
+      'Content-Type': 'application/json',
+      'Accept':       'application/json',
+    };
+    if (auth) {
+      final t = await _Tokens.access();
+      if (t != null) h['Authorization'] = 'Bearer $t';
+    }
+    return h;
   }
-  
-  Future<void> _refreshToken() async {
-    final refreshToken = await _storage.read(key: 'refresh_token');
-    if (refreshToken != null) {
-      try {
-        final response = await _dio.post('/token/refresh/', data: {
-          'refresh': refreshToken,
-        });
-        await _storage.write(key: 'access_token', value: response.data['access']);
-      } catch (e) {
-        // Refresh failed, clear tokens
-        await _storage.delete(key: 'access_token');
-        await _storage.delete(key: 'refresh_token');
-      }
+
+  // ── Core HTTP ─────────────────────────────────────────────
+
+  Future<http.Response> _raw(String method, Uri uri,
+      {Map<String, dynamic>? body, bool auth = true}) async {
+    final h = await _h(auth: auth);
+    final b = body != null ? jsonEncode(body) : null;
+    switch (method) {
+      case 'GET':    return _client.get(uri,    headers: h);
+      case 'POST':   return _client.post(uri,   headers: h, body: b);
+      case 'PUT':    return _client.put(uri,    headers: h, body: b);
+      case 'PATCH':  return _client.patch(uri,  headers: h, body: b);
+      case 'DELETE': return _client.delete(uri, headers: h);
+      default:       throw ApiException('Unknown method: $method');
     }
   }
-  
-  Future<void> setTokens(String accessToken, String refreshToken) async {
-    await _storage.write(key: 'access_token', value: accessToken);
-    await _storage.write(key: 'refresh_token', value: refreshToken);
+
+  dynamic _decode(http.Response res) {
+    final body = jsonDecode(utf8.decode(res.bodyBytes));
+    if (res.statusCode >= 200 && res.statusCode < 300) return body;
+    String msg = 'Request failed (${res.statusCode})';
+    if (body is Map) {
+      msg = (body['detail'] ?? body['error'] ??
+             body['non_field_errors']?.toString() ??
+             body.values.firstOrNull?.toString() ?? msg).toString();
+    }
+    throw ApiException(msg, statusCode: res.statusCode);
   }
-  
-  Future<void> clearTokens() async {
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
+
+  // ── Token refresh ─────────────────────────────────────────
+  // URL: /api/accounts/token/refresh/  ← FIXED (was /api/auth/)
+
+  Future<bool> _tryRefresh() async {
+    final r = await _Tokens.refresh();
+    if (r == null) return false;
+    try {
+      final res = await _client.post(
+        Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': r}),
+      );
+      if (res.statusCode == 200) {
+        final d = jsonDecode(res.body) as Map<String, dynamic>;
+        await _Tokens.save(d['access'] as String, r);
+        return true;
+      }
+    } catch (_) {}
+    await _Tokens.clear();
+    return false;
   }
-  
-  // Generic GET request
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
-    return await _dio.get(path, queryParameters: queryParameters);
+
+  Future<dynamic> _req(String method, String path,
+      {Map<String, dynamic>? body,
+       Map<String, String>?  query,
+       bool auth = true}) async {
+    final uri = Uri.parse('${ApiConfig.api}$path')
+        .replace(queryParameters: query);
+    var res = await _raw(method, uri, body: body, auth: auth);
+    if (res.statusCode == 401 && auth) {
+      if (await _tryRefresh()) {
+        res = await _raw(method, uri, body: body, auth: auth);
+      }
+    }
+    return _decode(res);
   }
-  
-  // Generic POST request
-  Future<Response> post(String path, {dynamic data}) async {
-    return await _dio.post(path, data: data);
+
+  // ── Public HTTP helpers ───────────────────────────────────
+
+  Future<dynamic> get(String path,
+      {Map<String, String>? query, bool auth = true}) =>
+      _req('GET', path, query: query, auth: auth);
+
+  Future<dynamic> post(String path,
+      {Map<String, dynamic>? body, bool auth = true}) =>
+      _req('POST', path, body: body, auth: auth);
+
+  Future<dynamic> put(String path,
+      {Map<String, dynamic>? body, bool auth = true}) =>
+      _req('PUT', path, body: body, auth: auth);
+
+  Future<dynamic> patch(String path,
+      {Map<String, dynamic>? body, bool auth = true}) =>
+      _req('PATCH', path, body: body, auth: auth);
+
+  Future<dynamic> delete(String path, {bool auth = true}) =>
+      _req('DELETE', path, auth: auth);
+
+  // ── Multipart upload ──────────────────────────────────────
+
+  Future<dynamic> uploadFile(
+    String path, {
+    required String filePath,
+    String field    = 'file',
+    String mimeType = 'image/jpeg',
+    Map<String, String> extraFields = const {},
+  }) async {
+    final token = await _Tokens.access();
+    final parts = mimeType.split('/');
+    final req   = http.MultipartRequest('POST',
+        Uri.parse('${ApiConfig.api}$path'))
+      ..headers.addAll({
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      })
+      ..fields.addAll(extraFields)
+      ..files.add(await http.MultipartFile.fromPath(
+        field, filePath,
+        contentType: MediaType(parts[0], parts.length > 1 ? parts[1] : '*'),
+      ));
+    final streamed = await req.send();
+    final res      = await http.Response.fromStream(streamed);
+    return _decode(res);
   }
-  
-  // Generic PUT request
-  Future<Response> put(String path, {dynamic data}) async {
-    return await _dio.put(path, data: data);
+
+  Future<dynamic> _upload(String path, Map<String, String> fields,
+      String fileField, File file, String mimeType) =>
+      uploadFile(path,
+          filePath:    file.path,
+          field:       fileField,
+          mimeType:    mimeType,
+          extraFields: fields);
+
+  // ══════════════════════════════════════════════════════════
+  // AUTH  — all URLs now /accounts/ not /auth/
+  // ══════════════════════════════════════════════════════════
+
+  /// POST /api/accounts/student/verify/
+  Future<Map<String, dynamic>> verifyStudent({
+    required String studentId,
+    required String dateOfBirth,
+  }) async {
+    final d = await post('/accounts/student/verify/', body: {
+      'student_id':    studentId,
+      'date_of_birth': dateOfBirth,
+    }, auth: false) as Map<String, dynamic>;
+    if (d['success'] != true) {
+      throw const ApiException('Invalid student ID or date of birth.');
+    }
+    return d;
   }
-  
-  // Generic DELETE request
-  Future<Response> delete(String path) async {
-    return await _dio.delete(path);
+
+  /// POST /api/accounts/staff/verify/
+  Future<Map<String, dynamic>> verifyStaff({
+    required String staffId,
+    required String dateOfBirth,
+  }) async {
+    final d = await post('/accounts/staff/verify/', body: {
+      'staff_id':      staffId,
+      'date_of_birth': dateOfBirth,
+    }, auth: false) as Map<String, dynamic>;
+    if (d['success'] != true) {
+      throw const ApiException('Invalid staff ID or date of birth.');
+    }
+    return d;
   }
+
+  /// POST /api/accounts/login/
+  Future<Map<String, dynamic>> loginWithId({
+    required String userId,
+    required String dateOfBirth,
+    required String role, // 'student' | 'teaching_staff'
+  }) async {
+    final d = await post('/accounts/login/', body: {
+      'user_id':       userId,
+      'date_of_birth': dateOfBirth,
+      'role':          role,
+    }, auth: false) as Map<String, dynamic>;
+    await _Tokens.save(d['access'] as String, d['refresh'] as String);
+    await _Tokens.saveUser(d['user'] as Map<String, dynamic>);
+    return d;
+  }
+
+  /// POST /api/accounts/logout/
+  Future<void> logout() async {
+    final refresh = await _Tokens.refresh();
+    if (refresh != null) {
+      try {
+        await post('/accounts/logout/', body: {'refresh': refresh});
+      } catch (_) {}
+    }
+    await _Tokens.clear();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // USERS
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getMyProfile()                        => get('/users/me/');
+  Future<dynamic> updateProfile(Map<String, dynamic> d) => patch('/users/me/', body: d);
+  Future<dynamic> getUserProfile(String userId)         => get('/users/$userId/');
+  Future<dynamic> followToggle(String userId)           => post('/users/$userId/follow/');
+  Future<dynamic> searchUsers(String q)                 => get('/users/search/', query: {'q': q});
+  Future<dynamic> getSuggestedUsers({int limit = 20})   =>
+      get('/users/suggested/', query: {'limit': '$limit'});
+  Future<dynamic> getFollowers(String userId)           => get('/users/$userId/followers/');
+  Future<dynamic> getFollowing(String userId)           => get('/users/$userId/following/');
+  Future<dynamic> updateFcmToken(String token)          =>
+      post('/users/me/fcm-token/', body: {'fcm_token': token});
+
+  Future<dynamic> uploadAvatar(File f) =>
+      _upload('/users/me/avatar/', {}, 'avatar', f, 'image/jpeg');
+
+  Future<dynamic> uploadCover(File f) =>
+      _upload('/users/me/cover/', {}, 'cover', f, 'image/jpeg');
+
+  // ══════════════════════════════════════════════════════════
+  // FEED & POSTS
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getFeed({String type = 'home', int page = 1}) =>
+      get('/posts/feed/', query: {'type': type, 'page': '$page'});
+
+  Future<dynamic> getPosts({String? userId, int page = 1}) =>
+      get('/posts/', query: {
+        if (userId != null) 'user_id': userId,
+        'page': '$page',
+      });
+
+  Future<dynamic> createPost({
+    required String content,
+    String postType        = 'post',
+    String visibility      = 'public',
+    String location        = '',
+    String backgroundColor = '',
+  }) => post('/posts/', body: {
+    'content':          content,
+    'post_type':        postType,
+    'visibility':       visibility,
+    'location':         location,
+    'background_color': backgroundColor,
+  });
+
+  Future<dynamic> getPost(String id)    => get('/posts/$id/');
+
+  /// Profile: my regular posts
+  Future<dynamic> getMyPosts({int page = 1}) =>
+      get('/posts/mine/', query: {'post_type': 'post', 'page': '\$page'});
+
+  /// Profile: my fweets
+  Future<dynamic> getMyFweets({int page = 1}) =>
+      get('/posts/mine/', query: {'post_type': 'fweet', 'page': '\$page'});
+
+  /// Profile: bookmarked/favorited posts
+  Future<dynamic> getFavorites({int page = 1}) =>
+      get('/posts/bookmarks/', query: {'page': '\$page'});
+
+  Future<dynamic> deletePost(String id) => delete('/posts/\$id/');
+  Future<dynamic> updatePost(String id, Map<String, dynamic> data) =>
+      patch('/posts/$id/', body: data);
+  Future<dynamic> likeToggle(String id)        => post('/posts/$id/like/');
+  Future<dynamic> sharePost(String postId, List<String> userIds) =>
+      post('/posts/$postId/share/', body: {'user_ids': userIds});
+  Future<dynamic> bookmarkToggle(String id)    => post('/posts/$id/bookmark/');
+  Future<dynamic> getBookmarks({int page = 1}) =>
+      get('/posts/bookmarks/', query: {'page': '$page'});
+  Future<dynamic> flagPost(String id, {String reason = 'other'}) =>
+      post('/posts/$id/flag/', body: {'reason': reason});
+  Future<dynamic> getComments(String postId, {int page = 1}) =>
+      get('/posts/$postId/comments/', query: {'page': '$page'});
+  Future<dynamic> addComment(String postId, String text, {String? parentId}) =>
+      post('/posts/$postId/comments/', body: {
+        'text': text,
+        if (parentId != null) 'parent_id': parentId,
+      });
+  Future<dynamic> uploadPostMedia(String postId, File file,
+      {String mime = 'image/jpeg'}) =>
+      _upload('/posts/upload/', {'post_id': postId}, 'file', file, mime);
+
+  // ══════════════════════════════════════════════════════════
+  // CHAT
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getChatRooms() => get('/chat/rooms/');
+  Future<dynamic> startDM(String targetUserId) =>
+      post('/chat/rooms/', body: {'room_type': 'direct', 'member_ids': [targetUserId]});
+  Future<dynamic> createGroupChat({
+    required String       name,
+    required List<String> memberIds,
+    String description = '',
+  }) => post('/chat/rooms/', body: {
+    'room_type':  'group', 'name': name,
+    'description': description, 'member_ids': memberIds,
+  });
+  Future<dynamic> getRoomMessages(String roomId, {String? beforeId}) =>
+      get('/chat/rooms/$roomId/messages/',
+          query: {if (beforeId != null) 'before': beforeId});
+  Future<dynamic> markRoomRead(String roomId)  => post('/chat/rooms/$roomId/read/');
+  Future<dynamic> uploadChatMedia({
+    required String roomId,
+    required File   file,
+    required String mimeType,
+  }) => _upload('/chat/upload/', {'room_id': roomId}, 'file', file, mimeType);
+  Future<dynamic> searchGifs(String query, {int limit = 20}) =>
+      get('/chat/gifs/search/', query: {'q': query, 'limit': '$limit'});
+  Future<dynamic> getTrendingGifs({int limit = 16}) =>
+      get('/chat/gifs/trending/', query: {'limit': '$limit'});
+  Future<dynamic> getStickerPacks()         => get('/chat/stickers/');
+  Future<dynamic> getSavedMaterials()       => get('/chat/saved/');
+  Future<dynamic> deleteSavedMaterial(String id) => delete('/chat/saved/$id/');
+  Future<dynamic> getStudyBuddies()         => get('/chat/study-buddy/');
+
+  // ══════════════════════════════════════════════════════════
+  // GROUPS
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getGroups({String filter = 'all', String q = ''}) =>
+      get('/groups/', query: {'filter': filter, if (q.isNotEmpty) 'q': q});
+  Future<dynamic> getGroup(String id)          => get('/groups/$id/');
+  Future<dynamic> joinGroup(String id)         => post('/groups/$id/join/');
+  Future<dynamic> leaveGroup(String id)        => delete('/groups/$id/leave/');
+  Future<dynamic> getGroupMaterials(String id) => get('/groups/$id/materials/');
+  Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
+      put('/groups/buddies/me/', body: data);
+
+  // ══════════════════════════════════════════════════════════
+  // EVENTS
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getEvents({String? category, String? search, int page = 1}) =>
+      get('/events/', query: {
+        if (category != null) 'category': category,
+        if (search   != null) 'search':   search,
+        'page': '$page',
+      });
+  Future<dynamic> getEvent(String id)   => get('/events/$id/');
+  Future<dynamic> rsvpToggle(String id) => post('/events/$id/rsvp/');
+  Future<dynamic> getMyEvents()         => get('/events/mine/');
+  Future<dynamic> createEvent(Map<String, dynamic> data) => post('/events/', body: data);
+
+  // ══════════════════════════════════════════════════════════
+  // ARCADE
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getGames()          => get('/arcade/games/');
+  Future<dynamic> getPlayerStats()    => get('/arcade/stats/');
+  Future<dynamic> getTokenWallet()    => get('/arcade/tokens/');
+
+  Future<dynamic> getLeaderboard({String? gameSlug, int limit = 20}) =>
+      get('/arcade/leaderboard/', query: {
+        if (gameSlug != null) 'game': gameSlug,
+        'limit': '$limit',
+      });
+
+  Future<dynamic> submitScore({
+    required String game,
+    required int    score,
+    int bonusTokens = 0,
+  }) => post('/arcade/submit-score/', body: {
+    'game':         game,
+    'score':        score,
+    'bonus_tokens': bonusTokens,
+  });
+
+  Future<dynamic> getGamerTag()           => get('/arcade/gamer-tag/');
+  Future<dynamic> uploadGamerAvatar(File file) =>
+      uploadFile('/arcade/gamer-tag/avatar/',
+          filePath: file.path, field: 'avatar', mimeType: 'image/jpeg');
+
+  Future<dynamic> getGameRequests()        => get('/arcade/game-requests/');
+  Future<dynamic> sendChallenge({
+    required String receiverId,
+    required String gameSlug,
+    required int    wager,
+  }) => post('/arcade/game-requests/', body: {
+    'receiver_id': receiverId,
+    'game_slug':   gameSlug,
+    'wager':       wager,
+  });
+  Future<dynamic> acceptChallenge(String id)  =>
+      post('/arcade/game-requests/$id/accept/', body: {});
+  Future<dynamic> declineChallenge(String id) =>
+      post('/arcade/game-requests/$id/decline/', body: {});
+  Future<dynamic> getSession(String id)       => get('/arcade/game-sessions/$id/');
+  Future<dynamic> updateSession(String id,
+      {required String action, int? score}) =>
+      patch('/arcade/game-sessions/$id/', body: {
+        'action': action,
+        if (score != null) 'score': score,
+      });
+  Future<dynamic> checkAutoQuit(String id) =>
+      post('/arcade/game-sessions/$id/auto-quit/', body: {});
+
+  // ══════════════════════════════════════════════════════════
+  // NOTIFICATIONS
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> getNotifications({bool unreadOnly = false, int page = 1}) =>
+      get('/notifications/', query: {
+        if (unreadOnly) 'unread': 'true',
+        'page': '$page',
+      });
+  Future<int> getUnreadCount() async {
+    final d = await get('/notifications/unread-count/') as Map<String, dynamic>;
+    return d['unread_count'] as int? ?? 0;
+  }
+  Future<dynamic> markNotificationRead(String id) => post('/notifications/$id/read/');
+  Future<dynamic> markAllNotificationsRead()       => post('/notifications/mark-all-read/');
+  Future<dynamic> deleteNotification(String id)    => delete('/notifications/$id/');
+  Future<dynamic> clearAllNotifications()          => delete('/notifications/clear/');
+
+  // ══════════════════════════════════════════════════════════
+  // FEEDBACK / SUGGESTION BOX
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> submitSuggestion({
+    required String title,
+    required String message,
+    required String category,
+  }) => post('/feedback/suggest/', body: {
+    'title':    title,
+    'message':  message,
+    'category': category,
+  });
+
+  Future<dynamic> getMySuggestions() => get('/feedback/mine/');
+
+  // ══════════════════════════════════════════════════════════
+  // DATA ENTRY
+  // ══════════════════════════════════════════════════════════
+
+  Future<dynamic> registerStudent({
+    required String fullName,
+    required String preferredName,
+    required String studentId,
+    required String dateOfBirth,
+    required String courseType,
+    required String dateOfCommencement,
+  }) => post('/dataentry/student/', body: {
+    'full_name':            fullName,
+    'preferred_name':       preferredName,
+    'student_id':           studentId,
+    'date_of_birth':        dateOfBirth,
+    'course_type':          courseType,
+    'date_of_commencement': dateOfCommencement,
+  }, auth: false);
+
+  Future<dynamic> registerStaff({
+    required String staffType,
+    required String staffId,
+    required String fullName,
+    required String preferredName,
+    required String dateOfBirth,
+  }) => post('/dataentry/staff/', body: {
+    'staff_type':     staffType,
+    'staff_id':       staffId,
+    'full_name':      fullName,
+    'preferred_name': preferredName,
+    'date_of_birth':  dateOfBirth,
+  }, auth: false);
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHAT WEBSOCKET SERVICE
+// ─────────────────────────────────────────────────────────────
+
+class ChatWebSocketService {
+  WebSocketChannel? _channel;
+  final _controller = StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get stream => _controller.stream;
+  bool get isConnected => _channel != null;
+
+  Future<void> connect(String roomId) async {
+    await disconnect();
+    final token = await _Tokens.access();
+    if (token == null) return;
+    final uri = Uri.parse('${ApiConfig.ws}/ws/chat/$roomId/?token=$token');
+    _channel  = WebSocketChannel.connect(uri);
+    _channel!.stream.listen(
+      (raw) {
+        try { _controller.add(jsonDecode(raw as String) as Map<String, dynamic>); }
+        catch (_) {}
+      },
+      onDone:  () => _channel = null,
+      onError: (_) => _channel = null,
+    );
+  }
+
+  Future<void> disconnect() async {
+    await _channel?.sink.close();
+    _channel = null;
+  }
+
+  void _send(Map<String, dynamic> p) {
+    if (_channel == null) return;
+    _channel!.sink.add(jsonEncode(p));
+  }
+
+  void sendText(String text, {String? replyToId, List<String> mentions = const []}) =>
+      _send({'action':'message','message_type':'text','text':text,
+        if (replyToId != null) 'reply_to': replyToId,
+        if (mentions.isNotEmpty) 'mentions': mentions});
+
+  void sendMedia({required String messageType, required String mediaUrl,
+      String? fileName, double? duration, String? replyToId}) =>
+      _send({'action':'message','message_type':messageType,'media_url':mediaUrl,
+        if (fileName  != null) 'file_name':      fileName,
+        if (duration  != null) 'media_duration': duration,
+        if (replyToId != null) 'reply_to':       replyToId});
+
+  void sendSticker(int stickerId, {String? replyToId}) => _send(
+      {'action':'message','message_type':'sticker','sticker_id':stickerId,
+        if (replyToId != null) 'reply_to': replyToId});
+
+  void sendGif(String gifUrl) =>
+      sendMedia(messageType: 'gif', mediaUrl: gifUrl);
+
+  void sendTyping(bool isTyping) =>
+      _send({'action':'typing','is_typing':isTyping});
+
+  void sendRead(String messageId) =>
+      _send({'action':'read','message_id':messageId});
+
+  void sendReaction(String messageId, String emoji) =>
+      _send({'action':'reaction','message_id':messageId,'emoji':emoji});
+
+  void deleteMessage(String messageId) =>
+      _send({'action':'delete_message','message_id':messageId});
+
+  void editMessage(String messageId, String newText) =>
+      _send({'action':'edit_message','message_id':messageId,'text':newText});
+
+  void fetchHistory({String? beforeMessageId, int limit = 30}) => _send({
+    'action':'fetch_history',
+    if (beforeMessageId != null) 'before_message_id': beforeMessageId,
+    'limit': limit,
+  });
+
+  void dispose() { disconnect(); _controller.close(); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICATION WEBSOCKET SERVICE
+// ─────────────────────────────────────────────────────────────
+
+class NotificationWebSocketService {
+  WebSocketChannel? _channel;
+  final _controller = StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get stream => _controller.stream;
+  bool get isConnected => _channel != null;
+
+  Future<void> connect() async {
+    await disconnect();
+    final token = await _Tokens.access();
+    if (token == null) return;
+    final uri = Uri.parse('${ApiConfig.ws}/ws/notifications/?token=$token');
+    _channel  = WebSocketChannel.connect(uri);
+    _channel!.stream.listen(
+      (raw) {
+        try { _controller.add(jsonDecode(raw as String) as Map<String, dynamic>); }
+        catch (_) {}
+      },
+      onDone:  () => _channel = null,
+      onError: (_) => _channel = null,
+    );
+  }
+
+  Future<void> disconnect() async {
+    await _channel?.sink.close();
+    _channel = null;
+  }
+
+  void markRead(String id) =>
+      _channel?.sink.add(jsonEncode({'action':'mark_read','id':id}));
+  void markAllRead() =>
+      _channel?.sink.add(jsonEncode({'action':'mark_all_read'}));
+
+  void dispose() { disconnect(); _controller.close(); }
 }

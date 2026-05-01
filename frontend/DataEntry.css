@@ -1,0 +1,278 @@
+/* Luxury Dark Mode + Scanline Effect + Form Styling */
+.luxury-bg {
+  background: linear-gradient(135deg, #181824 0%, #23243a 50%, #2d1e3a 100%);
+  min-height: 100vh;
+  color: #e0e0e0;
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+.luxury-scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03) 0px,
+    rgba(255,255,255,0.01) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: lighten;
+  opacity: 0.5;
+}
+.luxury-container {
+  max-width: 600px;
+  margin: 40px auto;
+  background: rgba(30, 32, 48, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05);
+  padding: 50px 40px;
+  position: relative;
+  z-index: 1;
+}
+.logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30px;
+}
+.logo-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  padding: 12px;
+  display: inline-block;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+}
+.title {
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+  font-family: 'Playfair Display', serif;
+}
+.subtitle {
+  text-align: center;
+  font-size: 1.05rem;
+  color: #b0b0b0;
+  font-weight: 500;
+  margin-bottom: 40px;
+  letter-spacing: 0.5px;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #a78bfa;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #3a3a5a;
+  border-radius: 16px;
+  font-size: 1rem;
+  background: #23243a;
+  color: #e0e0e0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #a78bfa;
+  background: #2d1e3a;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.1);
+}
+.submit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  padding: 18px 32px;
+  border-radius: 16px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.submit-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(102, 126, 234, 0.5);
+}
+.submit-btn:active {
+  transform: translateY(-2px) scale(0.98);
+}
+.submit-btn span::after {
+  content: '→';
+  font-size: 1.3rem;
+  margin-left: 10px;
+  transition: transform 0.3s;
+}
+.submit-btn:hover span::after {
+  transform: translateX(5px);
+}
+.error-message {
+  color: #f5576c;
+  background: #23243a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+  text-align: center;
+}
+.loading-overlay {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+.loading-content {
+  text-align: center;
+}
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 8px solid rgba(255, 255, 255, 0.2);
+  border-top: 8px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 24px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loading-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-top: 16px;
+}
+.modal {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  z-index: 3000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-content {
+  background: #23243a;
+  padding: 48px 40px;
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+}
+.modal-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.modal h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  color: #e0e0e0;
+  margin-bottom: 16px;
+}
+.modal p {
+  font-size: 1.05rem;
+  color: #b0b0b0;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+.lumora-brand {
+  text-align: center;
+  margin-top: 60px;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 1;
+}
+.lumora-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #a78bfa 0%, #7e22ce 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 8px;
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+.lumora-tagline {
+  color: #a78bfa;
+  font-size: 1rem;
+  margin-top: 16px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+@media (max-width: 768px) {
+  .luxury-container {
+    padding: 40px 28px;
+    margin: 20px auto;
+    border-radius: 24px;
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+  .lumora-text {
+    font-size: 2rem;
+    letter-spacing: 4px;
+  }
+  .logo-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+  .modal-content {
+    padding: 36px 28px;
+  }
+}
