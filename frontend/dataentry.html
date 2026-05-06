@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TCS — Data Entry Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --g1: #6DD5FA; --g2: #8E54E9; --g3: #F7971E; --g4: #FF5858;
+      --dark: #0B0B18; --card: #12111F; --card2: #1A1930;
+      --card3: #201F35;
+      --border: rgba(255,255,255,0.07);
+      --border-hi: rgba(255,255,255,0.13);
+      --text: #EEEEFF;
+      --muted: rgba(238,238,255,0.40);
+      --muted2: rgba(238,238,255,0.22);
+      --input-bg: #181728;
+      --radius: 14px; --radius-lg: 22px; --radius-xl: 28px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── AMBIENT BACKGROUND ── */
+    .bg-layer {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 55% 45% at 8% 5%,  rgba(142,84,233,.16) 0%, transparent 65%),
+        radial-gradient(ellipse 45% 40% at 92% 85%, rgba(109,213,250,.11) 0%, transparent 65%),
+        radial-gradient(ellipse 35% 30% at 75% 12%, rgba(247,151,30,.08)  0%, transparent 55%),
+        radial-gradient(ellipse 40% 35% at 20% 90%, rgba(255,88,88,.07)   0%, transparent 55%);
+    }
+
+    /* ── PAGE SHELL ── */
+    .page {
+      position: relative; z-index: 1;
+      display: flex; min-height: 100vh;
+    }
+
+    /* ════════════════════════════
+       SIDEBAR
+    ════════════════════════════ */
+    .sidebar {
+      display: none;
+      width: 300px; flex-shrink: 0;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 48px 28px;
+      flex-direction: column; gap: 32px;
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* logo */
+    .sb-logo { display: flex; align-items: center; gap: 14px; }
+
+    .sb-monogram {
+      width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+      color: #fff; letter-spacing: 1px;
+      box-shadow: 0 8px 32px rgba(142,84,233,.35);
+      animation: monoGlow 4s ease-in-out infinite;
+    }
+    @keyframes monoGlow {
+      0%,100% { box-shadow: 0 8px 32px rgba(142,84,233,.35); }
+      50%      { box-shadow: 0 8px 48px rgba(142,84,233,.60); }
+    }
+
+    .sb-brand { display: flex; flex-direction: column; gap: 2px; }
+    .sb-name {
+      font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--g1), var(--g2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .sb-sub { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .3px; }
+
+    /* divider */
+    .sb-divider { height: 1px; background: var(--border); }
+
+    /* steps */
+    .sb-steps-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--muted2); margin-bottom: 16px;
+    }
+    .sb-step {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .sb-step:last-child { border-bottom: none; }
+
+    .sb-step-num {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      border: 1.5px solid rgba(255,255,255,.1);
+      color: var(--muted2); background: var(--card2);
+      transition: all .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .sb-step-num.active {
+      border-color: var(--g2); color: #fff;
+      background: linear-gradient(135deg, var(--g2), var(--g1));
+      box-shadow: 0 4px 16px rgba(142,84,233,.35);
+    }
+    .sb-step-num.done {
+      border-color: #1D9E75; color: #5DCAA5;
+      background: rgba(29,158,117,.15);
+    }
+    .sb-step-text { flex: 1; padding-top: 4px; }
+    .sb-step-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .sb-step-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* note */
+    .sb-note {
+      background: rgba(109,213,250,.05);
+      border: 1px solid rgba(109,213,250,.12);
+      border-radius: var(--radius);
+      padding: 18px; flex: 1;
+    }
+    .sb-note-title {
+      font-size: 12px; font-weight: 700; color: rgba(109,213,250,.8);
+      margin-bottom: 8px;
+    }
+    .sb-note p { font-size: 12px; color: rgba(109,213,250,.55); line-height: 1.7; }
+
+    /* lumora */
+    .sb-lumora { text-align: center; margin-top: auto; }
+    .sb-lumora-word {
+      font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, rgba(167,139,250,.5), rgba(126,34,206,.5));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .sb-lumora-tag {
+      font-size: 9px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--muted2); margin-top: 4px;
+    }
+
+    /* ════════════════════════════
+       MAIN CONTENT
+    ════════════════════════════ */
+    .main {
+      flex: 1; min-width: 0;
+      padding: 40px 20px 80px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    .main-inner { width: 100%; max-width: 560px; }
+
+    /* ── Mobile header ── */
+    .mob-header {
+      text-align: center;
+      padding-bottom: 36px;
+      animation: fadeDown .65s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .mob-mono {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 72px; height: 72px; border-radius: 22px; margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+      font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
+      color: #fff; letter-spacing: 2px;
+      box-shadow: 0 12px 48px rgba(142,84,233,.40), 0 0 0 1px rgba(255,255,255,.08);
+      animation: monoGlow 4s ease-in-out infinite;
+    }
+
+    .mob-site-name {
+      font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800;
+      letter-spacing: -0.5px; line-height: 1;
+      background: linear-gradient(135deg, var(--g1) 0%, var(--g2) 40%, var(--g3) 75%, var(--g4) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 8px;
+    }
+    .mob-site-sub { font-size: .85rem; color: var(--muted); font-weight: 500; line-height: 1.5; }
+
+    /* ── Progress bar (mobile) ── */
+    .progress-wrap {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 28px;
+      animation: fadeUp .5s .15s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .prog-step {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.08);
+      overflow: hidden; position: relative;
+    }
+    .prog-step-fill {
+      height: 100%; width: 0; border-radius: 2px;
+      background: linear-gradient(90deg, var(--g1), var(--g2));
+      transition: width .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    .prog-step.active .prog-step-fill  { width: 100%; }
+    .prog-step.done   .prog-step-fill  { width: 100%; background: linear-gradient(90deg,#1D9E75,#5DCAA5); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      box-shadow: 0 2px 0 rgba(255,255,255,.03) inset, 0 24px 64px rgba(0,0,0,.45);
+      animation: cardRise .65s .08s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes cardRise {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* section head */
+    .sec-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 28px;
+    }
+    .sec-accent {
+      width: 3px; height: 24px; border-radius: 2px; flex-shrink: 0;
+      background: linear-gradient(180deg, var(--g2), var(--g1));
+    }
+    .sec-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--text); }
+
+    /* ── ROLE CARDS ── */
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 0; }
+
+    .role-card {
+      position: relative; overflow: hidden;
+      background: var(--card2);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 24px 16px;
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+      user-select: none;
+    }
+    .role-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: linear-gradient(135deg, rgba(142,84,233,.10), rgba(109,213,250,.06));
+      transition: opacity .25s;
+    }
+    .role-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+    .role-card:hover::before { opacity: 1; }
+    .role-card.selected {
+      border-color: var(--g2);
+      background: rgba(142,84,233,.10);
+      box-shadow: 0 0 0 1px rgba(142,84,233,.25), 0 12px 32px rgba(142,84,233,.18);
+      transform: translateY(-2px);
+    }
+    .role-card.selected::before { opacity: 1; }
+
+    .role-check {
+      position: absolute; top: 12px; right: 12px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--g2), var(--g1));
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(.5) rotate(-20deg);
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .role-card.selected .role-check { opacity: 1; transform: scale(1) rotate(0); }
+    .role-check svg { width: 11px; height: 11px; stroke: white; stroke-width: 2.5; fill: none; }
+
+    .role-icon-wrap {
+      width: 56px; height: 56px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .role-card:hover .role-icon-wrap,
+    .role-card.selected .role-icon-wrap { transform: scale(1.08); }
+
+    .role-icon-wrap.student { background: linear-gradient(135deg, rgba(109,213,250,.18), rgba(37,117,252,.18)); }
+    .role-icon-wrap.staff   { background: linear-gradient(135deg, rgba(247,151,30,.18), rgba(255,88,88,.18)); }
+
+    .role-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text); }
+    .role-desc { font-size: .72rem; color: var(--muted); text-align: center; line-height: 1.4; }
+
+    /* ── DIVIDER ── */
+    .divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 28px 0 24px;
+    }
+    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.06); }
+    .divider-label { font-size: .72rem; font-weight: 700; color: var(--muted2); letter-spacing: .8px; text-transform: uppercase; }
+
+    /* ── FORM FIELDS ── */
+    .form-grid { display: flex; flex-direction: column; gap: 16px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+
+    .field label {
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .7px;
+      color: var(--muted);
+    }
+    .field label.c1 { color: rgba(109,213,250,.7); }
+    .field label.c2 { color: rgba(142,84,233,.85); }
+    .field label.c3 { color: rgba(247,151,30,.8); }
+    .field label.c4 { color: rgba(255,88,88,.8); }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--input-bg);
+      border: 1.5px solid rgba(255,255,255,.07);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .92rem; font-weight: 500;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      appearance: none; -webkit-appearance: none;
+    }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+    }
+    .field select option { background: #1A1930; color: #EEEEFF; }
+    .field input::placeholder { color: rgba(238,238,255,.18); }
+    .field input:focus,
+    .field select:focus {
+      border-color: rgba(142,84,233,.55);
+      background: #1D1C33;
+      box-shadow: 0 0 0 4px rgba(142,84,233,.12);
+    }
+    .field input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(.3); cursor: pointer;
+    }
+
+    /* ── STAFF TYPE PILLS ── */
+    .staff-pills-label {
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .7px;
+      color: rgba(247,151,30,.8); margin-bottom: 10px;
+    }
+
+    .staff-pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+
+    .s-pill {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 8px;
+      background: var(--card2);
+      border: 1.5px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .2s cubic-bezier(.4,0,.2,1);
+      text-align: center;
+    }
+    .s-pill:hover { border-color: rgba(247,151,30,.3); background: rgba(247,151,30,.05); transform: translateY(-2px); }
+    .s-pill.selected {
+      border-color: var(--g3); background: rgba(247,151,30,.10);
+      box-shadow: 0 0 0 1px rgba(247,151,30,.2), 0 8px 24px rgba(247,151,30,.12);
+      transform: translateY(-2px);
+    }
+    .s-pill-ico { font-size: 20px; line-height: 1; }
+    .s-pill-lbl { font-size: .65rem; font-weight: 700; color: var(--muted); letter-spacing: .2px; }
+    .s-pill.selected .s-pill-lbl { color: var(--g3); }
+
+    /* ── FIELDS PANEL ── */
+    .fields-panel { display: none; }
+    .fields-panel.visible {
+      display: block;
+      animation: fadeUp .4s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    /* ── SUBMIT BUTTON ── */
+    .submit-wrap { margin-top: 28px; }
+
+    .submit-btn {
+      width: 100%; padding: 16px 32px;
+      border: none; border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--g1) 0%, var(--g2) 40%, var(--g3) 75%, var(--g4) 100%);
+      background-size: 200% 200%;
+      color: #fff;
+      font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800;
+      letter-spacing: .5px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      position: relative; overflow: hidden;
+      transition: transform .25s, box-shadow .25s, background-position .4s;
+      box-shadow: 0 10px 40px rgba(142,84,233,.30);
+    }
+    .submit-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 52px rgba(142,84,233,.45);
+      background-position: right center;
+    }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+    .submit-btn svg { width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 2; flex-shrink: 0; }
+
+    /* info note */
+    .info-note {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px; margin-top: 14px;
+    }
+    .info-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; opacity: .5; }
+    .info-note p { font-size: .75rem; color: var(--muted2); line-height: 1.6; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      padding: 13px 22px; border-radius: 14px;
+      font-size: .88rem; font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+      pointer-events: none; opacity: 0;
+      transition: all .4s cubic-bezier(.34,1.56,.64,1);
+      z-index: 9999; white-space: nowrap;
+      box-shadow: 0 16px 40px rgba(0,0,0,.5);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success {
+      background: linear-gradient(135deg, #162e22, #1b3d2a);
+      border: 1px solid rgba(93,202,165,.25); color: #6EE7B7;
+    }
+    .toast.error {
+      background: linear-gradient(135deg, #2e1616, #3d1b1b);
+      border: 1px solid rgba(248,113,113,.25); color: #FCA5A5;
+    }
+    .toast svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── LOADING ── */
+    .loading {
+      position: fixed; inset: 0;
+      background: rgba(11,11,24,.88);
+      backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 8000; flex-direction: column; gap: 18px;
+    }
+    .loading.show { display: flex; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,.06);
+      border-top-color: var(--g2); border-right-color: var(--g1);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { font-size: .88rem; color: var(--muted); font-weight: 500; }
+
+    /* ── SUCCESS ── */
+    .success-screen {
+      display: none; text-align: center; padding: 52px 24px;
+      animation: fadeUp .6s cubic-bezier(.16,1,.3,1) both;
+    }
+    .success-screen.show { display: block; }
+
+    .success-ring {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: rgba(29,158,117,.12);
+      border: 2px solid rgba(93,202,165,.35);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 40px rgba(93,202,165,.15);
+    }
+    .success-ring svg { width: 38px; height: 38px; stroke: #6EE7B7; fill: none; stroke-width: 2.5; }
+    .success-title { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:800; color:var(--text); margin-bottom:10px; }
+    .success-sub { font-size:.88rem; color:var(--muted); line-height:1.7; margin-bottom:24px; }
+    .success-id {
+      display: inline-block; padding: 8px 20px;
+      background: rgba(109,213,250,.07);
+      border: 1px solid rgba(109,213,250,.18);
+      border-radius: 10px;
+      font-weight: 700; font-size: .9rem; color: var(--g1);
+      margin-bottom: 32px; letter-spacing: .5px;
+    }
+    .another-btn {
+      padding: 12px 28px;
+      background: var(--card2);
+      border: 1.5px solid var(--border-hi);
+      border-radius: var(--radius); color: var(--text);
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: all .2s;
+    }
+    .another-btn:hover { border-color: var(--g2); background: rgba(142,84,233,.1); }
+
+    /* ── LUMORA FOOTER (mobile) ── */
+    .mob-lumora { text-align: center; margin-top: 52px; }
+    .mob-lumora-word {
+      font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; letter-spacing: 8px;
+      background: linear-gradient(135deg, rgba(167,139,250,.45), rgba(126,34,206,.45));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .mob-lumora-tag { font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted2); margin-top: 5px; }
+
+    /* ════════════════════════════
+       BREAKPOINTS
+    ════════════════════════════ */
+
+    @media (max-width: 420px) {
+      .main { padding: 28px 14px 60px; }
+      .card { padding: 24px 18px; border-radius: 20px; }
+      .mob-site-name { font-size: 1.8rem; }
+      .row-2 { grid-template-columns: 1fr; }
+      .staff-pills { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 640px) {
+      .main { padding: 52px 36px 80px; }
+      .card { padding: 42px 38px; }
+      .mob-site-name { font-size: 2.6rem; }
+      .role-card { padding: 28px 20px; }
+      .role-icon-wrap { width: 64px; height: 64px; font-size: 30px; border-radius: 20px; }
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar { display: flex; }
+      .mob-header { display: none; }
+      .progress-wrap { display: none; }
+      .mob-lumora { display: none; }
+      .main { padding: 52px 48px 80px; align-items: flex-start; }
+      .main-inner { max-width: 580px; }
+      .card { padding: 44px 42px; }
+    }
+
+    @media (min-width: 1280px) {
+      .sidebar { width: 320px; padding: 52px 32px; }
+      .main { padding: 60px 64px 80px; }
+    }
+
+    @media (min-width: 1536px) {
+      .sidebar { width: 360px; }
+      .main-inner { max-width: 620px; }
+    }
+
+    @media (hover: none) {
+      .role-card:hover { transform: none; border-color: var(--border); }
+      .s-pill:hover { transform: none; border-color: rgba(255,255,255,.06); background: var(--card2); }
+      .submit-btn:hover { transform: none; box-shadow: 0 10px 40px rgba(142,84,233,.30); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-layer"></div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Submitting your details…</p>
+  </div>
+
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" id="toast-icon"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+    <span id="toast-msg"></span>
+  </div>
+
+  <div class="page">
+
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-monogram">TC</div>
+        <div class="sb-brand">
+          <div class="sb-name">TCS</div>
+          <div class="sb-sub">Data Entry Portal</div>
+        </div>
+      </div>
+
+      <div class="sb-divider"></div>
+
+      <div>
+        <div class="sb-steps-label">Registration Steps</div>
+        <div class="sb-step">
+          <div class="sb-step-num active" id="sc1">1</div>
+          <div class="sb-step-text">
+            <div class="sb-step-name">Select Role</div>
+            <div class="sb-step-desc">Choose student or staff</div>
+          </div>
+        </div>
+        <div class="sb-step">
+          <div class="sb-step-num" id="sc2">2</div>
+          <div class="sb-step-text">
+            <div class="sb-step-name">Fill Details</div>
+            <div class="sb-step-desc">Enter your personal info</div>
+          </div>
+        </div>
+        <div class="sb-step">
+          <div class="sb-step-num" id="sc3">3</div>
+          <div class="sb-step-text">
+            <div class="sb-step-name">Submit</div>
+            <div class="sb-step-desc">Confirm and register</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-note">
+        <div class="sb-note-title">Why are we collecting this?</div>
+        <p>Your details verify your identity when logging into the TCS StudentHub app. After registering, use your ID and date of birth to log in.</p>
+      </div>
+
+      <div class="sb-lumora">
+        <div class="sb-lumora-word">LUMORA</div>
+        <div class="sb-lumora-tag">Powered by Innovation</div>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN ══ -->
+    <main class="main">
+      <div class="main-inner">
+
+        <!-- Mobile header -->
+        <div class="mob-header">
+          <div class="mob-mono">TC</div>
+          <div class="mob-site-name">TCS</div>
+          <div class="mob-site-sub">Taylors College Social &amp; Arcade · Self-Service Registration</div>
+        </div>
+
+        <!-- Progress dots (mobile) -->
+        <div class="progress-wrap">
+          <div class="prog-step active" id="p1"><div class="prog-step-fill"></div></div>
+          <div class="prog-step" id="p2"><div class="prog-step-fill"></div></div>
+          <div class="prog-step" id="p3"><div class="prog-step-fill"></div></div>
+        </div>
+
+        <!-- Card -->
+        <div class="card" id="main-card">
+
+          <div class="sec-head">
+            <div class="sec-accent"></div>
+            <div class="sec-title">Who are you?</div>
+          </div>
+
+          <!-- Role selection -->
+          <div class="role-grid">
+            <div class="role-card" id="role-student" onclick="selectRole('student')">
+              <div class="role-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="role-icon-wrap student">🎓</div>
+              <div class="role-name">Student</div>
+              <div class="role-desc">Enrolled at Taylors College</div>
+            </div>
+            <div class="role-card" id="role-staff" onclick="selectRole('staff')">
+              <div class="role-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="role-icon-wrap staff">👔</div>
+              <div class="role-name">Staff</div>
+              <div class="role-desc">Teaching or non-teaching</div>
+            </div>
+          </div>
+
+          <!-- ── STUDENT FIELDS ── -->
+          <div class="fields-panel" id="studentFields">
+            <div class="divider">
+              <div class="divider-line"></div>
+              <div class="divider-label">Student Details</div>
+              <div class="divider-line"></div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label class="c1">Full Legal Name</label>
+                <input type="text" id="fullName" placeholder="As it appears on your ID card" autocomplete="name">
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label class="c2">Preferred Name</label>
+                  <input type="text" id="preferredName" placeholder="What we call you">
+                </div>
+                <div class="field">
+                  <label class="c2">Student ID</label>
+                  <input type="text" id="studentId" placeholder="e.g. 0123456">
+                </div>
+              </div>
+              <div class="field">
+                <label class="c3">Date of Birth</label>
+                <input type="date" id="dob">
+              </div>
+              <div class="field">
+                <label class="c3">Type of Course</label>
+                <select id="courseType">
+                  <option value="">Select your programme…</option>
+                  <option value="standard">📚 Standard Programme</option>
+                  <option value="intensive">⚡ Intensive Programme</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="c4">Date of Commencement</label>
+                <input type="date" id="commencement">
+              </div>
+            </div>
+          </div>
+
+          <!-- ── STAFF FIELDS ── -->
+          <div class="fields-panel" id="staffFields">
+            <div class="divider">
+              <div class="divider-line"></div>
+              <div class="divider-label">Staff Details</div>
+              <div class="divider-line"></div>
+            </div>
+            <div class="staff-pills-label">Department / Role</div>
+            <div class="staff-pills">
+              <div class="s-pill" onclick="selectStaffType(this,'teaching')">
+                <span class="s-pill-ico">👨‍🏫</span>
+                <span class="s-pill-lbl">Teaching</span>
+              </div>
+              <div class="s-pill" onclick="selectStaffType(this,'security')">
+                <span class="s-pill-ico">🔒</span>
+                <span class="s-pill-lbl">Security</span>
+              </div>
+              <div class="s-pill" onclick="selectStaffType(this,'cleaning')">
+                <span class="s-pill-ico">🧹</span>
+                <span class="s-pill-lbl">Cleaning</span>
+              </div>
+              <div class="s-pill" onclick="selectStaffType(this,'administrative')">
+                <span class="s-pill-ico">📋</span>
+                <span class="s-pill-lbl">Admin</span>
+              </div>
+              <div class="s-pill" onclick="selectStaffType(this,'reception')">
+                <span class="s-pill-ico">📞</span>
+                <span class="s-pill-lbl">Reception</span>
+              </div>
+            </div>
+            <input type="hidden" id="staffType">
+            <div class="form-grid">
+              <div class="field">
+                <label class="c1">Staff ID</label>
+                <input type="text" id="staffId" placeholder="Your staff identification number">
+              </div>
+              <div class="field">
+                <label class="c2">Full Legal Name</label>
+                <input type="text" id="staffFullName" placeholder="As it appears on your ID card" autocomplete="name">
+              </div>
+              <div class="field">
+                <label class="c2">Preferred Name</label>
+                <input type="text" id="staffPreferredName" placeholder="What we call you">
+              </div>
+              <div class="field">
+                <label class="c3">Date of Birth</label>
+                <input type="date" id="staffDob">
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="submit-wrap" id="submitWrap" style="display:none">
+            <button class="submit-btn" id="submitBtn" type="button" onclick="handleSubmit()">
+              <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+              Submit Registration
+            </button>
+            <div class="info-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p>Your details are used solely for identity verification within TCS. We do not share your information with third parties.</p>
+            </div>
+          </div>
+
+        </div><!-- /card -->
+
+        <!-- Success -->
+        <div class="success-screen" id="successScreen">
+          <div class="success-ring">
+            <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="success-title">You're registered! 🎉</div>
+          <p class="success-sub">Your details have been submitted successfully.<br>You can now log in to TCS using your ID and date of birth.</p>
+          <div class="success-id" id="successId"></div>
+          <br>
+          <button class="another-btn" onclick="resetForm()">Submit another entry</button>
+        </div>
+
+        <!-- Mobile lumora -->
+        <div class="mob-lumora">
+          <div class="mob-lumora-word">LUMORA</div>
+          <div class="mob-lumora-tag">Powered by Innovation</div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let selectedRole = '', selectedStaffType = '';
+
+    function setStep(step) {
+      // sidebar circles
+      ['sc1','sc2','sc3'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'sb-step-num';
+        if (i + 1 < step)       { el.classList.add('done');   el.textContent = '✓'; }
+        else if (i + 1 === step) { el.classList.add('active'); el.textContent = i + 1; }
+        else                      { el.textContent = i + 1; }
+      });
+      // mobile progress bars
+      ['p1','p2','p3'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'prog-step';
+        if (i + 1 < step)        el.classList.add('done');
+        else if (i + 1 === step) el.classList.add('active');
+      });
+    }
+
+    function selectRole(role) {
+      selectedRole = role;
+      document.getElementById('role-student').classList.toggle('selected', role === 'student');
+      document.getElementById('role-staff').classList.toggle('selected', role === 'staff');
+      document.getElementById('studentFields').classList.toggle('visible', role === 'student');
+      document.getElementById('staffFields').classList.toggle('visible', role === 'staff');
+      document.getElementById('submitWrap').style.display = 'block';
+      setStep(2);
+      setTimeout(() => {
+        const panel = document.getElementById(role === 'student' ? 'studentFields' : 'staffFields');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 120);
+    }
+
+    function selectStaffType(el, type) {
+      selectedStaffType = type;
+      document.getElementById('staffType').value = type;
+      document.querySelectorAll('.s-pill').forEach(p => p.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    async function handleSubmit() {
+      if (!selectedRole) { showToast('Please select your role first.', false); return; }
+
+      let url = '', payload = {};
+
+      if (selectedRole === 'student') {
+        const fn  = document.getElementById('fullName').value.trim();
+        const pn  = document.getElementById('preferredName').value.trim();
+        const sid = document.getElementById('studentId').value.trim();
+        const dob = document.getElementById('dob').value;
+        const ct  = document.getElementById('courseType').value;
+        const com = document.getElementById('commencement').value;
+        if (!fn || !sid || !dob || !ct || !com) { showToast('Please fill in all required fields.', false); return; }
+        url = 'http://localhost:8000/api/dataentry/student/';
+        payload = { full_name: fn, preferred_name: pn || fn.split(' ')[0], student_id: sid, date_of_birth: dob, course_type: ct, date_of_commencement: com };
+      } else {
+        const st  = document.getElementById('staffType').value;
+        const sid = document.getElementById('staffId').value.trim();
+        const fn  = document.getElementById('staffFullName').value.trim();
+        const pn  = document.getElementById('staffPreferredName').value.trim();
+        const dob = document.getElementById('staffDob').value;
+        if (!st || !sid || !fn || !dob) { showToast('Please fill in all required fields.', false); return; }
+        url = 'http://localhost:8000/api/dataentry/staff/';
+        payload = { staff_type: st, staff_id: sid, full_name: fn, preferred_name: pn || fn.split(' ')[0], date_of_birth: dob };
+      }
+
+      document.getElementById('loading').classList.add('show');
+      document.getElementById('submitBtn').disabled = true;
+      setStep(3);
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify(payload)
+        });
+        document.getElementById('loading').classList.remove('show');
+        if (res.ok) {
+          const idField = selectedRole === 'student' ? payload.student_id : payload.staff_id;
+          document.getElementById('successId').textContent = 'ID: ' + idField;
+          document.getElementById('main-card').style.display = 'none';
+          document.getElementById('successScreen').classList.add('show');
+          showToast('Registration submitted!', true);
+        } else if (res.status === 409) {
+          const err = await res.json();
+          showToast(err.detail || 'This ID already exists.', false);
+          document.getElementById('submitBtn').disabled = false;
+        } else {
+          const err = await res.json();
+          showToast('Failed: ' + (err.detail || JSON.stringify(err)), false);
+          document.getElementById('submitBtn').disabled = false;
+        }
+      } catch (e) {
+        document.getElementById('loading').classList.remove('show');
+        showToast('Network error. Is Django running?', false);
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function showToast(msg, success) {
+      const t = document.getElementById('toast');
+      const i = document.getElementById('toast-icon');
+      document.getElementById('toast-msg').textContent = msg;
+      t.className = 'toast ' + (success ? 'success' : 'error');
+      i.innerHTML = success
+        ? '<path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/>'
+        : '<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3800);
+    }
+
+    function resetForm() {
+      selectedRole = ''; selectedStaffType = '';
+      document.getElementById('main-card').style.display = 'block';
+      document.getElementById('successScreen').classList.remove('show');
+      document.getElementById('role-student').classList.remove('selected');
+      document.getElementById('role-staff').classList.remove('selected');
+      document.getElementById('studentFields').classList.remove('visible');
+      document.getElementById('staffFields').classList.remove('visible');
+      document.getElementById('submitWrap').style.display = 'none';
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('staffType').value = '';
+      document.querySelectorAll('.s-pill').forEach(p => p.classList.remove('selected'));
+      document.querySelectorAll('input[type="text"], input[type="date"]').forEach(el => el.value = '');
+      document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+      setStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    setStep(1);
+  </script>
+</body>
+</html>
