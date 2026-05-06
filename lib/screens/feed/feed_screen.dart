@@ -1,4 +1,17 @@
 // lib/screens/feed/feed_screen.dart
+//
+// §6 fixes:
+//   1. Media renders inline (CachedNetworkImage / video thumb with play
+//      overlay) instead of delegating to MediaItemView. Every slide has a
+//      placeholder + error fallback so the card center is never blank.
+//   2. Fweets get their distinctive colored block with bold centered text
+//      (matching the create page), so they actually appear in the feed.
+//   3. Layout is Instagram-style: author row on top (no longer overlaid),
+//      then media/fweet block, then caption, then location chip, then
+//      actions. Caption and location display naturally with the media.
+//   4. New _ago format: "5m ago" / "3h ago" / "2d ago", then actual date
+//      (e.g. "May 7" or "May 7, 2025") after 7 days. No more "X weeks ago".
+
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +20,6 @@ import 'package:tcs_app/highlight_card.dart';
 import 'package:tcs_app/screens/event_details.dart';
 import 'package:tcs_app/screens/suggestion_box_screen.dart';
 import 'package:tcs_app/search/search_screen.dart';
-import 'package:tcs_app/widgets/media_item_view.dart';
 import '../../services/api_service.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
 
@@ -191,8 +203,6 @@ class _FeedScreenState extends State<FeedScreen>
         builder: (_) => EventDetailsScreen(eventId: id, initial: item),
       ));
     } else {
-      // Announcement detail screen lands in a later phase; snackbar
-      // placeholder for now so the tap isn't dead.
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(item['title']?.toString() ?? 'Announcement',
             style: const TextStyle(fontFamily: 'Momo')),
@@ -587,8 +597,16 @@ class _AnimatedPostEntryState extends State<_AnimatedPostEntry>
     child: SlideTransition(position: _slide, child: widget.child));
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // POST CARD
+// ─────────────────────────────────────────────────────────────
+// New layout (top → bottom):
+//   1. Author row (avatar, name, time, role badge)
+//   2. Visual block — media carousel OR fweet colored block (whichever
+//      applies). Plain text posts skip this.
+//   3. Caption text (skipped for fweets — the text lives in the block)
+//   4. Location chip
+//   5. Action bar (like / comment / share / bookmark)
 // ─────────────────────────────────────────────────────────────
 
 class _PostCard extends StatefulWidget {
@@ -642,14 +660,30 @@ class _PostCardState extends State<_PostCard>
     }
   }
 
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  /// Format: "5m ago" / "3h ago" / "2d ago" within the first week,
+  /// then the actual date ("May 7" or "May 7, 2025") after that.
+  /// Never returns "weeks ago".
   static String _ago(String iso) {
     if (iso.isEmpty) return '';
     try {
-      final d = DateTime.now().difference(DateTime.parse(iso).toLocal());
-      if (d.inSeconds < 60) return 'Just now';
-      if (d.inMinutes < 60) return '${d.inMinutes}m';
-      if (d.inHours   < 24) return '${d.inHours}h';
-      return '${d.inDays}d';
+      final dt  = DateTime.parse(iso).toLocal();
+      final now = DateTime.now();
+      final d   = now.difference(dt);
+      if (d.isNegative)        return 'Just now';
+      if (d.inSeconds < 60)    return 'Just now';
+      if (d.inMinutes < 60)    return '${d.inMinutes}m ago';
+      if (d.inHours   < 24)    return '${d.inHours}h ago';
+      if (d.inDays    < 7)     return '${d.inDays}d ago';
+      // After 7 days → exact date
+      if (dt.year == now.year) {
+        return '${_months[dt.month - 1]} ${dt.day}';
+      }
+      return '${_months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) { return ''; }
   }
 
@@ -659,14 +693,25 @@ class _PostCardState extends State<_PostCard>
     return '$n';
   }
 
+  /// Parse "#RRGGBB" / "#AARRGGBB" / "RRGGBB" → Color, or null.
+  static Color? _parseHex(String hex) {
+    if (hex.isEmpty) return null;
+    var h = hex.replaceAll('#', '').trim();
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    try { return Color(int.parse(h, radix: 16)); }
+    catch (_) { return null; }
+  }
+
   @override
   Widget build(BuildContext context) {
     final p        = widget.post;
-    final name     = p['author_name']   as String? ?? 'Unknown';
-    final role     = p['author_role']   as String? ?? '';
-    final avatar   = p['author_avatar'] as String? ?? '';
-    final content  = p['content']       as String? ?? '';
-    final location = p['location']      as String? ?? '';
+    final name     = (p['author_name']     as String? ?? 'Unknown').trim();
+    final role     = (p['author_role']     as String? ?? '').trim();
+    final avatar   = (p['author_avatar']   as String? ?? '').trim();
+    final content  = (p['content']         as String? ?? '').trim();
+    final location = (p['location']        as String? ?? '').trim();
+    final bgHex    = (p['background_color'] as String? ?? '').trim();
     final likes    = p['like_count']    as int?    ?? 0;
     final comments = p['comment_count'] as int?    ?? 0;
     final shares   = p['share_count']   as int?    ?? 0;
@@ -675,12 +720,14 @@ class _PostCardState extends State<_PostCard>
     final timeAgo  = _ago(p['created_at'] as String? ?? '');
     final initial  = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final grad     = _roleGrad(role);
+    final bgColor  = _parseHex(bgHex);
 
-    // Each media item: {url, thumbnail_url, media_type, order, id}.
-    // We pass the whole list through so MediaItemView can branch on
-    // media_type and render images/videos appropriately.
-    final media    = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
-    final hasMedia = media.isNotEmpty;
+    final media      = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
+    final hasMedia   = media.isNotEmpty;
+    // A fweet renders as a colored block. We require a non-empty caption
+    // because the block centers on the text; an empty fweet would just
+    // be a blank colored box.
+    final hasFweetBg = isFweet && bgColor != null && content.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -697,80 +744,24 @@ class _PostCardState extends State<_PostCard>
         borderRadius: BorderRadius.circular(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // ── Media carousel (1–5 photos and/or 1 video) ─────
-          if (hasMedia)
-            _buildMediaCarousel(media, avatar, initial, name, timeAgo, isFweet, grad, role),
+          // 1. AUTHOR ROW — always at the top (no longer overlaid on media)
+          _buildAuthorRow(avatar, initial, name, role, grad, isFweet, timeAgo),
 
-          // ── Text-only author row ────────────────────────────
-          if (!hasMedia)
-            Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Row(children: [
-                Stack(children: [
-                  Container(width: 44, height: 44,
-                    decoration: BoxDecoration(shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: grad,
-                          begin: Alignment.topLeft, end: Alignment.bottomRight)),
-                    child: avatar.isNotEmpty
-                        ? ClipOval(child: CachedNetworkImage(
-                            imageUrl: avatar, fit: BoxFit.cover,
-                            width: 44, height: 44,
-                            placeholder: (_, __) => Container(color: grad.first.withOpacity(0.3)),
-                            errorWidget: (_, __, ___) => Center(child: Text(initial,
-                                style: const TextStyle(color: Colors.white,
-                                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                                    fontSize: 17)))))
-                        : Center(child: Text(initial,
-                            style: const TextStyle(color: Colors.white,
-                                fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                                fontSize: 17)))),
-                  Positioned(bottom: 1, right: 1, child: Container(
-                    width: 13, height: 13,
-                    decoration: BoxDecoration(color: _kMint,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2)))),
-                ]),
-                const SizedBox(width: 11),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  Row(children: [
-                    Flexible(child: Text(name, maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontFamily: 'Arch',
-                            fontWeight: FontWeight.bold, fontSize: 14,
-                            color: _kInk))),
-                    if (isFweet) ...[
-                      const SizedBox(width: 5),
-                      Container(padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: _kCoral.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(5)),
-                        child: const Text('⚡ Fweet', style: TextStyle(
-                            fontFamily: 'Arch', fontSize: 9,
-                            fontWeight: FontWeight.bold, color: _kCoral))),
-                    ],
-                  ]),
-                  const SizedBox(height: 2),
-                  Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 11, color: _kSlate)),
-                ])),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: grad.map((c) => c.withOpacity(0.1)).toList()),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: grad.first.withOpacity(0.25))),
-                  child: Text(role.replaceAll('_', ' '),
-                    style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 9,
-                        color: grad.last))),
-              ])),
+          // 2. VISUAL BLOCK — media carousel OR fweet colored block
+          if (hasMedia) ...[
+            const SizedBox(height: 12),
+            _buildMediaCarousel(media),
+          ] else if (hasFweetBg) ...[
+            const SizedBox(height: 12),
+            _buildFweetBlock(content, bgColor!),
+          ],
 
-          // ── Content ────────────────────────────────────────
-          if (content.isNotEmpty)
+          // 3. CAPTION — shown for everything except fweet blocks
+          //    (fweet text lives inside the block already)
+          if (content.isNotEmpty && !hasFweetBg) ...[
+            SizedBox(height: hasMedia ? 14 : 12),
             Padding(
-              padding: EdgeInsets.fromLTRB(16, hasMedia ? 14 : 12, 16, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Text(content,
@@ -782,22 +773,40 @@ class _PostCardState extends State<_PostCard>
                       color: _kInk.withOpacity(0.85), height: 1.6)),
               ),
             ),
+          ],
 
-          // ── Location ───────────────────────────────────────
-          if (location.isNotEmpty)
-            Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(children: [
-                Icon(Icons.location_on_rounded, size: 12, color: _kCoral),
-                const SizedBox(width: 4),
-                Text(location, style: TextStyle(
-                    fontFamily: 'Momo', fontSize: 11, color: _kSlate)),
-              ])),
+          // 4. LOCATION CHIP
+          if (location.isNotEmpty) ...[
+            SizedBox(height: (content.isNotEmpty && !hasFweetBg) ? 10 : 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _kCoral.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _kCoral.withOpacity(0.25))),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.location_on_rounded, size: 12, color: _kCoral),
+                    const SizedBox(width: 4),
+                    Flexible(child: Text(location,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontFamily: 'Momo',
+                            fontSize: 11, fontWeight: FontWeight.w600,
+                            color: _kCoral))),
+                  ]),
+                ),
+              ),
+            ),
+          ],
 
-          // ── Divider ────────────────────────────────────────
+          // Divider
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Divider(height: 1, color: Colors.grey.shade100)),
 
-          // ── Actions ────────────────────────────────────────
+          // 5. ACTIONS
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
             child: Row(children: [
@@ -837,151 +846,266 @@ class _PostCardState extends State<_PostCard>
     );
   }
 
-  // ── Media carousel widget ─────────────────────────────────
-  // Supports 1–5 mixed image/video items with swipe carousel, dot
-  // indicators, and the author row overlaid on the bottom. Each page
-  // is rendered by MediaItemView which branches on `media_type` —
-  // images are CachedNetworkImage, videos show a thumbnail with a
-  // play badge and open FullscreenVideoPlayer on tap.
+  // ─────────────────────────────────────────────────────────
+  // AUTHOR ROW
+  // ─────────────────────────────────────────────────────────
 
-  Widget _buildMediaCarousel(
-    List<Map<String, dynamic>> media,
-    String avatar,
-    String initial,
-    String name,
-    String timeAgo,
-    bool isFweet,
-    List<Color> grad,
-    String role,
-  ) {
-    final multi = media.length > 1;
-    return Stack(children: [
-      // Carousel
-      SizedBox(
-        height: 300,
-        child: PageView.builder(
-          itemCount: media.length,
-          onPageChanged: (p) => setState(() => _mediaPage = p),
-          itemBuilder: (_, i) => MediaItemView(
-            item:   media[i],
-            height: 300,
-          ),
-        ),
-      ),
-
-      // Gradient overlay at bottom
-      Positioned(bottom: 0, left: 0, right: 0,
-        child: IgnorePointer(child: Container(height: 140,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [Colors.black.withOpacity(0.78),
-                       Colors.black.withOpacity(0.2),
-                       Colors.transparent],
-              stops: const [0.0, 0.6, 1.0]))))),
-
-      // Page counter badge (top-right) — only when multiple items
-      if (multi)
-        Positioned(top: 12, right: 12,
-          child: IgnorePointer(child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
-                borderRadius: BorderRadius.circular(20)),
-            child: Text('${_mediaPage + 1} / ${media.length}',
-                style: const TextStyle(color: Colors.white,
-                    fontFamily: 'Momo', fontSize: 11,
-                    fontWeight: FontWeight.bold))))),
-
-      // Dot indicators (bottom-centre, above author row)
-      if (multi)
-        Positioned(bottom: 54, left: 0, right: 0,
-          child: IgnorePointer(child: Row(mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(media.length, (i) {
-              final active = i == _mediaPage;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: active ? 18 : 6, height: 6,
-                decoration: BoxDecoration(
-                  color: active ? Colors.white : Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(3)));
-            })))),
-
-      // Author row overlay
-      Positioned(bottom: 14, left: 14, right: 14,
-        child: IgnorePointer(child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          // Avatar
-          Container(width: 38, height: 38,
+  Widget _buildAuthorRow(String avatar, String initial, String name,
+      String role, List<Color> grad, bool isFweet, String timeAgo) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Row(children: [
+        // Avatar
+        Stack(children: [
+          Container(width: 44, height: 44,
             decoration: BoxDecoration(shape: BoxShape.circle,
-              border: Border.all(
-                  color: Colors.white.withOpacity(0.85), width: 2.5)),
-            child: ClipOval(child: avatar.isNotEmpty
-                ? CachedNetworkImage(
+              gradient: LinearGradient(colors: grad,
+                  begin: Alignment.topLeft, end: Alignment.bottomRight)),
+            child: avatar.isNotEmpty
+                ? ClipOval(child: CachedNetworkImage(
                     imageUrl: avatar, fit: BoxFit.cover,
-                    width: 38, height: 38,
-                    placeholder: (_, __) => Container(
-                        color: grad.first.withOpacity(0.5),
-                        child: Center(child: Text(initial,
-                            style: const TextStyle(color: Colors.white,
-                                fontFamily: 'Arch',
-                                fontWeight: FontWeight.bold, fontSize: 14)))),
-                    errorWidget: (_, __, ___) => Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: grad,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight)),
-                        child: Center(child: Text(initial,
-                            style: const TextStyle(color: Colors.white,
-                                fontFamily: 'Arch',
-                                fontWeight: FontWeight.bold, fontSize: 14)))))
-                : Container(
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: grad,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight)),
-                    child: Center(child: Text(initial,
+                    width: 44, height: 44,
+                    placeholder: (_, __) =>
+                        Container(color: grad.first.withOpacity(0.3)),
+                    errorWidget: (_, __, ___) => Center(child: Text(initial,
                         style: const TextStyle(color: Colors.white,
                             fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                            fontSize: 14)))))),
-          const SizedBox(width: 10),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                            fontSize: 17)))))
+                : Center(child: Text(initial,
+                    style: const TextStyle(color: Colors.white,
+                        fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                        fontSize: 17)))),
+          Positioned(bottom: 1, right: 1, child: Container(
+            width: 13, height: 13,
+            decoration: BoxDecoration(color: _kMint,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2)))),
+        ]),
+        const SizedBox(width: 11),
+        // Name + time
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(children: [
               Flexible(child: Text(name, maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14,
-                      color: Colors.white))),
+                      color: _kInk))),
               if (isFweet) ...[
                 const SizedBox(width: 5),
                 Container(padding: const EdgeInsets.symmetric(
                     horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: _kCoral,
+                  decoration: BoxDecoration(color: _kCoral.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(5)),
-                  child: const Text('⚡', style: TextStyle(fontSize: 8))),
+                  child: const Text('⚡ Fweet', style: TextStyle(
+                      fontFamily: 'Arch', fontSize: 9,
+                      fontWeight: FontWeight.bold, color: _kCoral))),
               ],
             ]),
-            Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
-                fontSize: 11, color: Colors.white.withOpacity(0.6))),
+            if (timeAgo.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 11, color: _kSlate)),
+            ],
           ])),
-          // Role badge
+        // Role badge
+        if (role.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: grad,
-                  begin: Alignment.centerLeft, end: Alignment.centerRight),
+              gradient: LinearGradient(
+                  colors: grad.map((c) => c.withOpacity(0.1)).toList()),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: grad.last.withOpacity(0.4),
-                  blurRadius: 8, offset: const Offset(0, 2))]),
+              border: Border.all(color: grad.first.withOpacity(0.25))),
             child: Text(role.replaceAll('_', ' '),
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold, fontSize: 9,
-                  color: Colors.white))),
-        ]))),
-    ]);
+                  color: grad.last))),
+      ]),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // MEDIA CAROUSEL — renders inline so it can never end up empty.
+  // Each slide has its own placeholder + error fallback.
+  // ─────────────────────────────────────────────────────────
+
+  Widget _buildMediaCarousel(List<Map<String, dynamic>> media) {
+    final multi = media.length > 1;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 4 / 5,        // tall-ish, like Instagram
+          child: Stack(children: [
+            PageView.builder(
+              itemCount: media.length,
+              onPageChanged: (p) => setState(() => _mediaPage = p),
+              itemBuilder: (_, i) => _buildMediaSlide(media[i]),
+            ),
+            // Counter (top-right)
+            if (multi)
+              Positioned(top: 10, right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('${_mediaPage + 1} / ${media.length}',
+                      style: const TextStyle(color: Colors.white,
+                          fontFamily: 'Momo', fontSize: 11,
+                          fontWeight: FontWeight.bold)))),
+            // Dots (bottom-centre)
+            if (multi)
+              Positioned(bottom: 10, left: 0, right: 0,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(media.length, (i) {
+                    final active = i == _mediaPage;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 18 : 6, height: 6,
+                      decoration: BoxDecoration(
+                        color: active ? Colors.white : Colors.white.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(3)));
+                  }))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaSlide(Map<String, dynamic> item) {
+    final url       = (item['url']            as String? ?? '').trim();
+    final thumb     = (item['thumbnail_url']  as String? ?? '').trim();
+    final mediaType = (item['media_type']     as String? ?? 'image').trim();
+    final isVideo   = mediaType == 'video';
+
+    if (url.isEmpty) {
+      return _mediaPlaceholder(
+          Icons.broken_image_rounded, 'Media unavailable');
+    }
+
+    if (isVideo) {
+      // Show thumbnail with a play overlay. If there's no thumbnail
+      // URL, fall back to the video URL itself (Cloudinary will serve
+      // a JPEG when you swap the extension; the CachedNetworkImage
+      // errorWidget covers the failure case).
+      final imageUrl = thumb.isNotEmpty ? thumb : url;
+      return Container(
+        color: Colors.black,
+        child: Stack(fit: StackFit.expand, children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Container(color: Colors.grey.shade900),
+            errorWidget: (_, __, ___) => Container(
+              color: Colors.black,
+              alignment: Alignment.center,
+              child: Icon(Icons.movie_rounded,
+                  color: Colors.white.withOpacity(0.4), size: 56),
+            ),
+          ),
+          // Play overlay
+          Center(child: Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.55),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.4), width: 2)),
+            child: const Icon(Icons.play_arrow_rounded,
+                color: Colors.white, size: 36),
+          )),
+          // VIDEO badge
+          Positioned(top: 10, left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(8)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.videocam_rounded, color: Colors.white, size: 11),
+                SizedBox(width: 4),
+                Text('VIDEO', style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, fontSize: 10)),
+              ]))),
+        ]),
+      );
+    }
+
+    // Image
+    return Container(
+      color: Colors.grey.shade100,
+      child: CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: (_, __) => Center(child: SizedBox(
+          width: 28, height: 28,
+          child: CircularProgressIndicator(
+              color: _kViolet.withOpacity(0.5), strokeWidth: 2.5))),
+        errorWidget: (_, __, ___) => _mediaPlaceholder(
+            Icons.broken_image_rounded, "Couldn't load image"),
+      ),
+    );
+  }
+
+  Widget _mediaPlaceholder(IconData icon, String label) {
+    return Container(
+      color: Colors.grey.shade100,
+      alignment: Alignment.center,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: Colors.grey.shade400, size: 38),
+        const SizedBox(height: 8),
+        Text(label, style: TextStyle(fontFamily: 'Momo',
+            fontSize: 12, color: Colors.grey.shade500)),
+      ]),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // FWEET BLOCK — colored card with bold centered text, matching the
+  // create page. Without this, fweets in the feed looked identical to
+  // plain text posts and the user reported them as "not appearing".
+  // ─────────────────────────────────────────────────────────
+
+  Widget _buildFweetBlock(String content, Color bgColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              bgColor,
+              bgColor.withOpacity(0.78),
+            ], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          ),
+          child: Center(
+            child: GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Text(content,
+                textAlign: TextAlign.center,
+                maxLines: _expanded ? null : 6,
+                overflow: _expanded
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
+                style: const TextStyle(fontFamily: 'Momo',
+                    fontSize: 18, color: Colors.white,
+                    fontWeight: FontWeight.bold, height: 1.4)),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1197,7 +1321,7 @@ class _ShareSheet extends StatefulWidget {
 
 class _ShareSheetState extends State<_ShareSheet> {
   List<Map<String, dynamic>> _people   = [];
-  final Set<String>                _selected = {};
+  final Set<String>          _selected = {};
   bool _loading = true, _sharing = false;
 
   @override void initState() { super.initState(); _loadTargets(); }

@@ -1,12 +1,51 @@
-// lib/screens/create_fweet.dart
+// lib/screens/fweetspage.dart
+//
+// §5 Fweets restyle + feeling backend tie-in + §4 location picker tie-in.
+//
+// Visible changes from the previous version:
+//   • The cramped icon-button toolbar is replaced with three chunky
+//     gradient pill buttons (Style / Place / Feeling) that show the
+//     selected value at a glance — fixes user feedback that the old
+//     buttons "weren't visible to the human eye."
+//   • Feelings are now fetched from the backend (/api/feelings/) so
+//     admins can manage the list from Django admin instead of editing
+//     a hardcoded list in Dart.
+//   • Backend `feeling` slug is sent on the createPost call.
+//   • Place pill now opens the OpenStreetMap-backed LocationPicker.
+//     The pill spins while the picker is open and updates with the
+//     picked label when it closes.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:tcs_app/screens/location_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
+
+
+// ─── Backend feeling model ───────────────────────────────────
+class _Feeling {
+  final String slug;
+  final String label;
+  final String emoji;
+  const _Feeling({
+    required this.slug,
+    required this.label,
+    required this.emoji,
+  });
+  factory _Feeling.fromJson(Map<String, dynamic> j) => _Feeling(
+        slug:  (j['slug']  ?? '').toString(),
+        label: (j['label'] ?? '').toString(),
+        emoji: (j['emoji'] ?? '').toString(),
+      );
+  String get display =>
+      emoji.isNotEmpty ? '$emoji $label' : label;
+}
+
 
 class CreateFweetPage extends StatefulWidget {
   const CreateFweetPage({super.key});
@@ -22,14 +61,20 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   static const int _maxChars = 240;
 
   Color?  _selectedBg;
-  bool    _showingLocation = false;
   bool    _isPosting       = false;
+  bool    _pickingLocation = false;          // NEW — drives Place pill loader
   String  _visibility      = 'Public';
-  String? _feeling;
+  String? _feelingSlug;          // backend slug, not display text
+
+  // Backend-driven feelings.
+  List<_Feeling> _backendFeelings = [];
+  bool           _feelingsLoading = true;
 
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
 
+  // Background-style choices (visual only — sent as the
+  // `background_color` hex on the post).
   final List<Map<String, dynamic>> _bgOptions = const [
     {'name': 'Purple Dream', 'color': Color(0xFF8E54E9)},
     {'name': 'Ocean Blue',   'color': Color(0xFF4FC3F7)},
@@ -41,13 +86,8 @@ class _CreateFweetPageState extends State<CreateFweetPage>
     {'name': 'Crimson',      'color': Color(0xFFE74C3C)},
   ];
 
-  final _feelings = [
-    '😊 Happy', '📚 Studying', '🎮 Gaming', '🏃 Active',
-    '😴 Tired', '🎉 Excited', '🤔 Thinking', '💪 Motivated',
-    '😎 Cool', '🥳 Celebrating',
-  ];
-
-  final _campusLocations = [
+  // Campus quick-pick locations passed to the LocationPicker.
+  final _campusLocations = const [
     'Taylors College', 'Library', 'Cafeteria', 'Sports Hall',
     'Lecture Hall A', 'Lecture Hall B', 'Study Hub', 'Auditorium',
     'Student Lounge', 'Science Lab',
@@ -56,23 +96,30 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   @override
   void initState() {
     super.initState();
-    _entryCtrl = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 400))..forward();
-    _fadeAnim  = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
+    _entryCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400))
+      ..forward();
+    _fadeAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
     _ctrl.addListener(() => setState(() {}));
     _locationCtrl.addListener(() => setState(() {}));
+    _fetchFeelings();
   }
 
   @override
   void dispose() {
-    _entryCtrl.dispose(); _ctrl.dispose(); _locationCtrl.dispose();
+    _entryCtrl.dispose();
+    _ctrl.dispose();
+    _locationCtrl.dispose();
     super.dispose();
   }
+
+  // ── Getters ──────────────────────────────────────────────
 
   bool  get _hasContent  => _ctrl.text.trim().isNotEmpty;
   int   get _remaining   => _maxChars - _ctrl.text.length;
   bool  get _hasBg       => _selectedBg != null;
   bool  get _hasLocation => _locationCtrl.text.trim().isNotEmpty;
+  bool  get _hasFeeling  => _feelingSlug != null && _feelingSlug!.isNotEmpty;
   Color get _textColor   => _hasBg ? Colors.white : const Color(0xFF1A1A2E);
 
   Color get _counterColor {
@@ -81,7 +128,76 @@ class _CreateFweetPageState extends State<CreateFweetPage>
     return _hasBg ? Colors.white54 : Colors.grey.shade400;
   }
 
-  // ── POST TO BACKEND ───────────────────────────────────────
+  /// The full _Feeling object for the currently selected slug, or
+  /// null if nothing is picked / the slug doesn't match anything in
+  /// the backend list (e.g. a deactivated feeling).
+  _Feeling? get _selectedFeeling {
+    if (_feelingSlug == null) return null;
+    for (final f in _backendFeelings) {
+      if (f.slug == _feelingSlug) return f;
+    }
+    return null;
+  }
+
+  /// The currently selected background-style display name, looked up
+  /// from `_bgOptions` so we can show "Purple Dream" on the toolbar
+  /// pill instead of just "Style ✓".
+  String? get _selectedBgName {
+    if (_selectedBg == null) return null;
+    for (final opt in _bgOptions) {
+      if (opt['color'] == _selectedBg) return opt['name'] as String;
+    }
+    return null;
+  }
+
+  IconData get _visibilityIcon => _visibility == 'Public'
+      ? Icons.public_rounded
+      : _visibility == 'Followers'
+          ? Icons.people_rounded
+          : Icons.lock_rounded;
+
+  // ── Backend ──────────────────────────────────────────────
+
+  Future<void> _fetchFeelings() async {
+    setState(() => _feelingsLoading = true);
+    try {
+      final raw = await _api.getFeelings();
+      final list = (raw as List? ?? [])
+          .whereType<Map>()
+          .map((m) => _Feeling.fromJson(m.cast<String, dynamic>()))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _backendFeelings = list;
+        _feelingsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _feelingsLoading = false);
+    }
+  }
+
+  // ── Location picker entry point ──────────────────────────
+
+  Future<void> _openLocationPicker() async {
+    if (_pickingLocation) return;
+    HapticFeedback.lightImpact();
+    setState(() => _pickingLocation = true);
+
+    final result = await LocationPicker.show(
+      context,
+      quickPicks:   _campusLocations,
+      initialQuery: _locationCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _pickingLocation = false;
+      if (result != null) _locationCtrl.text = result.name;
+    });
+  }
+
+  // ── POST TO BACKEND ──────────────────────────────────────
 
   Future<void> _post() async {
     if (!_hasContent || _remaining < 0) return;
@@ -99,22 +215,27 @@ class _CreateFweetPageState extends State<CreateFweetPage>
         visibility:      _visibility.toLowerCase(),
         location:        _locationCtrl.text.trim(),
         backgroundColor: bgHex,
+        feeling:         _feelingSlug,
       );
 
       if (!mounted) return;
-      // Return the fweet text to the profile screen
       Navigator.pop(context, _ctrl.text.trim());
     } catch (e) {
-      setState(() => _isPosting = false);
       if (!mounted) return;
+      setState(() => _isPosting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to fweet: $e', style: const TextStyle(fontFamily: 'Momo')),
+        content: Text('Failed to fweet: $e',
+            style: const TextStyle(fontFamily: 'Momo')),
         behavior: SnackBarBehavior.floating, backgroundColor: _kG4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         margin: const EdgeInsets.all(16),
       ));
     }
   }
+
+  // ═════════════════════════════════════════════════════════
+  // BUILD
+  // ═════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +255,6 @@ class _CreateFweetPageState extends State<CreateFweetPage>
             child: Column(children: [
               _buildAppBar(),
               Expanded(child: _buildComposer()),
-              if (_showingLocation) _buildLocationBar(),
               _buildActiveChips(),
               _buildToolbar(),
             ]),
@@ -143,6 +263,8 @@ class _CreateFweetPageState extends State<CreateFweetPage>
       ),
     );
   }
+
+  // ── App bar ──────────────────────────────────────────────
 
   Widget _buildAppBar() {
     final onBg  = _hasBg ? Colors.white : const Color(0xFF1A1A2E);
@@ -154,11 +276,14 @@ class _CreateFweetPageState extends State<CreateFweetPage>
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(width: 38, height: 38,
-            decoration: BoxDecoration(color: dimBg, borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.close_rounded, color: onBg.withOpacity(0.7), size: 20)),
+            decoration: BoxDecoration(
+                color: dimBg, borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.close_rounded,
+                color: onBg.withOpacity(0.7), size: 20)),
         ),
         const SizedBox(width: 12),
-        Text('Create Fweet', style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: onBg)),
+        Text('Create Fweet',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: onBg)),
         const Spacer(),
 
         // Character ring
@@ -167,13 +292,17 @@ class _CreateFweetPageState extends State<CreateFweetPage>
             CircularProgressIndicator(
               value: (_ctrl.text.length / _maxChars).clamp(0.0, 1.0),
               strokeWidth: 3,
-              backgroundColor: (_hasBg ? Colors.white : Colors.grey.shade200).withOpacity(0.3),
+              backgroundColor: (_hasBg ? Colors.white : Colors.grey.shade200)
+                  .withOpacity(0.3),
               valueColor: AlwaysStoppedAnimation(
-                  _remaining < 0 ? _kG4 : _remaining < 20 ? _kG3 : _kG2),
+                  _remaining < 0 ? _kG4
+                      : _remaining < 20 ? _kG3 : _kG2),
             ),
             if (_remaining <= 30)
-              Text('$_remaining', style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 9, fontWeight: FontWeight.bold, color: _counterColor)),
+              Text('$_remaining',
+                  style: TextStyle(fontFamily: 'Momo',
+                      fontSize: 9, fontWeight: FontWeight.bold,
+                      color: _counterColor)),
           ]),
         ),
         const SizedBox(width: 10),
@@ -184,59 +313,59 @@ class _CreateFweetPageState extends State<CreateFweetPage>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: _hasBg ? Colors.white.withOpacity(0.2) : _kG2.withOpacity(0.1),
+              color: _hasBg
+                  ? Colors.white.withOpacity(0.2)
+                  : _kG2.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: _hasBg
-                  ? Colors.white.withOpacity(0.3) : _kG2.withOpacity(0.2)),
+                  ? Colors.white.withOpacity(0.3)
+                  : _kG2.withOpacity(0.2)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(_visibilityIcon, color: _hasBg ? Colors.white : _kG2, size: 13),
+              Icon(_visibilityIcon,
+                  color: _hasBg ? Colors.white : _kG2, size: 13),
               const SizedBox(width: 4),
-              Text(_visibility, style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                  fontWeight: FontWeight.bold, color: _hasBg ? Colors.white : _kG2)),
+              Text(_visibility,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _hasBg ? Colors.white : _kG2)),
               const SizedBox(width: 2),
               Icon(Icons.keyboard_arrow_down_rounded,
-                  color: _hasBg ? Colors.white : _kG2, size: 14),
+                  color: _hasBg ? Colors.white : _kG2, size: 16),
             ]),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
 
         // Send button
         GestureDetector(
-          onTap: _isPosting || !_hasContent || _remaining < 0 ? null : _post,
+          onTap: (_hasContent && !_isPosting) ? _post : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 44, height: 44,
+            width: 38, height: 38,
             decoration: BoxDecoration(
-              color: _hasBg
-                  ? Colors.white.withOpacity(_hasContent ? 0.25 : 0.12) : null,
-              gradient: !_hasBg
-                  ? (_hasContent && !_isPosting && _remaining >= 0
-                      ? const LinearGradient(colors: [_kG1, _kG2, _kG3, _kG4],
-                          begin: Alignment.topLeft, end: Alignment.bottomRight)
-                      : const LinearGradient(
-                          colors: [Color(0xFFDDDDDD), Color(0xFFCCCCCC)]))
-                  : null,
-              borderRadius: BorderRadius.circular(12),
+              color: _hasContent
+                  ? (_hasBg ? Colors.white : _kG2)
+                  : (_hasBg
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Center(
-              child: _isPosting
-                  ? SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(
-                          color: _hasBg ? _selectedBg : Colors.white, strokeWidth: 2))
-                  : Icon(Icons.send_rounded,
-                      color: _hasBg ? _selectedBg : Colors.white, size: 18),
-            ),
+            child: _isPosting
+                ? Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                        color: _hasBg ? _selectedBg : Colors.white,
+                        strokeWidth: 2))
+                : Icon(Icons.send_rounded,
+                    color: _hasBg ? _selectedBg : Colors.white, size: 18),
           ),
         ),
       ]),
     );
   }
 
-  IconData get _visibilityIcon => _visibility == 'Public'
-      ? Icons.public_rounded
-      : _visibility == 'Followers' ? Icons.people_rounded : Icons.lock_rounded;
+  // ── Composer (text field + optional avatar) ──────────────
 
   Widget _buildComposer() {
     return Padding(
@@ -270,15 +399,15 @@ class _CreateFweetPageState extends State<CreateFweetPage>
       autocorrect:       false,
       style: TextStyle(
         fontFamily: 'Momo', fontSize: centered ? 22 : 16,
-        color: _textColor,
+        color:      _textColor,
         fontWeight: centered ? FontWeight.bold : FontWeight.normal,
-        height: 1.55,
+        height:     1.55,
       ),
       decoration: InputDecoration(
         hintText: 'Share a quick thought with the campus...',
         hintStyle: TextStyle(fontFamily: 'Momo',
-          color: _hasBg ? Colors.white38 : Colors.grey.shade300,
-          fontSize: centered ? 20 : 16,
+          color:      _hasBg ? Colors.white38 : Colors.grey.shade300,
+          fontSize:   centered ? 20 : 16,
           fontWeight: centered ? FontWeight.bold : FontWeight.normal,
         ),
         border: InputBorder.none, counterText: '',
@@ -286,81 +415,20 @@ class _CreateFweetPageState extends State<CreateFweetPage>
     );
   }
 
-  Widget _buildLocationBar() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: _hasBg ? Colors.white.withOpacity(0.15) : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _hasBg ? Colors.white.withOpacity(0.2) : Colors.grey.shade200),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.location_on_rounded, color: _hasBg ? Colors.white : _kG4, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _locationCtrl, autofocus: true,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _textColor),
-              decoration: InputDecoration(
-                hintText: 'Where are you?',
-                hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 14,
-                    color: _hasBg ? Colors.white38 : Colors.grey.shade400),
-                border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          if (_hasLocation)
-            GestureDetector(
-              onTap: () => setState(() { _locationCtrl.clear(); _showingLocation = false; }),
-              child: Icon(Icons.close_rounded,
-                  color: _hasBg ? Colors.white54 : Colors.grey.shade400, size: 16)),
-        ]),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 30,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _campusLocations.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 6),
-            itemBuilder: (_, i) => GestureDetector(
-              onTap: () {
-                _locationCtrl.text = _campusLocations[i];
-                setState(() => _showingLocation = false);
-                FocusScope.of(context).unfocus();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _hasBg ? Colors.white.withOpacity(0.15) : _kG4.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _hasBg ? Colors.white.withOpacity(0.2) : _kG4.withOpacity(0.2)),
-                ),
-                child: Text(_campusLocations[i], style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 11, fontWeight: FontWeight.w600,
-                    color: _hasBg ? Colors.white : _kG4)),
-              ),
-            ),
-          ),
-        ),
-      ]),
-    );
-  }
+  // ── Active chips (location + feeling badges above toolbar) ──
 
   Widget _buildActiveChips() {
     final chips = <Widget>[];
     if (_hasLocation) {
       chips.add(_chip(Icons.location_on_rounded,
         _locationCtrl.text.trim(), _hasBg ? Colors.white : _kG4,
-        () => setState(() { _locationCtrl.clear(); _showingLocation = false; })));
+        () => setState(() => _locationCtrl.clear())));
     }
-    if (_feeling != null) {
-      chips.add(_chip(Icons.emoji_emotions_rounded, _feeling!,
-        _hasBg ? Colors.white : _kG3, () => setState(() => _feeling = null)));
+    if (_selectedFeeling != null) {
+      chips.add(_chip(Icons.emoji_emotions_rounded,
+        _selectedFeeling!.display,
+        _hasBg ? Colors.white : _kG3,
+        () => setState(() => _feelingSlug = null)));
     }
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -369,16 +437,22 @@ class _CreateFweetPageState extends State<CreateFweetPage>
     );
   }
 
-  Widget _chip(IconData icon, String label, Color color, VoidCallback onRemove) {
+  Widget _chip(IconData icon, String label, Color color,
+      VoidCallback onRemove) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _hasBg ? Colors.white.withOpacity(0.18) : color.withOpacity(0.1),
+        color: _hasBg
+            ? Colors.white.withOpacity(0.18)
+            : color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _hasBg ? Colors.white.withOpacity(0.3) : color.withOpacity(0.25)),
+        border: Border.all(color: _hasBg
+            ? Colors.white.withOpacity(0.3)
+            : color.withOpacity(0.25)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: color), const SizedBox(width: 5),
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 5),
         Text(label, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
             fontWeight: FontWeight.bold, color: color)),
         const SizedBox(width: 5),
@@ -388,94 +462,72 @@ class _CreateFweetPageState extends State<CreateFweetPage>
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // RESTYLED TOOLBAR — three eye-catching pill buttons.
+  // ─────────────────────────────────────────────────────────
+
   Widget _buildToolbar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: _hasBg ? Colors.black.withOpacity(0.15) : Colors.grey.shade50,
+        color: _hasBg
+            ? Colors.black.withOpacity(0.18)
+            : Colors.grey.shade50,
         border: Border(top: BorderSide(
-          color: _hasBg ? Colors.white.withOpacity(0.15) : Colors.grey.shade200)),
+            color: _hasBg
+                ? Colors.white.withOpacity(0.15)
+                : Colors.grey.shade200)),
       ),
       child: SafeArea(top: false,
         child: Row(children: [
-          _tool(Icons.color_lens_outlined, 'Style',
-              _hasBg ? Colors.white : _kG2, _showBgPicker, badge: _hasBg),
-          _tool(Icons.location_on_outlined, 'Place',
-              _hasBg ? Colors.white : _kG4,
-              () => setState(() => _showingLocation = !_showingLocation),
-              badge: _hasLocation),
-          _tool(Icons.emoji_emotions_outlined, 'Feeling',
-              _hasBg ? Colors.white : _kG3, _pickFeeling, badge: _feeling != null),
-          const Spacer(),
-          if (_hasBg)
-            GestureDetector(
-              onTap: () => setState(() => _selectedBg = null),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10)),
-                child: const Text('Clear Style', style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
+          Expanded(child: _ToolPill(
+            icon:        Icons.color_lens_rounded,
+            label:       'Style',
+            valueLabel:  _selectedBgName,
+            gradient:    const [_kG2, _kG1],
+            active:      _hasBg,
+            onTab:       _showBgPicker,
+            onClear:     _hasBg
+                ? () => setState(() => _selectedBg = null)
+                : null,
+            invertedTheme: _hasBg,
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _ToolPill(
+            icon:        Icons.location_on_rounded,
+            label:       'Place',
+            valueLabel:  _hasLocation ? _locationCtrl.text.trim() : null,
+            gradient:    const [_kG4, Color(0xFFFF8A65)],
+            active:      _hasLocation || _pickingLocation,
+            loading:     _pickingLocation,
+            onTab:       _openLocationPicker,
+            onClear:     _hasLocation && !_pickingLocation
+                ? () => setState(() => _locationCtrl.clear())
+                : null,
+            invertedTheme: _hasBg,
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _ToolPill(
+            icon:        Icons.emoji_emotions_rounded,
+            label:       'Feeling',
+            valueLabel:  _selectedFeeling?.display,
+            gradient:    const [_kG3, _kG4],
+            active:      _hasFeeling,
+            onTab:       _pickFeeling,
+            onClear:     _hasFeeling
+                ? () => setState(() => _feelingSlug = null)
+                : null,
+            invertedTheme: _hasBg,
+          )),
         ]),
       ),
     );
   }
-Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
-      {bool badge = false}) {
-    // Phase 1 spec fix: clearly-styled chip-style buttons so Style / Place /
-    // Feeling read as tappable, not as stray icons. Active state (when the
-    // button has a value set, indicated by `badge`) gets a stronger fill.
-    final fillColor = _hasBg
-        ? Colors.white.withOpacity(badge ? 0.22 : 0.12)
-        : color.withOpacity(badge ? 0.16 : 0.08);
-    final borderColor = _hasBg
-        ? Colors.white.withOpacity(badge ? 0.45 : 0.22)
-        : color.withOpacity(badge ? 0.45 : 0.22);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor, width: 1.2),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 12,
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (badge) ...[
-                const SizedBox(width: 6),
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade500,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ─────────────────────────────────────────────────────────
+  // Pickers
+  // ─────────────────────────────────────────────────────────
+
   void _pickVisibility() {
     showModalBottomSheet(
       context: context, backgroundColor: Colors.white,
@@ -488,35 +540,46 @@ Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('Who can see this Fweet?', style: TextStyle(
-              fontFamily: 'Alfa', fontSize: 18, color: Color(0xFF1A1A2E))),
+          const Text('Who can see this Fweet?',
+              style: TextStyle(fontFamily: 'Alfa',
+                  fontSize: 18, color: Color(0xFF1A1A2E))),
           const SizedBox(height: 16),
           ...[
             ('Public',    Icons.public_rounded,  'Everyone on TCS'),
             ('Followers', Icons.people_rounded,  'Only your followers'),
             ('Private',   Icons.lock_rounded,    'Only you'),
           ].map((opt) => GestureDetector(
-            onTap: () { setState(() => _visibility = opt.$1); Navigator.pop(context); },
+            onTap: () {
+              setState(() => _visibility = opt.$1);
+              Navigator.pop(context);
+            },
             child: Container(
-              margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
+              margin:  const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _visibility == opt.$1 ? _kG2.withOpacity(0.08) : Colors.grey.shade50,
+                color: _visibility == opt.$1
+                    ? _kG2.withOpacity(0.08) : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: _visibility == opt.$1 ? _kG2.withOpacity(0.3) : Colors.grey.shade200,
+                  color: _visibility == opt.$1
+                      ? _kG2.withOpacity(0.3) : Colors.grey.shade200,
                   width: _visibility == opt.$1 ? 1.5 : 1),
               ),
               child: Row(children: [
                 Container(width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: (_visibility == opt.$1 ? _kG2 : Colors.grey.shade300).withOpacity(0.15),
+                    color: (_visibility == opt.$1 ? _kG2 : Colors.grey.shade300)
+                        .withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10)),
                   child: Icon(opt.$2,
-                      color: _visibility == opt.$1 ? _kG2 : Colors.grey.shade500, size: 20)),
+                      color: _visibility == opt.$1
+                          ? _kG2 : Colors.grey.shade500, size: 20)),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(opt.$1, style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                      fontSize: 15, color: _visibility == opt.$1 ? _kG2 : const Color(0xFF1A1A2E))),
+                  Text(opt.$1, style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 15,
+                      color: _visibility == opt.$1
+                          ? _kG2 : const Color(0xFF1A1A2E))),
                   Text(opt.$3, style: TextStyle(fontFamily: 'Momo',
                       fontSize: 12, color: Colors.grey.shade500)),
                 ]),
@@ -536,6 +599,7 @@ Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
       context: context, backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      isScrollControlled: true,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -543,22 +607,67 @@ Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
-          const Text('How are you feeling?', style: TextStyle(
-              fontFamily: 'Alfa', fontSize: 18, color: Color(0xFF1A1A2E))),
+          const Text('How are you feeling?',
+              style: TextStyle(fontFamily: 'Alfa',
+                  fontSize: 18, color: Color(0xFF1A1A2E))),
           const SizedBox(height: 16),
-          Wrap(spacing: 10, runSpacing: 10, children: _feelings.map((f) => GestureDetector(
-            onTap: () { setState(() => _feeling = f); Navigator.pop(context); },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: _feeling == f ? _kG3.withOpacity(0.12) : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _feeling == f ? _kG3.withOpacity(0.35) : Colors.grey.shade200)),
-              child: Text(f, style: TextStyle(fontFamily: 'Momo', fontWeight: FontWeight.w600,
-                  fontSize: 14, color: _feeling == f ? _kG3 : const Color(0xFF1A1A2E))),
-            ),
-          )).toList()),
+          if (_feelingsLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: SizedBox(width: 28, height: 28,
+                child: CircularProgressIndicator(
+                    color: _kG3, strokeWidth: 2.5)))
+          else if (_backendFeelings.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(children: [
+                Icon(Icons.cloud_off_rounded,
+                    color: Colors.grey.shade400, size: 28),
+                const SizedBox(height: 8),
+                Text("Couldn't load feelings.",
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 13, color: Colors.grey.shade500)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () { Navigator.pop(context); _fetchFeelings(); },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _kG3.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10)),
+                    child: Text('Try again',
+                        style: TextStyle(fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12, color: _kG3)),
+                  ),
+                ),
+              ]),
+            )
+          else
+            Wrap(spacing: 10, runSpacing: 10,
+              children: _backendFeelings.map((f) => GestureDetector(
+                onTap: () {
+                  setState(() => _feelingSlug = f.slug);
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _feelingSlug == f.slug
+                        ? _kG3.withOpacity(0.12) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _feelingSlug == f.slug
+                          ? _kG3.withOpacity(0.35) : Colors.grey.shade200)),
+                  child: Text(f.display,
+                      style: TextStyle(fontFamily: 'Momo',
+                          fontWeight: FontWeight.w600, fontSize: 14,
+                          color: _feelingSlug == f.slug
+                              ? _kG3 : const Color(0xFF1A1A2E))),
+                ),
+              )).toList()),
           const SizedBox(height: 8),
         ]),
       ),
@@ -578,14 +687,19 @@ Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           Row(children: [
-            const Text('Choose Background', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 18, color: Color(0xFF1A1A2E))),
+            const Text('Choose Background',
+                style: TextStyle(fontFamily: 'Alfa',
+                    fontSize: 18, color: Color(0xFF1A1A2E))),
             const Spacer(),
             if (_selectedBg != null)
               GestureDetector(
-                onTap: () { setState(() => _selectedBg = null); Navigator.pop(context); },
-                child: const Text('Clear', style: TextStyle(fontFamily: 'Momo',
-                    color: _kG4, fontWeight: FontWeight.bold))),
+                onTap: () {
+                  setState(() => _selectedBg = null);
+                  Navigator.pop(context);
+                },
+                child: const Text('Clear',
+                    style: TextStyle(fontFamily: 'Momo',
+                        color: _kG4, fontWeight: FontWeight.bold))),
           ]),
           const SizedBox(height: 16),
           GridView.count(
@@ -596,27 +710,213 @@ Widget _tool(IconData icon, String label, Color color, VoidCallback onTap,
               final color = opt['color'] as Color;
               final sel   = _selectedBg == color;
               return GestureDetector(
-                onTap: () { setState(() => _selectedBg = color); Navigator.pop(context); },
+                onTap: () {
+                  setState(() => _selectedBg = color);
+                  Navigator.pop(context);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: color, borderRadius: BorderRadius.circular(16),
+                    color: color,
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: sel ? Colors.white : Colors.transparent, width: 3),
-                    boxShadow: [BoxShadow(color: color.withOpacity(0.4),
-                        blurRadius: sel ? 14 : 4, offset: const Offset(0, 3))],
-                  ),
+                        color: sel ? Colors.black : Colors.transparent,
+                        width: sel ? 3 : 0),
+                    boxShadow: sel ? [BoxShadow(
+                        color: color.withOpacity(0.5),
+                        blurRadius: 14, offset: const Offset(0, 4))] : null),
                   child: sel
                       ? const Center(child: Icon(Icons.check_rounded,
-                          color: Colors.white, size: 24))
-                      : Center(child: Text(opt['name'], textAlign: TextAlign.center,
-                          style: const TextStyle(fontFamily: 'Momo', fontSize: 9,
-                              color: Colors.white70, fontWeight: FontWeight.w600))),
+                          color: Colors.white, size: 28))
+                      : null,
                 ),
               );
             }).toList(),
           ),
+          const SizedBox(height: 16),
+          Wrap(spacing: 8, runSpacing: 8,
+            children: _bgOptions.map((opt) {
+              final sel = _selectedBg == (opt['color'] as Color);
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: sel
+                      ? (opt['color'] as Color).withOpacity(0.1)
+                      : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: sel
+                          ? (opt['color'] as Color).withOpacity(0.3)
+                          : Colors.grey.shade200)),
+                child: Text(opt['name'] as String,
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 10, fontWeight: FontWeight.w600,
+                        color: sel
+                            ? opt['color'] as Color
+                            : Colors.grey.shade500)),
+              );
+            }).toList()),
           const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// Eye-catching tool pill — replaces the cramped icon button in
+// the previous toolbar.
+//
+// Three visual states:
+//   • Inactive (default theme): outlined card, coloured icon + label.
+//   • Active   (default theme): gradient fill, white icon + label,
+//                                value text shown below.
+//   • Inverted theme (when a background colour is applied to the
+//     fweet, so the page is colourful): outlined card with
+//     translucent-white surface so it stays readable.
+//
+// Plus a `loading` flag — when true, the icon is replaced with a
+// SpinKitFadingCircle. Used by the Place pill while the LocationPicker
+// modal is open so the user gets a clear "in progress" signal.
+// ─────────────────────────────────────────────────────────────
+
+class _ToolPill extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String?  valueLabel;
+  final List<Color> gradient;
+  final bool     active;
+  final bool     loading;
+  final bool     invertedTheme;
+  final VoidCallback onTab;
+  final VoidCallback? onClear;
+
+  const _ToolPill({
+    required this.icon,
+    required this.label,
+    required this.valueLabel,
+    required this.gradient,
+    required this.active,
+    required this.onTab,
+    required this.invertedTheme,
+    this.loading = false,
+    this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Colour resolution differs per theme.
+    final Color fg;
+    final BoxDecoration deco;
+
+    if (invertedTheme) {
+      // Page already has a colourful background — keep pills neutral.
+      fg = Colors.white;
+      deco = BoxDecoration(
+        color: active
+            ? Colors.white.withOpacity(0.25)
+            : Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(
+            active ? 0.55 : 0.25), width: 1.5),
+      );
+    } else if (active) {
+      // White page, active state — full gradient fill.
+      fg = Colors.white;
+      deco = BoxDecoration(
+        gradient: LinearGradient(colors: gradient,
+            begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(
+            color: gradient.first.withOpacity(0.35),
+            blurRadius: 12, offset: const Offset(0, 4))],
+      );
+    } else {
+      // White page, inactive — outlined with a hint of category colour.
+      fg = gradient.first;
+      deco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: gradient.first.withOpacity(0.25), width: 1.5),
+        boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6, offset: const Offset(0, 2))],
+      );
+    }
+
+    final hasValue = active && valueLabel != null && valueLabel!.isNotEmpty;
+    final showSpinner = loading;
+
+    return GestureDetector(
+      onTap: onTab,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: deco,
+        child: Stack(children: [
+          // Main label/icon column
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icon OR loading spinner
+                  SizedBox(
+                    width: 18, height: 18,
+                    child: showSpinner
+                        ? SpinKitFadingCircle(color: fg, size: 18)
+                        : Icon(icon, size: 18, color: fg),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(label,
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold, fontSize: 13, color: fg)),
+                ]),
+              if (hasValue) ...[
+                const SizedBox(height: 3),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    valueLabel!,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 10,
+                        color: fg.withOpacity(invertedTheme ? 0.85 : 0.92),
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // Tiny "x" in the top-right when the value can be cleared.
+          // Hidden during a loading state to avoid visual noise.
+          if (active && !loading && onClear != null)
+            Positioned(top: -2, right: -2,
+              child: GestureDetector(
+                onTap: onClear,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 18, height: 18,
+                  decoration: BoxDecoration(
+                      color: invertedTheme
+                          ? Colors.white.withOpacity(0.25)
+                          : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: invertedTheme
+                              ? Colors.white.withOpacity(0.4)
+                              : gradient.first.withOpacity(0.3),
+                          width: 1)),
+                  child: Icon(Icons.close_rounded, size: 11, color: fg),
+                ),
+              ),
+            ),
         ]),
       ),
     );

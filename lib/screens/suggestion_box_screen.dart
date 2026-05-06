@@ -1,30 +1,103 @@
-// lib/screens/feedback/suggestion_box_screen.dart
+// lib/screens/suggestion_box_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../services/api_service.dart';
+import '../services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
 
-// ─── Category model ───────────────────────────────────────────
+// Neutral gradient used for the hero header BEFORE a category is
+// chosen. Once the user picks one, the header switches to that
+// category's own gradient.
+const _kNeutralGrad = [Color(0xFF8E54E9), Color(0xFF6DD5FA)];
+
+
+// ─── Backend-driven category model ───────────────────────────
+//
+// Replaces the old hardcoded `_categories` const list. The data is
+// fetched from /api/feedback/categories/ on screen init — admins
+// control what shows up in the picker.
 class _Cat {
-  final String key, label, emoji;
+  final String     id;
+  final String     key;
+  final String     label;
+  final String     emoji;
   final List<Color> gradient;
-  const _Cat(this.key, this.label, this.emoji, this.gradient);
+  final int        sortOrder;
+
+  const _Cat({
+    required this.id,
+    required this.key,
+    required this.label,
+    required this.emoji,
+    required this.gradient,
+    required this.sortOrder,
+  });
+
+  factory _Cat.fromJson(Map<String, dynamic> j) {
+    Color parseHex(String s, Color fallback) {
+      try {
+        var h = s.replaceFirst('#', '').trim();
+        if (h.length == 6) h = 'FF$h';
+        return Color(int.parse(h, radix: 16));
+      } catch (_) { return fallback; }
+    }
+    return _Cat(
+      id:        (j['id']    ?? '').toString(),
+      key:       (j['key']   ?? '').toString(),
+      label:     (j['label'] ?? '').toString(),
+      emoji:     (j['emoji'] ?? '').toString(),
+      gradient: [
+        parseHex((j['gradient_from'] ?? '').toString(), _kG2),
+        parseHex((j['gradient_to']   ?? '').toString(), _kG1),
+      ],
+      sortOrder: (j['sort_order'] is int)
+          ? j['sort_order'] as int
+          : int.tryParse('${j['sort_order']}') ?? 100,
+    );
+  }
 }
-// Phase 1 spec: 'general' removed. User must pick a real category.
-const _categories = [
-  _Cat('feature',   'Feature Request', '💡', [Color(0xFF6DD5FA), Color(0xFF8E54E9)]),
-  _Cat('bug',       'Bug Report',      '🐛', [Color(0xFFFF5858), Color(0xFFFF9800)]),
-  _Cat('content',   'Content',         '📚', [Color(0xFF4CAF50), Color(0xFF2E7D32)]),
-  _Cat('ui',        'Design & UI',     '🎨', [Color(0xFFCE93D8), Color(0xFF7B1FA2)]),
-  _Cat('complaint', 'Complaint',       '⚠️', [Color(0xFFF7971E), Color(0xFFFF5858)]),
-];
+
+
+// ─── Submission model (history list) ─────────────────────────
+class _Submission {
+  final String  id;
+  final _Cat?   category;
+  final String  title;
+  final String  status;
+  final String? adminNote;
+  final DateTime createdAt;
+
+  _Submission({
+    required this.id,
+    required this.category,
+    required this.title,
+    required this.status,
+    required this.adminNote,
+    required this.createdAt,
+  });
+
+  factory _Submission.fromJson(Map<String, dynamic> j) => _Submission(
+        id:        (j['id']    ?? '').toString(),
+        category:  j['category'] is Map
+            ? _Cat.fromJson((j['category'] as Map).cast<String, dynamic>())
+            : null,
+        title:     (j['title']      ?? '').toString(),
+        status:    (j['status']     ?? 'new').toString(),
+        adminNote: (j['admin_note'] ?? '').toString().isEmpty
+            ? null
+            : (j['admin_note']).toString(),
+        createdAt: DateTime.tryParse((j['created_at'] ?? '').toString())
+            ?? DateTime.now(),
+      );
+}
+
 
 // ─────────────────────────────────────────────────────────────
+
 class SuggestionBoxScreen extends StatefulWidget {
   const SuggestionBoxScreen({super.key});
   @override
@@ -33,16 +106,29 @@ class SuggestionBoxScreen extends StatefulWidget {
 
 class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
     with TickerProviderStateMixin {
-  final _api         = ApiService();
-  final _titleCtrl   = TextEditingController();
-  final _msgCtrl     = TextEditingController();
-  final _formKey     = GlobalKey<FormState>();
+  final _api       = ApiService();
+  final _titleCtrl = TextEditingController();
+  final _msgCtrl   = TextEditingController();
+  final _formKey   = GlobalKey<FormState>();
 
-// Phase 1 spec: must be explicitly chosen — title/message stay locked
+  // ── Categories (backend-driven) ──────────────────────────
+  List<_Cat> _categories      = [];
+  bool       _loadingCats     = true;
+  String?    _categoriesError;
+
+  // Null until the user explicitly picks one. The form is locked
   // until this is non-null.
-  String? _selectedCat;
-  bool   _submitting  = false;
-  bool   _submitted   = false;
+  String? _selectedCatKey;
+
+  // ── Submission history ───────────────────────────────────
+  List<_Submission> _submissions      = [];
+  bool              _historyExpanded  = false;
+  bool              _historyLoading   = false;
+  bool              _historyLoadedOnce = false;
+
+  // ── Form state ───────────────────────────────────────────
+  bool _submitting = false;
+  bool _submitted  = false;
 
   late final AnimationController _successCtrl;
   late final AnimationController _floatCtrl;
@@ -51,17 +137,35 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
 
   int get _msgLen => _msgCtrl.text.length;
 
+  /// The category the user has selected, or null if none yet.
+  _Cat? get _currentCat {
+    if (_selectedCatKey == null) return null;
+    for (final c in _categories) {
+      if (c.key == _selectedCatKey) return c;
+    }
+    return null;
+  }
+
+  /// Gradient for the hero header — category's own if one is picked,
+  /// neutral otherwise so the screen still looks finished on first open.
+  List<Color> get _headerGradient => _currentCat?.gradient ?? _kNeutralGrad;
+
+  bool get _formEnabled => _selectedCatKey != null;
+
   @override
   void initState() {
     super.initState();
-    _successCtrl = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 700));
-    _floatCtrl   = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 2800))..repeat(reverse: true);
-    _successScale = CurvedAnimation(parent: _successCtrl, curve: Curves.elasticOut);
-    _floatAnim    = Tween<double>(begin: -6, end: 6).animate(
+    _successCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _floatCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2800))
+      ..repeat(reverse: true);
+    _successScale = CurvedAnimation(
+        parent: _successCtrl, curve: Curves.elasticOut);
+    _floatAnim = Tween<double>(begin: -6, end: 6).animate(
         CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
     _msgCtrl.addListener(() => setState(() {}));
+    _fetchCategories();
   }
 
   @override
@@ -72,135 +176,220 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
     _msgCtrl.dispose();
     super.dispose();
   }
-// Falls back to the first category for visual styling (gradient on
-  // header / submit button) when nothing is selected yet. The actual
-  // form-blocking logic uses `_selectedCat == null` as the source of truth.
-  _Cat get _currentCat =>
-      _selectedCat == null
-          ? _categories.first
-          : _categories.firstWhere((c) => c.key == _selectedCat);
 
-  bool get _categoryPicked => _selectedCat != null;
-  
-Future<void> _submit() async {
-    if (!_categoryPicked) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Please select a category first.',
-            style: TextStyle(fontFamily: 'Momo')),
-        backgroundColor: _kG4,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ));
-      return;
-    }
-    if (!_formKey.currentState!.validate()) return;
-    HapticFeedback.mediumImpact();
-    setState(() => _submitting = true);
+  // ─────────────────────────────────────────────────────────
+  // Data
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _loadingCats     = true;
+      _categoriesError = null;
+    });
     try {
-      await _api.post('/feedback/suggest/', body: {
-        'title':    _titleCtrl.text.trim(),
-        'message':  _msgCtrl.text.trim(),
-        'category': _selectedCat,
+      final raw = await _api.getSuggestionCategories();
+      final list = (raw as List? ?? [])
+          .whereType<Map>()
+          .map((m) => _Cat.fromJson(m.cast<String, dynamic>()))
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      setState(() {
+        _categories  = list;
+        _loadingCats = false;
       });
-      setState(() { _submitting = false; _submitted = true; });
-      _successCtrl.forward();
-      HapticFeedback.heavyImpact();
     } catch (e) {
-      setState(() => _submitting = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.toString().replaceAll('Exception: ', ''),
-            style: const TextStyle(fontFamily: 'Momo')),
-        backgroundColor: _kG4,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ));
+      setState(() {
+        _loadingCats     = false;
+        _categoriesError = 'Could not load categories. Pull to retry.';
+      });
     }
   }
 
-  // ══════════════════════════════════════════════════════════
+  Future<void> _fetchHistory() async {
+    setState(() => _historyLoading = true);
+    try {
+      final raw = await _api.getMySuggestions();
+      final list = (raw as List? ?? [])
+          .whereType<Map>()
+          .map((m) => _Submission.fromJson(m.cast<String, dynamic>()))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      setState(() {
+        _submissions       = list;
+        _historyLoading    = false;
+        _historyLoadedOnce = true;
+      });
+    } catch (_) {
+      setState(() {
+        _historyLoading    = false;
+        _historyLoadedOnce = true;
+      });
+    }
+  }
+
+  Future<void> _toggleHistory() async {
+    HapticFeedback.lightImpact();
+    final wasExpanded = _historyExpanded;
+    setState(() => _historyExpanded = !wasExpanded);
+    if (!wasExpanded && !_historyLoadedOnce) {
+      await _fetchHistory();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Submit
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    if (_selectedCatKey == null) {
+      _toast('Please choose a category first.', isError: true);
+      return;
+    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() => _submitting = true);
+    try {
+      await _api.submitSuggestion(
+        title:    _titleCtrl.text.trim(),
+        message:  _msgCtrl.text.trim(),
+        category: _selectedCatKey!,
+      );
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _submitted  = true;
+      });
+      _successCtrl.forward(from: 0);
+      // Force a refresh on next history expand so the new entry appears.
+      _historyLoadedOnce = false;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _toast(_extractErr(e), isError: true);
+    }
+  }
+
+  String _extractErr(Object e) {
+    final s = e.toString();
+    final m = RegExp(r'"error"\s*:\s*"([^"]+)"').firstMatch(s);
+    if (m != null) return m.group(1)!;
+    return s.replaceAll('Exception: ', '').trim();
+  }
+
+  void _toast(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontFamily: 'Momo')),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: isError ? _kG4 : Colors.green.shade600,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
+  // ═════════════════════════════════════════════════════════
   // BUILD
-  // ══════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg   = isDark ? const Color(0xFF0D0D1A) : const Color(0xFFF2F4F8);
-    final card = isDark ? const Color(0xFF161628) : Colors.white;
-    final text = isDark ? Colors.white : const Color(0xFF1A1A2E);
-    final sub  = isDark ? Colors.white54 : Colors.grey.shade500;
+    final bg     = isDark ? const Color(0xFF0F0F1F) : const Color(0xFFF7F7FB);
+    final card   = isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    final text   = isDark ? Colors.white               : const Color(0xFF1A1A2E);
+    final sub    = isDark ? Colors.white60             : Colors.grey.shade500;
 
     return Scaffold(
       backgroundColor: bg,
-      body: _submitted ? _buildSuccess(isDark) : _buildForm(isDark, bg, card, text, sub),
+      body: SafeArea(
+        top: false,
+        child: _submitted
+            ? _buildSuccess(card, text, sub)
+            : _buildForm(isDark, bg, card, text, sub),
+      ),
     );
   }
 
-  // ── Success state ─────────────────────────────────────────
+  // ── Success state ────────────────────────────────────────
 
-  Widget _buildSuccess(bool isDark) {
+  Widget _buildSuccess(Color card, Color text, Color sub) {
+    final grad = _currentCat?.gradient ?? _kNeutralGrad;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [_currentCat.gradient.first.withOpacity(0.9),
-            _currentCat.gradient.last],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-      ),
-      child: SafeArea(child: Center(child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: ScaleTransition(scale: _successScale, child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedBuilder(animation: _floatAnim, builder: (_, __) =>
-              Transform.translate(offset: Offset(0, _floatAnim.value),
-                child: Container(
-                  width: 110, height: 110,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 2)),
-                  child: const Center(child: Text('🎉', style: TextStyle(fontSize: 54)))))),
-            const SizedBox(height: 28),
-            const Text('Sent! 🙏', style: TextStyle(fontFamily: 'Alfa',
-                fontSize: 36, color: Colors.white)),
-            const SizedBox(height: 12),
-            Text('Your suggestion has been received.\nWe appreciate your feedback!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 15,
-                  color: Colors.white.withOpacity(0.85), height: 1.6)),
-            const SizedBox(height: 36),
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.4))),
-                child: const Text('← Back', style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white))),
+            colors: grad,
+            begin: Alignment.topLeft, end: Alignment.bottomRight)),
+      child: Center(child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ScaleTransition(scale: _successScale,
+            child: Container(width: 110, height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.2),
+                border: Border.all(color: Colors.white.withOpacity(0.4),
+                    width: 3)),
+              child: const Icon(Icons.check_rounded,
+                  color: Colors.white, size: 60))),
+          const SizedBox(height: 28),
+          const Text('Thank you! 🙏',
+              style: TextStyle(fontFamily: 'Alfa',
+                  fontSize: 36, color: Colors.white)),
+          const SizedBox(height: 12),
+          Text('Your suggestion has been received.\n'
+              'We appreciate your feedback!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontFamily: 'Momo', fontSize: 15,
+                color: Colors.white.withOpacity(0.85), height: 1.6)),
+          const SizedBox(height: 36),
+          GestureDetector(
+            onTap: () {
+              // Reset to a fresh form for another submission.
+              setState(() {
+                _submitted      = false;
+                _selectedCatKey = null;
+                _titleCtrl.clear();
+                _msgCtrl.clear();
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 28, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.4))),
+              child: const Text('Submit another',
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15, color: Colors.white)),
             ),
-          ],
-        )),
-      ))),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Text('← Back',
+              style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, color: Colors.white70)),
+          ),
+        ]),
+      )),
     );
   }
 
-  // ── Form state ────────────────────────────────────────────
+  // ── Form state ───────────────────────────────────────────
 
   Widget _buildForm(bool isDark, Color bg, Color card, Color text, Color sub) {
-    final cat = _currentCat;
     return Column(children: [
-      // ── Hero header
+
+      // ── Hero header (category-coloured gradient) ─────────
       Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: cat.gradient,
+          gradient: LinearGradient(colors: _headerGradient,
               begin: Alignment.topLeft, end: Alignment.bottomRight)),
         child: SafeArea(bottom: false, child: Column(children: [
-          // Back row
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: Row(children: [
@@ -209,29 +398,37 @@ Future<void> _submit() async {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.3))),
-                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20))),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.3))),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.white, size: 20))),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.25))),
-                child: Text('${cat.emoji} ${cat.label}',
-                  style: const TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.white))),
-            ])),
-          // Title
+              if (_currentCat != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.25))),
+                  child: Text(
+                    '${_currentCat!.emoji} ${_currentCat!.label}',
+                    style: const TextStyle(fontFamily: 'Momo',
+                        fontSize: 12, color: Colors.white))),
+            ]),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
             child: Column(children: [
               AnimatedBuilder(animation: _floatAnim, builder: (_, __) =>
-                Transform.translate(offset: Offset(0, _floatAnim.value * 0.4),
-                  child: Text('📬', style: const TextStyle(fontSize: 52)))),
+                Transform.translate(
+                  offset: Offset(0, _floatAnim.value * 0.4),
+                  child: const Text('📬',
+                      style: TextStyle(fontSize: 52)))),
               const SizedBox(height: 12),
-              const Text('Suggestion Box', style: TextStyle(fontFamily: 'Alfa',
-                  fontSize: 28, color: Colors.white)),
+              const Text('Suggestion Box', style: TextStyle(
+                  fontFamily: 'Alfa', fontSize: 28, color: Colors.white)),
               const SizedBox(height: 6),
               Text('Your name will be attached — speak freely!',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
@@ -240,7 +437,7 @@ Future<void> _submit() async {
         ])),
       ),
 
-      // ── Form body
+      // ── Form body ────────────────────────────────────────
       Expanded(child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -248,137 +445,80 @@ Future<void> _submit() async {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // Category picker
             _label('Category', sub),
             const SizedBox(height: 10),
-            SizedBox(height: 80,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
-                  final c   = _categories[i];
-                  final sel = c.key == _selectedCat;
-                  return GestureDetector(
-                    onTap: () { HapticFeedback.lightImpact();
-                      setState(() => _selectedCat = c.key); },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: 100,
-                      decoration: BoxDecoration(
-                        gradient: sel ? LinearGradient(colors: c.gradient) : null,
-                        color: sel ? null : card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: sel ? Colors.transparent
-                              : isDark ? Colors.white12 : Colors.grey.shade200,
-                          width: 1.5),
-                        boxShadow: sel ? [BoxShadow(
-                          color: c.gradient.first.withOpacity(0.35),
-                          blurRadius: 12, offset: const Offset(0, 4))] : null),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(c.emoji, style: const TextStyle(fontSize: 24)),
-                        const SizedBox(height: 5),
-                        Text(c.label, textAlign: TextAlign.center,
-                          style: TextStyle(fontFamily: 'Momo', fontSize: 10,
-                            color: sel ? Colors.white : sub)),
-                      ])),
-                  );
-                },
-              ),
-            ),
+            _buildCategoryRow(isDark, card, sub),
 
             const SizedBox(height: 22),
-          if (!_categoryPicked) Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: _kG3.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _kG3.withOpacity(0.3)),
-                ),
-                child: Row(children: [
-                  Icon(Icons.info_outline_rounded, color: _kG3, size: 16),
-                  const SizedBox(width: 8),
-                  Text('Pick a category above to continue',
-                    style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                        color: _kG3, fontWeight: FontWeight.w600)),
-                ]),
-              ),
-            ),
-            // Title field
+
+            // Soft "pick a category to continue" hint, only while
+            // the form is locked.
+            if (!_formEnabled) _buildLockedHint(card, sub),
+
+            // Title
             _label('Title', sub),
             const SizedBox(height: 8),
             _field(
               controller: _titleCtrl,
-              hint: 'Short summary of your suggestion...',
+              hint: _formEnabled
+                  ? 'Short summary of your suggestion...'
+                  : 'Pick a category to enable',
               card: card, text: text, sub: sub, isDark: isDark,
               maxLines: 1, maxLength: 120,
-              enabled: _categoryPicked,                                 // ← add
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Please enter a title' : null,
+              enabled: _formEnabled,
+              validator: (v) {
+                if (!_formEnabled) return null;
+                return (v == null || v.trim().isEmpty)
+                    ? 'Please enter a title' : null;
+              },
             ),
 
             const SizedBox(height: 18),
 
-            // Message field
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              _label('Your Message', sub),
-              Text('$_msgLen / 1000', style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 11, color: _msgLen > 900 ? _kG4 : sub)),
-            ]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _label('Your Message', sub),
+                Text('$_msgLen / 1000',
+                  style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 11, color: _msgLen > 900 ? _kG4 : sub)),
+              ]),
             const SizedBox(height: 8),
             _field(
               controller: _msgCtrl,
-              hint: 'Describe your idea or issue in detail...',
+              hint: _formEnabled
+                  ? 'Describe your idea or issue in detail...'
+                  : 'Pick a category to enable',
               card: card, text: text, sub: sub, isDark: isDark,
               maxLines: 7, maxLength: 1000,
-              enabled: _categoryPicked,                                 // ← add
+              enabled: _formEnabled,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please write your message';
-                if (v.trim().length < 10) return 'Message too short (min 10 characters)';
+                if (!_formEnabled) return null;
+                if (v == null || v.trim().isEmpty) {
+                  return 'Please write your message';
+                }
+                if (v.trim().length < 10) {
+                  return 'Message too short (min 10 characters)';
+                }
                 return null;
               },
             ),
 
             const SizedBox(height: 28),
 
-            // Submit button
-            GestureDetector(
-              onTap: _submitting ? null : _submit,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: double.infinity, height: 58,
-                decoration: BoxDecoration(
-                  gradient: _submitting
-                      ? LinearGradient(colors: [
-                          Colors.grey.shade400, Colors.grey.shade500])
-                      : LinearGradient(colors: _currentCat.gradient,
-                          begin: Alignment.centerLeft, end: Alignment.centerRight),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: _submitting ? [] : [BoxShadow(
-                    color: _currentCat.gradient.first.withOpacity(0.4),
-                    blurRadius: 18, offset: const Offset(0, 6))]),
-                child: Center(child: _submitting
-                    ? const SizedBox(width: 22, height: 22,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5))
-                    : Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 10),
-                        const Text('Send Suggestion', style: TextStyle(
-                          fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                          fontSize: 16, color: Colors.white)),
-                      ])),
-              ),
-            ),
+            _buildSubmitButton(),
 
             const SizedBox(height: 16),
             Center(child: Text(
-              'Submitted suggestions are reviewed by the TCS team.\nYou can view your past submissions in Settings.',
+              'Submitted suggestions are reviewed by the TCS team.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: sub, height: 1.6))),
+              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                  color: sub, height: 1.6))),
+
+            const SizedBox(height: 28),
+
+            // ── On-page submission history ─────────────────
+            _buildHistorySection(isDark, card, text, sub),
+
             const SizedBox(height: 24),
           ],
         )),
@@ -386,41 +526,387 @@ Future<void> _submit() async {
     ]);
   }
 
-  Widget _label(String t, Color sub) => Text(t.toUpperCase(),
-    style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-        fontSize: 11, color: sub, letterSpacing: 0.8));
+  // ── Category picker row ──────────────────────────────────
 
- Widget _field({
-    required TextEditingController controller,
-    required String hint,
-    required Color card, required Color text, required Color sub,
-    required bool isDark, required int maxLines, required int maxLength,
-    String? Function(String?)? validator,
-    bool enabled = true,
-  }) {
+  Widget _buildCategoryRow(bool isDark, Color card, Color sub) {
+    if (_loadingCats) {
+      return SizedBox(height: 80,
+        child: Center(child: SizedBox(
+          width: 22, height: 22,
+          child: CircularProgressIndicator(
+              color: _kG2, strokeWidth: 2.5))));
+    }
+
+    if (_categoriesError != null || _categories.isEmpty) {
+      return Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: isDark ? Colors.white12 : Colors.grey.shade200,
+              width: 1.5)),
+        child: Center(child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 16, color: sub),
+              const SizedBox(width: 8),
+              Flexible(child: Text(
+                _categoriesError ?? 'No categories available right now.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                    color: sub))),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _fetchCategories,
+                child: const Icon(Icons.refresh_rounded,
+                    size: 18, color: _kG2)),
+            ]))));
+    }
+
+    return SizedBox(height: 80,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final c   = _categories[i];
+          final sel = c.key == _selectedCatKey;
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _selectedCatKey = c.key);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 100,
+              decoration: BoxDecoration(
+                gradient: sel ? LinearGradient(colors: c.gradient) : null,
+                color: sel ? null : card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: sel ? Colors.transparent
+                      : isDark ? Colors.white12 : Colors.grey.shade200,
+                  width: 1.5),
+                boxShadow: sel ? [BoxShadow(
+                  color: c.gradient.first.withOpacity(0.35),
+                  blurRadius: 12, offset: const Offset(0, 4))] : null),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(c.emoji, style: const TextStyle(fontSize: 24)),
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(c.label, textAlign: TextAlign.center,
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: 'Momo', fontSize: 10,
+                        color: sel ? Colors.white : sub)),
+                  ),
+                ])),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Locked-form hint banner ──────────────────────────────
+
+  Widget _buildLockedHint(Color card, Color sub) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _kG2.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kG2.withOpacity(0.18))),
+      child: Row(children: [
+        const Icon(Icons.arrow_upward_rounded, size: 16, color: _kG2),
+        const SizedBox(width: 8),
+        Expanded(child: Text(
+          'Pick a category above to start writing.',
+          style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+              color: sub, height: 1.4))),
+      ]),
+    );
+  }
+
+  // ── Submit button ────────────────────────────────────────
+
+  Widget _buildSubmitButton() {
+    final canSubmit = _formEnabled && !_submitting;
+    final grad = _currentCat?.gradient ?? _kNeutralGrad;
+
+    return GestureDetector(
+      onTap: canSubmit ? _submit : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: double.infinity, height: 58,
+        decoration: BoxDecoration(
+          gradient: canSubmit
+              ? LinearGradient(colors: grad,
+                  begin: Alignment.centerLeft, end: Alignment.centerRight)
+              : LinearGradient(colors: [
+                  Colors.grey.shade400, Colors.grey.shade500]),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: canSubmit ? [BoxShadow(
+            color: grad.first.withOpacity(0.4),
+            blurRadius: 18, offset: const Offset(0, 6))] : []),
+        child: Center(child: _submitting
+            ? const SizedBox(width: 22, height: 22,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2.5))
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(_formEnabled
+                        ? Icons.send_rounded
+                        : Icons.lock_outline_rounded,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Text(_formEnabled
+                        ? 'Send Suggestion'
+                        : 'Choose a category',
+                  style: const TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, color: Colors.white)),
+              ])),
+      ),
+    );
+  }
+
+  // ── Submission history (collapsible) ─────────────────────
+
+  Widget _buildHistorySection(
+      bool isDark, Color card, Color text, Color sub) {
     return Container(
       decoration: BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white12 : Colors.grey.shade200, width: 1.5),
-        boxShadow: [BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-          blurRadius: 8, offset: const Offset(0, 2))]),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        maxLength: maxLength,
-        style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: text),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13, color: sub),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-          counterStyle: const TextStyle(fontSize: 0), // hide built-in counter
+            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            width: 1.5)),
+      child: Column(children: [
+
+        // Header (tap to expand)
+        InkWell(
+          onTap: _toggleHistory,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(children: [
+              Container(width: 30, height: 30,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_kG2, _kG1]),
+                  borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.history_rounded,
+                    color: Colors.white, size: 16)),
+              const SizedBox(width: 10),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your submissions',
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13, color: text)),
+                  const SizedBox(height: 2),
+                  Text(_historyExpanded
+                          ? 'Tap to hide'
+                          : 'See past suggestions and their status',
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 11, color: sub)),
+                ])),
+              AnimatedRotation(
+                duration: const Duration(milliseconds: 220),
+                turns: _historyExpanded ? 0.5 : 0,
+                child: Icon(Icons.keyboard_arrow_down_rounded,
+                    color: sub, size: 22)),
+            ]),
+          ),
         ),
-        validator: validator,
+
+        // Body
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: !_historyExpanded
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+                  child: _buildHistoryBody(isDark, text, sub),
+                ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildHistoryBody(bool isDark, Color text, Color sub) {
+    if (_historyLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Center(child: SizedBox(
+          width: 22, height: 22,
+          child: CircularProgressIndicator(
+              color: _kG2, strokeWidth: 2.5))));
+    }
+    if (_submissions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Center(child: Text(
+            'No submissions yet — yours will appear here.',
+            style: TextStyle(fontFamily: 'Momo',
+                fontSize: 12, color: sub))));
+    }
+    return Column(children: [
+      for (final s in _submissions)
+        _buildHistoryTile(s, isDark, text, sub),
+    ]);
+  }
+
+  Widget _buildHistoryTile(_Submission s, bool isDark, Color text, Color sub) {
+    final cat   = s.category;
+    final grad  = cat?.gradient ?? _kNeutralGrad;
+    final emoji = cat?.emoji ?? '📝';
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : grad.first.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: grad.first.withOpacity(0.18))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: text)),
+            const SizedBox(height: 4),
+            Row(children: [
+              if (cat != null) Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text(cat.label,
+                  style: TextStyle(fontFamily: 'Momo',
+                      fontSize: 10, color: sub))),
+              Text('· ${_relTime(s.createdAt)}',
+                style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 10, color: sub)),
+            ]),
+            if (s.adminNote != null) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _kG2.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _kG2.withOpacity(0.18))),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.reply_rounded, size: 13, color: _kG2),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(s.adminNote!,
+                      style: const TextStyle(fontFamily: 'Momo',
+                          fontSize: 11, color: _kG2, height: 1.4))),
+                  ])),
+            ],
+          ])),
+        const SizedBox(width: 8),
+        _statusPill(s.status),
+      ]),
+    );
+  }
+
+  Widget _statusPill(String status) {
+    final spec = _statusSpec(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: spec.color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: spec.color.withOpacity(0.3))),
+      child: Text(spec.label,
+        style: TextStyle(fontFamily: 'Arch',
+            fontWeight: FontWeight.bold, fontSize: 9,
+            color: spec.color, letterSpacing: 0.3)),
+    );
+  }
+
+  _StatusSpec _statusSpec(String status) {
+    switch (status) {
+      case 'under_review': return const _StatusSpec('REVIEWING', _kG3);
+      case 'planned':      return const _StatusSpec('PLANNED',   _kG2);
+      case 'done':         return const _StatusSpec('DONE',      Color(0xFF4CAF50));
+      case 'wont_do':      return const _StatusSpec("WON'T DO",  Color(0xFF9E9E9E));
+      case 'new':
+      default:             return const _StatusSpec('NEW',       _kG1);
+    }
+  }
+
+  String _relTime(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inSeconds < 60) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours   < 24) return '${d.inHours}h ago';
+    if (d.inDays    <  7) return '${d.inDays}d ago';
+    if (d.inDays    < 30) return '${(d.inDays / 7).floor()}w ago';
+    return '${t.day}/${t.month}/${t.year}';
+  }
+
+  // ── Small atoms ──────────────────────────────────────────
+
+  Widget _label(String t, Color sub) => Text(t.toUpperCase(),
+    style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+        fontSize: 11, color: sub, letterSpacing: 0.8));
+
+  Widget _field({
+    required TextEditingController controller,
+    required String hint,
+    required Color card, required Color text, required Color sub,
+    required bool isDark, required int maxLines, required int maxLength,
+    required bool enabled,
+    String? Function(String?)? validator,
+  }) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.55,
+      child: Container(
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            width: 1.5),
+          boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0 : 0.03),
+            blurRadius: 6, offset: const Offset(0, 2))]),
+        child: TextFormField(
+          controller: controller,
+          enabled: enabled,
+          maxLines: maxLines,
+          maxLength: maxLength,
+          validator: validator,
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: text),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(fontFamily: 'Momo',
+                fontSize: 14, color: sub),
+            border: InputBorder.none,
+            counterText: '',
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 14)),
+        ),
       ),
     );
   }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+class _StatusSpec {
+  final String label;
+  final Color  color;
+  const _StatusSpec(this.label, this.color);
 }

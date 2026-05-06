@@ -267,7 +267,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
         // ── User list ───────────────────────────────────────
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _kG2))
+              ? const Center(child: CircularProgressIndicator())
               : _filtered.isEmpty
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                       const Text('🔍', style: TextStyle(fontSize: 48)),

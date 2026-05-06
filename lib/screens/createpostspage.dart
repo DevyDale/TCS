@@ -2,7 +2,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tcs_app/screens/location_picker.dart';
 import 'package:video_player/video_player.dart';
 import '../../services/api_service.dart';
 
@@ -30,6 +32,13 @@ const _kMaxVideoBytes = _kMaxVideoMb * 1024 * 1024;
 const _kAllowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const _kAllowedVideoExtensions = ['mp4', 'mov', 'webm'];
 
+// ── Campus quick picks for the LocationPicker ─────────────────
+const _kCampusLocations = [
+  'Taylors College', 'Library', 'Cafeteria', 'Sports Hall',
+  'Lecture Hall A', 'Lecture Hall B', 'Study Hub', 'Auditorium',
+  'Student Lounge', 'Science Lab',
+];
+
 
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});
@@ -48,14 +57,15 @@ class _CreatePostPageState extends State<CreatePostPage>
   // for videos, owns its own VideoPlayerController for the preview.
   final List<_MediaItem> _media = [];
 
-  String  _visibility     = 'Public';
-  bool    _isPosting      = false;
-  bool    _altText        = false;
+  String  _visibility      = 'Public';
+  bool    _isPosting       = false;
+  bool    _altText         = false;
+  bool    _pickingLocation = false;     // NEW — drives the location row spinner
   String? _feeling;
   String? _tag;
-  int     _previewPage    = 0;
-  int     _uploadProgress = 0;
-  String  _uploadingLabel = 'photo';   // 'photo' | 'video' for progress text
+  int     _previewPage     = 0;
+  int     _uploadProgress  = 0;
+  String  _uploadingLabel  = 'photo';   // 'photo' | 'video' for progress text
 
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
@@ -85,6 +95,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       ..forward();
     _fadeAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
     _captionCtrl.addListener(() => setState(() {}));
+    _locationCtrl.addListener(() => setState(() {}));
   }
 
   @override
@@ -375,6 +386,26 @@ class _CreatePostPageState extends State<CreatePostPage>
       if (_previewPage >= _media.length && _previewPage > 0) {
         _previewPage = _media.length - 1;
       }
+    });
+  }
+
+  // ── Location picker entry point ──────────────────────────
+
+  Future<void> _openLocationPicker() async {
+    if (_pickingLocation) return;
+    HapticFeedback.lightImpact();
+    setState(() => _pickingLocation = true);
+
+    final result = await LocationPicker.show(
+      context,
+      quickPicks:   _kCampusLocations,
+      initialQuery: _locationCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _pickingLocation = false;
+      if (result != null) _locationCtrl.text = result.name;
     });
   }
 
@@ -983,18 +1014,8 @@ class _CreatePostPageState extends State<CreatePostPage>
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
             blurRadius: 10, offset: const Offset(0, 3))]),
       child: Column(children: [
-        _DetailRow(icon: Icons.location_on_rounded, color: _kG4,
-          child: TextField(
-            controller: _locationCtrl,
-            style: const TextStyle(fontFamily: 'Momo',
-                fontSize: 14, color: _kInk),
-            decoration: InputDecoration(
-              hintText: 'Add location',
-              hintStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.grey.shade400, fontSize: 14),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 16)))),
+        // ── Location row — opens LocationPicker, shows spinner while open ──
+        _buildLocationRow(),
         Divider(height: 1, color: Colors.grey.shade100),
         _DetailRow(icon: Icons.emoji_emotions_rounded, color: _kG3,
           child: GestureDetector(
@@ -1034,6 +1055,64 @@ class _CreatePostPageState extends State<CreatePostPage>
               inactiveTrackColor: Colors.grey.shade300),
           ])),
       ]),
+    );
+  }
+
+  /// Tappable location row. Opens LocationPicker on tap. Shows a
+  /// SpinKitFadingCircle in place of the pin icon while the picker
+  /// is on screen, then returns to the icon as soon as the user
+  /// picks (or dismisses).
+  Widget _buildLocationRow() {
+    final hasLocation = _locationCtrl.text.trim().isNotEmpty;
+    final label = _pickingLocation
+        ? 'Picking…'
+        : (hasLocation ? _locationCtrl.text.trim() : 'Add location');
+
+    return GestureDetector(
+      onTap: _openLocationPicker,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 8),
+        child: Row(children: [
+          // Icon OR loading spinner — same footprint either way
+          SizedBox(
+            width: 20, height: 20,
+            child: _pickingLocation
+                ? const SpinKitFadingCircle(color: _kG4, size: 20)
+                : const Icon(Icons.location_on_rounded,
+                    color: _kG4, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              label,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Momo', fontSize: 14,
+                color: _pickingLocation || !hasLocation
+                    ? Colors.grey.shade400 : _kInk,
+              ),
+            ),
+          )),
+          if (hasLocation && !_pickingLocation)
+            GestureDetector(
+              onTap: () => setState(() => _locationCtrl.clear()),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(Icons.close_rounded,
+                    size: 16, color: Colors.grey.shade400),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.keyboard_arrow_right_rounded,
+                  color: Colors.grey.shade300, size: 20),
+            ),
+        ]),
+      ),
     );
   }
 

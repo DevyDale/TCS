@@ -380,18 +380,33 @@ class ApiService {
         'page': '$page',
       });
 
+  /// GET /api/feelings/ — backend-driven Feeling list.
+  /// Returns active feelings sorted by sort_order, each with
+  /// slug / label / emoji / category / sort_order.
+  /// Both the create-post and create-fweet screens drive their
+  /// feeling picker tiles from this endpoint instead of a
+  /// hardcoded list — admins control the list from Django admin.
+  Future<dynamic> getFeelings() => get('/feelings/');
+
+  /// Create a new post or fweet.
+  ///
+  /// `feeling` is the SLUG of a Feeling row (e.g. 'happy'), not the
+  /// display label. The backend resolves it against the Feeling model
+  /// added in §4. Pass null or empty to skip.
   Future<dynamic> createPost({
     required String content,
-    String postType        = 'post',
-    String visibility      = 'public',
-    String location        = '',
-    String backgroundColor = '',
+    String  postType        = 'post',
+    String  visibility      = 'public',
+    String  location        = '',
+    String  backgroundColor = '',
+    String? feeling,
   }) => post('/posts/', body: {
     'content':          content,
     'post_type':        postType,
     'visibility':       visibility,
     'location':         location,
     'background_color': backgroundColor,
+    if (feeling != null && feeling.isNotEmpty) 'feeling': feeling,
   });
 
   Future<dynamic> getPost(String id)    => get('/posts/$id/');
@@ -464,7 +479,9 @@ class ApiService {
         'media_type': mediaType,
       },
     );
-  }  // ══════════════════════════════════════════════════════════
+  }
+
+  // ══════════════════════════════════════════════════════════
   // CHAT
   // ══════════════════════════════════════════════════════════
 
@@ -756,6 +773,14 @@ class ApiService {
   // ══════════════════════════════════════════════════════════
   // FEEDBACK / SUGGESTION BOX
   // ══════════════════════════════════════════════════════════
+
+  /// GET /api/feedback/categories/ — backend-driven picker tiles.
+  /// Returns a list of active categories sorted by sort_order, each
+  /// with id/key/label/emoji/gradient_from/gradient_to/sort_order.
+  /// The frontend renders the picker entirely from this data so
+  /// admins can add/remove/reorder categories without a code change.
+  Future<dynamic> getSuggestionCategories() =>
+      get('/feedback/categories/');
 
   Future<dynamic> submitSuggestion({
     required String title,
