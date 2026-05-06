@@ -7,6 +7,7 @@ import 'package:tcs_app/highlight_card.dart';
 import 'package:tcs_app/screens/event_details.dart';
 import 'package:tcs_app/screens/suggestion_box_screen.dart';
 import 'package:tcs_app/search/search_screen.dart';
+import 'package:tcs_app/widgets/media_item_view.dart';
 import '../../services/api_service.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
 
@@ -675,13 +676,11 @@ class _PostCardState extends State<_PostCard>
     final initial  = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final grad     = _roleGrad(role);
 
-    // media is now a list: [{'url': '...', 'media_type': 'image', 'order': 0}, ...]
+    // Each media item: {url, thumbnail_url, media_type, order, id}.
+    // We pass the whole list through so MediaItemView can branch on
+    // media_type and render images/videos appropriately.
     final media    = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
-    final mediaUrls = media
-        .map((m) => m['url'] as String? ?? '')
-        .where((u) => u.isNotEmpty)
-        .toList();
-    final hasImages = mediaUrls.isNotEmpty;
+    final hasMedia = media.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -698,12 +697,12 @@ class _PostCardState extends State<_PostCard>
         borderRadius: BorderRadius.circular(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // ── Image carousel (1–5 images from Cloudinary) ────
-          if (hasImages)
-            _buildImageCarousel(mediaUrls, avatar, initial, name, timeAgo, isFweet, grad, role),
+          // ── Media carousel (1–5 photos and/or 1 video) ─────
+          if (hasMedia)
+            _buildMediaCarousel(media, avatar, initial, name, timeAgo, isFweet, grad, role),
 
           // ── Text-only author row ────────────────────────────
-          if (!hasImages)
+          if (!hasMedia)
             Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(children: [
                 Stack(children: [
@@ -771,7 +770,7 @@ class _PostCardState extends State<_PostCard>
           // ── Content ────────────────────────────────────────
           if (content.isNotEmpty)
             Padding(
-              padding: EdgeInsets.fromLTRB(16, hasImages ? 14 : 12, 16, 0),
+              padding: EdgeInsets.fromLTRB(16, hasMedia ? 14 : 12, 16, 0),
               child: GestureDetector(
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Text(content,
@@ -838,12 +837,15 @@ class _PostCardState extends State<_PostCard>
     );
   }
 
-  // ── Image carousel widget ─────────────────────────────────
-  // Supports 1–5 Cloudinary images with swipe carousel, dot indicators,
-  // and the author row overlaid on the bottom of the image.
+  // ── Media carousel widget ─────────────────────────────────
+  // Supports 1–5 mixed image/video items with swipe carousel, dot
+  // indicators, and the author row overlaid on the bottom. Each page
+  // is rendered by MediaItemView which branches on `media_type` —
+  // images are CachedNetworkImage, videos show a thumbnail with a
+  // play badge and open FullscreenVideoPlayer on tap.
 
-  Widget _buildImageCarousel(
-    List<String> urls,
+  Widget _buildMediaCarousel(
+    List<Map<String, dynamic>> media,
     String avatar,
     String initial,
     String name,
@@ -852,36 +854,24 @@ class _PostCardState extends State<_PostCard>
     List<Color> grad,
     String role,
   ) {
-    final multi = urls.length > 1;
+    final multi = media.length > 1;
     return Stack(children: [
       // Carousel
       SizedBox(
         height: 300,
         child: PageView.builder(
-          itemCount: urls.length,
+          itemCount: media.length,
           onPageChanged: (p) => setState(() => _mediaPage = p),
-          itemBuilder: (_, i) => CachedNetworkImage(
-            imageUrl:    urls[i],
-            height:      300,
-            width:       double.infinity,
-            fit:         BoxFit.cover,
-            placeholder: (_, __) => Container(
-              height: 300,
-              color: const Color(0xFFF0F0F5),
-              child: const Center(child: CircularProgressIndicator(
-                  color: _kViolet, strokeWidth: 2))),
-            errorWidget: (_, __, ___) => Container(
-              height: 300,
-              color: const Color(0xFFF0F0F5),
-              child: Center(child: Icon(Icons.image_outlined,
-                  size: 48, color: Colors.grey.shade300))),
+          itemBuilder: (_, i) => MediaItemView(
+            item:   media[i],
+            height: 300,
           ),
         ),
       ),
 
       // Gradient overlay at bottom
       Positioned(bottom: 0, left: 0, right: 0,
-        child: Container(height: 140,
+        child: IgnorePointer(child: Container(height: 140,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.bottomCenter,
@@ -889,26 +879,26 @@ class _PostCardState extends State<_PostCard>
               colors: [Colors.black.withOpacity(0.78),
                        Colors.black.withOpacity(0.2),
                        Colors.transparent],
-              stops: const [0.0, 0.6, 1.0])))),
+              stops: const [0.0, 0.6, 1.0]))))),
 
-      // Page counter badge (top-right) — only for multi-image
+      // Page counter badge (top-right) — only when multiple items
       if (multi)
         Positioned(top: 12, right: 12,
-          child: Container(
+          child: IgnorePointer(child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.55),
                 borderRadius: BorderRadius.circular(20)),
-            child: Text('${_mediaPage + 1} / ${urls.length}',
+            child: Text('${_mediaPage + 1} / ${media.length}',
                 style: const TextStyle(color: Colors.white,
                     fontFamily: 'Momo', fontSize: 11,
-                    fontWeight: FontWeight.bold)))),
+                    fontWeight: FontWeight.bold))))),
 
       // Dot indicators (bottom-centre, above author row)
       if (multi)
         Positioned(bottom: 54, left: 0, right: 0,
-          child: Row(mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(urls.length, (i) {
+          child: IgnorePointer(child: Row(mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(media.length, (i) {
               final active = i == _mediaPage;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -917,11 +907,11 @@ class _PostCardState extends State<_PostCard>
                 decoration: BoxDecoration(
                   color: active ? Colors.white : Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(3)));
-            }))),
+            })))),
 
       // Author row overlay
       Positioned(bottom: 14, left: 14, right: 14,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        child: IgnorePointer(child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           // Avatar
           Container(width: 38, height: 38,
             decoration: BoxDecoration(shape: BoxShape.circle,
@@ -990,7 +980,7 @@ class _PostCardState extends State<_PostCard>
               style: const TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold, fontSize: 9,
                   color: Colors.white))),
-        ])),
+        ]))),
     ]);
   }
 }

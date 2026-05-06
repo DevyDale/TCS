@@ -1,6 +1,15 @@
 // lib/services/api_service.dart
 // ALL auth URLs corrected: /api/auth/ → /api/accounts/
 // to match TCS/urls.py: path("accounts/", include("apps.accounts.urls"))
+//
+// SECTION 1 FIX: SharedPreferences keys are now centralised in
+// session_keys.dart. _Tokens.saveUser also persists identity fields
+// (fullName, preferredName, role, userId) so the splash and dashboard
+// can read them without parsing JSON.
+//
+// Bug fixes: replaced '\$page' / '\$id' literal escapes (which sent
+// the literal text "$page" / "$id" to the server) with proper
+// interpolation in getMyPosts / getMyFweets / getFavorites / deletePost.
 
 import 'dart:async';
 import 'dart:convert';
@@ -8,7 +17,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/screens/auth/session_keys.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
 
 // ─────────────────────────────────────────────────────────────
 // CONFIG
@@ -45,9 +56,11 @@ class ApiException implements Exception {
 // ─────────────────────────────────────────────────────────────
 
 class _Tokens {
-  static const _a = 'access_token';   // matches auth_service.dart keys
-  static const _r = 'refresh_token';
-  static const _u = 'sh_current_user';
+  // Now point at the shared single-source-of-truth (session_keys.dart)
+  // instead of duplicating string literals.
+  static const _a = SessionKeys.accessToken;
+  static const _r = SessionKeys.refreshToken;
+  static const _u = SessionKeys.userJson;
 
   static Future<void> save(String a, String r) async {
     final p = await SharedPreferences.getInstance();
@@ -61,8 +74,17 @@ class _Tokens {
   static Future<String?> refresh() async =>
       (await SharedPreferences.getInstance()).getString(_r);
 
-  static Future<void> saveUser(Map<String, dynamic> u) async =>
-      (await SharedPreferences.getInstance()).setString(_u, jsonEncode(u));
+  /// Persist the full user JSON AND the individual identity fields.
+  /// Other screens (splash, login_id, dashboard) read these direct
+  /// keys without having to parse JSON, so we keep them in sync here.
+  static Future<void> saveUser(Map<String, dynamic> u) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_u, jsonEncode(u));
+    await p.setString(SessionKeys.userId,        (u['user_id']        ?? '').toString());
+    await p.setString(SessionKeys.fullName,      (u['name']           ?? '').toString());
+    await p.setString(SessionKeys.preferredName, (u['preferred_name'] ?? '').toString());
+    await p.setString(SessionKeys.role,          (u['role']           ?? '').toString());
+  }
 
   static Future<Map<String, dynamic>?> user() async {
     final raw = (await SharedPreferences.getInstance()).getString(_u);
@@ -74,15 +96,13 @@ class _Tokens {
     return t != null && t.isNotEmpty;
   }
 
+  /// Wipe every session-related key. Driven by SessionKeys.all so we
+  /// can never forget to clear one when a new key is introduced.
   static Future<void> clear() async {
     final p = await SharedPreferences.getInstance();
-    await p.remove(_a);
-    await p.remove(_r);
-    await p.remove(_u);
-    await p.remove('fullName');
-    await p.remove('preferredName');
-    await p.remove('role');
-    await p.remove('userId');
+    for (final k in SessionKeys.all) {
+      await p.remove(k);
+    }
   }
 }
 
@@ -97,6 +117,11 @@ class ApiService {
 
   final _client = http.Client();
 
+  /// Call this on app launch (from the splash) BEFORE deciding whether
+  /// to route the user to the dashboard. If we have an access token,
+  /// try to refresh it proactively so the first dashboard API call
+  /// hits a fresh token instead of a stale one. If refresh fails, the
+  /// session is wiped so the splash falls through to RoleSelection.
   Future<void> initialize() async {
     if (await _Tokens.has()) await _tryRefresh();
   }
@@ -372,18 +397,22 @@ class ApiService {
   Future<dynamic> getPost(String id)    => get('/posts/$id/');
 
   /// Profile: my regular posts
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyPosts({int page = 1}) =>
-      get('/posts/mine/', query: {'post_type': 'post', 'page': '\$page'});
+      get('/posts/mine/', query: {'post_type': 'post', 'page': '$page'});
 
   /// Profile: my fweets
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyFweets({int page = 1}) =>
-      get('/posts/mine/', query: {'post_type': 'fweet', 'page': '\$page'});
+      get('/posts/mine/', query: {'post_type': 'fweet', 'page': '$page'});
 
   /// Profile: bookmarked/favorited posts
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getFavorites({int page = 1}) =>
-      get('/posts/bookmarks/', query: {'page': '\$page'});
+      get('/posts/bookmarks/', query: {'page': '$page'});
 
-  Future<dynamic> deletePost(String id) => delete('/posts/\$id/');
+  /// FIX: was hitting "/posts/$id/" literally because of '\$id' escape.
+  Future<dynamic> deletePost(String id) => delete('/posts/$id/');
   Future<dynamic> updatePost(String id, Map<String, dynamic> data) =>
       patch('/posts/$id/', body: data);
   Future<dynamic> likeToggle(String id)        => post('/posts/$id/like/');
@@ -401,11 +430,41 @@ class ApiService {
         'text': text,
         if (parentId != null) 'parent_id': parentId,
       });
-  Future<dynamic> uploadPostMedia(String postId, File file,
-      {String mime = 'image/jpeg'}) =>
-      _upload('/posts/upload/', {'post_id': postId}, 'file', file, mime);
-
-  // ══════════════════════════════════════════════════════════
+  /// Upload an image or video to a post. Routes through the existing
+  /// uploadFile() helper so auth, error decoding, and MIME formatting
+  /// stay consistent with every other multipart upload.
+  ///
+  /// `mediaType` must be 'image' or 'video' — the backend uses it to
+  /// route the asset through the right Cloudinary resource bucket.
+  Future<dynamic> uploadPostMedia(
+    String postId,
+    File   file, {
+    String mediaType = 'image',
+  }) {
+    final ext = file.path.split('.').last.toLowerCase();
+    final mime = mediaType == 'video'
+        ? switch (ext) {
+            'mov'  => 'video/quicktime',
+            'webm' => 'video/webm',
+            _      => 'video/mp4',
+          }
+        : switch (ext) {
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            'gif'  => 'image/gif',
+            _      => 'image/jpeg',
+          };
+    return uploadFile(
+      '/posts/upload/',
+      filePath:    file.path,
+      field:       'file',
+      mimeType:    mime,
+      extraFields: {
+        'post_id':    postId,
+        'media_type': mediaType,
+      },
+    );
+  }  // ══════════════════════════════════════════════════════════
   // CHAT
   // ══════════════════════════════════════════════════════════
 

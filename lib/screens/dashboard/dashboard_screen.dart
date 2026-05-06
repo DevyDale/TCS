@@ -1,14 +1,24 @@
 // lib/screens/dashboard/dashboard_screen.dart
+//
+// SECTION 2 FIX — top-down welcome banner.
+//
+// Before: a "Welcome back, X 🎉" SnackBar fired from login_id_screen
+// just before navigating here, sliding up from the BOTTOM. That was
+// removed in Section 1 (so there's currently no welcome at all).
+//
+// Now: a proper banner mounted on the dashboard itself. It slides
+// DOWN from above the screen, holds for a beat, then slides back up
+// out of view. Tap to dismiss early. Fires once per dashboard mount
+// (i.e. once per cold start / once per fresh login).
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
 import 'package:tcs_app/services/app_localisations.dart';
-import 'package:tcs_app/welcome_banner.dart';
 import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
-
 import '../../widgets/ai_assistant_fab.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -37,11 +47,18 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _currentIndex = 0;
 
   late final AnimationController _tabSwitchCtrl;
-  late final Animation<double> _tabScaleAnim;
+  late final Animation<double>   _tabScaleAnim;
+
+  // ── SECTION 2 — top-down welcome banner ───────────────────
+  late final AnimationController _welcomeCtrl;
+  late final Animation<Offset>   _welcomeSlide;
+  late final Animation<double>   _welcomeFade;
+  bool _welcomeVisible = false;
 
   @override
   void initState() {
     super.initState();
+
     _tabSwitchCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -53,11 +70,66 @@ class _DashboardScreenState extends State<DashboardScreen>
       parent: _tabSwitchCtrl,
       curve: Curves.easeOut,
     );
+
+    // Welcome banner controllers.
+    // Begin Offset(0, -1.6) means the banner starts ~1.6 banner-heights
+    // ABOVE its rest position; end Offset.zero is its visible rest spot
+    // just inside SafeArea.top. Reversed it slides back up off-screen.
+    _welcomeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _welcomeSlide = Tween<Offset>(
+      begin: const Offset(0, -1.6),
+      end:   Offset.zero,
+    ).animate(CurvedAnimation(
+      parent:       _welcomeCtrl,
+      curve:        Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    ));
+    _welcomeFade = CurvedAnimation(
+      parent:       _welcomeCtrl,
+      curve:        const Interval(0.0, 0.6, curve: Curves.easeOut),
+      reverseCurve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+    );
+
+    // Fire after the first frame so the dashboard body has time to
+    // render behind the banner.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runWelcome());
+  }
+
+  Future<void> _runWelcome() async {
+    if (!mounted) return;
+    // Tiny delay so the splash → dashboard fade has settled before
+    // the banner animates in.
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+
+    setState(() => _welcomeVisible = true);
+    HapticFeedback.lightImpact();
+    await _welcomeCtrl.forward();
+
+    // Hold time on screen.
+    await Future.delayed(const Duration(milliseconds: 2400));
+    if (!mounted) return;
+
+    await _welcomeCtrl.reverse();
+    if (!mounted) return;
+    setState(() => _welcomeVisible = false);
+  }
+
+  Future<void> _dismissWelcome() async {
+    if (!_welcomeVisible || !mounted) return;
+    HapticFeedback.selectionClick();
+    await _welcomeCtrl.reverse();
+    if (!mounted) return;
+    setState(() => _welcomeVisible = false);
   }
 
   @override
   void dispose() {
     _tabSwitchCtrl.dispose();
+    _welcomeCtrl.dispose();
     super.dispose();
   }
 
@@ -104,34 +176,143 @@ class _DashboardScreenState extends State<DashboardScreen>
     _tabSwitchCtrl.forward();
   }
 
-  int get _navIndex => _currentIndex >= 2 ? _currentIndex + 1 : _currentIndex;
+  int  get _navIndex => _currentIndex >= 2 ? _currentIndex + 1 : _currentIndex;
+  bool get _showFab  => _currentIndex == 0 || _currentIndex == 1;
 
-  bool get _showFab => _currentIndex == 0 || _currentIndex == 1;
-
-  bool _welcomeDone = false;
-
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // Existing tab content
           ScaleTransition(
             scale: _tabScaleAnim,
             child: _screens[_currentIndex],
           ),
-          if (!_welcomeDone)
-            WelcomeBanner(
-              name: widget.preferredName,
-              onDismissed: () {
-                if (mounted) setState(() => _welcomeDone = true);
-              },
-            ),
+
+          // Welcome banner overlay — only mounted while visible so it
+          // can never accidentally absorb taps when off-screen.
+          if (_welcomeVisible) _buildWelcomeBanner(context),
         ],
       ),
       extendBody: true,
       floatingActionButton: _showFab ? const AiAssistantFab() : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: _buildBottomNav(context),
+    );
+  }
+
+  // ── Welcome banner — slides DOWN from above ───────────────
+  Widget _buildWelcomeBanner(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Resolve the friendliest available name. Preferred name wins;
+    // fall back to first word of full name; final fallback "there".
+    final raw  = widget.preferredName.trim();
+    final full = widget.fullName.trim();
+    final name = raw.isNotEmpty
+        ? raw
+        : (full.isNotEmpty ? full.split(' ').first : 'there');
+
+    return Positioned(
+      top: 0, left: 0, right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: SlideTransition(
+          position: _welcomeSlide,
+          child: FadeTransition(
+            opacity: _welcomeFade,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+              child: GestureDetector(
+                onTap: _dismissWelcome,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kG1, _kG2],
+                      begin: Alignment.topLeft,
+                      end:   Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kG2.withOpacity(isDark ? 0.45 : 0.32),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Wave avatar
+                      Container(
+                        width: 46, height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.45),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text('👋', style: TextStyle(fontSize: 22)),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Greeting
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'WELCOME BACK',
+                              style: TextStyle(
+                                fontFamily:    'Arch',
+                                fontSize:      10,
+                                fontWeight:    FontWeight.bold,
+                                color:         Colors.white.withOpacity(0.85),
+                                letterSpacing: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Alfa',
+                                fontSize:   19,
+                                color:      Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Close affordance — visual only, the whole card
+                      // is tappable to dismiss.
+                      Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.18),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Colors.white.withOpacity(0.85),
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
