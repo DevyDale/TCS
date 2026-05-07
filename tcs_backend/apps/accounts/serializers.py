@@ -170,6 +170,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
-        fields = ["preferred_name", "gender", "bio", "interests",
-                  "location", "website", "gamer_tag",
-                  "notification_settings", "privacy_settings"]
+        fields = [
+            "preferred_name", "gender", "bio", "interests",
+            "interests_visibility",   # ← REQUIRED (Phase 3)
+            "location", "website", "gamer_tag",
+            "notification_settings", "privacy_settings",
+        ]

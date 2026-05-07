@@ -11,6 +11,9 @@ from .serializers import (
     _cloudinary_url,
 )
 
+# ✅ NEW IMPORT (Phase 3)
+from .serializers_other import OtherUserProfileSerializer
+
 User = get_user_model()
 
 
@@ -73,6 +76,7 @@ class PasswordLoginView(generics.GenericAPIView):
         if not user.is_active:
             return Response({"success": False, "error": "Account suspended."},
                             status=status.HTTP_403_FORBIDDEN)
+
         user.mark_online()
         return Response(_tokens(user))
 
@@ -96,6 +100,7 @@ class LogoutView(generics.GenericAPIView):
             RefreshToken(request.data.get("refresh", "")).blacklist()
         except Exception:
             pass
+
         request.user.mark_offline()
         return Response({"success": True})
 
@@ -110,10 +115,30 @@ class MeView(generics.RetrieveUpdateAPIView):
         return UserProfileSerializer
 
 
+# ✅ FIXED: Privacy-aware user detail view
 class UserDetailView(generics.RetrieveAPIView):
-    serializer_class = UserProfileSerializer
-    queryset         = User.objects.all()
-    lookup_field     = "user_id"
+    """
+    GET /api/users/<user_id>/
+
+    If user is viewing themselves → full profile
+    If viewing someone else → apply privacy rules
+    """
+    queryset     = User.objects.all()
+    lookup_field = "user_id"
+
+    def get_serializer_class(self):
+        target_id = self.kwargs.get("user_id")
+
+        if (
+            self.request.user.is_authenticated
+            and self.request.user.user_id == target_id
+        ):
+            return UserProfileSerializer
+
+        return OtherUserProfileSerializer
+
+    def get_serializer_context(self):
+        return {"request": self.request}
 
 
 # ── Suggested users ───────────────────────────────────────────────
@@ -125,6 +150,7 @@ class SuggestedUsersView(generics.ListAPIView):
         me            = self.request.user
         following_ids = me.following.values_list("id", flat=True)
         limit         = int(self.request.query_params.get("limit", 20))
+
         return (
             User.objects
             .exclude(id=me.id)
@@ -136,24 +162,17 @@ class SuggestedUsersView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         qs   = self.get_queryset()
         data = self.get_serializer(qs, many=True, context={"request": request}).data
+
         for item in data:
             item["is_following"] = False
+
         return Response(data)
 
 
-# ── Media uploads — all go directly to Cloudinary via the field ───
+# ── Media uploads ────────────────────────────────────────────────
 
 @api_view(["POST"])
 def upload_avatar(request):
-    """
-    POST /api/accounts/me/avatar/
-    multipart field: avatar (image file)
-
-    Assigns the uploaded file to user.avatar (CloudinaryField).
-    Django-cloudinary-storage handles the actual upload to Cloudinary.
-    django_cleanup deletes the previous avatar from Cloudinary automatically.
-    Returns the optimised Cloudinary URL.
-    """
     file = request.FILES.get("avatar")
     if not file:
         return Response({"error": "No file provided."}, status=400)
@@ -171,10 +190,6 @@ def upload_avatar(request):
 
 @api_view(["POST"])
 def upload_cover(request):
-    """
-    POST /api/accounts/me/cover/
-    multipart field: cover (image file)
-    """
     file = request.FILES.get("cover")
     if not file:
         return Response({"error": "No file provided."}, status=400)
@@ -192,12 +207,6 @@ def upload_cover(request):
 
 @api_view(["POST"])
 def upload_arcade_avatar(request):
-    """
-    POST /api/accounts/me/arcade-avatar/
-    multipart field: avatar (image file)
-
-    Separate from the profile avatar — used for the in-game persona.
-    """
     file = request.FILES.get("avatar")
     if not file:
         return Response({"error": "No file provided."}, status=400)
@@ -221,6 +230,7 @@ def follow_toggle(request, user_id):
         target = User.objects.get(user_id=user_id)
     except User.DoesNotExist:
         return Response({"error": "User not found."}, status=404)
+
     if target == request.user:
         return Response({"error": "Cannot follow yourself."}, status=400)
 
@@ -231,7 +241,10 @@ def follow_toggle(request, user_id):
         target.followers.add(request.user)
         action = "followed"
 
-    return Response({"action": action, "followers_count": target.followers.count()})
+    return Response({
+        "action": action,
+        "followers_count": target.followers.count()
+    })
 
 
 # ── Search ────────────────────────────────────────────────────────
@@ -239,14 +252,22 @@ def follow_toggle(request, user_id):
 @api_view(["GET"])
 def search_users(request):
     q = request.query_params.get("q", "").strip()
+
     if len(q) < 2:
         return Response({"results": []})
+
     users = User.objects.filter(
-        Q(name__icontains=q) | Q(preferred_name__icontains=q) |
-        Q(username__icontains=q) | Q(user_id__icontains=q)
+        Q(name__icontains=q) |
+        Q(preferred_name__icontains=q) |
+        Q(username__icontains=q) |
+        Q(user_id__icontains=q)
     ).exclude(pk=request.user.pk)[:20]
-    return Response({"results": UserMiniSerializer(
-        users, many=True, context={"request": request}).data})
+
+    return Response({
+        "results": UserMiniSerializer(
+            users, many=True, context={"request": request}
+        ).data
+    })
 
 
 @api_view(["POST"])
@@ -257,19 +278,24 @@ def update_fcm_token(request):
     return Response({"success": True})
 
 
-# ── Student / staff verification ──────────────────────────────────
+# ── Verification ────────────────────────────────────────────────
 
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([permissions.AllowAny])
 def verify_student(request):
     from apps.dataentry.models import StudentRecord
+
     sid = request.data.get("student_id", "")
     dob = request.data.get("date_of_birth", "")
+
     try:
         rec = StudentRecord.objects.get(student_id=sid, date_of_birth=dob)
-        return Response({"success": True, "full_name": rec.full_name,
-                         "preferred_name": rec.preferred_name})
+        return Response({
+            "success": True,
+            "full_name": rec.full_name,
+            "preferred_name": rec.preferred_name
+        })
     except StudentRecord.DoesNotExist:
         return Response({"success": False}, status=401)
 
@@ -279,11 +305,16 @@ def verify_student(request):
 @permission_classes([permissions.AllowAny])
 def verify_staff(request):
     from apps.dataentry.models import StaffRecord
+
     sid = request.data.get("staff_id", "")
     dob = request.data.get("date_of_birth", "")
+
     try:
         rec = StaffRecord.objects.get(staff_id=sid, date_of_birth=dob)
-        return Response({"success": True, "full_name": rec.full_name,
-                         "preferred_name": rec.preferred_name})
+        return Response({
+            "success": True,
+            "full_name": rec.full_name,
+            "preferred_name": rec.preferred_name
+        })
     except StaffRecord.DoesNotExist:
         return Response({"success": False}, status=401)

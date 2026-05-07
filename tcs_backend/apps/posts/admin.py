@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, Comment, Bookmark, PostFlag
+from .models import Post, Comment, Bookmark, PostFlag, Hashtag, Feeling
 
 
 @admin.register(Post)
@@ -36,3 +36,25 @@ class CommentAdmin(admin.ModelAdmin):
 class PostFlagAdmin(admin.ModelAdmin):
     list_display = ["post", "user", "reason", "created_at"]
     readonly_fields = ["created_at"]
+
+
+@admin.register(Hashtag)
+class HashtagAdmin(admin.ModelAdmin):
+    list_display    = ["display", "slug", "posts_count", "last_used_at"]
+    search_fields   = ["slug", "display"]
+    readonly_fields = ["slug", "first_seen_at", "last_used_at", "posts_count"]
+    ordering        = ["-posts_count"]
+
+
+@admin.register(Feeling)
+class FeelingAdmin(admin.ModelAdmin):
+    """
+    Inline-edit sort_order and is_active straight from the changelist
+    so admins can rearrange / retire feelings without opening each row.
+    """
+    list_display    = ["emoji", "label", "slug", "category",
+                       "sort_order", "is_active"]
+    list_editable   = ["sort_order", "is_active"]
+    list_filter     = ["category", "is_active"]
+    search_fields   = ["slug", "label", "category"]
+    ordering        = ["sort_order", "label"]

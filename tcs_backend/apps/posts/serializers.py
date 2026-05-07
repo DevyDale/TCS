@@ -2,13 +2,13 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 import cloudinary
 
-from .models import Post, Like, Comment, Bookmark, PostMedia
+from .models import Post, Like, Comment, Bookmark, PostMedia, Hashtag, Feeling
 
 User = get_user_model()
 
 
 def _cl(field_value, **opts):
-    """Build an optimised Cloudinary URL from a CloudinaryField value."""
+    """Build an optimised Cloudinary IMAGE URL from a CloudinaryField value."""
     if not field_value:
         return None
     try:
@@ -16,6 +16,83 @@ def _cl(field_value, **opts):
     except Exception:
         return None
 
+
+def _cl_video(field_value, **opts):
+    """
+    Build a Cloudinary VIDEO URL. Used for the streaming `url` field
+    on video PostMedia rows. Defaults: secure, auto format/quality.
+    """
+    if not field_value:
+        return None
+    try:
+        return cloudinary.CloudinaryVideo(str(field_value)).build_url(**opts)
+    except Exception:
+        return None
+
+
+def _cl_video_thumb(field_value, **opts):
+    """
+    Build a JPEG thumbnail URL for a Cloudinary video asset. Cloudinary
+    auto-picks a representative frame when start_offset='auto' is set
+    (its smart-keyframe algorithm). The URL is just the video's URL
+    with format=jpg, which Cloudinary serves back as a still image.
+    """
+    if not field_value:
+        return None
+    try:
+        return cloudinary.CloudinaryVideo(str(field_value)).build_url(
+            format       = "jpg",
+            start_offset = "auto",
+            **opts,
+        )
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────────────────────
+# HASHTAGS
+# ─────────────────────────────────────────────────────────────
+
+class HashtagSerializer(serializers.ModelSerializer):
+    """Full hashtag — used on detail and list endpoints."""
+    class Meta:
+        model  = Hashtag
+        fields = ["slug", "display", "posts_count",
+                  "first_seen_at", "last_used_at"]
+        read_only_fields = fields
+
+
+class HashtagCompactSerializer(serializers.ModelSerializer):
+    """Lightweight nested form — embedded inside PostSerializer."""
+    class Meta:
+        model  = Hashtag
+        fields = ["slug", "display"]
+        read_only_fields = fields
+
+
+# ─────────────────────────────────────────────────────────────
+# FEELINGS
+# ─────────────────────────────────────────────────────────────
+
+class FeelingSerializer(serializers.ModelSerializer):
+    """Full feeling — used on the picker endpoint /api/feelings/."""
+    class Meta:
+        model  = Feeling
+        fields = ["slug", "label", "emoji", "category", "sort_order"]
+        read_only_fields = fields
+
+
+class FeelingCompactSerializer(serializers.ModelSerializer):
+    """Lightweight nested form — embedded inside PostSerializer."""
+    class Meta:
+        model  = Feeling
+        fields = ["slug", "label", "emoji"]
+        read_only_fields = fields
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTHOR / MEDIA / COMMENT
+# ─────────────────────────────────────────────────────────────
 
 class AuthorSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
@@ -33,22 +110,46 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class PostMediaSerializer(serializers.ModelSerializer):
     """
-    Returns each image as {'url': '...', 'type': 'image'}.
-    This matches what the Flutter feed reads:
-        final media = p['media'] as List? ?? [];
-        final imgUrl = (media[0] as Map)['url']
+    Returns each media item as
+        {'url': '...', 'thumbnail_url': '...', 'media_type': 'image'|'video', ...}
+
+    Flutter feed reads:
+        final media   = p['media'] as List? ?? [];
+        final first   = (media[0] as Map);
+        final url     = first['url'];
+        final type    = first['media_type'];
+        final thumb   = first['thumbnail_url'];   // null for images
+
+    For images, thumbnail_url is null — the regular url already serves
+    a sized thumbnail (800px wide, auto WebP). For videos the URL is
+    the streamable mp4/webm and thumbnail_url is a JPEG poster frame
+    Cloudinary picks automatically.
     """
-    url = serializers.SerializerMethodField()
+    url           = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = PostMedia
-        fields = ["id", "url", "media_type", "order"]
+        fields = ["id", "url", "thumbnail_url", "media_type", "order"]
 
     def get_url(self, obj):
-        # Feed card hero image: 800 px wide, auto height, WebP
+        if obj.media_type == "video":
+            # Streamable video URL — auto format and quality let
+            # Cloudinary pick mp4 / webm based on the client.
+            return _cl_video(obj.file,
+                             fetch_format="auto", quality="auto",
+                             secure=True)
+        # Image: 800 px wide hero, auto WebP, lazy-resized.
         return _cl(obj.file,
                    width=800, crop="limit",
                    fetch_format="auto", quality="auto", secure=True)
+
+    def get_thumbnail_url(self, obj):
+        if obj.media_type != "video":
+            return None
+        return _cl_video_thumb(obj.file,
+                               width=800, crop="limit",
+                               quality="auto", secure=True)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -75,15 +176,20 @@ class CommentSerializer(serializers.ModelSerializer):
         return obj.replies.filter(is_deleted=False).count()
 
 
+# ─────────────────────────────────────────────────────────────
+# POSTS
+# ─────────────────────────────────────────────────────────────
+
 class PostSerializer(serializers.ModelSerializer):
     author_name   = serializers.CharField(source="author.display_name", read_only=True)
     author_role   = serializers.CharField(source="author.role",         read_only=True)
     author_avatar = serializers.SerializerMethodField()
 
-    # media is now a LIST of objects, matching Flutter's:
-    #   final media = p['media'] as List? ?? [];
-    #   final imgUrl = (media[0] as Map)['url'];
-    media = PostMediaSerializer(source="media_files", many=True, read_only=True)
+    # media is a LIST of {url, thumbnail_url, media_type, order, id}.
+    # Mixed image + video posts are supported (one row per asset).
+    media     = PostMediaSerializer(source="media_files", many=True, read_only=True)
+    hashtags  = HashtagCompactSerializer(many=True, read_only=True)
+    feeling   = FeelingCompactSerializer(read_only=True)
 
     is_liked      = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()
@@ -97,7 +203,7 @@ class PostSerializer(serializers.ModelSerializer):
         fields = [
             "id", "author_name", "author_role", "author_avatar",
             "post_type", "content", "visibility",
-            "media",                              # ← now a list
+            "media", "hashtags", "feeling",
             "background_color", "location",
             "like_count", "comment_count", "share_count", "views_count",
             "is_liked", "is_bookmarked", "is_pinned", "is_flagged",
@@ -128,7 +234,18 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class CreatePostSerializer(serializers.ModelSerializer):
+    # Client sends feeling as a slug string ("happy"), not a pk.
+    # Inactive feelings are excluded from the queryset so the API
+    # rejects retired feelings rather than letting them sneak in.
+    feeling = serializers.SlugRelatedField(
+        slug_field = "slug",
+        queryset   = Feeling.objects.filter(is_active=True),
+        required   = False,
+        allow_null = True,
+    )
+
     class Meta:
         model  = Post
         fields = ["post_type", "content", "visibility",
-                  "location", "background_color", "group", "event"]
+                  "location", "background_color", "group", "event",
+                  "feeling"]

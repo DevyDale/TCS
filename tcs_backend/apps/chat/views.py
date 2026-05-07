@@ -156,7 +156,33 @@ class StickerPackSerializer(serializers.ModelSerializer):
         return None
 
 
+
 # ── Room views ────────────────────────────────────────────────
+
+@api_view(["GET"])
+def recent_chats(request):
+    """
+    GET /api/chat/recent/?limit=5
+
+    Returns the most recent chat rooms the current user is a member of.
+    Used by Share Profile bottom sheet.
+    """
+    try:
+        limit = max(1, min(int(request.query_params.get("limit", 5)), 20))
+    except (TypeError, ValueError):
+        limit = 5
+
+    rooms = (
+        Room.objects
+        .filter(members=request.user, is_active=True)
+        .exclude(room_type="channel")
+        .prefetch_related("memberships__user")
+        .order_by("-last_message_at", "-created_at")[:limit]
+    )
+
+    return Response(
+        RoomSerializer(rooms, many=True, context={"request": request}).data
+    )
 
 class RoomListCreateView(generics.GenericAPIView):
     serializer_class = RoomSerializer

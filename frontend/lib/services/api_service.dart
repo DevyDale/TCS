@@ -1,6 +1,15 @@
 // lib/services/api_service.dart
 // ALL auth URLs corrected: /api/auth/ → /api/accounts/
 // to match TCS/urls.py: path("accounts/", include("apps.accounts.urls"))
+//
+// SECTION 1 FIX: SharedPreferences keys are now centralised in
+// session_keys.dart. _Tokens.saveUser also persists identity fields
+// (fullName, preferredName, role, userId) so the splash and dashboard
+// can read them without parsing JSON.
+//
+// Bug fixes: replaced '\$page' / '\$id' literal escapes (which sent
+// the literal text "$page" / "$id" to the server) with proper
+// interpolation in getMyPosts / getMyFweets / getFavorites / deletePost.
 
 import 'dart:async';
 import 'dart:convert';
@@ -8,7 +17,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/screens/auth/session_keys.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
 
 // ─────────────────────────────────────────────────────────────
 // CONFIG
@@ -45,9 +56,11 @@ class ApiException implements Exception {
 // ─────────────────────────────────────────────────────────────
 
 class _Tokens {
-  static const _a = 'access_token';   // matches auth_service.dart keys
-  static const _r = 'refresh_token';
-  static const _u = 'sh_current_user';
+  // Now point at the shared single-source-of-truth (session_keys.dart)
+  // instead of duplicating string literals.
+  static const _a = SessionKeys.accessToken;
+  static const _r = SessionKeys.refreshToken;
+  static const _u = SessionKeys.userJson;
 
   static Future<void> save(String a, String r) async {
     final p = await SharedPreferences.getInstance();
@@ -61,8 +74,17 @@ class _Tokens {
   static Future<String?> refresh() async =>
       (await SharedPreferences.getInstance()).getString(_r);
 
-  static Future<void> saveUser(Map<String, dynamic> u) async =>
-      (await SharedPreferences.getInstance()).setString(_u, jsonEncode(u));
+  /// Persist the full user JSON AND the individual identity fields.
+  /// Other screens (splash, login_id, dashboard) read these direct
+  /// keys without having to parse JSON, so we keep them in sync here.
+  static Future<void> saveUser(Map<String, dynamic> u) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_u, jsonEncode(u));
+    await p.setString(SessionKeys.userId,        (u['user_id']        ?? '').toString());
+    await p.setString(SessionKeys.fullName,      (u['name']           ?? '').toString());
+    await p.setString(SessionKeys.preferredName, (u['preferred_name'] ?? '').toString());
+    await p.setString(SessionKeys.role,          (u['role']           ?? '').toString());
+  }
 
   static Future<Map<String, dynamic>?> user() async {
     final raw = (await SharedPreferences.getInstance()).getString(_u);
@@ -74,15 +96,13 @@ class _Tokens {
     return t != null && t.isNotEmpty;
   }
 
+  /// Wipe every session-related key. Driven by SessionKeys.all so we
+  /// can never forget to clear one when a new key is introduced.
   static Future<void> clear() async {
     final p = await SharedPreferences.getInstance();
-    await p.remove(_a);
-    await p.remove(_r);
-    await p.remove(_u);
-    await p.remove('fullName');
-    await p.remove('preferredName');
-    await p.remove('role');
-    await p.remove('userId');
+    for (final k in SessionKeys.all) {
+      await p.remove(k);
+    }
   }
 }
 
@@ -97,6 +117,11 @@ class ApiService {
 
   final _client = http.Client();
 
+  /// Call this on app launch (from the splash) BEFORE deciding whether
+  /// to route the user to the dashboard. If we have an access token,
+  /// try to refresh it proactively so the first dashboard API call
+  /// hits a fresh token instead of a stale one. If refresh fails, the
+  /// session is wiped so the splash falls through to RoleSelection.
   Future<void> initialize() async {
     if (await _Tokens.has()) await _tryRefresh();
   }
@@ -324,6 +349,24 @@ class ApiService {
   Future<dynamic> uploadCover(File f) =>
       _upload('/users/me/cover/', {}, 'cover', f, 'image/jpeg');
 
+  // ── Phase 3 — privacy toggles ────────────────────────────
+
+  /// Set or clear interests visibility on my profile.
+  /// Convenience wrapper around updateProfile.
+  Future<dynamic> setInterestsVisibility(String visibility) =>
+      updateProfile({'interests_visibility': visibility});
+
+  /// Set bio public/private on my profile.
+  /// Reads & merges the existing privacy_settings dict so we don't
+  /// clobber other privacy keys that may live there.
+  Future<dynamic> setBioPublic(bool isPublic) async {
+    final me = await getMyProfile() as Map<String, dynamic>;
+    final prefs = Map<String, dynamic>.from(
+        (me['privacy_settings'] as Map?) ?? {});
+    prefs['bio_public'] = isPublic;
+    return updateProfile({'privacy_settings': prefs});
+  }
+
   // ══════════════════════════════════════════════════════════
   // FEED & POSTS
   // ══════════════════════════════════════════════════════════
@@ -337,35 +380,54 @@ class ApiService {
         'page': '$page',
       });
 
+  /// GET /api/feelings/ — backend-driven Feeling list.
+  /// Returns active feelings sorted by sort_order, each with
+  /// slug / label / emoji / category / sort_order.
+  /// Both the create-post and create-fweet screens drive their
+  /// feeling picker tiles from this endpoint instead of a
+  /// hardcoded list — admins control the list from Django admin.
+  Future<dynamic> getFeelings() => get('/feelings/');
+
+  /// Create a new post or fweet.
+  ///
+  /// `feeling` is the SLUG of a Feeling row (e.g. 'happy'), not the
+  /// display label. The backend resolves it against the Feeling model
+  /// added in §4. Pass null or empty to skip.
   Future<dynamic> createPost({
     required String content,
-    String postType        = 'post',
-    String visibility      = 'public',
-    String location        = '',
-    String backgroundColor = '',
+    String  postType        = 'post',
+    String  visibility      = 'public',
+    String  location        = '',
+    String  backgroundColor = '',
+    String? feeling,
   }) => post('/posts/', body: {
     'content':          content,
     'post_type':        postType,
     'visibility':       visibility,
     'location':         location,
     'background_color': backgroundColor,
+    if (feeling != null && feeling.isNotEmpty) 'feeling': feeling,
   });
 
   Future<dynamic> getPost(String id)    => get('/posts/$id/');
 
   /// Profile: my regular posts
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyPosts({int page = 1}) =>
-      get('/posts/mine/', query: {'post_type': 'post', 'page': '\$page'});
+      get('/posts/mine/', query: {'post_type': 'post', 'page': '$page'});
 
   /// Profile: my fweets
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyFweets({int page = 1}) =>
-      get('/posts/mine/', query: {'post_type': 'fweet', 'page': '\$page'});
+      get('/posts/mine/', query: {'post_type': 'fweet', 'page': '$page'});
 
   /// Profile: bookmarked/favorited posts
+  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getFavorites({int page = 1}) =>
-      get('/posts/bookmarks/', query: {'page': '\$page'});
+      get('/posts/bookmarks/', query: {'page': '$page'});
 
-  Future<dynamic> deletePost(String id) => delete('/posts/\$id/');
+  /// FIX: was hitting "/posts/$id/" literally because of '\$id' escape.
+  Future<dynamic> deletePost(String id) => delete('/posts/$id/');
   Future<dynamic> updatePost(String id, Map<String, dynamic> data) =>
       patch('/posts/$id/', body: data);
   Future<dynamic> likeToggle(String id)        => post('/posts/$id/like/');
@@ -383,9 +445,41 @@ class ApiService {
         'text': text,
         if (parentId != null) 'parent_id': parentId,
       });
-  Future<dynamic> uploadPostMedia(String postId, File file,
-      {String mime = 'image/jpeg'}) =>
-      _upload('/posts/upload/', {'post_id': postId}, 'file', file, mime);
+  /// Upload an image or video to a post. Routes through the existing
+  /// uploadFile() helper so auth, error decoding, and MIME formatting
+  /// stay consistent with every other multipart upload.
+  ///
+  /// `mediaType` must be 'image' or 'video' — the backend uses it to
+  /// route the asset through the right Cloudinary resource bucket.
+  Future<dynamic> uploadPostMedia(
+    String postId,
+    File   file, {
+    String mediaType = 'image',
+  }) {
+    final ext = file.path.split('.').last.toLowerCase();
+    final mime = mediaType == 'video'
+        ? switch (ext) {
+            'mov'  => 'video/quicktime',
+            'webm' => 'video/webm',
+            _      => 'video/mp4',
+          }
+        : switch (ext) {
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            'gif'  => 'image/gif',
+            _      => 'image/jpeg',
+          };
+    return uploadFile(
+      '/posts/upload/',
+      filePath:    file.path,
+      field:       'file',
+      mimeType:    mime,
+      extraFields: {
+        'post_id':    postId,
+        'media_type': mediaType,
+      },
+    );
+  }
 
   // ══════════════════════════════════════════════════════════
   // CHAT
@@ -421,7 +515,7 @@ class ApiService {
   Future<dynamic> getStudyBuddies()         => get('/chat/study-buddy/');
 
   // ══════════════════════════════════════════════════════════
-  // GROUPS
+  // GROUPS  (study groups — separate from CLUBS)
   // ══════════════════════════════════════════════════════════
 
   Future<dynamic> getGroups({String filter = 'all', String q = ''}) =>
@@ -434,7 +528,7 @@ class ApiService {
       put('/groups/buddies/me/', body: data);
 
   // ══════════════════════════════════════════════════════════
-  // EVENTS
+  // EVENTS  (Phase 2)
   // ══════════════════════════════════════════════════════════
 
   Future<dynamic> getEvents({String? category, String? search, int page = 1}) =>
@@ -443,10 +537,167 @@ class ApiService {
         if (search   != null) 'search':   search,
         'page': '$page',
       });
-  Future<dynamic> getEvent(String id)   => get('/events/$id/');
-  Future<dynamic> rsvpToggle(String id) => post('/events/$id/rsvp/');
-  Future<dynamic> getMyEvents()         => get('/events/mine/');
-  Future<dynamic> createEvent(Map<String, dynamic> data) => post('/events/', body: data);
+
+  Future<dynamic> getEvent(String id) => get('/events/$id/');
+
+  /// Phase 2 spec 9.4 — three-state RSVP.
+  /// Pass null to clear an existing RSVP (sends {"status": "clear"}).
+  /// Otherwise pass one of: kRsvpGoing, kRsvpInterested, kRsvpNotGoing.
+  Future<dynamic> setRsvp(String eventId, String? status) =>
+      post('/events/$eventId/rsvp/', body: {
+        'status': status ?? 'clear',
+      });
+
+  /// Legacy binary toggle — kept for any old call sites that haven't
+  /// been migrated yet. Prefer setRsvp(...).
+  @Deprecated('Use setRsvp(eventId, status). Will be removed.')
+  Future<dynamic> rsvpToggle(String id) =>
+      post('/events/$id/rsvp/toggle/');
+
+  Future<dynamic> getMyEvents() => get('/events/mine/');
+
+  Future<dynamic> createEvent(Map<String, dynamic> data) =>
+      post('/events/', body: data);
+
+  /// Phase 2 spec 10.2 — upload an event poster (Cloudinary).
+  Future<dynamic> uploadEventPoster(
+    String eventId, {
+    required String filePath,
+    String mimeType = 'image/jpeg',
+  }) =>
+      uploadFile('/events/$eventId/poster/',
+          filePath: filePath, field: 'poster', mimeType: mimeType);
+
+  /// Phase 2 spec 10.3 — unified events + announcements carousel.
+  /// Returns a Map with `results` (list) and `count`.
+  Future<dynamic> getCampusHighlights({int limit = 10}) =>
+      get('/events/highlights/', query: {'limit': '$limit'});
+
+  // ══════════════════════════════════════════════════════════
+  // PHASE 3 — chat helpers for share-profile + other-user actions
+  // ══════════════════════════════════════════════════════════
+
+  /// Recent chats for the share-profile bottom sheet.
+  /// Returns up to `limit` recent rooms. The widget falls back to
+  /// getChatRooms() automatically if this endpoint isn't deployed yet.
+  Future<dynamic> getRecentChats({int limit = 5}) =>
+      get('/chat/recent/', query: {'limit': '$limit'});
+
+  /// Send a chat request from the other-user-profile screen's
+  /// "Message" button. Backend creates a ChatRequest the receiver
+  /// can accept or decline.
+  Future<dynamic> sendChatRequest(String targetUserId, {String message = ''}) =>
+      post('/chat/requests/send/', body: {
+        'user_id': targetUserId,
+        if (message.isNotEmpty) 'message': message,
+      });
+
+  /// Share a profile to a chat room as a regular text message.
+  /// Embeds the user_id as `[profile:USER_ID]` so a future chat
+  /// polish pass can render it as a rich profile card. For now it
+  /// just shows up as text with a recognisable token.
+  Future<dynamic> shareProfileToRoom({
+    required String roomId,
+    required String targetUserId,
+    required String targetName,
+  }) {
+    final text = 'Check out this profile: $targetName [profile:$targetUserId]';
+    return post('/chat/rooms/$roomId/messages/', body: {'text': text});
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // CLUBS  (Phase 5 — separate from study GROUPS above)
+  // ══════════════════════════════════════════════════════════
+  //
+  // Backend lives at apps.clubs / /api/clubs/. The clubs app is a
+  // distinct module from apps.groups (study groups). Clubs are
+  // campus-wide communities with verification, roles, approval-gated
+  // joining, and admin controls.
+  // ──────────────────────────────────────────────────────────
+
+  /// GET /api/clubs/?filter=all|mine|pending|admin&q=&category=&page=
+  Future<dynamic> getClubs({
+    String  filter   = 'all',
+    String? q,
+    String? category,
+    int     page     = 1,
+  }) =>
+      get('/clubs/', query: {
+        'filter': filter,
+        if (q != null && q.isNotEmpty)               'q': q,
+        if (category != null && category.isNotEmpty) 'category': category,
+        'page': '$page',
+      });
+
+  /// GET /api/clubs/<id>/
+  Future<dynamic> getClub(String id) => get('/clubs/$id/');
+
+  /// POST /api/clubs/  (creator becomes PRESIDENT)
+  Future<dynamic> createClub(Map<String, dynamic> data) =>
+      post('/clubs/', body: data);
+
+  /// PATCH /api/clubs/<id>/  (admin only — Executive or President)
+  Future<dynamic> updateClub(String id, Map<String, dynamic> data) =>
+      patch('/clubs/$id/', body: data);
+
+  /// DELETE /api/clubs/<id>/  (president only — soft dissolve)
+  Future<dynamic> dissolveClub(String id) => delete('/clubs/$id/');
+
+  /// POST /api/clubs/<id>/join/
+  /// Returns { status, role, is_member, is_pending, is_admin }.
+  /// If the club has requires_approval=true, status comes back
+  /// 'pending' and the user enters the admin's review queue.
+  Future<dynamic> joinClub(String id) => post('/clubs/$id/join/');
+
+  /// DELETE /api/clubs/<id>/leave/
+  /// Backend rejects this for the current president — they have to
+  /// transfer presidency first to prevent orphan clubs.
+  Future<dynamic> leaveClub(String id) => delete('/clubs/$id/leave/');
+
+  /// GET /api/clubs/<id>/members/?status=active|pending
+  /// Default 'active'. Use 'pending' to show approval queue (admin).
+  Future<dynamic> getClubMembers(String id, {String status = 'active'}) =>
+      get('/clubs/$id/members/', query: {'status': status});
+
+  /// POST /api/clubs/<id>/members/<user_id>/approve/   (admin only)
+  Future<dynamic> approveClubMember(String clubId, String userId) =>
+      post('/clubs/$clubId/members/$userId/approve/');
+
+  /// POST /api/clubs/<id>/members/<user_id>/reject/    (admin only)
+  Future<dynamic> rejectClubMember(String clubId, String userId) =>
+      post('/clubs/$clubId/members/$userId/reject/');
+
+  /// DELETE /api/clubs/<id>/members/<user_id>/         (admin only)
+  /// Cannot remove the president — backend enforces this.
+  Future<dynamic> removeClubMember(String clubId, String userId) =>
+      delete('/clubs/$clubId/members/$userId/');
+
+  /// PATCH /api/clubs/<id>/members/<user_id>/role/     (admin only)
+  /// body: {"role": "member" | "executive" | "president"}
+  /// Promoting to 'president' is allowed only if the caller is the
+  /// current president; the existing president gets demoted to
+  /// executive in the same atomic transaction.
+  Future<dynamic> changeClubMemberRole(
+          String clubId, String userId, String role) =>
+      patch('/clubs/$clubId/members/$userId/role/', body: {'role': role});
+
+  /// POST /api/clubs/<id>/cover/   (admin only)
+  Future<dynamic> uploadClubCover(
+    String id, {
+    required String filePath,
+    String mimeType = 'image/jpeg',
+  }) =>
+      uploadFile('/clubs/$id/cover/',
+          filePath: filePath, field: 'cover', mimeType: mimeType);
+
+  /// POST /api/clubs/<id>/logo/    (admin only)
+  Future<dynamic> uploadClubLogo(
+    String id, {
+    required String filePath,
+    String mimeType = 'image/jpeg',
+  }) =>
+      uploadFile('/clubs/$id/logo/',
+          filePath: filePath, field: 'logo', mimeType: mimeType);
 
   // ══════════════════════════════════════════════════════════
   // ARCADE
@@ -522,6 +773,14 @@ class ApiService {
   // ══════════════════════════════════════════════════════════
   // FEEDBACK / SUGGESTION BOX
   // ══════════════════════════════════════════════════════════
+
+  /// GET /api/feedback/categories/ — backend-driven picker tiles.
+  /// Returns a list of active categories sorted by sort_order, each
+  /// with id/key/label/emoji/gradient_from/gradient_to/sort_order.
+  /// The frontend renders the picker entirely from this data so
+  /// admins can add/remove/reorder categories without a code change.
+  Future<dynamic> getSuggestionCategories() =>
+      get('/feedback/categories/');
 
   Future<dynamic> submitSuggestion({
     required String title,

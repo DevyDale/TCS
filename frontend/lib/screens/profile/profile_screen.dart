@@ -10,7 +10,10 @@ import 'package:tcs_app/screens/bio.dart';
 import 'package:tcs_app/screens/createpostspage.dart';
 import 'package:tcs_app/screens/fweetspage.dart';
 import 'package:tcs_app/screens/interests.dart';
+import 'package:tcs_app/screens/media_item_view.dart';
+import 'package:tcs_app/screens/privacy_toggle_sheet.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/screens/share_profile_screen.dart';
 
 const _kG1  = Color(0xFF6DD5FA);
 const _kG2  = Color(0xFF8E54E9);
@@ -55,6 +58,24 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _postsLoading     = true;
   bool _fweetsLoading    = true;
   bool _favoritesLoading = true;
+
+  // Phase 3: my own user_id, populated from getMyProfile().
+  // Needed so the share-profile bottom sheet can embed the right user
+  // when sharing my own profile to a chat.
+  String? _myUserId;
+
+  // Phase 3: visibility settings, mirrored from the backend.
+  // bio_public lives under privacy_settings; interests_visibility
+  // is its own top-level field on the user model. Both are loaded in
+  // _fetchStats() and persisted via api_service helpers
+  // (setBioPublic / setInterestsVisibility) introduced in Section 1.
+  bool   _bioPublic    = true;
+  String _interestsVis = 'public';
+
+  // Guard so we only seed _interests from the backend on the FIRST
+  // /me/ response — otherwise a later refetch could overwrite changes
+  // the user just made via the InterestsPage editor.
+  bool _interestsSeeded = false;
 
   BioData? _bioData;
 
@@ -131,7 +152,31 @@ class _ProfileScreenState extends State<ProfileScreen>
       setState(() {
         _followers = d['followers_count'] as int? ?? 0;
         _following = d['following_count'] as int? ?? 0;
-        // Sync Cloudinary URLs from the backend profile response
+
+        // Phase 3: capture my own user_id for the share sheet.
+        final uid = d['user_id'] as String?;
+        if (uid != null && uid.isNotEmpty) _myUserId = uid;
+
+        // Phase 3: visibility settings.
+        final ps = (d['privacy_settings'] as Map?)?.cast<String, dynamic>()
+            ?? const {};
+        _bioPublic    = ps['bio_public'] as bool? ?? true;
+        _interestsVis = d['interests_visibility'] as String? ?? 'public';
+
+        // Phase 3: seed _interests from the backend on the FIRST fetch
+        // only. The interests editor (_openInterests) is the source of
+        // truth after that, so we don't clobber pending changes.
+        if (!_interestsSeeded) {
+          final saved = (d['interests'] as List?)?.cast<String>();
+          if (saved != null && saved.isNotEmpty) {
+            _interests
+              ..clear()
+              ..addAll(saved);
+          }
+          _interestsSeeded = true;
+        }
+
+        // Sync Cloudinary URLs from the backend profile response.
         final av = d['avatar_url'] as String?;
         final cv = d['cover_url']  as String?;
         if (av != null && av.isNotEmpty && _avatarFile == null) _avatarUrl = av;
@@ -287,6 +332,95 @@ class _ProfileScreenState extends State<ProfileScreen>
     final r = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const CreateFweetPage()));
     if (r != null && r.isNotEmpty) _fetchFweets();
+  }
+
+  // Phase 3: share my own profile via the bottom sheet.
+  Future<void> _shareMyProfile() async {
+    HapticFeedback.lightImpact();
+
+    // If we don't have my user_id yet (initial fetch failed or hasn't
+    // returned), grab it now so the share message is correct.
+    if (_myUserId == null || _myUserId!.isEmpty) {
+      try {
+        final me = await _api.getMyProfile() as Map<String, dynamic>;
+        _myUserId = me['user_id'] as String? ?? '';
+      } catch (_) {
+        _snack('Could not load your profile to share.', error: true);
+        return;
+      }
+    }
+    if (_myUserId == null || _myUserId!.isEmpty) {
+      _snack('Could not load your profile to share.', error: true);
+      return;
+    }
+
+    if (!mounted) return;
+    await showShareProfileSheet(
+      context,
+      profile: {
+        'user_id':    _myUserId,
+        'name':       widget.fullName,
+        'avatar_url': _avatarUrl ?? '',
+        'role':       widget.role,
+      },
+      onShareTo: (room) async {
+        final roomId = room['id']?.toString() ?? '';
+        if (roomId.isEmpty) return;
+        await _api.shareProfileToRoom(
+          roomId:       roomId,
+          targetUserId: _myUserId!,
+          targetName:   widget.fullName,
+        );
+      },
+    );
+  }
+
+  // ── Phase 3: privacy pickers ──────────────────────────────
+
+  Future<void> _changeBioPrivacy() async {
+    HapticFeedback.lightImpact();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => PrivacyToggleSheet.bio(currentPublic: _bioPublic),
+    );
+    if (result == null) return;
+
+    final wanted = result == 'public';
+    if (wanted == _bioPublic) return;
+
+    final was = _bioPublic;
+    setState(() => _bioPublic = wanted);
+    try {
+      await _api.setBioPublic(wanted);
+      _snack(wanted ? 'Bio is now public' : 'Bio is now private');
+    } catch (_) {
+      setState(() => _bioPublic = was);
+      _snack('Could not update bio privacy', error: true);
+    }
+  }
+
+  Future<void> _changeInterestsPrivacy() async {
+    HapticFeedback.lightImpact();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => PrivacyToggleSheet.interests(
+          currentVisibility: _interestsVis),
+    );
+    if (result == null || result == _interestsVis) return;
+
+    final was = _interestsVis;
+    setState(() => _interestsVis = result);
+    try {
+      await _api.setInterestsVisibility(result);
+      _snack('Interests · ${PrivacyToggleSheet.interestsLabel(result)}');
+    } catch (_) {
+      setState(() => _interestsVis = was);
+      _snack('Could not update interests privacy', error: true);
+    }
   }
 
   // ── Role helpers ──────────────────────────────────────────
@@ -547,23 +681,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fontSize: 13)),
               ])))),
           const SizedBox(width: 10),
-          Expanded(flex: 2, child: GestureDetector(onTap: _openInterests,
-            child: Container(height: 42,
-              decoration: BoxDecoration(color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-                    blurRadius: 6, offset: const Offset(0, 2))]),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.interests_rounded, size: 14,
-                    color: Colors.grey.shade600),
-                const SizedBox(width: 6),
-                Text(_interests.isEmpty ? 'Interests' : '${_interests.length} ✦',
-                  style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                      fontSize: 12, color: Colors.grey.shade700)),
-              ])))),
-          const SizedBox(width: 10),
-          GestureDetector(onTap: () => HapticFeedback.lightImpact(),
+          // Phase 3: share button opens the share-profile bottom sheet.
+          GestureDetector(onTap: _shareMyProfile,
             child: Container(width: 42, height: 42,
               decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle,
                 border: Border.all(color: Colors.grey.shade300, width: 1.5),
@@ -606,6 +725,15 @@ class _ProfileScreenState extends State<ProfileScreen>
             const Text('About me', style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
             const Spacer(),
+            // Phase 3: bio visibility chip. Tap-only target — its own
+            // GestureDetector wins the gesture arena, so the parent's
+            // _showBioSheet won't fire when the chip is tapped.
+            _privacyChip(
+              icon:  _bioPublic ? Icons.public_rounded : Icons.lock_rounded,
+              label: PrivacyToggleSheet.bioLabel(_bioPublic),
+              onTap: _changeBioPrivacy,
+            ),
+            const SizedBox(width: 10),
             Text('Edit ›', style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kG2)),
           ]),
@@ -637,6 +765,50 @@ class _ProfileScreenState extends State<ProfileScreen>
       border: Border.all(color: (color ?? Colors.grey.shade600).withOpacity(0.15))),
     child: Text(label, style: TextStyle(fontFamily: 'Momo',
         fontSize: 11, color: color ?? Colors.grey.shade600)));
+
+  // Phase 3: small "🌐 Public ▾" pill used in the bio + interests
+  // section headers. Has its own GestureDetector so taps don't bubble
+  // to whatever surface it's sitting on.
+  Widget _privacyChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) =>
+    GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 11, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(label,
+            style: TextStyle(
+              fontFamily: 'Arch',
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.keyboard_arrow_down_rounded,
+              size: 12, color: Colors.grey.shade500),
+        ]),
+      ),
+    );
+
+  IconData _visibilityIcon(String vis) {
+    switch (vis) {
+      case 'private':   return Icons.lock_rounded;
+      case 'followers': return Icons.people_alt_rounded;
+      default:          return Icons.public_rounded;
+    }
+  }
 
   void _showBioSheet() {
     final bio = _bioData!;
@@ -682,58 +854,84 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── Interests strip ───────────────────────────────────────
 
   Widget _buildInterestsStrip() {
-    final Widget inner;
+    // Empty state — single "Add your interests" pill, no privacy chip
+    // (nothing to be private about yet).
     if (_interests.isEmpty) {
-      inner = GestureDetector(onTap: _openInterests,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-          height: 40,
-          decoration: BoxDecoration(color: const Color(0xFFF7F8FB),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.grey.shade200, width: 1.5)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.add_circle_outline_rounded, size: 14,
-                color: Colors.grey.shade400),
-            const SizedBox(width: 6),
-            Text('Add your interests', style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 12,
-                color: Colors.grey.shade400)),
-          ])));
-    } else {
-      inner = SizedBox(height: 38,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-          itemCount: _interests.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (_, i) {
-            if (i == _interests.length) {
-              return GestureDetector(onTap: _openInterests,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                        color: Colors.grey.shade300, width: 1.5),
-                    borderRadius: BorderRadius.circular(22)),
-                  child: Text('+ Edit', style: TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 11,
-                      color: Colors.grey.shade500))));
-            }
-            final c = [_kG1, _kG2, _kG3, _kG4][i % 4];
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: c.withOpacity(0.1),
-                border: Border.all(color: c.withOpacity(0.3), width: 1.5),
-                borderRadius: BorderRadius.circular(22)),
-              child: Text(_interests[i], style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 11, color: c)));
-          },
-        ),
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: GestureDetector(onTap: _openInterests,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            height: 40,
+            decoration: BoxDecoration(color: const Color(0xFFF7F8FB),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.grey.shade200, width: 1.5)),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.add_circle_outline_rounded, size: 14,
+                  color: Colors.grey.shade400),
+              const SizedBox(width: 6),
+              Text('Add your interests', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 12,
+                  color: Colors.grey.shade400)),
+            ]))),
       );
     }
-    return Padding(padding: const EdgeInsets.only(bottom: 8), child: inner);
+
+    // Filled state — section header (title + privacy chip) above the
+    // horizontal scrollable chips.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+          child: Row(children: [
+            const Text('Interests',
+              style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 12,
+                color: _kInk, letterSpacing: 0.5)),
+            const SizedBox(width: 10),
+            // Phase 3: interests visibility chip.
+            _privacyChip(
+              icon:  _visibilityIcon(_interestsVis),
+              label: PrivacyToggleSheet.interestsLabel(_interestsVis),
+              onTap: _changeInterestsPrivacy,
+            ),
+          ]),
+        ),
+        SizedBox(height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            itemCount: _interests.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              if (i == _interests.length) {
+                return GestureDetector(onTap: _openInterests,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.grey.shade300, width: 1.5),
+                      borderRadius: BorderRadius.circular(22)),
+                    child: Text('+ Edit', style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold, fontSize: 11,
+                        color: Colors.grey.shade500))));
+              }
+              final c = [_kG1, _kG2, _kG3, _kG4][i % 4];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.1),
+                  border: Border.all(color: c.withOpacity(0.3), width: 1.5),
+                  borderRadius: BorderRadius.circular(22)),
+                child: Text(_interests[i], style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 11, color: c)));
+            },
+          ),
+        ),
+      ]),
+    );
   }
 
   // ── Tab bar ───────────────────────────────────────────────
@@ -828,17 +1026,16 @@ class _PostsTab extends StatelessWidget {
         itemCount: posts.length,
         itemBuilder: (_, i) {
           final p = posts[i];
-          // media is now a list: [{'url': '...', 'type': '...', 'order': ...}]
-          final media = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
-          final mediaUrls = media
-              .map((m) => m['url'] as String? ?? '')
-              .where((u) => u.isNotEmpty)
-              .toList();
+          // media items: {url, thumbnail_url, media_type, order, id}.
+          // Pass the full list through so the card can branch on
+          // media_type and render images vs videos via MediaItemView.
+          final media = (p['media'] as List? ?? [])
+              .cast<Map<String, dynamic>>();
           return _ProfilePostCard(
-            post:      p,
-            mediaUrls: mediaUrls,
-            content:   p['content'] as String? ?? '',
-            onDelete:  () => onDelete(i));
+            post:     p,
+            media:    media,
+            content:  p['content'] as String? ?? '',
+            onDelete: () => onDelete(i));
         },
       ),
     );
@@ -851,10 +1048,13 @@ class _PostsTab extends StatelessWidget {
 
 class _ProfilePostCard extends StatefulWidget {
   final Map<String, dynamic> post;
-  final List<String> mediaUrls;
+
+  /// Full media list (images + videos). Each item has the keys
+  /// `url`, `thumbnail_url`, `media_type`, `order`, `id`.
+  final List<Map<String, dynamic>> media;
   final String content;
   final VoidCallback onDelete;
-  const _ProfilePostCard({required this.post, required this.mediaUrls,
+  const _ProfilePostCard({required this.post, required this.media,
       required this.content, required this.onDelete});
   @override State<_ProfilePostCard> createState() => _ProfilePostCardState();
 }
@@ -865,7 +1065,8 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
   @override
   Widget build(BuildContext context) {
     final location = widget.post['location'] as String? ?? '';
-    final multi    = widget.mediaUrls.length > 1;
+    final hasMedia = widget.media.isNotEmpty;
+    final multi    = widget.media.length > 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -877,8 +1078,13 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
             blurRadius: 12, offset: const Offset(0, 4))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── Images (from Cloudinary) ──────────────────────
-        if (widget.mediaUrls.isNotEmpty) ...[
+        // ── Media (images + videos from Cloudinary) ───────
+        // PageView delegates per-item rendering to MediaItemView, which
+        // shows a play badge on videos and opens FullscreenVideoPlayer
+        // when tapped. Visual-only overlays (counter, dots) sit on top
+        // wrapped in IgnorePointer so video taps reach the card; the
+        // delete button is the one exception — it stays interactive.
+        if (hasMedia) ...[
           Stack(children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
@@ -886,38 +1092,29 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
               child: SizedBox(
                 height: 220,
                 child: PageView.builder(
-                  itemCount: widget.mediaUrls.length,
+                  itemCount: widget.media.length,
                   onPageChanged: (p) => setState(() => _page = p),
-                  itemBuilder: (_, i) => CachedNetworkImage(
-                    imageUrl: widget.mediaUrls[i],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    placeholder: (_, __) => Container(
-                        color: Colors.grey.shade100,
-                        child: const Center(child: CircularProgressIndicator(
-                            color: _kG2, strokeWidth: 2))),
-                    errorWidget: (_, __, ___) => Container(
-                        color: Colors.grey.shade100,
-                        child: const Center(child: Icon(
-                            Icons.broken_image_rounded, size: 32))),
+                  itemBuilder: (_, i) => MediaItemView(
+                    item:   widget.media[i],
+                    height: 220,
                   ),
                 ),
               ),
             ),
             // Page counter
             if (multi) Positioned(top: 10, right: 10,
-              child: Container(
+              child: IgnorePointer(child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20)),
-                child: Text('${_page + 1}/${widget.mediaUrls.length}',
+                child: Text('${_page + 1}/${widget.media.length}',
                     style: const TextStyle(fontFamily: 'Momo',
-                        color: Colors.white, fontSize: 11)))),
+                        color: Colors.white, fontSize: 11))))),
             // Dot indicators
             if (multi) Positioned(bottom: 8, left: 0, right: 0,
-              child: Row(mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.mediaUrls.length, (i) {
+              child: IgnorePointer(child: Row(mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.media.length, (i) {
                   final active = i == _page;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -926,8 +1123,8 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
                     decoration: BoxDecoration(
                       color: active ? Colors.white : Colors.white.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(3)));
-                }))),
-            // Delete button
+                })))),
+            // Delete button — stays tappable (its own GestureDetector).
             Positioned(top: 10, left: 10,
               child: GestureDetector(onTap: widget.onDelete,
                 child: Container(width: 32, height: 32,
@@ -942,7 +1139,7 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
         // ── Text / location ───────────────────────────────
         Padding(padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (widget.mediaUrls.isEmpty)
+          if (!hasMedia)
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
               GestureDetector(onTap: widget.onDelete,
                 child: Container(
@@ -958,7 +1155,7 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
                   ]))),
             ]),
           if (widget.content.isNotEmpty) ...[
-            if (widget.mediaUrls.isEmpty) const SizedBox(height: 4),
+            if (!hasMedia) const SizedBox(height: 4),
             Text(widget.content, style: const TextStyle(
                 fontFamily: 'Momo', fontSize: 14, color: _kInk, height: 1.5)),
           ],
@@ -1084,11 +1281,11 @@ class _FavoritesTab extends StatelessWidget {
           final author  = p['author_name'] as String? ?? 'Unknown';
           final isFweet = p['post_type']   == 'fweet';
           final initial = author.isNotEmpty ? author[0].toUpperCase() : '?';
-          final media   = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
-          final mediaUrls = media
-              .map((m) => m['url'] as String? ?? '')
-              .where((u) => u.isNotEmpty)
-              .toList();
+          // Keep the full media list — the first item drives the
+          // preview, and MediaItemView handles both image and video
+          // (videos show a thumbnail with play badge → fullscreen on tap).
+          final media   = (p['media'] as List? ?? [])
+              .cast<Map<String, dynamic>>();
           return Container(
             margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
@@ -1128,16 +1325,12 @@ class _FavoritesTab extends StatelessWidget {
                   const Spacer(),
                   const Icon(Icons.bookmark_rounded, color: _kG2, size: 16),
                 ])),
-              // First image from Cloudinary
-              if (mediaUrls.isNotEmpty)
-                ClipRRect(child: CachedNetworkImage(
-                  imageUrl: mediaUrls.first,
-                  height: 180, width: double.infinity, fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(height: 180,
-                      color: Colors.grey.shade100,
-                      child: const Center(child: CircularProgressIndicator(
-                          color: _kG2, strokeWidth: 2))),
-                  errorWidget: (_, __, ___) => const SizedBox.shrink())),
+              // First media item — image or video — from Cloudinary.
+              if (media.isNotEmpty)
+                ClipRRect(child: MediaItemView(
+                  item:   media.first,
+                  height: 180,
+                )),
               if (content.isNotEmpty)
                 Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Text(content, style: const TextStyle(

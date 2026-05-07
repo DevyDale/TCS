@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:tcs_app/screens/auth/session_keys.dart';
 import 'package:tcs_app/screens/dashboard/dashboard_screen.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -90,12 +90,21 @@ class _LoginIdScreenState extends State<LoginIdScreen>
     super.dispose();
   }
 
+  // ── SECTION 1 FIX ────────────────────────────────────────
+  // Same proactive-refresh pattern as the splash. If the user
+  // somehow lands on this screen with a still-valid session
+  // (e.g. they reopened the app mid-flight), we refresh the
+  // token first so the dashboard's first call hits a fresh
+  // token, then send them straight through.
   Future<void> _checkAuthStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    final fullName = prefs.getString('fullName');
-    final preferredName = prefs.getString('preferredName');
-    final role = prefs.getString('role');
+    await ApiService.instance.initialize();
+
+    final prefs         = await SharedPreferences.getInstance();
+    final token         = prefs.getString(SessionKeys.accessToken);
+    final fullName      = prefs.getString(SessionKeys.fullName);
+    final preferredName = prefs.getString(SessionKeys.preferredName);
+    final role          = prefs.getString(SessionKeys.role);
+
     if (token != null &&
         token.isNotEmpty &&
         fullName != null &&
@@ -103,9 +112,9 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         _fadeRoute(DashboardScreen(
-          fullName: fullName,
+          fullName:      fullName,
           preferredName: preferredName ?? '',
-          role: role ?? '',
+          role:          role ?? '',
         )),
         (r) => false,
       );
@@ -164,7 +173,6 @@ class _LoginIdScreenState extends State<LoginIdScreen>
 
       if (!mounted) return;
 
-      _showSnack('Welcome back, ${result.displayName}! 🎉');
       await Future.delayed(const Duration(milliseconds: 400));
 
       if (mounted) {
@@ -534,9 +542,9 @@ class _LoginField extends StatelessWidget {
     required this.accentColor,
     required this.gradient,
     this.validator,
-    this.obscure      = false,   // ← fix: was missing, caused the error
-    this.keyboardType = null,    // ← fix: was missing, caused the error
-    this.suffix       = null,    // ← fix: was missing, caused the error
+    this.obscure      = false,
+    this.keyboardType,
+    this.suffix,
   });
 
   @override

@@ -27,4 +27,5 @@ urlpatterns = [
     path("saved/",                                views.saved_materials,               name="saved-materials"),
     path("saved/save/",                           views.save_material,                 name="save-material"),
     path("saved/<uuid:material_id>/delete/",      views.delete_saved_material,         name="delete-saved"),
+    path("recent/", views.recent_chats, name="recent-chats"),
 ]

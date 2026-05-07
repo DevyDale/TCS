@@ -2,7 +2,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tcs_app/screens/location_picker.dart';
+import 'package:video_player/video_player.dart';
 import '../../services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -16,15 +19,26 @@ const _kGradient = LinearGradient(
   end: Alignment.bottomRight,
 );
 
-const _kMaxImages  = 5;
-
-// ── Size limits (must match backend settings) ──────────────────
-// These are enforced client-side for instant feedback before
-// the file even leaves the device.
-const _kMaxImageMb  = 8;    // MAX_IMAGE_MB in settings/base.py
-const _kMaxImageBytes = _kMaxImageMb * 1024 * 1024;  // 8 388 608
+// ── Caps (must match backend) ──────────────────────────────────
+// Backend enforces these too. Client-side checks are for instant
+// feedback before the file leaves the device.
+const _kMaxMedia      = 5;   // total photos + videos per post
+const _kMaxVideos     = 1;   // at most one video per post
+const _kMaxImageMb    = 8;   // MAX_IMAGE_MB in settings/base.py
+const _kMaxImageBytes = _kMaxImageMb * 1024 * 1024;
+const _kMaxVideoMb    = 50;  // MAX_VIDEO_MB in settings/base.py
+const _kMaxVideoBytes = _kMaxVideoMb * 1024 * 1024;
 
 const _kAllowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+const _kAllowedVideoExtensions = ['mp4', 'mov', 'webm'];
+
+// ── Campus quick picks for the LocationPicker ─────────────────
+const _kCampusLocations = [
+  'Taylors College', 'Library', 'Cafeteria', 'Sports Hall',
+  'Lecture Hall A', 'Lecture Hall B', 'Study Hub', 'Auditorium',
+  'Student Lounge', 'Science Lab',
+];
+
 
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});
@@ -39,14 +53,19 @@ class _CreatePostPageState extends State<CreatePostPage>
   final _locationCtrl = TextEditingController();
   final _picker       = ImagePicker();
 
-  final List<File> _images       = [];
-  String     _visibility   = 'Public';
-  bool       _isPosting    = false;
-  bool       _altText      = false;
-  String?    _feeling;
-  String?    _tag;
-  int        _previewPage  = 0;
-  int        _uploadProgress = 0;
+  // Mixed list of photos and videos. Each item knows its type and,
+  // for videos, owns its own VideoPlayerController for the preview.
+  final List<_MediaItem> _media = [];
+
+  String  _visibility      = 'Public';
+  bool    _isPosting       = false;
+  bool    _altText         = false;
+  bool    _pickingLocation = false;     // NEW — drives the location row spinner
+  String? _feeling;
+  String? _tag;
+  int     _previewPage     = 0;
+  int     _uploadProgress  = 0;
+  String  _uploadingLabel  = 'photo';   // 'photo' | 'video' for progress text
 
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
@@ -60,6 +79,14 @@ class _CreatePostPageState extends State<CreatePostPage>
     '#TCSKL', '#ArcadeTime', '#StudyGroup', '#WeekendVibes',
   ];
 
+  // ── Computed counts ───────────────────────────────────────
+
+  int  get _videoCount   => _media.where((m) => m.isVideo).length;
+  bool get _canAddMedia  => _media.length < _kMaxMedia;
+  bool get _canAddVideo  => _canAddMedia && _videoCount < _kMaxVideos;
+  bool get _hasContent   =>
+      _captionCtrl.text.trim().isNotEmpty || _media.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -68,10 +95,15 @@ class _CreatePostPageState extends State<CreatePostPage>
       ..forward();
     _fadeAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
     _captionCtrl.addListener(() => setState(() {}));
+    _locationCtrl.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    // Tear down every video controller before disposing controllers.
+    for (final m in _media) {
+      m.dispose();
+    }
     _entryCtrl.dispose();
     _captionCtrl.dispose();
     _locationCtrl.dispose();
@@ -85,6 +117,13 @@ class _CreatePostPageState extends State<CreatePostPage>
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  }
+
+  String _formatDuration(Duration? d) {
+    if (d == null) return '';
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   /// Returns null if the file is valid, or an error message if not.
@@ -103,9 +142,22 @@ class _CreatePostPageState extends State<CreatePostPage>
     return null;
   }
 
+  String? _validateVideoFile(File file) {
+    final sizeBytes = file.lengthSync();
+    if (sizeBytes > _kMaxVideoBytes) {
+      return 'That video is ${_formatBytes(sizeBytes)}, which is over the '
+          '$_kMaxVideoMb MB limit. Trim it or compress it first.';
+    }
+    final ext = file.path.split('.').last.toLowerCase();
+    if (!_kAllowedVideoExtensions.contains(ext)) {
+      return 'That video format (.$ext) isn\'t supported. '
+          'Please use MP4, MOV, or WebM.';
+    }
+    return null;
+  }
+
   // ── Toast system ──────────────────────────────────────────
   // Three toast types: error (red), warning (amber), success (green).
-  // Each shows an icon, a title, and a body message.
 
   void _toast({
     required String title,
@@ -172,26 +224,14 @@ class _CreatePostPageState extends State<CreatePostPage>
       ));
   }
 
-  // Legacy single-message snack (kept for non-critical notices)
-  void _snack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontFamily: 'Momo')),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: _kG4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: const EdgeInsets.all(16),
-    ));
-  }
-
   // ── Image picking ─────────────────────────────────────────
 
   Future<void> _pickImages() async {
-    final remaining = _kMaxImages - _images.length;
+    final remaining = _kMaxMedia - _media.length;
     if (remaining <= 0) {
       _toast(
-        title:   'Photo limit reached',
-        message: 'You can add up to $_kMaxImages photos per post. '
+        title:   'Limit reached',
+        message: 'You can attach up to $_kMaxMedia items per post. '
                  'Remove one to swap it out.',
         type:    _ToastType.warning,
       );
@@ -206,8 +246,8 @@ class _CreatePostPageState extends State<CreatePostPage>
     );
     if (picked.isEmpty) return;
 
-    final List<File> valid   = [];
-    final List<String> errors = [];
+    final List<_MediaItem> valid  = [];
+    final List<String>     errors = [];
 
     for (final x in picked.take(remaining)) {
       final file = File(x.path);
@@ -215,12 +255,15 @@ class _CreatePostPageState extends State<CreatePostPage>
       if (err != null) {
         errors.add('• ${file.uri.pathSegments.last}: $err');
       } else {
-        valid.add(file);
+        valid.add(_MediaItem.image(file));
       }
     }
 
     if (valid.isNotEmpty) {
-      setState(() { _images.addAll(valid); _previewPage = 0; });
+      setState(() {
+        _media.addAll(valid);
+        _previewPage = 0;
+      });
     }
 
     if (errors.isNotEmpty) {
@@ -238,7 +281,7 @@ class _CreatePostPageState extends State<CreatePostPage>
     if (picked.length > remaining) {
       _toast(
         title:   'Some photos skipped',
-        message: 'You only had room for $remaining more photo'
+        message: 'You only had room for $remaining more item'
                  '${remaining == 1 ? '' : 's'}. '
                  'The rest weren\'t added.',
         type: _ToastType.warning,
@@ -247,10 +290,10 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Future<void> _pickCamera() async {
-    if (_images.length >= _kMaxImages) {
+    if (!_canAddMedia) {
       _toast(
-        title:   'Photo limit reached',
-        message: 'You can add up to $_kMaxImages photos per post. '
+        title:   'Limit reached',
+        message: 'You can attach up to $_kMaxMedia items per post. '
                  'Remove one to swap it out.',
         type:    _ToastType.warning,
       );
@@ -273,15 +316,96 @@ class _CreatePostPageState extends State<CreatePostPage>
       return;
     }
 
-    setState(() => _images.insert(0, file));
+    setState(() => _media.insert(0, _MediaItem.image(file)));
   }
 
-  void _removeImage(int i) {
+  // ── Video picking ─────────────────────────────────────────
+
+  Future<void> _pickVideo() async {
+    // Cap checks happen in this order so the user gets the most
+    // specific message: video cap → total cap → pick.
+    if (_videoCount >= _kMaxVideos) {
+      _toast(
+        title:   'Video limit reached',
+        message: 'Only $_kMaxVideos video per post. '
+                 'Remove the existing one first.',
+        type:    _ToastType.warning,
+      );
+      return;
+    }
+    if (!_canAddMedia) {
+      _toast(
+        title:   'Limit reached',
+        message: 'You\'re at $_kMaxMedia items. Remove a photo to make room '
+                 'for the video.',
+        type:    _ToastType.warning,
+      );
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    final picked = await _picker.pickVideo(
+      source:      ImageSource.gallery,
+      maxDuration: const Duration(minutes: 5),
+    );
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final err  = _validateVideoFile(file);
+    if (err != null) {
+      _toast(title: 'Video can\'t be added', message: err, type: _ToastType.error);
+      return;
+    }
+
+    final item = _MediaItem.video(file);
     setState(() {
-      _images.removeAt(i);
-      if (_previewPage >= _images.length && _previewPage > 0) {
-        _previewPage = _images.length - 1;
+      _media.add(item);
+      _previewPage = _media.length - 1;
+    });
+
+    // VideoPlayerController.initialize() is async — show the spinner
+    // placeholder until it resolves, then re-render to swap in the
+    // actual VideoPlayer widget.
+    try {
+      await item.initController();
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (!mounted) return;
+      _toast(
+        title:   'Couldn\'t load video preview',
+        message: 'You can still post it — the preview just won\'t play here.',
+        type:    _ToastType.warning,
+      );
+    }
+  }
+
+  void _removeMedia(int i) {
+    setState(() {
+      final removed = _media.removeAt(i);
+      removed.dispose();
+      if (_previewPage >= _media.length && _previewPage > 0) {
+        _previewPage = _media.length - 1;
       }
+    });
+  }
+
+  // ── Location picker entry point ──────────────────────────
+
+  Future<void> _openLocationPicker() async {
+    if (_pickingLocation) return;
+    HapticFeedback.lightImpact();
+    setState(() => _pickingLocation = true);
+
+    final result = await LocationPicker.show(
+      context,
+      quickPicks:   _kCampusLocations,
+      initialQuery: _locationCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _pickingLocation = false;
+      if (result != null) _locationCtrl.text = result.name;
     });
   }
 
@@ -289,17 +413,27 @@ class _CreatePostPageState extends State<CreatePostPage>
 
   Future<void> _post() async {
     final caption = _captionCtrl.text.trim();
-    if (caption.isEmpty && _images.isEmpty) {
+    if (caption.isEmpty && _media.isEmpty) {
       _toast(
         title:   'Nothing to post',
-        message: 'Write a caption or add at least one photo before posting.',
+        message: 'Write a caption or add at least one photo or video first.',
         type:    _ToastType.warning,
       );
       return;
     }
 
     HapticFeedback.heavyImpact();
-    setState(() { _isPosting = true; _uploadProgress = 0; });
+
+    // Pause any playing video so it doesn't keep playing during upload.
+    for (final m in _media) {
+      m.videoController?.pause();
+    }
+
+    setState(() {
+      _isPosting      = true;
+      _uploadProgress = 0;
+      _uploadingLabel = 'photo';
+    });
 
     try {
       // Step 1 — create the text post
@@ -312,16 +446,25 @@ class _CreatePostPageState extends State<CreatePostPage>
 
       final postId = created['id']?.toString() ?? '';
 
-      // Step 2 — upload each image one by one
+      // Step 2 — upload each media item, passing the type so the
+      // backend routes images through CloudinaryField and videos
+      // through cloudinary.uploader.upload(resource_type='video').
       final List<Map<String, dynamic>> mediaResults = [];
-      for (int i = 0; i < _images.length; i++) {
-        setState(() => _uploadProgress = i + 1);
+      for (int i = 0; i < _media.length; i++) {
+        final item = _media[i];
+        setState(() {
+          _uploadProgress = i + 1;
+          _uploadingLabel = item.isVideo ? 'video' : 'photo';
+        });
         try {
-          final res = await _api.uploadPostMedia(postId, _images[i])
-              as Map<String, dynamic>;
+          final res = await _api.uploadPostMedia(
+            postId,
+            item.file,
+            mediaType: item.isVideo ? 'video' : 'image',
+          ) as Map<String, dynamic>;
           mediaResults.add(res);
         } catch (e) {
-          // Surface the server error message if it's a size/type rejection
+          // Surface server-side rejections (size / format) to the user
           final msg = e.toString();
           if (msg.contains('MB') || msg.contains('format')) {
             _toast(
@@ -339,7 +482,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       if (!mounted) return;
       Navigator.pop(context, {
         'caption':    caption,
-        'images':     _images,
+        'media':      _media,                 // was 'images'
         'visibility': _visibility,
         'location':   _locationCtrl.text.trim(),
         'feeling':    _feeling,
@@ -356,9 +499,6 @@ class _CreatePostPageState extends State<CreatePostPage>
     }
   }
 
-  bool get _hasContent =>
-      _captionCtrl.text.trim().isNotEmpty || _images.isNotEmpty;
-
   // ═══════════════════════════════════════════════════════════
   // BUILD
   // ═══════════════════════════════════════════════════════════
@@ -374,7 +514,7 @@ class _CreatePostPageState extends State<CreatePostPage>
           Expanded(child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildImageSection(),
+              _buildMediaSection(),
               _buildCaptionArea(),
               _buildTagsRow(),
               _buildDetailsSection(),
@@ -408,13 +548,13 @@ class _CreatePostPageState extends State<CreatePostPage>
         const Text('Create Post', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const Spacer(),
-        if (_images.isNotEmpty)
+        if (_media.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(right: 10),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(color: _kG2.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10)),
-            child: Text('${_images.length}/$_kMaxImages photos',
+            child: Text('${_media.length}/$_kMaxMedia',
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 11,
                     fontWeight: FontWeight.bold, color: _kG2))),
         GestureDetector(
@@ -501,18 +641,17 @@ class _CreatePostPageState extends State<CreatePostPage>
           )]),
         ),
       );
-    
   }
 
-  // ── Image section ─────────────────────────────────────────
+  // ── Media section (carousel + thumbnails) ─────────────────
 
-  Widget _buildImageSection() {
-    if (_images.isEmpty) {
+  Widget _buildMediaSection() {
+    if (_media.isEmpty) {
       return GestureDetector(
         onTap: _showMediaPicker,
         child: Container(
           margin: const EdgeInsets.all(16),
-          height: 220,
+          height: 240,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -525,17 +664,21 @@ class _CreatePostPageState extends State<CreatePostPage>
               blendMode: BlendMode.srcIn,
               child: const Icon(Icons.add_photo_alternate_rounded, size: 52)),
             const SizedBox(height: 14),
-            const Text('Add Photos', style: TextStyle(
+            const Text('Add Media', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
             const SizedBox(height: 6),
-            Text('Up to $_kMaxImages photos · max $_kMaxImageMb MB each',
+            Text('Up to $_kMaxMedia items · $_kMaxImageMb MB photos · '
+                 '$_kMaxVideoMb MB video',
                 style: TextStyle(fontFamily: 'Momo',
                     fontSize: 12, color: Colors.grey.shade400)),
             const SizedBox(height: 20),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               _MediaBtn(icon: Icons.photo_library_rounded,
                   label: 'Gallery', onTap: _pickImages),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
+              _MediaBtn(icon: Icons.videocam_rounded,
+                  label: 'Video', onTap: _pickVideo),
+              const SizedBox(width: 10),
               _MediaBtn(icon: Icons.camera_alt_rounded,
                   label: 'Camera', onTap: _pickCamera),
             ]),
@@ -544,46 +687,23 @@ class _CreatePostPageState extends State<CreatePostPage>
       );
     }
 
-    final hasMultiple = _images.length > 1;
+    final hasMultiple = _media.length > 1;
     return Column(children: [
 
       // Carousel preview
       Stack(children: [
         SizedBox(
-          height: 300,
+          height: 320,
           child: PageView.builder(
-            itemCount: _images.length,
-            onPageChanged: (p) => setState(() => _previewPage = p),
-            itemBuilder: (_, i) => Stack(children: [
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  image: DecorationImage(
-                      image: FileImage(_images[i]), fit: BoxFit.cover))),
-              Positioned(top: 10, right: 24,
-                child: GestureDetector(
-                  onTap: () => _removeImage(i),
-                  child: Container(width: 30, height: 30,
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.close_rounded,
-                        color: Colors.white, size: 16)))),
-              // File size badge
-              Positioned(bottom: 10, left: 24,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Text(
-                    _formatBytes(_images[i].lengthSync()),
-                    style: const TextStyle(fontFamily: 'Momo',
-                        color: Colors.white, fontSize: 10,
-                        fontWeight: FontWeight.bold)))),
-            ]),
+            itemCount: _media.length,
+            onPageChanged: (p) {
+              // Pause whatever's playing when the user swipes away.
+              for (final m in _media) {
+                m.videoController?.pause();
+              }
+              setState(() => _previewPage = p);
+            },
+            itemBuilder: (_, i) => _buildMediaPage(i),
           ),
         ),
         if (hasMultiple)
@@ -593,14 +713,14 @@ class _CreatePostPageState extends State<CreatePostPage>
               decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.55),
                   borderRadius: BorderRadius.circular(20)),
-              child: Text('${_previewPage + 1} / ${_images.length}',
+              child: Text('${_previewPage + 1} / ${_media.length}',
                   style: const TextStyle(color: Colors.white,
                       fontFamily: 'Momo', fontSize: 11,
                       fontWeight: FontWeight.bold)))),
         if (hasMultiple)
           Positioned(bottom: 10, left: 0, right: 0,
             child: Row(mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_images.length, (i) {
+              children: List.generate(_media.length, (i) {
                 final active = i == _previewPage;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -617,22 +737,31 @@ class _CreatePostPageState extends State<CreatePostPage>
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         child: Row(children: [
           ...List.generate(
-            _images.length > 4 ? 4 : _images.length,
-            (i) => GestureDetector(
-              onTap: () => setState(() => _previewPage = i),
-              child: Container(
-                width: 48, height: 48,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _previewPage == i ? _kG2 : Colors.transparent,
-                    width: 2),
-                  image: DecorationImage(
-                      image: FileImage(_images[i]), fit: BoxFit.cover))))),
-          if (_images.length < _kMaxImages)
+            _media.length > 4 ? 4 : _media.length,
+            (i) {
+              final item = _media[i];
+              return GestureDetector(
+                onTap: () => setState(() => _previewPage = i),
+                child: Container(
+                  width: 48, height: 48,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: item.isVideo ? Colors.black : null,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _previewPage == i ? _kG2 : Colors.transparent,
+                      width: 2),
+                    image: item.isVideo ? null : DecorationImage(
+                        image: FileImage(item.file), fit: BoxFit.cover)),
+                  child: item.isVideo
+                      ? const Center(child: Icon(
+                          Icons.play_circle_filled_rounded,
+                          color: Colors.white, size: 24))
+                      : null));
+            }),
+          if (_media.length < _kMaxMedia)
             GestureDetector(
-              onTap: _pickImages,
+              onTap: _showMediaPicker,
               child: Container(width: 48, height: 48,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
@@ -641,15 +770,122 @@ class _CreatePostPageState extends State<CreatePostPage>
                   border: Border.all(color: _kG2.withOpacity(0.3), width: 1.5)),
                 child: Icon(Icons.add_rounded, color: _kG2, size: 22))),
           const Spacer(),
-          Text('${_images.length}/$_kMaxImages',
+          Text('${_media.length}/$_kMaxMedia',
             style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-              color: _images.length == _kMaxImages
+              color: _media.length == _kMaxMedia
                   ? _kG4 : Colors.grey.shade400,
-              fontWeight: _images.length == _kMaxImages
+              fontWeight: _media.length == _kMaxMedia
                   ? FontWeight.bold : FontWeight.normal)),
         ]),
       ),
     ]);
+  }
+
+  /// One slide of the carousel — image or video.
+  Widget _buildMediaPage(int i) {
+    final item = _media[i];
+    return Stack(children: [
+      // Background — image (decoration) or video (custom widget).
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: item.isVideo ? Colors.black : null,
+          borderRadius: BorderRadius.circular(20),
+          image: item.isVideo ? null : DecorationImage(
+              image: FileImage(item.file), fit: BoxFit.cover)),
+        child: item.isVideo
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: _buildVideoPlayer(item))
+            : null,
+      ),
+
+      // Close button
+      Positioned(top: 10, right: 24,
+        child: GestureDetector(
+          onTap: () => _removeMedia(i),
+          child: Container(width: 30, height: 30,
+            decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                shape: BoxShape.circle),
+            child: const Icon(Icons.close_rounded,
+                color: Colors.white, size: 16)))),
+
+      // VIDEO badge (top-left, only for videos)
+      if (item.isVideo)
+        Positioned(top: 10, left: 24,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+                color: _kG4.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(20)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.videocam_rounded, color: Colors.white, size: 11),
+              SizedBox(width: 4),
+              Text('VIDEO', style: TextStyle(
+                  fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                  color: Colors.white, fontSize: 10)),
+            ]))),
+
+      // Size + duration badge (bottom-left)
+      Positioned(bottom: 10, left: 24,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20)),
+          child: Text(
+            item.isVideo
+                ? '${_formatDuration(item.videoController?.value.duration)} '
+                  '· ${_formatBytes(item.file.lengthSync())}'
+                : _formatBytes(item.file.lengthSync()),
+            style: const TextStyle(fontFamily: 'Momo',
+                color: Colors.white, fontSize: 10,
+                fontWeight: FontWeight.bold)))),
+    ]);
+  }
+
+  /// Video preview that toggles play/pause on tap. Shows a spinner
+  /// while the controller is initializing.
+  Widget _buildVideoPlayer(_MediaItem item) {
+    final ctrl = item.videoController;
+    if (ctrl == null || !ctrl.value.isInitialized) {
+      return const Center(child: SizedBox(
+        width: 28, height: 28,
+        child: CircularProgressIndicator(
+            color: Colors.white, strokeWidth: 2.5),
+      ));
+    }
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (ctrl.value.isPlaying) {
+            ctrl.pause();
+          } else {
+            ctrl.play();
+          }
+        });
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Center(child: AspectRatio(
+            aspectRatio: ctrl.value.aspectRatio,
+            child: VideoPlayer(ctrl),
+          )),
+          if (!ctrl.value.isPlaying)
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.45),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 40),
+            ),
+        ],
+      ),
+    );
   }
 
   void _showMediaPicker() {
@@ -661,12 +897,17 @@ class _CreatePostPageState extends State<CreatePostPage>
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
           const Text('Add to your post', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 6),
           Text(
-            'Up to $_kMaxImages photos · max $_kMaxImageMb MB each · '
-            'JPG, PNG, WebP or GIF',
+            '$_kMaxMedia items per post · '
+            '$_kMaxImageMb MB photos · '
+            '$_kMaxVideoMb MB video',
             textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo',
                 fontSize: 12, color: Colors.grey.shade400)),
@@ -675,7 +916,11 @@ class _CreatePostPageState extends State<CreatePostPage>
             Expanded(child: _BigMediaBtn(
               icon: Icons.photo_library_rounded, label: 'Gallery', color: _kG2,
               onTap: () { Navigator.pop(context); _pickImages(); })),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
+            Expanded(child: _BigMediaBtn(
+              icon: Icons.videocam_rounded, label: 'Video', color: _kG1,
+              onTap: () { Navigator.pop(context); _pickVideo(); })),
+            const SizedBox(width: 10),
             Expanded(child: _BigMediaBtn(
               icon: Icons.camera_alt_rounded, label: 'Camera', color: _kG3,
               onTap: () { Navigator.pop(context); _pickCamera(); })),
@@ -769,18 +1014,8 @@ class _CreatePostPageState extends State<CreatePostPage>
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
             blurRadius: 10, offset: const Offset(0, 3))]),
       child: Column(children: [
-        _DetailRow(icon: Icons.location_on_rounded, color: _kG4,
-          child: TextField(
-            controller: _locationCtrl,
-            style: const TextStyle(fontFamily: 'Momo',
-                fontSize: 14, color: _kInk),
-            decoration: InputDecoration(
-              hintText: 'Add location',
-              hintStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.grey.shade400, fontSize: 14),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 16)))),
+        // ── Location row — opens LocationPicker, shows spinner while open ──
+        _buildLocationRow(),
         Divider(height: 1, color: Colors.grey.shade100),
         _DetailRow(icon: Icons.emoji_emotions_rounded, color: _kG3,
           child: GestureDetector(
@@ -814,12 +1049,70 @@ class _CreatePostPageState extends State<CreatePostPage>
             Switch(
               value:              _altText,
               onChanged:          (v) => setState(() => _altText = v),
-              activeThumbColor:        Colors.white,
+              activeThumbColor:   Colors.white,
               activeTrackColor:   _kG1,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: Colors.grey.shade300),
           ])),
       ]),
+    );
+  }
+
+  /// Tappable location row. Opens LocationPicker on tap. Shows a
+  /// SpinKitFadingCircle in place of the pin icon while the picker
+  /// is on screen, then returns to the icon as soon as the user
+  /// picks (or dismisses).
+  Widget _buildLocationRow() {
+    final hasLocation = _locationCtrl.text.trim().isNotEmpty;
+    final label = _pickingLocation
+        ? 'Picking…'
+        : (hasLocation ? _locationCtrl.text.trim() : 'Add location');
+
+    return GestureDetector(
+      onTap: _openLocationPicker,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 8),
+        child: Row(children: [
+          // Icon OR loading spinner — same footprint either way
+          SizedBox(
+            width: 20, height: 20,
+            child: _pickingLocation
+                ? const SpinKitFadingCircle(color: _kG4, size: 20)
+                : const Icon(Icons.location_on_rounded,
+                    color: _kG4, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              label,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Momo', fontSize: 14,
+                color: _pickingLocation || !hasLocation
+                    ? Colors.grey.shade400 : _kInk,
+              ),
+            ),
+          )),
+          if (hasLocation && !_pickingLocation)
+            GestureDetector(
+              onTap: () => setState(() => _locationCtrl.clear()),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(Icons.close_rounded,
+                    size: 16, color: Colors.grey.shade400),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.keyboard_arrow_right_rounded,
+                  color: Colors.grey.shade300, size: 20),
+            ),
+        ]),
+      ),
     );
   }
 
@@ -865,8 +1158,9 @@ class _CreatePostPageState extends State<CreatePostPage>
 
   Widget _buildPostBar() {
     final String barLabel;
-    if (_isPosting && _images.isNotEmpty) {
-      barLabel = 'Uploading photo $_uploadProgress of ${_images.length}...';
+    if (_isPosting && _media.isNotEmpty) {
+      barLabel = 'Uploading $_uploadingLabel '
+                 '$_uploadProgress of ${_media.length}...';
     } else if (_captionCtrl.text.isNotEmpty) {
       barLabel = '${_captionCtrl.text.length} characters';
     } else {
@@ -918,6 +1212,37 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// MEDIA ITEM — owns the file + (for video) a VideoPlayerController
+// ─────────────────────────────────────────────────────────────
+
+class _MediaItem {
+  final File   file;
+  final String type;                    // 'image' | 'video'
+  VideoPlayerController? videoController;
+
+  _MediaItem.image(this.file) : type = 'image';
+  _MediaItem.video(this.file) : type = 'video';
+
+  bool get isVideo => type == 'video';
+
+  /// Lazy-init the VideoPlayerController once the user picks a video.
+  /// Throws on init failure — caller decides how to surface that.
+  Future<void> initController() async {
+    if (!isVideo || videoController != null) return;
+    final c = VideoPlayerController.file(file);
+    videoController = c;
+    await c.initialize();
+    c.setLooping(false);
+    c.setVolume(1.0);
+  }
+
+  void dispose() {
+    videoController?.dispose();
+    videoController = null;
+  }
+}
+
 // ── Toast type ────────────────────────────────────────────────
 
 enum _ToastType { error, warning, success }
@@ -931,7 +1256,7 @@ class _MediaBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(12),
@@ -954,16 +1279,16 @@ class _BigMediaBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.2), width: 1.5)),
       child: Column(children: [
-        Icon(icon, size: 32, color: color),
+        Icon(icon, size: 28, color: color),
         const SizedBox(height: 8),
         Text(label, style: TextStyle(fontFamily: 'Arch',
-            fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+            fontWeight: FontWeight.bold, fontSize: 13, color: color)),
       ])));
 }
 

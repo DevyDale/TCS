@@ -76,6 +76,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     bio       = models.TextField(max_length=300, blank=True)
     interests = models.JSONField(default=list)
+    interests_visibility = models.CharField(            # ← ADD
+    max_length=10,
+    choices=[('public', 'Public'), ('private', 'Private')],
+    default='public',
+    )
     location  = models.CharField(max_length=100, blank=True)
     website   = models.URLField(blank=True)
 

@@ -1,5 +1,6 @@
 import uuid
-from django.db import models
+import re
+from django.db import models, transaction
 from django.conf import settings
 from django.utils import timezone
 from cloudinary.models import CloudinaryField
@@ -35,6 +36,13 @@ class Post(models.Model):
 
     tagged_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                           related_name="post_tags")
+
+    # Hashtags are extracted from `content` on create/update via
+    # attach_hashtags() below. The string reference "Hashtag" is used
+    # because Hashtag is declared later in this same module.
+    hashtags     = models.ManyToManyField("Hashtag", blank=True,
+                                          related_name="posts")
+
     group  = models.ForeignKey("groups.Group",  null=True, blank=True,
                                on_delete=models.SET_NULL, related_name="group_posts")
     event  = models.ForeignKey("events.Event",  null=True, blank=True,
@@ -148,3 +156,117 @@ class PostFlag(models.Model):
     class Meta:
         db_table       = "post_flags"
         unique_together = [("post", "user")]
+
+
+# ─────────────────────────────────────────────────────────────
+# HASHTAGS
+# ─────────────────────────────────────────────────────────────
+
+# Matches "#word" — letters, digits, underscores. Won't match "#"
+# alone, "###", or punctuation-only "#-".
+_HASHTAG_RE = re.compile(r"#([A-Za-z0-9_]+)")
+
+
+def extract_hashtags(content: str):
+    """
+    Pull (slug, display) pairs out of arbitrary text. Returns up to
+    10 unique pairs in first-seen order. Slug is lowercase canonical
+    form ("openday"); display preserves casing of the first sighting
+    ("OpenDay") for nicer rendering.
+    """
+    if not content:
+        return []
+    seen = {}
+    for m in _HASHTAG_RE.finditer(content):
+        word = m.group(1)
+        slug = word.lower()
+        if slug in seen:
+            continue
+        seen[slug] = word
+        if len(seen) >= 10:
+            break
+    return list(seen.items())
+
+class Feeling(models.Model):
+    """
+    A pickable feeling like 😊 happy or 📚 studying. Backend-driven
+    so admins can add/retire feelings without an app rebuild.
+ 
+    `category` is a soft grouping (mood / activity / state) — the
+    create-post picker can use it to section the list. `sort_order`
+    is curated, not alphabetical, so commonly-used moods bubble up.
+    `is_active=False` retires a feeling from the picker without
+    breaking historical posts that already used it (FK is SET_NULL).
+ 
+    Seeded via the data migration in 0005_add_feelings.
+    """
+    slug       = models.SlugField(max_length=40, unique=True, db_index=True)
+    label      = models.CharField(max_length=40)
+    emoji      = models.CharField(max_length=8)
+    category   = models.CharField(max_length=20, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active  = models.BooleanField(default=True)
+ 
+    class Meta:
+        db_table = "feelings"
+        ordering = ["sort_order", "label"]
+ 
+    def __str__(self):
+        return f"{self.emoji} {self.label}"
+
+class Hashtag(models.Model):
+    """
+    Normalized hashtag. Slug is the canonical lowercase form so
+    '#OpenDay', '#openday', and '#OPENDAY' all collide on slug
+    'openday'. `display` keeps the FIRST sighting's casing.
+    """
+    slug          = models.SlugField(max_length=80, unique=True, db_index=True)
+    display       = models.CharField(max_length=80)
+    posts_count   = models.PositiveIntegerField(default=0, db_index=True)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    last_used_at  = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        db_table = "hashtags"
+        ordering = ["-last_used_at"]
+
+    def __str__(self):
+        return f"#{self.display}"
+
+
+@transaction.atomic
+def attach_hashtags(post, content):
+    """
+    Idempotent. Parse `content`, get_or_create Hashtag rows, and
+    sync the M2M with `post`. Bumps posts_count + last_used_at on
+    add and decrements on remove (for edits where the user deleted
+    a hashtag from the body).
+    """
+    pairs     = extract_hashtags(content)
+    new_slugs = {slug for slug, _ in pairs}
+    old_slugs = set(post.hashtags.values_list("slug", flat=True))
+
+    # Remove dropped hashtags
+    for slug in old_slugs - new_slugs:
+        try:
+            tag = Hashtag.objects.get(slug=slug)
+            post.hashtags.remove(tag)
+            Hashtag.objects.filter(pk=tag.pk).update(
+                posts_count=models.F("posts_count") - 1
+            )
+        except Hashtag.DoesNotExist:
+            pass
+
+    # Add new hashtags
+    for slug, display in pairs:
+        if slug in old_slugs:
+            continue
+        tag, _ = Hashtag.objects.get_or_create(
+            slug=slug,
+            defaults={"display": display},
+        )
+        post.hashtags.add(tag)
+        Hashtag.objects.filter(pk=tag.pk).update(
+            posts_count=models.F("posts_count") + 1,
+            last_used_at=timezone.now(),
+        )

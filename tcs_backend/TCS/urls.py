@@ -5,10 +5,12 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 api_v1 = [
-    path("accounts/", include("apps.accounts.urls")),
+    path("accounts/",      include("apps.accounts.urls")),
     path("users/",         include("apps.accounts.user_urls")),
     path("dataentry/",     include("apps.dataentry.urls")),
     path("posts/",         include("apps.posts.urls")),
+    path("hashtags/",      include("apps.posts.hashtag_urls")),
+    path("feelings/",      include("apps.posts.feeling_urls")),
     path("chat/",          include("apps.chat.urls")),
     path("groups/",        include("apps.groups.urls")),
     path("events/",        include("apps.events.urls")),

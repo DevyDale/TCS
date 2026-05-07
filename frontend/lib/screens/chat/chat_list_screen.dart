@@ -1,4 +1,16 @@
 // lib/screens/chat/chat_list_screen.dart
+//
+// Updated for Phase 6 chat media:
+//   • Last-message preview now handles sticker, audio, image, gif,
+//     and file types — was previously blank for non-text messages
+//   • Auto-refreshes the chat list when returning from a room screen
+//     (you may have new messages, read receipts to clear, etc.)
+//   • Pull-to-refresh now refreshes both tabs (chats + requests)
+//   • Tab counter on Requests tab actually rebuilds when count changes
+//
+// No backend changes needed — the existing /api/chat/rooms/ response
+// already includes message_type on the last_message field.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat_search_screen.dart';
@@ -30,6 +42,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));   // rebuild for badge counters
     _loadChats();
     _loadRequests();
   }
@@ -37,26 +50,38 @@ class _ChatListScreenState extends State<ChatListScreen>
   @override
   void dispose() { _tabCtrl.dispose(); super.dispose(); }
 
+  // ── Data ──────────────────────────────────────────────────
+
   Future<void> _loadChats() async {
     setState(() => _loadingChats = true);
     try {
       final data = await _api.getChatRooms() as List;
+      if (!mounted) return;
       setState(() {
         _chats        = data.cast<Map<String, dynamic>>();
         _loadingChats = false;
       });
-    } catch (_) { setState(() => _loadingChats = false); }
+    } catch (_) {
+      if (mounted) setState(() => _loadingChats = false);
+    }
   }
 
   Future<void> _loadRequests() async {
     setState(() => _loadingRequests = true);
     try {
       final data = await _api.get('/chat/requests/') as List;
+      if (!mounted) return;
       setState(() {
         _requests        = data.cast<Map<String, dynamic>>();
         _loadingRequests = false;
       });
-    } catch (_) { setState(() => _loadingRequests = false); }
+    } catch (_) {
+      if (mounted) setState(() => _loadingRequests = false);
+    }
+  }
+
+  Future<void> _refreshAll() async {
+    await Future.wait([_loadChats(), _loadRequests()]);
   }
 
   Future<void> _acceptRequest(String reqId, int index) async {
@@ -65,9 +90,9 @@ class _ChatListScreenState extends State<ChatListScreen>
       setState(() => _requests.removeAt(index));
       final room = res['room'] as Map<String, dynamic>?;
       if (room != null && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(
+        await Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ChatRoomScreen(
-            roomId:   room['id'] as String? ?? '',
+            roomId:   room['id']   as String? ?? '',
             roomName: room['name'] as String? ?? 'Chat',
             userName: 'You',
           ),
@@ -93,6 +118,10 @@ class _ChatListScreenState extends State<ChatListScreen>
       margin: const EdgeInsets.all(16),
     ));
   }
+
+  // ══════════════════════════════════════════════════════════
+  // BUILD
+  // ══════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -133,11 +162,12 @@ class _ChatListScreenState extends State<ChatListScreen>
             final result = await Navigator.of(context).push<Map<String, dynamic>>(
                 MaterialPageRoute(builder: (_) => const ChatSearchScreen()));
             if (result != null && result['action'] == 'open_room') {
-              final roomId   = result['room_id'] as String? ?? '';
+              final roomId   = result['room_id']   as String? ?? '';
               final userName = result['user_name'] as String? ?? 'Chat';
               if (!mounted) return;
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => ChatRoomScreen(roomId: roomId, roomName: userName, userName: 'You'),
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ChatRoomScreen(
+                    roomId: roomId, roomName: userName, userName: 'You'),
               ));
               _loadChats();
             }
@@ -184,14 +214,24 @@ class _ChatListScreenState extends State<ChatListScreen>
   Widget _buildChatsTab() {
     if (_loadingChats) return const Center(child: CircularProgressIndicator(color: _kG2));
     if (_chats.isEmpty) {
-      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.chat_bubble_outline_rounded, size: 52, color: Colors.grey.shade300),
-      const SizedBox(height: 16),
-      const Text('No Messages Yet', style: TextStyle(fontFamily: 'Alfa',
-          fontSize: 20, color: Color(0xFF1A1A2E))),
-      const SizedBox(height: 8),
-      Text('Start a conversation!', style: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500)),
-    ]));
+      return RefreshIndicator(
+        color: _kG2, onRefresh: _loadChats,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 100),
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.chat_bubble_outline_rounded, size: 52, color: Colors.grey.shade300),
+              const SizedBox(height: 16),
+              const Text('No Messages Yet', style: TextStyle(fontFamily: 'Alfa',
+                  fontSize: 20, color: Color(0xFF1A1A2E))),
+              const SizedBox(height: 8),
+              Text('Start a conversation!',
+                  style: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500)),
+            ]),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -202,20 +242,23 @@ class _ChatListScreenState extends State<ChatListScreen>
         itemCount: _chats.length,
         itemBuilder: (_, i) {
           final c        = _chats[i];
-          final roomId   = c['id'] as String? ?? '';
+          final roomId   = c['id']        as String? ?? '';
           final roomType = c['room_type'] as String? ?? 'direct';
           final isStudyBuddy = roomType == 'study_buddy';
-          final isGroup  = roomType == 'group';
-          final other    = c['other_user'] as Map<String, dynamic>?;
-          final name     = isGroup ? (c['name'] as String? ?? 'Group')
-                           : (other?['name'] as String? ?? 'Unknown');
+          final isGroup      = roomType == 'group';
+          final other        = c['other_user'] as Map<String, dynamic>?;
+          final name      = isGroup ? (c['name'] as String? ?? 'Group')
+                            : (other?['name'] as String? ?? 'Unknown');
           final avatarUrl = isGroup ? null : other?['avatar_url'] as String?;
           final isOnline  = isGroup ? false : (other?['is_online'] as bool? ?? false);
           final unread    = c['unread_count'] as int? ?? 0;
-          final lastMsg   = (c['last_message'] as Map<String, dynamic>?);
-          final lastText  = lastMsg?['text'] as String? ?? '';
+          final lastMsg   = c['last_message'] as Map<String, dynamic>?;
           final lastTime  = _timeLabel(lastMsg?['created_at'] as String? ?? '');
           final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+          // Build a friendly preview for the last message — handles
+          // text, sticker, audio, image, gif, file uniformly.
+          final lastPreview = _previewLastMessage(lastMsg);
 
           return GestureDetector(
             onTap: () async {
@@ -260,10 +303,12 @@ class _ChatListScreenState extends State<ChatListScreen>
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(child: Row(children: [
-                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: 'Arch', fontSize: 15,
-                              fontWeight: unread > 0 ? FontWeight.bold : FontWeight.w600,
-                              color: const Color(0xFF1A1A2E))),
+                      Flexible(
+                        child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontFamily: 'Arch', fontSize: 15,
+                                fontWeight: unread > 0 ? FontWeight.bold : FontWeight.w600,
+                                color: const Color(0xFF1A1A2E))),
+                      ),
                       if (isStudyBuddy) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -276,10 +321,34 @@ class _ChatListScreenState extends State<ChatListScreen>
                     ])),
                   ]),
                   const SizedBox(height: 3),
-                  Text(lastText, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                          color: unread > 0 ? Colors.grey.shade700 : Colors.grey.shade400,
-                          fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal)),
+                  // Preview row — icon (for media types) + text
+                  Row(children: [
+                    if (lastPreview.icon != null) ...[
+                      Icon(lastPreview.icon,
+                          size: 13,
+                          color: unread > 0 ? _kG2 : Colors.grey.shade400),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        lastPreview.text,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 13,
+                          color: unread > 0
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade400,
+                          fontWeight: unread > 0
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          fontStyle: lastPreview.italic
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                      ),
+                    ),
+                  ]),
                 ])),
                 const SizedBox(width: 10),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -308,15 +377,24 @@ class _ChatListScreenState extends State<ChatListScreen>
   Widget _buildRequestsTab() {
     if (_loadingRequests) return const Center(child: CircularProgressIndicator(color: _kG2));
     if (_requests.isEmpty) {
-      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.mail_outline_rounded, size: 52, color: Colors.grey.shade300),
-      const SizedBox(height: 16),
-      const Text('No Message Requests', style: TextStyle(fontFamily: 'Alfa',
-          fontSize: 20, color: Color(0xFF1A1A2E))),
-      const SizedBox(height: 8),
-      Text('Chat requests will appear here', style: TextStyle(
-          fontFamily: 'Momo', color: Colors.grey.shade500)),
-    ]));
+      return RefreshIndicator(
+        color: _kG2, onRefresh: _loadRequests,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 100),
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.mail_outline_rounded, size: 52, color: Colors.grey.shade300),
+              const SizedBox(height: 16),
+              const Text('No Message Requests', style: TextStyle(fontFamily: 'Alfa',
+                  fontSize: 20, color: Color(0xFF1A1A2E))),
+              const SizedBox(height: 8),
+              Text('Chat requests will appear here', style: TextStyle(
+                  fontFamily: 'Momo', color: Colors.grey.shade500)),
+            ]),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -328,10 +406,10 @@ class _ChatListScreenState extends State<ChatListScreen>
         itemBuilder: (_, i) {
           final r         = _requests[i];
           final reqId     = r['id'] as String? ?? '';
-          final name      = r['sender_name'] as String? ?? 'Unknown';
-          final role      = r['sender_role'] as String? ?? '';
+          final name      = r['sender_name']   as String? ?? 'Unknown';
+          final role      = r['sender_role']   as String? ?? '';
           final avatarUrl = r['sender_avatar'] as String? ?? '';
-          final message   = r['message'] as String? ?? '';
+          final message   = r['message']       as String? ?? '';
           final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
           return Container(
@@ -414,11 +492,12 @@ class _ChatListScreenState extends State<ChatListScreen>
         final result = await Navigator.of(context).push<Map<String, dynamic>>(
             MaterialPageRoute(builder: (_) => const ChatSearchScreen()));
         if (result != null && result['action'] == 'open_room') {
-          final roomId   = result['room_id'] as String? ?? '';
+          final roomId   = result['room_id']   as String? ?? '';
           final userName = result['user_name'] as String? ?? 'Chat';
           if (!mounted) return;
           await Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => ChatRoomScreen(roomId: roomId, roomName: userName, userName: 'You'),
+            builder: (_) => ChatRoomScreen(
+                roomId: roomId, roomName: userName, userName: 'You'),
           ));
           _loadChats();
         }
@@ -441,6 +520,72 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
+  // ── Helpers ───────────────────────────────────────────────
+
+  /// Build a preview line for the last message in a room. Handles
+  /// every message_type the backend produces (text, sticker, audio,
+  /// image, video, gif, file, document) and falls back gracefully if
+  /// the field isn't present.
+  _LastMsgPreview _previewLastMessage(Map<String, dynamic>? lastMsg) {
+    if (lastMsg == null) {
+      return const _LastMsgPreview(text: 'No messages yet', italic: true);
+    }
+    final type    = (lastMsg['message_type'] as String?) ?? 'text';
+    final rawText = (lastMsg['text']         as String?) ?? '';
+    final fname   = (lastMsg['file_name']    as String?) ?? '';
+    final dur     = (lastMsg['duration']     as int?)    ?? 0;
+
+    switch (type) {
+      case 'sticker':
+        return const _LastMsgPreview(
+            text: 'Sticker',
+            italic: true,
+            icon: Icons.emoji_emotions_rounded);
+      case 'audio':
+        return _LastMsgPreview(
+            text: dur > 0 ? 'Voice note · ${_fmtDuration(dur)}' : 'Voice note',
+            italic: true,
+            icon: Icons.mic_rounded);
+      case 'image':
+        return const _LastMsgPreview(
+            text: 'Photo',
+            italic: true,
+            icon: Icons.photo_rounded);
+      case 'video':
+        return const _LastMsgPreview(
+            text: 'Video',
+            italic: true,
+            icon: Icons.videocam_rounded);
+      case 'gif':
+        return const _LastMsgPreview(
+            text: 'GIF',
+            italic: true,
+            icon: Icons.gif_rounded);
+      case 'file':
+      case 'document':
+        return _LastMsgPreview(
+            text: fname.isNotEmpty ? fname : 'File',
+            italic: true,
+            icon: Icons.attach_file_rounded);
+      case 'text':
+      default:
+        if (rawText.isNotEmpty) {
+          return _LastMsgPreview(text: rawText);
+        }
+        // text type but empty text — likely a deleted message.
+        return const _LastMsgPreview(
+            text: 'Message deleted',
+            italic: true);
+    }
+  }
+
+  String _fmtDuration(int seconds) {
+    if (seconds < 60) return '${seconds}s';
+    final mm = seconds ~/ 60;
+    final ss = (seconds % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
   String _timeLabel(String iso) {
     if (iso.isEmpty) return '';
     try {
@@ -453,4 +598,16 @@ class _ChatListScreenState extends State<ChatListScreen>
       return '${dt.day}/${dt.month}';
     } catch (_) { return ''; }
   }
+}
+
+/// Internal struct describing how to render the last-message line.
+class _LastMsgPreview {
+  final String   text;
+  final IconData? icon;
+  final bool     italic;
+  const _LastMsgPreview({
+    required this.text,
+    this.icon,
+    this.italic = false,
+  });
 }

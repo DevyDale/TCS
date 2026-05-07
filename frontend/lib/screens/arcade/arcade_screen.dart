@@ -1,19 +1,48 @@
 // lib/screens/arcade/arcade_screen.dart
 // ignore_for_file: unused_local_variable
+//
+// Arcade — redesigned per master spec §11.
+// "Arcade includes: Games · Clubs section · Club activities hub.
+//  Not just entertainment — also community engagement."
+//
+// Tabs:  Games · Leaderboard · Clubs · My Stats
+// Carousel:  Token Wallet · Gamer Card · Leaderboard · My Clubs
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
+import 'package:tcs_app/screens/club_list.dart' show ClubsListScreen;
+import 'package:tcs_app/screens/club_screen.dart';
+import 'package:tcs_app/screens/create_club_page.dart';
 import 'package:tcs_app/screens/arcade/_arcade_carousel_card.dart';
+import 'package:tcs_app/screens/arcade/animated_starfield.dart';
+import 'package:tcs_app/screens/arcade/arcade_Effects.dart';
+import 'package:tcs_app/screens/arcade/memory_rush_game.dart';
+import 'package:tcs_app/screens/arcade/tic_Tac_toe.dart';
+
 import '../../services/api_service.dart';
+
+// ── Phase 1 visual layer ─────────────────────────────────────
+
+
+// ── Existing playable games ──────────────────────────────────
 import 'player_tag_screen.dart';
 import 'quiz_battle_game.dart';
-
 import 'spirit_racers_game.dart';
 import 'ninja_tag_game.dart';
 import 'sushi_rush_game.dart';
 import 'battle_bots_game.dart';
 import 'pool_royale_game.dart';
+
+// ── Phase 4: newly built games ───────────────────────────────
+import 'snake_game.dart';
+import 'number_guesser_game.dart';
+
+// ── Phase 4: existing-but-unwired games (already in your codebase) ──
+import 'campus_craft_game.dart';
+import 'texas_poker_game.dart';
+
 import 'game_engine.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -23,14 +52,24 @@ const _kG4 = Color(0xFFFF5858);
 const _darkBg    = Color(0xFF0D0D1A);
 const _darkCard  = Color(0xFF161628);
 const _darkCard2 = Color(0xFF1E1E38);
+const _kVerified = Color(0xFF1DA1F2);
 
 final _playableGames = {
+  // Existing 6
   'quiz-battle':    (BuildContext ctx) => const QuizBattleGame(),
-  'spirit-racers': (BuildContext ctx) => const SpiritRacersGame(),
-  'ninja-tag':     (BuildContext ctx) => const NinjaTagGame(),
-  'sushi-rush':    (BuildContext ctx) => const SushiRushGame(),
-  'battle-bots':   (BuildContext ctx) => const BattleBotsGame(),
-  'pool-royale':   (BuildContext ctx) => const PoolRoyaleGame(),
+  'spirit-racers':  (BuildContext ctx) => const SpiritRacersGame(),
+  'ninja-tag':      (BuildContext ctx) => const NinjaTagGame(),
+  'sushi-rush':     (BuildContext ctx) => const SushiRushGame(),
+  'battle-bots':    (BuildContext ctx) => const BattleBotsGame(),
+  'pool-royale':    (BuildContext ctx) => const PoolRoyaleGame(),
+  // Phase 4 — newly built
+  'snake':           (BuildContext ctx) => const SnakeGame(),
+  'memory-match':    (BuildContext ctx) => const MemoryMatchGame(),
+  'number-guesser':  (BuildContext ctx) => const NumberGuesserGame(),
+  // Phase 4 — already-existing-but-wasn't-registered
+  'tic-tac-toe':     (BuildContext ctx) => const TicTacToeGame(),
+  'campus-craft':    (BuildContext ctx) => const CampusCraftGame(),
+  'texas-poker':     (BuildContext ctx) => const TexasPokerGame(),
 };
 
 const _gameEmoji = {
@@ -38,6 +77,7 @@ const _gameEmoji = {
   'snake': '🐍', 'number-guesser': '🔢', 'campus-craft': '🏗️',
   'ninja-tag': '🥷', 'sushi-rush': '🍣', 'battle-bots': '🤖',
   'spirit-racers': '🏎️', 'pool-royale': '🎱',
+  'texas-poker': '🃏', 'basketball': '🏀',
 };
 
 const _catGradients = {
@@ -74,16 +114,20 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   bool _loadingGames  = true;
   bool _loadingStats  = true;
   bool _loadingLb     = true;
+  bool _loadingClubs  = true;
 
-  Map<String, dynamic>       _stats       = {};
-  List<Map<String, dynamic>> _games       = [];
-  List<Map<String, dynamic>> _leaderboard = [];
-  List<Map<String, dynamic>> _topGamers   = [];
+  Map<String, dynamic>       _stats         = {};
+  List<Map<String, dynamic>> _games         = [];
+  List<Map<String, dynamic>> _leaderboard   = [];
+  List<Map<String, dynamic>> _topGamers     = [];
+  List<Map<String, dynamic>> _myClubs       = [];
+  List<Map<String, dynamic>> _gamingClubs   = [];
+  List<Map<String, dynamic>> _trendingClubs = [];
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl      = TabController(length: 3, vsync: this);
+    _tabCtrl      = TabController(length: 4, vsync: this);
     _carouselCtrl = PageController(viewportFraction: 0.88);
     _entryCtrl    = AnimationController(vsync: this,
         duration: const Duration(milliseconds: 600))..forward();
@@ -101,8 +145,12 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     super.dispose();
   }
 
-  Future<void> _loadAll() =>
-      Future.wait([_loadStats(), _loadGames(), _loadLeaderboard()]);
+  Future<void> _loadAll() => Future.wait([
+        _loadStats(),
+        _loadGames(),
+        _loadLeaderboard(),
+        _loadClubs(),
+      ]);
 
   Future<void> _loadStats() async {
     try {
@@ -133,6 +181,52 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _loadingLb   = false;
       });
     } catch (_) { if (mounted) setState(() => _loadingLb = false); }
+  }
+
+  /// Loads three slices of clubs in parallel:
+  ///   • my clubs (joined)
+  ///   • gaming-category clubs (featured prominently in arcade context)
+  ///   • trending clubs (top by member count, excluding ones already shown)
+  Future<void> _loadClubs() async {
+    try {
+      final results = await Future.wait([
+        _api.getClubs(filter: 'mine'),
+        _api.getClubs(filter: 'all', category: 'gaming'),
+        _api.getClubs(filter: 'all'),
+      ]);
+      if (!mounted) return;
+
+      final mine     = _extractList(results[0]);
+      final gaming   = _extractList(results[1]);
+      final all      = _extractList(results[2]);
+
+      // Trending = top non-gaming clubs the user hasn't already joined.
+      // We don't filter member-of since people might want to see they're
+      // already in a hot club, but we deduplicate against gamingClubs.
+      final gamingIds = gaming.map((c) => c['id']?.toString()).toSet();
+      final trending  = all
+          .where((c) => !gamingIds.contains(c['id']?.toString()))
+          .take(5)
+          .toList();
+
+      setState(() {
+        _myClubs       = mine;
+        _gamingClubs   = gaming.take(8).toList();
+        _trendingClubs = trending;
+        _loadingClubs  = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingClubs = false);
+    }
+  }
+
+  List<Map<String, dynamic>> _extractList(dynamic data) {
+    if (data is List) return data.cast<Map<String, dynamic>>();
+    if (data is Map && data['results'] is List) {
+      return (data['results'] as List).cast<Map<String, dynamic>>();
+    }
+    return <Map<String, dynamic>>[];
   }
 
   void _autoScroll() {
@@ -168,6 +262,34 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     }
   }
 
+  void _openClub(Map<String, dynamic> club) {
+    HapticFeedback.lightImpact();
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) =>
+                ClubScreen(id: club['id']?.toString(), club: club)))
+        .then((_) => _loadClubs());
+  }
+
+  void _openClubsList() {
+    HapticFeedback.lightImpact();
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const ClubsListScreen()))
+        .then((_) => _loadClubs());
+  }
+
+  Future<void> _openCreateClub() async {
+    HapticFeedback.lightImpact();
+    final created = await Navigator.of(context).push<Map<String, dynamic>>(
+        MaterialPageRoute(builder: (_) => const CreateClubPage()));
+    if (created != null && mounted) {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) =>
+              ClubScreen(id: created['id']?.toString(), club: created)));
+      await _loadClubs();
+    }
+  }
+
   void _showComingSoon(String name) {
     showDialog(context: context, builder: (_) => Dialog(
       backgroundColor: _darkCard,
@@ -193,6 +315,8 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         ])),
     ));
   }
+
+  // ── Carousel items — now 4 cards ─────────────────────────
 
   List<Map<String, dynamic>> get _carouselItems => [
     {
@@ -221,6 +345,17 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           : 'Be the first on the leaderboard!',
       'active': false,
     },
+    {
+      'title': 'My Clubs', 'icon': Icons.groups_rounded,
+      'gradient': const LinearGradient(colors: [Color(0xFF3F51B5), Color(0xFF512DA8)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+      'content': _loadingClubs
+          ? 'Loading...'
+          : _myClubs.isEmpty
+              ? 'Join clubs to engage with campus communities'
+              : '${_myClubs.length} club${_myClubs.length == 1 ? "" : "s"} joined  ·  Tap to explore',
+      'active': false,
+    },
   ];
 
   // ══════════════════════════════════════════════════════════
@@ -231,20 +366,28 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _darkBg,
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(child: _buildCarousel()),
-            SliverToBoxAdapter(child: _buildActiveGamers()),
-            SliverToBoxAdapter(child: _buildTabBar()),
-            SliverToBoxAdapter(child: _buildTabContent()),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-          ],
+      // ── Phase 1: Stack the scrollable arcade over a twinkling starfield.
+      // The stars sit behind everything and drift slowly. Performance cost
+      // is near-zero (single CustomPaint with 200 cheap circles).
+      body: Stack(children: [
+        const Positioned.fill(
+          child: AnimatedStarfield(starCount: 200, driftSpeed: 1.0),
         ),
-      ),
+        FadeTransition(
+          opacity: _fadeAnim,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(child: _buildCarousel()),
+              SliverToBoxAdapter(child: _buildActiveGamers()),
+              SliverToBoxAdapter(child: _buildTabBar()),
+              SliverToBoxAdapter(child: _buildTabContent()),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 
@@ -303,6 +446,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                     ])),
                 ),
                 const Spacer(),
+                // ── Phase 1: AnimatedCounter so tokens tick up after games ──
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(color: _kG3.withOpacity(0.1),
@@ -311,8 +455,11 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   child: Row(children: [
                     const Text('🪙', style: TextStyle(fontSize: 14)),
                     const SizedBox(width: 5),
-                    Text('$tokens', style: const TextStyle(fontFamily: 'Alfa',
-                        fontSize: 14, color: _kG3)),
+                    AnimatedCounter(
+                      value: tokens,
+                      style: const TextStyle(fontFamily: 'Alfa',
+                          fontSize: 14, color: _kG3),
+                    ),
                   ])),
                 const SizedBox(width: 8),
                 _iconBtn(Icons.refresh_rounded, () {
@@ -328,7 +475,10 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                 blendMode: BlendMode.srcIn,
                 child: const Text('ARCADE', style: TextStyle(fontFamily: 'Alfa',
                     fontSize: 30, color: Colors.white, letterSpacing: 4))),
-              Text('${_games.length} games  ·  ${_leaderboard.length} players ranked',
+              Text(
+                  '${_games.length} games  ·  '
+                  '${_gamingClubs.length + _trendingClubs.length + _myClubs.length} clubs  ·  '
+                  '${_leaderboard.length} ranked',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 11,
                       color: Colors.white.withOpacity(0.4))),
             ]),
@@ -366,10 +516,16 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               content:  item['content']  as String,
               isActive: item['active']   == true,
               onTap: () {
+                // Tab indices: Games=0, Leaderboard=1, Clubs=2, Stats=3
                 if (i == 0) {
-                  _tabCtrl.animateTo(2);
-                } else if (i == 1) _promptPlayerTag();
-                else if (i == 2) _tabCtrl.animateTo(1);
+                  _tabCtrl.animateTo(3);  // Token Wallet → Stats
+                } else if (i == 1) {
+                  _promptPlayerTag();      // Gamer Card → set/edit tag
+                } else if (i == 2) {
+                  _tabCtrl.animateTo(1);  // Leaderboard → Leaderboard tab
+                } else if (i == 3) {
+                  _tabCtrl.animateTo(2);  // My Clubs → Clubs tab
+                }
               },
             );
           },
@@ -399,10 +555,21 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   style: TextStyle(fontFamily: 'Momo', fontSize: 11,
                       color: Colors.white, fontWeight: FontWeight.bold)))),
         ])),
-      // FIX: height 120 → 134 to give gamer cards enough room
       _loadingLb
-          ? const SizedBox(height: 134, child: Center(
-              child: CircularProgressIndicator(color: _kG2, strokeWidth: 2)))
+          ? SizedBox(height: 134,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: 4,
+                itemBuilder: (_, __) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: ShimmerLoader(
+                    width: 100,
+                    height: 134,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ))
           : SizedBox(height: 134,
               child: _topGamers.isEmpty
                   ? Center(child: Text('No players yet',
@@ -416,7 +583,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     ]);
   }
 
-  // ── Tab bar ───────────────────────────────────────────────
+  // ── Tab bar — now 4 tabs ──────────────────────────────────
 
   Widget _buildTabBar() {
     return Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
@@ -433,8 +600,9 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         selectedTabTextColor: Colors.white,
         tabs: const [
           SegmentTab(label: 'Games'),
-          SegmentTab(label: 'Leaderboard'),
-          SegmentTab(label: 'My Stats'),
+          SegmentTab(label: 'Ranks'),
+          SegmentTab(label: 'Clubs'),
+          SegmentTab(label: 'Stats'),
         ],
       ));
   }
@@ -444,7 +612,8 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       switch (_tabCtrl.index) {
         case 0:  return _buildGamesTab();
         case 1:  return _buildLeaderboardTab();
-        case 2:  return _buildStatsTab();
+        case 2:  return _buildClubsTab();
+        case 3:  return _buildStatsTab();
         default: return const SizedBox.shrink();
       }
     });
@@ -454,8 +623,33 @@ class _ArcadeScreenState extends State<ArcadeScreen>
 
   Widget _buildGamesTab() {
     if (_loadingGames) {
-      return const Padding(padding: EdgeInsets.all(40),
-        child: Center(child: CircularProgressIndicator(color: _kG2)));
+      // ── Phase 1: shimmer skeletons matching the actual content shape ──
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _sectionLabel('🎮 Loading games...'),
+          const SizedBox(height: 12),
+          // Featured-tile-shaped skeletons
+          ...List.generate(2, (_) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: ShimmerLoader(
+              height: 90,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          )),
+          const SizedBox(height: 16),
+          // Grid skeletons
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12,
+            childAspectRatio: 0.82,
+            children: List.generate(4, (_) => ShimmerLoader(
+              borderRadius: BorderRadius.circular(18),
+            )),
+          ),
+        ]),
+      );
     }
 
     final playable = _games.where((g) =>  _playableGames.containsKey(g['slug'])).toList();
@@ -565,6 +759,264 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       ]));
   }
 
+  // ── Clubs Tab — NEW per spec §11 ──────────────────────────
+
+  Widget _buildClubsTab() {
+    if (_loadingClubs) {
+      return const Padding(padding: EdgeInsets.all(40),
+        child: Center(child: CircularProgressIndicator(color: _kG2)));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // ── GAMING CLUBS — featured first because this is the arcade ──
+        if (_gamingClubs.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _sectionLabel('🎮 Gaming Clubs'),
+          ),
+          SizedBox(
+            height: 168,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _gamingClubs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) => _BigClubCard(
+                club: _gamingClubs[i],
+                onTap: () => _openClub(_gamingClubs[i]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // ── MY CLUBS — horizontal logo strip ────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(children: [
+            _sectionLabel('My Clubs'),
+            const Spacer(),
+            if (_myClubs.isNotEmpty)
+              GestureDetector(onTap: _openClubsList,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF3F51B5), Color(0xFF512DA8)]),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('See all →',
+                      style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                          color: Colors.white, fontWeight: FontWeight.bold)))),
+          ]),
+        ),
+        if (_myClubs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _emptyMyClubsCard(),
+          )
+        else
+          SizedBox(
+            height: 118,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _myClubs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) => _SmallClubCard(
+                club: _myClubs[i],
+                onTap: () => _openClub(_myClubs[i]),
+              ),
+            ),
+          ),
+        const SizedBox(height: 24),
+
+        // ── TRENDING CLUBS — vertical list with cover banners ──
+        if (_trendingClubs.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _sectionLabel('🔥 Trending'),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(children: _trendingClubs
+                .map((c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _TrendingClubCard(
+                        club: c,
+                        onTap: () => _openClub(c),
+                      ),
+                    ))
+                .toList()),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // ── ACTION BUTTONS ──────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Row(children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _openClubsList,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _darkCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.explore_rounded,
+                          color: Colors.white70, size: 16),
+                      SizedBox(width: 8),
+                      Text('Browse All',
+                          style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 13,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: _openCreateClub,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF3F51B5), Color(0xFF512DA8)]),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3F51B5).withOpacity(0.40),
+                        blurRadius: 10, offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                      SizedBox(width: 8),
+                      Text('Start a Club',
+                          style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 13,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── CLUB ACTIVITY HUB — placeholder until slice 3 ────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: _kG2.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _kG2.withOpacity(0.18)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: _kG2.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.dynamic_feed_rounded,
+                    color: _kG2, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Club Activity Hub',
+                        style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Colors.white,
+                        )),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Events, posts, and announcements\nfrom your clubs land here soon.',
+                      style: TextStyle(
+                        fontFamily: 'Momo',
+                        fontSize: 11,
+                        color: Colors.white.withOpacity(0.55),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _emptyMyClubsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _darkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(children: [
+        Container(
+          width: 48, height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFF3F51B5).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(Icons.groups_outlined,
+              color: Color(0xFF7986CB), size: 24),
+        ),
+        const SizedBox(height: 10),
+        const Text('No clubs joined yet',
+            style: TextStyle(
+              fontFamily: 'Arch',
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: Colors.white,
+            )),
+        const SizedBox(height: 4),
+        Text('Join clubs from the Trending list above\nto get involved with campus communities.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Momo',
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.45),
+              height: 1.5,
+            )),
+      ]),
+    );
+  }
+
   // ── Stats Tab ─────────────────────────────────────────────
 
   Widget _buildStatsTab() {
@@ -583,6 +1035,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     final recent     = (_stats['recent']      as List? ?? []).cast<Map<String, dynamic>>();
     final bestScores = (_stats['best_scores'] as List? ?? []).cast<Map<String, dynamic>>();
     final xpToNext   = 500 - (xp % 500);
+    final clubCount  = _myClubs.length;
 
     return Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -631,7 +1084,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         ),
         const SizedBox(height: 16),
 
-        // Stat grid
+        // Stat grid — now 6 cells (added Clubs)
         Row(children: [
           _StatCard(label: 'Games',   value: '$games', icon: Icons.sports_esports_rounded, color: _kG2),
           const SizedBox(width: 12),
@@ -644,6 +1097,14 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           const SizedBox(width: 12),
           _StatCard(label: 'Tokens 🪙', value: '$tokens',
               icon: Icons.monetization_on_rounded, color: _kG4),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          _StatCard(label: 'Clubs Joined', value: '$clubCount',
+              icon: Icons.groups_rounded, color: const Color(0xFF7986CB)),
+          const SizedBox(width: 12),
+          _StatCard(label: 'Total XP', value: '$xp',
+              icon: Icons.bolt_rounded, color: _kG2),
         ]),
 
         // Best scores
@@ -724,7 +1185,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
 }
 
 // ─────────────────────────────────────────────────────────────
-// _GamerCard — FIX: use LayoutBuilder to avoid fixed-height overflow
+// _GamerCard
 // ─────────────────────────────────────────────────────────────
 
 class _GamerCard extends StatelessWidget {
@@ -755,13 +1216,10 @@ class _GamerCard extends StatelessWidget {
               ? color.withOpacity(0.35)
               : Colors.white.withOpacity(0.05),
           width: 1.5)),
-      // FIX: Column with mainAxisSize.min inside a fixed-height parent
-      // was overflowing. Use a Column with no Spacer + even distribution.
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Avatar
           Container(width: 42, height: 42,
             decoration: BoxDecoration(shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -770,16 +1228,13 @@ class _GamerCard extends StatelessWidget {
                 color: Colors.white, fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 15)))),
           const SizedBox(height: 5),
-          // Name
           Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   color: Colors.white, fontSize: 9)),
-          // Level
           Text('Lv.$level', style: TextStyle(fontFamily: 'Momo',
               fontSize: 9, color: color)),
           const SizedBox(height: 4),
-          // Medal or rank
           if (rank <= 3)
             Text(medals[rank - 1], style: const TextStyle(fontSize: 15))
           else
@@ -848,11 +1303,19 @@ class _FeaturedTile extends StatelessWidget {
                     fontSize: 8, fontWeight: FontWeight.bold, color: grad.first))),
               if (playable) ...[
                 const SizedBox(width: 4),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.green.shade900,
-                      borderRadius: BorderRadius.circular(5)),
-                  child: const Text('LIVE', style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 8, fontWeight: FontWeight.bold, color: Colors.green))),
+                // ── Phase 1: pulsing LIVE badge ─────────────────
+                NeonPulse(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(5),
+                  intensity: 0.7,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.green.shade900,
+                        borderRadius: BorderRadius.circular(5)),
+                    child: const Text('LIVE', style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 8, fontWeight: FontWeight.bold, color: Colors.green)),
+                  ),
+                ),
               ],
             ]),
             const SizedBox(height: 3),
@@ -907,7 +1370,6 @@ class _GameGridCard extends StatelessWidget {
         border: Border.all(color: isPlayable
             ? grad.first.withOpacity(0.3) : Colors.white.withOpacity(0.05))),
         child: Column(children: [
-          // Header gradient
           Container(height: 76, decoration: BoxDecoration(
             gradient: LinearGradient(colors: grad,
                 begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -915,14 +1377,18 @@ class _GameGridCard extends StatelessWidget {
             child: Stack(children: [
               Center(child: Text(emoji, style: const TextStyle(fontSize: 34))),
               if (isPlayable)
-                Positioned(top: 8, right: 8, child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.green.shade900,
-                      borderRadius: BorderRadius.circular(5)),
-                  child: const Text('LIVE', style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 7, fontWeight: FontWeight.bold, color: Colors.green)))),
+                // ── Phase 1: pulsing LIVE badge ────────────────────
+                Positioned(top: 8, right: 8, child: NeonPulse(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(5),
+                  intensity: 0.7,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.green.shade900,
+                        borderRadius: BorderRadius.circular(5)),
+                    child: const Text('LIVE', style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 7, fontWeight: FontWeight.bold, color: Colors.green))))),
             ])),
-          // Info
           Expanded(child: Padding(padding: const EdgeInsets.all(10),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name, style: const TextStyle(fontFamily: 'Arch',
@@ -978,4 +1444,508 @@ class _StatCard extends StatelessWidget {
             maxLines: 1, overflow: TextOverflow.ellipsis),
       ])),
     ])));
+}
+
+// ═════════════════════════════════════════════════════════════
+// CLUB CARDS — dark-themed for arcade context
+// ═════════════════════════════════════════════════════════════
+
+/// Big card for the Gaming Clubs horizontal strip.
+/// Cover banner on top + logo overlap + name + tagline + chips.
+class _BigClubCard extends StatelessWidget {
+  final Map<String, dynamic> club;
+  final VoidCallback onTap;
+  const _BigClubCard({required this.club, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final name        = club['name']           as String? ?? 'Club';
+    final tagline     = club['tagline']        as String? ?? '';
+    final coverUrl    = club['cover_url']      as String?;
+    final logoUrl     = club['logo_url']       as String?;
+    final memberCount = club['members_count']  as int?    ?? 0;
+    final isVerified  = club['is_verified']    as bool?   ?? false;
+
+    final membership =
+        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final isMember = membership['is_member'] == true;
+
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 200,
+        decoration: BoxDecoration(
+          color: _darkCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover
+            SizedBox(
+              height: 70,
+              width: double.infinity,
+              child: coverUrl != null && coverUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: coverUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _coverFallback(),
+                      placeholder: (_, __) => _coverFallback(),
+                    )
+                  : _coverFallback(),
+            ),
+            // Body
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(
+                        color: _darkBg,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(color: _darkBg, width: 2),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: logoUrl != null && logoUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: logoUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) =>
+                                    _logoFallback(initial),
+                                placeholder: (_, __) =>
+                                    _logoFallback(initial),
+                              )
+                            : _logoFallback(initial),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Flexible(
+                              child: Text(name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Alfa',
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                  )),
+                            ),
+                            if (isVerified) ...[
+                              const SizedBox(width: 3),
+                              const Icon(Icons.verified_rounded,
+                                  color: _kVerified, size: 11),
+                            ],
+                          ]),
+                          Text(
+                            '$memberCount member${memberCount == 1 ? "" : "s"}',
+                            style: TextStyle(
+                              fontFamily: 'Momo',
+                              fontSize: 9,
+                              color: Colors.white.withOpacity(0.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+                  if (tagline.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(tagline,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.55),
+                          height: 1.4,
+                        )),
+                  ],
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isMember
+                          ? Colors.green.withOpacity(0.15)
+                          : _kG2.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Text(
+                      isMember ? 'JOINED' : 'GAMING',
+                      style: TextStyle(
+                        fontFamily: 'Momo',
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: isMember ? Colors.greenAccent : _kG1,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _coverFallback() => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_kG2, _kG1],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+
+  Widget _logoFallback(String initial) => Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kG2, _kG1],
+          ),
+        ),
+        child: Center(
+          child: Text(
+            initial,
+            style: const TextStyle(
+              fontFamily: 'Alfa',
+              fontSize: 12,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+}
+
+/// Compact card for the My Clubs strip — logo + name + member count.
+class _SmallClubCard extends StatelessWidget {
+  final Map<String, dynamic> club;
+  final VoidCallback onTap;
+  const _SmallClubCard({required this.club, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final name        = club['name']          as String? ?? 'Club';
+    final logoUrl     = club['logo_url']      as String?;
+    final memberCount = club['members_count'] as int?    ?? 0;
+    final isVerified  = club['is_verified']   as bool?   ?? false;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+
+    final membership =
+        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final isAdmin = membership['is_admin'] == true;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 96,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: _darkCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isAdmin
+                ? const Color(0xFF7986CB).withOpacity(0.40)
+                : Colors.white.withOpacity(0.06),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _darkBg,
+              ),
+              child: ClipOval(
+                child: logoUrl != null && logoUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: logoUrl,
+                        fit: BoxFit.cover,
+                        width: 46, height: 46,
+                        errorWidget: (_, __, ___) => _logoFallback(initial),
+                        placeholder: (_, __) => _logoFallback(initial),
+                      )
+                    : _logoFallback(initial),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 10,
+                      )),
+                ),
+                if (isVerified) ...[
+                  const SizedBox(width: 2),
+                  const Icon(Icons.verified_rounded,
+                      color: _kVerified, size: 9),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            if (isAdmin)
+              Text('ADMIN',
+                  style: TextStyle(
+                    fontFamily: 'Momo',
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF7986CB),
+                    letterSpacing: 0.5,
+                  ))
+            else
+              Text(
+                '$memberCount mem',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 8,
+                  color: Colors.white.withOpacity(0.45),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _logoFallback(String initial) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_kG2, _kG1],
+          ),
+        ),
+        child: Center(
+          child: Text(
+            initial,
+            style: const TextStyle(
+              fontFamily: 'Alfa',
+              fontSize: 16,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+}
+
+/// Wide card for the Trending list — cover banner background, logo, info.
+class _TrendingClubCard extends StatelessWidget {
+  final Map<String, dynamic> club;
+  final VoidCallback onTap;
+  const _TrendingClubCard({required this.club, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final name        = club['name']           as String? ?? 'Club';
+    final tagline     = club['tagline']        as String? ?? '';
+    final category    = club['category']       as String? ?? '';
+    final coverUrl    = club['cover_url']      as String?;
+    final logoUrl     = club['logo_url']       as String?;
+    final memberCount = club['members_count']  as int?    ?? 0;
+    final isVerified  = club['is_verified']    as bool?   ?? false;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+
+    final membership =
+        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final isMember  = membership['is_member']  == true;
+    final isPending = membership['is_pending'] == true;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: _darkCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(children: [
+          // Cover background
+          if (coverUrl != null && coverUrl.isNotEmpty)
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.32,
+                child: CachedNetworkImage(
+                  imageUrl: coverUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                  placeholder: (_, __) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          // Dark gradient overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_darkCard, _darkCard.withOpacity(0.7)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+          // Body
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.10),
+                      width: 1.5),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: logoUrl != null && logoUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: logoUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => _logoFallback(initial),
+                          placeholder: (_, __) => _logoFallback(initial),
+                        )
+                      : _logoFallback(initial),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(children: [
+                      Flexible(
+                        child: Text(name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Alfa',
+                              fontSize: 14,
+                              color: Colors.white,
+                            )),
+                      ),
+                      if (isVerified) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified_rounded,
+                            color: _kVerified, size: 12),
+                      ],
+                    ]),
+                    const SizedBox(height: 2),
+                    Text(
+                      _meta(memberCount, category),
+                      style: TextStyle(
+                        fontFamily: 'Momo',
+                        fontSize: 10,
+                        color: Colors.white.withOpacity(0.45),
+                      ),
+                    ),
+                    if (tagline.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        tagline,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.65),
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _stateBadge(isMember: isMember, isPending: isPending),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _stateBadge({required bool isMember, required bool isPending}) {
+    String label;
+    Color bg;
+    Color fg;
+    if (isMember) {
+      label = 'JOINED'; bg = Colors.green.withOpacity(0.15); fg = Colors.greenAccent;
+    } else if (isPending) {
+      label = 'PENDING'; bg = _kG3.withOpacity(0.15); fg = _kG3;
+    } else {
+      label = 'VIEW'; bg = _kG2.withOpacity(0.18); fg = _kG1;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(label,
+          style: TextStyle(
+            fontFamily: 'Arch',
+            fontWeight: FontWeight.bold,
+            fontSize: 9,
+            color: fg,
+            letterSpacing: 0.5,
+          )),
+    );
+  }
+
+  String _meta(int memberCount, String category) {
+    final parts = <String>[];
+    parts.add('$memberCount member${memberCount == 1 ? "" : "s"}');
+    if (category.isNotEmpty) parts.add(_titleCase(category));
+    return parts.join(' · ');
+  }
+
+  String _titleCase(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).replaceAll('_', ' ');
+
+  Widget _logoFallback(String initial) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_kG2, _kG1],
+          ),
+        ),
+        child: Center(
+          child: Text(
+            initial,
+            style: const TextStyle(
+              fontFamily: 'Alfa',
+              fontSize: 22,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
 }

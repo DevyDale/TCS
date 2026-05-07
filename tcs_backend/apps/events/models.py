@@ -1,9 +1,21 @@
+# apps/events/models.py
 import uuid
 from django.db import models
 from django.conf import settings
+from cloudinary.models import CloudinaryField
 
 
 class Event(models.Model):
+    """
+    Phase 2 spec:
+      - Each event must have a poster image (10.2). The image field is now
+        a Cloudinary asset, matching the rest of the app's media handling.
+      - Existing local file uploads are preserved; the migration converts
+        the column type but does not migrate the actual files. If you have
+        production events with local images, run `manage.py reupload_event_images`
+        (separate utility) to push them to Cloudinary.
+    """
+
     class Category(models.TextChoices):
         ACADEMIC = "academic", "Academic"
         SPORTS   = "sports",   "Sports"
@@ -20,7 +32,20 @@ class Event(models.Model):
                                     related_name="organized_events")
     group       = models.ForeignKey("groups.Group", null=True, blank=True,
                                     on_delete=models.SET_NULL)
-    image       = models.ImageField(upload_to="events/%Y/%m/", null=True, blank=True)
+
+    # ── Poster (Cloudinary) ──────────────────────────────────────
+    # Was ImageField('events/%Y/%m/'), now CloudinaryField for parity with
+    # avatars/covers/post media. django_cleanup deletes the asset when this
+    # field is overwritten or the event is deleted.
+    image = CloudinaryField(
+        "image",
+        folder="tcs_studenthub/events",
+        blank=True,
+        null=True,
+        overwrite=True,
+        resource_type="image",
+    )
+
     location    = models.CharField(max_length=200)
     is_online   = models.BooleanField(default=False)
     meeting_url = models.URLField(blank=True)
@@ -45,10 +70,37 @@ class Event(models.Model):
 
 
 class EventRSVP(models.Model):
+    """
+    Phase 2 spec 9.4: RSVP is now a 3-state field rather than a binary
+    "exists or doesn't exist" toggle. States:
+
+      - going        — user confirms attendance
+      - interested   — user wants to keep an eye on it
+      - not_going    — user explicitly declined (kept on record so they
+                       don't get reminders, distinct from "no response")
+
+    `attendees_count` on the parent Event tracks GOING only. Interested and
+    not_going users do not count towards capacity.
+    """
+
+    class Status(models.TextChoices):
+        GOING      = "going",      "Going"
+        INTERESTED = "interested", "Interested"
+        NOT_GOING  = "not_going",  "Not going"
+
     event      = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="rsvps")
     user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status     = models.CharField(max_length=12, choices=Status.choices,
+                                  default=Status.GOING)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "event_rsvps"
         unique_together = [("event", "user")]
+        indexes = [
+            models.Index(fields=["event", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} → {self.event} ({self.status})"

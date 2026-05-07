@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/screens/auth/role_selection_screen.dart';
+import 'package:tcs_app/screens/auth/session_keys.dart';
 import 'package:tcs_app/screens/dashboard/dashboard_screen.dart';
+import '../../services/api_service.dart';
 import '../../utils/responsive_helper.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -75,19 +77,36 @@ class _SplashScreenState extends State<SplashScreen>
     _checkAuthAndNavigate();
   }
 
+  // ── SECTION 1 FIX ────────────────────────────────────────
+  // Refresh the token BEFORE deciding where to route. Access tokens
+  // expire after 60 minutes; if the user comes back the next day the
+  // old token is dead and the dashboard would render with broken
+  // API calls. ApiService.initialize() refreshes it (or wipes the
+  // session if the refresh token is also dead). Then we just check
+  // whether we still have a valid token and navigate accordingly.
   Future<void> _checkAuthAndNavigate() async {
+    await ApiService.instance.initialize();
+
     final prefs       = await SharedPreferences.getInstance();
-    final token       = prefs.getString('access_token');
-    final fullName    = prefs.getString('fullName') ?? '';
-    final preferredName = prefs.getString('preferredName') ?? '';
-    final role        = prefs.getString('role') ?? '';
+    final token       = prefs.getString(SessionKeys.accessToken);
+    final fullName    = prefs.getString(SessionKeys.fullName)      ?? '';
+    final preferredName = prefs.getString(SessionKeys.preferredName) ?? '';
+    final role        = prefs.getString(SessionKeys.role)          ?? '';
+
     if (!mounted) return;
+
     final dest = (token != null && token.isNotEmpty && fullName.isNotEmpty)
-        ? DashboardScreen(fullName: fullName, preferredName: preferredName, role: role)
+        ? DashboardScreen(
+            fullName:      fullName,
+            preferredName: preferredName,
+            role:          role,
+          )
         : const RoleSelectionScreen();
+
     Navigator.of(context).pushReplacement(PageRouteBuilder(
-      pageBuilder: (_, anim, __) => dest,
-      transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+      pageBuilder:        (_, anim, __) => dest,
+      transitionsBuilder: (_, anim, __, child) =>
+          FadeTransition(opacity: anim, child: child),
       transitionDuration: const Duration(milliseconds: 600),
     ));
   }

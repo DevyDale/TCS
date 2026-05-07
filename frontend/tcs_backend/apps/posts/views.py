@@ -1,0 +1,419 @@
+"""
+apps/posts/views.py
+"""
+from django.conf import settings
+from django.db.models import Q
+from rest_framework import generics, status, permissions
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+
+from .models import Post, PostMedia, Like, Comment, Bookmark, PostFlag
+from .serializers import (
+    PostSerializer, CreatePostSerializer,
+    PostMediaSerializer, CommentSerializer,
+)
+
+MAX_IMAGES_PER_POST = 5
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────
+
+def _mb(size_bytes: int) -> str:
+    """Format bytes as a human-readable MB string, e.g. '9.3 MB'."""
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _validate_upload(file, media_type: str = "image"):
+    """
+    Validate file size and MIME type before touching Cloudinary.
+    Returns (ok: bool, error_message: str | None).
+    """
+    if media_type == "video":
+        max_bytes    = settings.MAX_VIDEO_BYTES
+        max_mb       = settings.MAX_VIDEO_MB
+        allowed_types = settings.ALLOWED_VIDEO_TYPES
+    else:
+        max_bytes    = settings.MAX_IMAGE_BYTES
+        max_mb       = settings.MAX_IMAGE_MB
+        allowed_types = settings.ALLOWED_IMAGE_TYPES
+
+    if file.size > max_bytes:
+        return False, (
+            f"Your file is {_mb(file.size)}, which exceeds the "
+            f"{max_mb} MB limit for {media_type}s. "
+            f"Please compress it and try again."
+        )
+
+    if file.content_type not in allowed_types:
+        friendly = ", ".join(t.split("/")[1].upper() for t in allowed_types)
+        return False, (
+            f"'{file.content_type}' is not a supported format. "
+            f"Accepted {media_type} formats: {friendly}."
+        )
+
+    return True, None
+
+
+# ─────────────────────────────────────────────────────────────
+# PAGINATION
+# ─────────────────────────────────────────────────────────────
+
+class PostPagination(PageNumberPagination):
+    page_size             = 20
+    page_size_query_param = "page_size"
+    max_page_size         = 50
+
+
+# ─────────────────────────────────────────────────────────────
+# POST LIST + CREATE
+# ─────────────────────────────────────────────────────────────
+
+class PostListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /api/posts/        — paginated list (?user_id= optional)
+    POST /api/posts/        — create a text post (images via /upload/)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = PostPagination
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return CreatePostSerializer
+        return PostSerializer
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        qs      = (Post.objects
+                       .select_related("author")
+                       .prefetch_related("media_files")
+                       .filter(visibility="public")
+                       .exclude(is_flagged=True))
+        user_id = self.request.query_params.get("user_id")
+        if user_id:
+            qs = qs.filter(author__user_id=user_id)
+        return qs.order_by("-created_at")
+
+    def create(self, request, *args, **kwargs):
+        ser = CreatePostSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        post = ser.save(author=request.user)
+        out  = PostSerializer(post, context={"request": request})
+        return Response(out.data, status=status.HTTP_201_CREATED)
+
+
+# ─────────────────────────────────────────────────────────────
+# POST DETAIL
+# ─────────────────────────────────────────────────────────────
+
+class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/posts/<pk>/
+    PATCH  /api/posts/<pk>/
+    DELETE /api/posts/<pk>/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = (Post.objects
+                    .select_related("author")
+                    .prefetch_related("media_files"))
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return CreatePostSerializer
+        return PostSerializer
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def destroy(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != request.user and not request.user.is_staff:
+            return Response({"error": "Not allowed."}, status=403)
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ─────────────────────────────────────────────────────────────
+# FEED
+# ─────────────────────────────────────────────────────────────
+
+class FeedView(generics.ListAPIView):
+    """
+    GET /api/posts/feed/?type=home|following|trending|announcements&page=1
+    """
+    serializer_class   = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = PostPagination
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        feed_type = self.request.query_params.get("type", "home")
+        me        = self.request.user
+        base = (Post.objects
+                    .select_related("author")
+                    .prefetch_related("media_files")
+                    .exclude(is_flagged=True))
+
+        if feed_type == "announcements":
+            return base.filter(post_type="announcement").order_by("-created_at")
+
+        if feed_type == "following":
+            following_ids = me.following.values_list("id", flat=True)
+            return (base
+                    .filter(author__in=following_ids,
+                            visibility__in=["public", "followers"])
+                    .order_by("-created_at"))
+
+        if feed_type == "trending":
+            return (base
+                    .filter(visibility="public")
+                    .order_by("-likes_count", "-created_at"))
+
+        # home — own posts + following + public
+        following_ids = me.following.values_list("id", flat=True)
+        return (base.filter(
+            Q(author=me) |
+            Q(author__in=following_ids,
+              visibility__in=["public", "followers"]) |
+            Q(visibility="public")
+        ).distinct().order_by("-created_at"))
+
+
+# ─────────────────────────────────────────────────────────────
+# MY POSTS
+# ─────────────────────────────────────────────────────────────
+
+class MyPostsView(generics.ListAPIView):
+    """GET /api/posts/mine/?post_type=post|fweet"""
+    serializer_class   = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = PostPagination
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        post_type = self.request.query_params.get("post_type", "post")
+        return (Post.objects
+                    .select_related("author")
+                    .prefetch_related("media_files")
+                    .filter(author=self.request.user, post_type=post_type)
+                    .order_by("-created_at"))
+
+
+# ─────────────────────────────────────────────────────────────
+# BOOKMARKS
+# ─────────────────────────────────────────────────────────────
+
+class BookmarkListView(generics.ListAPIView):
+    """GET /api/posts/bookmarks/"""
+    serializer_class   = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = PostPagination
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        ids = Bookmark.objects.filter(
+            user=self.request.user
+        ).values_list("post_id", flat=True)
+        return (Post.objects
+                    .select_related("author")
+                    .prefetch_related("media_files")
+                    .filter(id__in=ids)
+                    .order_by("-created_at"))
+
+
+# ─────────────────────────────────────────────────────────────
+# MEDIA UPLOAD  ← main Cloudinary entry point
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def upload_post_media(request):
+    """
+    POST /api/posts/upload/
+    Multipart fields:
+        post_id    — UUID of the existing post
+        file       — image or video file
+        media_type — 'image' (default) or 'video'
+
+    Validation order:
+      1. post_id present and belongs to requesting user
+      2. file present
+      3. file size within limit  (8 MB images / 50 MB videos)
+      4. MIME type allowed
+      5. per-post image cap (max 5)
+
+    On success Django assigns the file to PostMedia.file (a CloudinaryField).
+    django-cloudinary-storage uploads to Cloudinary automatically on save().
+    Returns the PostMedia object including the Cloudinary URL.
+    """
+    post_id    = request.data.get("post_id", "").strip()
+    file       = request.FILES.get("file")
+    media_type = request.data.get("media_type", "image").strip()
+
+    # ── 1. post_id ────────────────────────────────────────────
+    if not post_id:
+        return Response({"error": "post_id is required."}, status=400)
+
+    try:
+        post = Post.objects.get(pk=post_id, author=request.user)
+    except Post.DoesNotExist:
+        return Response({"error": "Post not found."}, status=404)
+
+    # ── 2. file present ───────────────────────────────────────
+    if not file:
+        return Response({"error": "No file was provided."}, status=400)
+
+    # ── 3 + 4. size and MIME validation ───────────────────────
+    ok, err = _validate_upload(file, media_type)
+    if not ok:
+        return Response({"error": err}, status=400)
+
+    # ── 5. per-post image cap ─────────────────────────────────
+    current_count = post.media_files.count()
+    if current_count >= MAX_IMAGES_PER_POST:
+        return Response(
+            {"error": f"A post can have at most {MAX_IMAGES_PER_POST} media files."},
+            status=400)
+
+    # ── Upload to Cloudinary via CloudinaryField ───────────────
+    resource_type = "video" if media_type == "video" else "image"
+    media = PostMedia.objects.create(
+        post          = post,
+        file          = file,           # CloudinaryField handles the upload
+        media_type    = resource_type,
+        order         = current_count,
+    )
+
+    return Response(PostMediaSerializer(media).data, status=status.HTTP_201_CREATED)
+
+
+# ─────────────────────────────────────────────────────────────
+# AVATAR / COVER / ARCADE AVATAR uploads are in accounts/views.py
+# They follow the same _validate_upload() pattern.
+# ─────────────────────────────────────────────────────────────
+
+
+# ─────────────────────────────────────────────────────────────
+# LIKE
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["POST"])
+def like_toggle(request, pk):
+    """POST /api/posts/<pk>/like/"""
+    try:
+        post = Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    like, created = Like.objects.get_or_create(post=post, user=request.user)
+    if not created:
+        like.delete()
+        post.likes_count = max(0, post.likes_count - 1)
+        liked = False
+    else:
+        post.likes_count += 1
+        liked = True
+
+    post.save(update_fields=["likes_count"])
+    return Response({"liked": liked, "like_count": post.likes_count})
+
+
+# ─────────────────────────────────────────────────────────────
+# BOOKMARK
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["POST"])
+def bookmark_toggle(request, pk):
+    """POST /api/posts/<pk>/bookmark/"""
+    try:
+        post = Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    bm, created = Bookmark.objects.get_or_create(post=post, user=request.user)
+    if not created:
+        bm.delete()
+        bookmarked = False
+    else:
+        bookmarked = True
+
+    return Response({"bookmarked": bookmarked})
+
+
+# ─────────────────────────────────────────────────────────────
+# SHARE
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["POST"])
+def share_post(request, pk):
+    """POST /api/posts/<pk>/share/  body: {user_ids: [...]}"""
+    try:
+        post = Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    post.shares_count += 1
+    post.save(update_fields=["shares_count"])
+    return Response({"shared": True, "share_count": post.shares_count})
+
+
+# ─────────────────────────────────────────────────────────────
+# FLAG
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["POST"])
+def flag_post(request, pk):
+    """POST /api/posts/<pk>/flag/  body: {reason: '...'}"""
+    try:
+        post = Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    PostFlag.objects.get_or_create(
+        post     = post,
+        user     = request.user,
+        defaults = {"reason": request.data.get("reason", "other")},
+    )
+    return Response({"flagged": True})
+
+
+# ─────────────────────────────────────────────────────────────
+# COMMENTS
+# ─────────────────────────────────────────────────────────────
+
+class CommentListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /api/posts/<pk>/comments/
+    POST /api/posts/<pk>/comments/  body: {text, parent_id?}
+    """
+    serializer_class   = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = PostPagination
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        return (Comment.objects
+                       .select_related("author")
+                       .filter(post_id=self.kwargs["pk"],
+                               is_deleted=False,
+                               parent=None)
+                       .order_by("-created_at"))
+
+    def perform_create(self, serializer):
+        post = Post.objects.get(pk=self.kwargs["pk"])
+        serializer.save(author=self.request.user, post=post)
+        post.comments_count += 1
+        post.save(update_fields=["comments_count"])

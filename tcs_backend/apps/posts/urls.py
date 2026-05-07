@@ -28,4 +28,8 @@ urlpatterns = [
     # ── Comments ──────────────────────────────────────────────
     path('<uuid:pk>/comments/', views.CommentListCreateView.as_view(),
          name='post-comments'),
+
+    path('search/', views.search_posts, name='post-search'),
+    path("hashtags/", views.list_hashtags, name="hashtags-list"),
+path("feelings/", views.list_feelings, name="feelings-list"),
 ]

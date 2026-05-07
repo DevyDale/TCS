@@ -1,10 +1,30 @@
 // lib/screens/chat/chat_room_screen.dart
 // KEY CHANGE: accepts roomId (for backend) + roomType label
 // Drop-in replacement — same file path
+//
+// Now wired for stickers + voice notes:
+//   • Sticker button on the left of the input bar opens the picker
+//     bottom sheet (chat_sticker_picker.dart)
+//   • Mic button replaces the send button when text input is empty,
+//     hold-to-record produces an AAC m4a, slide-up cancels
+//   • Sticker bubbles render naked (no purple background, like Telegram)
+//   • Audio bubbles use ChatAudioPlayer with play/pause + progress bar
+//   • ChatWebSocketService is connected on init for realtime delivery
+//   • Optimistic UI for both — bubble appears instantly, replaced by
+//     server response when upload completes
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
+import 'package:tcs_app/screens/chat/chat_audio_player.dart';
+import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
+import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
+
 import '../../services/api_service.dart';
+
 
 const _kG2 = Color(0xFF8E54E9);
 
@@ -27,15 +47,20 @@ class ChatRoomScreen extends StatefulWidget {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
-  final _api       = ApiService();
-  final _msgCtrl   = TextEditingController();
+  final _api        = ApiService();
+  final _chatWs     = ChatWebSocketService();
+  final _msgCtrl    = TextEditingController();
   final _scrollCtrl = ScrollController();
-  final _focusNode = FocusNode();
+  final _focusNode  = FocusNode();
 
   List<Map<String, dynamic>> _messages = [];
   bool _loading  = true;
   bool _sending  = false;
   bool _isTyping = false;
+
+  /// Cache of sticker_id → image_url so optimistic bubbles render
+  /// instantly without a re-fetch.
+  final Map<int, String> _stickerById = {};
 
   bool get _isStudyBuddy => widget.roomType == 'study_buddy';
 
@@ -43,12 +68,45 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void initState() {
     super.initState();
     _loadHistory();
+    _connectWebSocket();
     _msgCtrl.addListener(() => setState(() => _isTyping = _msgCtrl.text.isNotEmpty));
   }
 
   @override
   void dispose() {
-    _msgCtrl.dispose(); _scrollCtrl.dispose(); _focusNode.dispose(); super.dispose();
+    _chatWs.dispose();
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  // ── Data ──────────────────────────────────────────────────
+
+  Future<void> _connectWebSocket() async {
+    try {
+      await _chatWs.connect(widget.roomId);
+      _chatWs.stream.listen(_onWsMessage);
+    } catch (_) {
+      // Without WS, optimistic UI still works — just no live updates
+      // from other room members until refresh.
+    }
+  }
+
+  void _onWsMessage(Map<String, dynamic> event) {
+    final type = event['type'] as String? ?? '';
+    if (type != 'message' && type != 'new_message') return;
+    final msg = (event['message'] as Map?)?.cast<String, dynamic>();
+    if (msg == null) return;
+
+    // Don't double-insert messages we already have.
+    final id = msg['id']?.toString();
+    if (id != null && _messages.any((m) => m['id']?.toString() == id)) return;
+
+    // Mark whether this message is from me so styling works.
+    msg['is_me'] = msg['sender_name'] == widget.userName;
+    setState(() => _messages.add(msg));
+    _scrollToBottom();
   }
 
   Future<void> _loadHistory() async {
@@ -71,6 +129,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
+  // ── Send: text ───────────────────────────────────────────
+
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _sending) return;
@@ -87,11 +147,107 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() { _messages.add(tempMsg); _sending = false; });
     _scrollToBottom();
 
-    // Background send via API (WebSocket handles real delivery)
+    // Realtime broadcast via WebSocket. Backend persists from there.
     try {
-      _api.addComment(widget.roomId, text); // reuse endpoint — or call rooms message endpoint
+      _chatWs.sendText(text);
     } catch (_) {}
   }
+
+  // ── Send: sticker ────────────────────────────────────────
+
+  Future<void> _openStickerPicker() async {
+    _focusNode.unfocus();
+    await showStickerPicker(context, onPicked: _onStickerSelected);
+  }
+
+  Future<void> _onStickerSelected(Map<String, dynamic> sticker) async {
+    final id  = sticker['id'] as int?;
+    final url = sticker['image_url'] as String? ?? '';
+    if (id == null) return;
+
+    // Cache so the optimistic bubble can render the URL immediately
+    // and any future incoming messages with the same sticker_id can
+    // resolve without a re-fetch.
+    if (url.isNotEmpty) _stickerById[id] = url;
+
+    final tempMsg = {
+      'id':           'temp_${DateTime.now().millisecondsSinceEpoch}',
+      'sender_name':  widget.userName,
+      'message_type': 'sticker',
+      'sticker_id':   id,
+      'media_url':    url,
+      'created_at':   DateTime.now().toIso8601String(),
+      'is_me':        true,
+    };
+    setState(() => _messages.add(tempMsg));
+    _scrollToBottom();
+    HapticFeedback.lightImpact();
+
+    try {
+      _chatWs.sendSticker(id);
+    } catch (_) {}
+  }
+
+  // ── Send: voice note ─────────────────────────────────────
+
+  Future<void> _onAudioRecorded(AudioRecording rec) async {
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMsg = {
+      'id':           tempId,
+      'sender_name':  widget.userName,
+      'message_type': 'audio',
+      'duration':     rec.durationSeconds,
+      'media_url':    '',
+      'created_at':   DateTime.now().toIso8601String(),
+      'is_me':        true,
+      '_uploading':   true,
+    };
+    setState(() => _messages.add(tempMsg));
+    _scrollToBottom();
+
+    try {
+      final res = await _api.uploadChatMedia(
+        roomId:   widget.roomId,
+        file:     File(rec.filePath),
+        mimeType: 'audio/m4a',
+      ) as Map<String, dynamic>;
+
+      final mediaUrl = (res['media_url'] ?? res['url']) as String? ?? '';
+      final messageId = res['message_id'] ?? res['id'] ?? tempId;
+
+      if (!mounted) return;
+      setState(() {
+        final idx = _messages.indexWhere((m) => m['id'] == tempId);
+        if (idx != -1) {
+          _messages[idx] = {
+            ..._messages[idx],
+            'id':         messageId,
+            'media_url':  mediaUrl,
+            '_uploading': false,
+          };
+        }
+      });
+
+      // Broadcast over WebSocket so other room members see it live.
+      try {
+        _chatWs.sendMedia(
+          messageType: 'audio',
+          mediaUrl:    mediaUrl,
+          duration:    rec.durationSeconds.toDouble(),
+        );
+      } catch (_) {}
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _messages.removeWhere((m) => m['id'] == tempId));
+      _showSnack('Couldn\'t send voice note. Try again.');
+    } finally {
+      try { File(rec.filePath).deleteSync(); } catch (_) {}
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // BUILD
+  // ══════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -194,13 +350,59 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       padding: const EdgeInsets.all(16),
       itemCount: _messages.length,
       itemBuilder: (_, i) {
-        final msg   = _messages[i];
-        final isMe  = msg['is_me'] as bool? ?? (msg['sender_name'] == widget.userName);
-        final text  = msg['text'] as String? ?? msg['display_text'] as String? ?? '';
-        final time  = _fmt(msg['created_at'] as String? ?? '');
-        final name  = msg['sender_name'] as String? ?? '';
+        final msg     = _messages[i];
+        final isMe    = msg['is_me'] as bool? ?? (msg['sender_name'] == widget.userName);
+        final time    = _fmt(msg['created_at'] as String? ?? '');
+        final name    = msg['sender_name'] as String? ?? '';
         final msgType = msg['message_type'] as String? ?? 'text';
         final showName = !isMe && (i == 0 || _messages[i-1]['sender_name'] != name);
+
+        // ── Stickers render WITHOUT a bubble (Telegram/WhatsApp style) ──
+        if (msgType == 'sticker') {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!isMe) ...[
+                  _avatar(name),
+                  const SizedBox(width: 8),
+                ],
+                Column(
+                  crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    if (showName && !isMe)
+                      Padding(padding: const EdgeInsets.only(left: 8, bottom: 4),
+                        child: Text(name, style: TextStyle(fontSize: 12,
+                            fontWeight: FontWeight.w600, color: Colors.grey.shade700,
+                            fontFamily: 'Momo'))),
+                    ChatStickerBubble(
+                      message:    msg,
+                      isMe:       isMe,
+                      stickerMap: _stickerById,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                          top: 4,
+                          left:  isMe ? 0 : 6,
+                          right: isMe ? 6 : 0),
+                      child: Text(time, style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                          fontFamily: 'Momo')),
+                    ),
+                  ],
+                ),
+                if (isMe) ...[const SizedBox(width: 8), _avatar(widget.userName)],
+              ],
+            ),
+          );
+        }
+
+        // ── Default: text / audio / image / file rendered inside the bubble ──
+        final text = msg['text'] as String? ?? msg['display_text'] as String? ?? '';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -270,21 +472,46 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Widget _mediaMessage(Map<String, dynamic> msg, bool isMe) {
-    final type = msg['message_type'] as String? ?? '';
-    final fileName = msg['file_name'] as String? ?? 'File';
-    final color = isMe ? Colors.white : Colors.deepPurple.shade600;
-    if (type == 'image') return const Icon(Icons.image_rounded, size: 40, color: Colors.white70);
+    final type     = msg['message_type'] as String? ?? '';
+    final fileName = msg['file_name']    as String? ?? 'File';
+    final color    = isMe ? Colors.white : Colors.deepPurple.shade600;
+
+    // ── Audio (voice note) ──
     if (type == 'audio') {
-      return Row(children: [
-      Icon(Icons.play_circle_filled_rounded, color: color, size: 30),
-      const SizedBox(width: 8),
-      Text('Voice note', style: TextStyle(color: color, fontFamily: 'Momo', fontSize: 13)),
-    ]);
+      // Optimistic upload state — show a spinner before media_url arrives
+      if (msg['_uploading'] == true) {
+        return SizedBox(
+          width: 220, height: 38,
+          child: Row(children: [
+            SizedBox(
+              width: 18, height: 18,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: isMe ? Colors.white : Colors.deepPurple.shade400)),
+            const SizedBox(width: 12),
+            Text('Uploading...',
+                style: TextStyle(
+                  fontFamily: 'Momo', fontSize: 13,
+                  color: isMe ? Colors.white : Colors.grey.shade700,
+                )),
+          ]),
+        );
+      }
+      final url      = msg['media_url'] as String? ?? '';
+      final duration = (msg['duration'] as int?) ?? 0;
+      return ChatAudioPlayer(url: url, duration: duration, isMe: isMe);
     }
+
+    if (type == 'image') {
+      return const Icon(Icons.image_rounded, size: 40, color: Colors.white70);
+    }
+
+    // Generic file / document fallback
     return Row(children: [
       Icon(Icons.attach_file_rounded, color: color, size: 20),
       const SizedBox(width: 8),
-      Expanded(child: Text(fileName, style: TextStyle(color: color, fontFamily: 'Momo', fontSize: 13),
+      Expanded(child: Text(fileName,
+          style: TextStyle(color: color, fontFamily: 'Momo', fontSize: 13),
           maxLines: 1, overflow: TextOverflow.ellipsis)),
     ]);
   }
@@ -302,6 +529,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Arch'))));
   }
 
+  // ── Input bar ─────────────────────────────────────────────
+
   Widget _buildInputBar() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -309,13 +538,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05),
               blurRadius: 10, offset: const Offset(0, -2))]),
       child: SafeArea(top: false, child: Row(children: [
-        // Attachment — for study buddy rooms especially
+        // ── Sticker picker button ──
         GestureDetector(
-          onTap: () => _showSnack('File sharing coming soon!'),
-          child: Container(width: 42, height: 42,
-            decoration: BoxDecoration(color: Colors.purple.shade50, shape: BoxShape.circle),
-            child: Icon(Icons.add_rounded, color: Colors.purple.shade600, size: 24))),
+          onTap: _openStickerPicker,
+          child: Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.emoji_emotions_rounded,
+                color: Colors.purple.shade600, size: 22),
+          ),
+        ),
         const SizedBox(width: 8),
+
+        // ── Text field ──
         Expanded(
           child: Container(
             decoration: BoxDecoration(color: Colors.grey.shade100,
@@ -335,20 +573,34 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        GestureDetector(
-          onTap: _sendMessage,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 46, height: 46,
-            decoration: BoxDecoration(shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: _isTyping
-                    ? [Colors.deepPurple.shade400, Colors.purple.shade600]
-                    : [Colors.grey.shade300, Colors.grey.shade400])),
-            child: _sending
-                ? const Padding(padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.send_rounded, color: Colors.white, size: 22))),
+
+        // ── Send (when typing) OR mic recorder (when not) ──
+        _isTyping
+            ? GestureDetector(
+                onTap: _sendMessage,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [Colors.deepPurple.shade400, Colors.purple.shade600],
+                    ),
+                  ),
+                  child: _sending
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.send_rounded,
+                          color: Colors.white, size: 22),
+                ),
+              )
+            : ChatAudioRecorderButton(
+                onRecorded: _onAudioRecorded,
+                onTooShort: () =>
+                    _showSnack('Hold the mic a bit longer to record.'),
+              ),
       ])),
     );
   }

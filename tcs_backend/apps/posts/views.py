@@ -4,14 +4,17 @@ apps/posts/views.py
 from django.conf import settings
 from django.db.models import Q
 from rest_framework import generics, status, permissions
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from .models import Post, PostMedia, Like, Comment, Bookmark, PostFlag
+from .models import (
+    Feeling, Post, PostMedia, Like, Comment, Bookmark, PostFlag,
+    attach_hashtags,
+)
 from .serializers import (
-    PostSerializer, CreatePostSerializer,
+    FeelingSerializer, PostSerializer, CreatePostSerializer,
     PostMediaSerializer, CommentSerializer,
 )
 
@@ -62,6 +65,21 @@ def _validate_upload(file, media_type: str = "image"):
 # PAGINATION
 # ─────────────────────────────────────────────────────────────
 
+
+class FeelingListView(generics.ListAPIView):
+    """
+    GET /api/feelings/  → list of active feelings, ordered by
+    (sort_order, label). No pagination — list is small (~20 rows)
+    and the client wants it all in one shot.
+    """
+    serializer_class   = FeelingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = None
+ 
+    def get_queryset(self):
+        return Feeling.objects.filter(is_active=True)
+ 
+
 class PostPagination(PageNumberPagination):
     page_size             = 20
     page_size_query_param = "page_size"
@@ -91,7 +109,7 @@ class PostListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         qs      = (Post.objects
                        .select_related("author")
-                       .prefetch_related("media_files")
+                       .prefetch_related("media_files", "hashtags")
                        .filter(visibility="public")
                        .exclude(is_flagged=True))
         user_id = self.request.query_params.get("user_id")
@@ -103,6 +121,12 @@ class PostListCreateView(generics.ListCreateAPIView):
         ser = CreatePostSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         post = ser.save(author=request.user)
+
+        # Pull #hashtags out of the body and attach. Idempotent —
+        # if the same tag appears twice in content it's only counted
+        # once. See attach_hashtags() in models.py.
+        attach_hashtags(post, post.content)
+
         out  = PostSerializer(post, context={"request": request})
         return Response(out.data, status=status.HTTP_201_CREATED)
 
@@ -120,7 +144,7 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = (Post.objects
                     .select_related("author")
-                    .prefetch_related("media_files"))
+                    .prefetch_related("media_files", "hashtags"))
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -130,6 +154,13 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_serializer_context(self):
         return {"request": self.request}
 
+    def perform_update(self, serializer):
+        # Re-extract hashtags whenever the post body changes, so a
+        # user editing "Going to #OpenDay" → "Going to #ClosedDay"
+        # updates posts_count on both tags correctly.
+        post = serializer.save()
+        attach_hashtags(post, post.content)
+
     def destroy(self, request, *args, **kwargs):
         post = self.get_object()
         if post.author != request.user and not request.user.is_staff:
@@ -137,6 +168,58 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         post.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+
+# ─────────────────────────────────────────────────────────────
+# SEARCH
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def search_posts(request):
+    """
+    GET /api/posts/search/
+
+    Phase 4 spec 8.2 — multi-field post search.
+
+    Query params:
+        q        — required search term (min 2 chars)
+        field    — optional: 'caption' | 'location' | 'all' (default 'all')
+        page     — optional pagination
+
+    `caption` searches `Post.content` (which IS the caption in this app).
+    `location` searches `Post.location`.
+    `all` (default) searches both.
+
+    Excludes flagged posts and respects visibility (only public + the
+    viewer's own private posts come back).
+    """
+    q     = (request.query_params.get("q") or "").strip()
+    field = (request.query_params.get("field") or "all").lower()
+
+    if len(q) < 2:
+        return Response({"results": [], "count": 0})
+
+    me = request.user
+    base = (Post.objects
+                .select_related("author")
+                .prefetch_related("media_files", "hashtags")
+                .exclude(is_flagged=True)
+                .filter(Q(visibility="public") | Q(author=me)))
+
+    if field == "caption":
+        qs = base.filter(content__icontains=q)
+    elif field == "location":
+        qs = base.filter(location__icontains=q)
+    else:  # 'all'
+        qs = base.filter(Q(content__icontains=q) | Q(location__icontains=q))
+
+    qs = qs.order_by("-created_at")
+
+    paginator = PostPagination()
+    page      = paginator.paginate_queryset(qs, request)
+    ser       = PostSerializer(page, many=True, context={"request": request})
+    return paginator.get_paginated_response(ser.data)
 
 # ─────────────────────────────────────────────────────────────
 # FEED
@@ -158,7 +241,7 @@ class FeedView(generics.ListAPIView):
         me        = self.request.user
         base = (Post.objects
                     .select_related("author")
-                    .prefetch_related("media_files")
+                    .prefetch_related("media_files", "hashtags")
                     .exclude(is_flagged=True))
 
         if feed_type == "announcements":
@@ -203,7 +286,7 @@ class MyPostsView(generics.ListAPIView):
         post_type = self.request.query_params.get("post_type", "post")
         return (Post.objects
                     .select_related("author")
-                    .prefetch_related("media_files")
+                    .prefetch_related("media_files", "hashtags")
                     .filter(author=self.request.user, post_type=post_type)
                     .order_by("-created_at"))
 
@@ -227,7 +310,7 @@ class BookmarkListView(generics.ListAPIView):
         ).values_list("post_id", flat=True)
         return (Post.objects
                     .select_related("author")
-                    .prefetch_related("media_files")
+                    .prefetch_related("media_files", "hashtags")
                     .filter(id__in=ids)
                     .order_by("-created_at"))
 
