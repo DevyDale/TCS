@@ -3,6 +3,8 @@
 import os
 import sys
 
+from dotenv import load_dotenv      # ← ADD
+load_dotenv()                       # ← ADD
 
 def main():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TCS.settings.development")

@@ -15,7 +15,8 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:tcs_app/screens/full_screen_video_player.dart';
+
+import 'full_screen_video_player.dart';
 
 const _kViolet = Color(0xFF7C3AED);
 

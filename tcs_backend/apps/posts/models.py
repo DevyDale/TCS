@@ -37,6 +37,20 @@ class Post(models.Model):
     tagged_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                           related_name="post_tags")
 
+    # Phase 6 — Club scoping.
+    # When set, this post is "owned" by the club: it appears in the
+    # club's internal Feed tab and in the campus feed's Club Posts tab.
+    # When null, it's a normal user post (the existing behaviour).
+    # SET_NULL on club delete so dissolving a club doesn't nuke the
+    # member's content history.
+    club = models.ForeignKey(
+        "clubs.Club",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="posts",
+        help_text="If set, scopes the post to a club.",
+    )
+    
     # Hashtags are extracted from `content` on create/update via
     # attach_hashtags() below. The string reference "Hashtag" is used
     # because Hashtag is declared later in this same module.

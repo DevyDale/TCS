@@ -3,7 +3,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'game_engine.dart';
+import 'package:tcs_app/screens/arcade/game_engine.dart';
 
 class CampusCraftGame extends StatefulWidget {
   const CampusCraftGame({super.key});

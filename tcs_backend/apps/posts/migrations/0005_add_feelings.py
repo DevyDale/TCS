@@ -73,7 +73,7 @@ def unseed_feelings(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("posts", "0004_add_hashtags"),
+        ("posts", "0001_initial"),
     ]
 
     operations = [

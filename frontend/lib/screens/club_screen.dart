@@ -1,11 +1,10 @@
-
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/user_screen_profile.dart';
 
-import '../../../services/api_service.dart';
+import '../services/api_service.dart';
+import 'user_screen_profile.dart';
+
 
 // ─────────────────────────────────────────────────────────────
 // PALETTE
@@ -62,6 +61,14 @@ class _ClubScreenState extends State<ClubScreen>
   bool _loadingClub    = true;
   bool _loadingMembers = true;
 
+  // ── Phase 6 — Feed tab state ──────────────────────────────
+  // Populated by _loadFeed() from GET /api/clubs/<id>/feed/, which
+  // returns { posts: [...], events: [...] }. Both arrays come back
+  // newest-first; we render events above posts in the Feed tab.
+  List<Map<String, dynamic>> _feedPosts  = [];
+  List<Map<String, dynamic>> _feedEvents = [];
+  bool _loadingFeed = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +76,7 @@ class _ClubScreenState extends State<ClubScreen>
     _club = Map<String, dynamic>.from(widget.club ?? {'id': widget.id});
     _refreshClub();
     _loadMembers();
+    _loadFeed();
   }
 
   @override
@@ -156,6 +164,28 @@ class _ClubScreenState extends State<ClubScreen>
     }
   }
 
+  /// Phase 6 — load combined posts + events for this club's Feed tab.
+  /// Backend endpoint is GET /api/clubs/<id>/feed/. Failure here is
+  /// non-fatal: the Feed tab just renders the empty state.
+  Future<void> _loadFeed() async {
+    if (_clubId.isEmpty) return;
+    setState(() => _loadingFeed = true);
+    try {
+      final res = await _api.getClubFeed(_clubId) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _feedPosts  = (res['posts']  as List? ?? [])
+            .cast<Map<String, dynamic>>();
+        _feedEvents = (res['events'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
+        _loadingFeed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingFeed = false);
+    }
+  }
+
   // ── Membership actions ────────────────────────────────────
 
   Future<void> _join() async {
@@ -181,6 +211,8 @@ class _ClubScreenState extends State<ClubScreen>
         _snack('Welcome to $_name! 🎉');
         await _refreshClub();
         await _loadMembers();
+        // Refresh the feed too — joining may unlock private content.
+        await _loadFeed();
       } else if (_isPending) {
         _snack('Request sent. The admins will review it shortly.');
       }
@@ -464,7 +496,7 @@ class _ClubScreenState extends State<ClubScreen>
           children: [
             _buildAboutTab(),
             _buildMembersTab(),
-            _buildFeedPlaceholder(),
+            _buildFeedTab(),
           ],
         ),
       ),
@@ -1445,43 +1477,279 @@ class _ClubScreenState extends State<ClubScreen>
         ),
       );
 
-  // ── FEED TAB (placeholder) ────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  // FEED TAB — Phase 6
+  //
+  // Replaces the old "Posts, events, and announcements from this
+  // club will land here in the next slice." placeholder. Uses the
+  // unified GET /api/clubs/<id>/feed/ endpoint, which returns
+  // { posts: [...], events: [...] }.
+  //
+  //   • Loading        → spinner
+  //   • Both empty     → friendly empty card (different copy
+  //                      depending on whether the viewer is a
+  //                      member or not)
+  //   • Has content    → Events section, then Posts section,
+  //                      pull-to-refresh on the whole list.
+  // ══════════════════════════════════════════════════════════
 
-  Widget _buildFeedPlaceholder() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(
-                  color: _kIndigo.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(20),
+  Widget _buildFeedTab() {
+    if (_loadingFeed) {
+      return const Center(
+          child: CircularProgressIndicator(color: _kIndigo));
+    }
+    final hasPosts  = _feedPosts.isNotEmpty;
+    final hasEvents = _feedEvents.isNotEmpty;
+
+    if (!hasPosts && !hasEvents) {
+      return RefreshIndicator(
+        color: _kIndigo,
+        onRefresh: _loadFeed,
+        child: ListView(
+          // Tall enough for a pull-to-refresh on a fresh empty state.
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64, height: 64,
+                      decoration: BoxDecoration(
+                        color: _kIndigo.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.dynamic_feed_rounded,
+                          color: _kIndigo, size: 28),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Nothing here yet',
+                        style: TextStyle(
+                            fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
+                    const SizedBox(height: 6),
+                    Text(
+                      _isMember
+                          ? 'Be the first to post or schedule an event for this club.'
+                          : 'Join the club to see member posts and upcoming events.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Momo',
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.dynamic_feed_rounded,
-                    color: _kIndigo, size: 28),
               ),
-              const SizedBox(height: 14),
-              const Text('Club feed',
-                  style: TextStyle(
-                      fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
-              const SizedBox(height: 6),
-              Text(
-                'Posts, events, and announcements from this club will\n'
-                'land here in the next slice.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
+    }
+
+    return RefreshIndicator(
+      color: _kIndigo,
+      onRefresh: _loadFeed,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          if (hasEvents) ...[
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8, left: 4),
+              child: Text('UPCOMING EVENTS',
+                  style: TextStyle(
+                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontSize: 11, color: _kIndigo, letterSpacing: 1.2)),
+            ),
+            ..._feedEvents.map(_buildEventCard),
+            const SizedBox(height: 18),
+          ],
+          if (hasPosts) ...[
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8, left: 4),
+              child: Text('POSTS',
+                  style: TextStyle(
+                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontSize: 11, color: _kIndigo, letterSpacing: 1.2)),
+            ),
+            ..._feedPosts.map(_buildPostCard),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventCard(Map<String, dynamic> e) {
+    final title   = e['title']    as String? ?? 'Untitled event';
+    final loc     = e['location'] as String? ?? '';
+    final start   = e['start_time'] as String? ?? '';
+    // Backend gives both card_url (800x600) and poster_url (1200 wide).
+    // Prefer the card asset for in-list rendering.
+    final cardUrl = (e['card_url']   as String?) ??
+                    (e['poster_url'] as String?) ?? '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8, offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (cardUrl.isNotEmpty)
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: CachedNetworkImage(
+                  imageUrl: cardUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) =>
+                      Container(color: _kIndigo.withOpacity(0.08)),
+                  placeholder: (_, __) =>
+                      Container(color: _kIndigo.withOpacity(0.05)),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontFamily: 'Alfa', fontSize: 16, color: _kInk),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (loc.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Icon(Icons.place_outlined,
+                          size: 13, color: Colors.grey.shade500),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(loc,
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontFamily: 'Momo', fontSize: 12,
+                                color: Colors.grey.shade600)),
+                      ),
+                    ]),
+                  ],
+                  if (start.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(_fmtEventDateTime(start),
+                        style: const TextStyle(
+                            fontFamily: 'Momo', fontSize: 12,
+                            color: _kIndigo,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> p) {
+    final author   = p['author_name'] as String? ?? 'Member';
+    final content  = p['content']     as String? ?? '';
+    // Mirror the campus-feed renderer: media is a list of objects,
+    // the first item drives the preview thumbnail.
+    final media    = (p['media'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    final firstImg = media.isNotEmpty
+        ? (media.first['url'] as String? ?? '')
+        : '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8, offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            CircleAvatar(
+              radius: 16, backgroundColor: _kIndigo.withOpacity(0.15),
+              child: Text(
+                author.isNotEmpty ? author[0].toUpperCase() : '?',
+                style: const TextStyle(
+                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    color: _kIndigo, fontSize: 13),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(author,
+                  style: const TextStyle(
+                      fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                      fontSize: 13, color: _kInk),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ]),
+          if (content.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(content,
+                style: const TextStyle(
+                    fontFamily: 'Momo', fontSize: 13, height: 1.4),
+                maxLines: 4, overflow: TextOverflow.ellipsis),
+          ],
+          if (firstImg.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: CachedNetworkImage(
+                  imageUrl: firstImg,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) =>
+                      Container(color: Colors.grey.shade200),
+                  placeholder: (_, __) =>
+                      Container(color: Colors.grey.shade100),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Event-row date format: "DD MMM · HH:MM" in the user's local TZ.
+  /// Distinct from `_formatDate()` (which is just "DD MMM YYYY") so
+  /// in-list event timing reads tighter.
+  String _fmtEventDateTime(String iso) {
+    try {
+      final d = DateTime.parse(iso).toLocal();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+      final hh = d.hour.toString().padLeft(2, '0');
+      final mm = d.minute.toString().padLeft(2, '0');
+      return '${d.day} ${months[d.month - 1]} · $hh:$mm';
+    } catch (_) {
+      return '';
+    }
+  }
 
   Widget _emptyHint({
     required IconData icon,

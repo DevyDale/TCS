@@ -14,9 +14,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/arcade/game_polish.dart';
-
 import 'game_engine.dart';
+import 'game_polish.dart';
 import 'level_system.dart';
 import 'levels/snake_levels.dart';
 

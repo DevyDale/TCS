@@ -5,15 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tcs_app/models/biodata.dart';
-import 'package:tcs_app/screens/bio.dart';
-import 'package:tcs_app/screens/createpostspage.dart';
-import 'package:tcs_app/screens/fweetspage.dart';
-import 'package:tcs_app/screens/interests.dart';
-import 'package:tcs_app/screens/media_item_view.dart';
-import 'package:tcs_app/screens/privacy_toggle_sheet.dart';
-import 'package:tcs_app/services/api_service.dart';
-import 'package:tcs_app/screens/share_profile_screen.dart';
+
+
+import '../../models/biodata.dart';
+import '../../services/api_service.dart';
+import '../bio.dart';
+import '../createpostspage.dart';
+import '../fweetspage.dart';
+import '../interests.dart';
+import '../media_item_view.dart';
+import '../privacy_toggle_sheet.dart';
+import '../share_profile_screen.dart';
+
 
 const _kG1  = Color(0xFF6DD5FA);
 const _kG2  = Color(0xFF8E54E9);

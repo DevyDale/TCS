@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tcs_app/screens/location_picker.dart';
 import 'package:video_player/video_player.dart';
-import '../../services/api_service.dart';
+
+import '../services/api_service.dart';
+import 'location_picker.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -1031,30 +1032,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                 Icon(Icons.keyboard_arrow_right_rounded,
                     color: Colors.grey.shade300, size: 20),
               ])))),
-        Divider(height: 1, color: Colors.grey.shade100),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(children: [
-            Icon(Icons.accessibility_new_rounded, color: _kG1, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              const Text('Add alt text', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
-              Text('Make your post accessible to everyone',
-                  style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade400)),
-            ])),
-            Switch(
-              value:              _altText,
-              onChanged:          (v) => setState(() => _altText = v),
-              activeThumbColor:   Colors.white,
-              activeTrackColor:   _kG1,
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: Colors.grey.shade300),
-          ])),
-      ]),
+        ]),
     );
   }
 

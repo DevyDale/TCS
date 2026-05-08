@@ -13,7 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/chat_search_screen.dart';
+import '../chat_search_screen.dart';
 import 'chat_room_screen.dart';
 import '../../services/api_service.dart';
 

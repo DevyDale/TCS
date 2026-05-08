@@ -18,6 +18,7 @@ api_v1 = [
     path("notifications/", include("apps.notifications.urls")),
     path("feedback/",      include("apps.feedback.urls")),
     path("media/",         include("apps.media.urls")),
+    path("ai/",            include("apps.ai.urls")),       # ← ADD THIS LINE
     path("schema/",        SpectacularAPIView.as_view(),                        name="schema"),
     path("docs/",          SpectacularSwaggerView.as_view(url_name="schema"),   name="swagger-ui"),
     path("redoc/",         SpectacularRedocView.as_view(url_name="schema"),     name="redoc"),

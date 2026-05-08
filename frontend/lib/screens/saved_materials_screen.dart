@@ -2,7 +2,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../services/api_service.dart';
+
+import '../services/api_service.dart';
 
 // ── Library palette ───────────────────────────────────────────
 const _kShelf    = Color(0xFF2C1810);   // dark mahogany

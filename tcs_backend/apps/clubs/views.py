@@ -557,3 +557,56 @@ def upload_logo(request, pk):
     club.save(update_fields=["logo"])
     out = ClubSerializer(club, context={"request": request})
     return Response(out.data)
+
+# ─────────────────────────────────────────────────────────────
+# Phase 6 — Club feed (posts + events)
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def club_feed(request, pk):
+    """
+    GET /api/clubs/<pk>/feed/
+
+    Combined activity stream for one club:
+      - Posts authored within the club (Post.club == this club)
+      - Events organized by the club  (Event.club == this club)
+
+    Returns:
+        {
+          "posts":  [...PostSerializer...],
+          "events": [...EventSerializer...]
+        }
+
+    Both arrays are ordered newest-first and capped (50 posts, 20 events)
+    so a single round trip is enough to populate the tab. Pagination can
+    be added later if any club ever exceeds these caps.
+    """
+    try:
+        club = _active_qs().get(pk=pk)
+    except Club.DoesNotExist:
+        return Response({"error": "Club not found."}, status=404)
+
+    # Lazy import — avoids circular import between clubs/posts apps.
+    from apps.posts.models import Post
+    from apps.posts.serializers import PostSerializer
+    from apps.events.models import Event
+    from apps.events.serializers import EventSerializer
+
+    posts = (Post.objects
+                 .select_related("author", "club")
+                 .prefetch_related("media_files", "hashtags")
+                 .filter(club=club)
+                 .exclude(is_flagged=True)
+                 .order_by("-created_at")[:50])
+
+    events = (Event.objects
+                  .filter(club=club, is_active=True)
+                  .order_by("-start_time")[:20])
+
+    return Response({
+        "posts":  PostSerializer(posts, many=True,
+                                 context={"request": request}).data,
+        "events": EventSerializer(events, many=True,
+                                  context={"request": request}).data,
+    })

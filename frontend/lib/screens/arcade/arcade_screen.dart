@@ -7,19 +7,21 @@
 //
 // Tabs:  Games · Leaderboard · Clubs · My Stats
 // Carousel:  Token Wallet · Gamer Card · Leaderboard · My Clubs
+//
+// ARCADE OVERHAUL (this revision): added a Quick Actions strip
+// between the carousel and Top Players for entry points to the new
+// flow — Challenges (incoming + new), Send Tokens, Live Matches,
+// My Invites. Pending challenge count drives a badge on the
+// Challenges card. Token Wallet carousel card now opens the
+// transfer screen (which shows balance + history + send) instead
+// of jumping to the Stats tab.
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
-import 'package:tcs_app/screens/club_list.dart' show ClubsListScreen;
-import 'package:tcs_app/screens/club_screen.dart';
-import 'package:tcs_app/screens/create_club_page.dart';
-import 'package:tcs_app/screens/arcade/_arcade_carousel_card.dart';
-import 'package:tcs_app/screens/arcade/animated_starfield.dart';
-import 'package:tcs_app/screens/arcade/arcade_Effects.dart';
-import 'package:tcs_app/screens/arcade/memory_rush_game.dart';
-import 'package:tcs_app/screens/arcade/tic_Tac_toe.dart';
+
+
 
 import '../../services/api_service.dart';
 
@@ -27,6 +29,14 @@ import '../../services/api_service.dart';
 
 
 // ── Existing playable games ──────────────────────────────────
+import '../club_list.dart';
+import '../club_screen.dart';
+import '../create_club_page.dart';
+import '_arcade_carousel_card.dart';
+import 'animated_starfield.dart';
+import 'arcade_Effects.dart';
+import 'campus_Craft_game.dart';
+import 'memory_rush_game.dart';
 import 'player_tag_screen.dart';
 import 'quiz_battle_game.dart';
 import 'spirit_racers_game.dart';
@@ -40,10 +50,16 @@ import 'snake_game.dart';
 import 'number_guesser_game.dart';
 
 // ── Phase 4: existing-but-unwired games (already in your codebase) ──
-import 'campus_craft_game.dart';
 import 'texas_poker_game.dart';
 
 import 'game_engine.dart';
+import 'tic_Tac_toe.dart';
+
+// ── Arcade overhaul: token economy + multiplayer + spectator ─
+import 'game_requests_screen.dart';
+import 'live_matches_screen.dart';
+import 'sent_invites_screen.dart';
+import 'transfer_token_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -116,6 +132,10 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   bool _loadingLb     = true;
   bool _loadingClubs  = true;
 
+  // Arcade overhaul: count of incoming pending challenges.
+  // Drives a badge on the Quick Actions "Challenges" card.
+  int _pendingRequests = 0;
+
   Map<String, dynamic>       _stats         = {};
   List<Map<String, dynamic>> _games         = [];
   List<Map<String, dynamic>> _leaderboard   = [];
@@ -123,6 +143,16 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   List<Map<String, dynamic>> _myClubs       = [];
   List<Map<String, dynamic>> _gamingClubs   = [];
   List<Map<String, dynamic>> _trendingClubs = [];
+
+  // ── §11 — Club Activity Hub ───────────────────────────────
+  // Aggregated stream of recent posts + upcoming events from every
+  // club the user is a member of. Built by _loadActivityHub() which
+  // fans out to /api/clubs/<id>/feed/ for each entry in _myClubs and
+  // merges the results, sorted newest-first. Each item is tagged with
+  // `_kind` ('post' | 'event'), `_club_name`, and `_club` (the club
+  // map for navigation).
+  List<Map<String, dynamic>> _hubItems = [];
+  bool _loadingHub = false;
 
   @override
   void initState() {
@@ -150,6 +180,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _loadGames(),
         _loadLeaderboard(),
         _loadClubs(),
+        _loadPendingRequests(),
       ]);
 
   Future<void> _loadStats() async {
@@ -183,10 +214,24 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     } catch (_) { if (mounted) setState(() => _loadingLb = false); }
   }
 
+  /// Arcade overhaul: poll incoming challenges so the badge stays
+  /// fresh. Failure is silent — if the endpoint is unreachable we
+  /// just don't show a badge.
+  Future<void> _loadPendingRequests() async {
+    try {
+      final data = await _api.getGameRequests() as List? ?? const [];
+      if (!mounted) return;
+      setState(() => _pendingRequests = data.length);
+    } catch (_) {/* non-fatal */}
+  }
+
   /// Loads three slices of clubs in parallel:
   ///   • my clubs (joined)
   ///   • gaming-category clubs (featured prominently in arcade context)
   ///   • trending clubs (top by member count, excluding ones already shown)
+  ///
+  /// Once `_myClubs` is populated, we kick off the Club Activity Hub
+  /// fan-out so it always reflects the latest membership.
   Future<void> _loadClubs() async {
     try {
       final results = await Future.wait([
@@ -215,9 +260,91 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _trendingClubs = trending;
         _loadingClubs  = false;
       });
+
+      // §11 — refresh the hub now that we know the joined clubs.
+      // Fire-and-forget; the hub manages its own loading flag.
+      _loadActivityHub();
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingClubs = false);
+    }
+  }
+
+  /// §11 — Club Activity Hub fan-out.
+  ///
+  /// For each club in `_myClubs` (capped at 5 to keep launch responsive),
+  /// fetches GET /api/clubs/<id>/feed/ in parallel and merges the
+  /// returned posts + events into a single timeline, newest-first.
+  /// Each item is decorated with `_kind`, `_club_name`, and `_club` so
+  /// the row renderer can show context and the tap handler can navigate.
+  ///
+  /// Failures are absorbed silently per-club: one broken feed shouldn't
+  /// kill the whole hub. If the user hasn't joined any clubs, the empty
+  /// state in `_buildClubsTab()` handles the messaging.
+  Future<void> _loadActivityHub() async {
+    if (_myClubs.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _hubItems   = [];
+        _loadingHub = false;
+      });
+      return;
+    }
+
+    setState(() => _loadingHub = true);
+    try {
+      final capped = _myClubs.take(5).toList();
+      final feeds  = await Future.wait(
+        capped.map((c) async {
+          final id = c['id']?.toString();
+          if (id == null || id.isEmpty) return <String, dynamic>{};
+          try {
+            return await _api.getClubFeed(id) as Map<String, dynamic>;
+          } catch (_) {
+            return <String, dynamic>{};
+          }
+        }),
+      );
+
+      // Flatten into a single list with type tags + a sortable timestamp.
+      final items = <Map<String, dynamic>>[];
+      for (var i = 0; i < capped.length; i++) {
+        final club     = capped[i];
+        final feed     = feeds[i];
+        final clubName = club['name'] as String? ?? '';
+
+        for (final p in (feed['posts'] as List? ?? [])) {
+          final m = (p as Map).cast<String, dynamic>();
+          items.add({
+            ...m,
+            '_kind':      'post',
+            '_club':      club,
+            '_club_name': clubName,
+            '_sort_at':   m['created_at']?.toString() ?? '',
+          });
+        }
+        for (final e in (feed['events'] as List? ?? [])) {
+          final m = (e as Map).cast<String, dynamic>();
+          items.add({
+            ...m,
+            '_kind':      'event',
+            '_club':      club,
+            '_club_name': clubName,
+            '_sort_at':   m['start_time']?.toString() ?? '',
+          });
+        }
+      }
+      items.sort((a, b) =>
+          (b['_sort_at'] as String).compareTo(a['_sort_at'] as String));
+
+      if (!mounted) return;
+      setState(() {
+        _hubItems   = items.take(20).toList();
+        _loadingHub = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingHub = false);
     }
   }
 
@@ -260,6 +387,88 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     } else {
       _showComingSoon(game['name'] as String? ?? '');
     }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ARCADE OVERHAUL — navigation entry points
+  // ══════════════════════════════════════════════════════════
+
+  /// Open the challenges screen (Incoming + New tabs). If the user
+  /// accepts a challenge, the screen pops with `start_game` + a
+  /// session map — we then launch the corresponding game widget.
+  ///
+  /// Note: each game widget needs to be wired to accept the session
+  /// for true PvP semantics (server-side win determination, wager
+  /// settlement on finish). See SETUP.md §2.d for the patch on
+  /// `game_engine.dart`. Until that's done we just launch the game
+  /// solo and the player who scores higher in their separate runs
+  /// wins on the server.
+  Future<void> _openChallenges() async {
+    HapticFeedback.lightImpact();
+    final tokens = _stats['tokens'] as int? ?? 0;
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => GameRequestsScreen(myTokens: tokens),
+      ),
+    );
+    if (!mounted) return;
+    // Reload — wager may have been escrowed on accept, refunded on
+    // decline, or balance otherwise changed.
+    await _loadAll();
+
+    if (result != null && result['action'] == 'start_game') {
+      final session = result['session'] as Map<String, dynamic>?;
+      final slug    = session?['game_slug'] as String?;
+      if (slug == null || !mounted) return;
+      // Find the catalog entry for this game
+      final game = _games.firstWhere(
+        (g) => g['slug'] == slug,
+        orElse: () => {
+          'slug': slug,
+          'name': session?['game_name'] as String? ?? slug,
+        },
+      );
+      // Tiny notice so it doesn't feel sudden
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        content: Text('⚔ Match starting · pot 🪙 ${session?['pot'] ?? 0}',
+            style: const TextStyle(fontFamily: 'Momo')),
+        duration: const Duration(seconds: 2),
+      ));
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) _launchGame(game);
+      });
+    }
+  }
+
+  /// Peer-to-peer token transfer (TransferTokensScreen also doubles as
+  /// a wallet detail view: balance + history).
+  void _openSendTokens() {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TransferTokensScreen()),
+    ).then((_) {
+      if (mounted) _loadStats();
+    });
+  }
+
+  /// Browse currently-active matches and spectate.
+  void _openLiveMatches() {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LiveMatchesScreen()),
+    );
+  }
+
+  /// View invites I've sent (cancel + refund pending ones).
+  void _openSentInvites() {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SentInvitesScreen()),
+    ).then((_) {
+      if (mounted) _loadAll();
+    });
   }
 
   void _openClub(Map<String, dynamic> club) {
@@ -380,6 +589,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
             slivers: [
               _buildAppBar(),
               SliverToBoxAdapter(child: _buildCarousel()),
+              SliverToBoxAdapter(child: _buildQuickActions()),
               SliverToBoxAdapter(child: _buildActiveGamers()),
               SliverToBoxAdapter(child: _buildTabBar()),
               SliverToBoxAdapter(child: _buildTabContent()),
@@ -518,7 +728,10 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               onTap: () {
                 // Tab indices: Games=0, Leaderboard=1, Clubs=2, Stats=3
                 if (i == 0) {
-                  _tabCtrl.animateTo(3);  // Token Wallet → Stats
+                  // Token Wallet → wallet detail / transfer screen.
+                  // (TransferTokensScreen shows balance + history at the
+                  // top, so it doubles as a wallet view.)
+                  _openSendTokens();
                 } else if (i == 1) {
                   _promptPlayerTag();      // Gamer Card → set/edit tag
                 } else if (i == 2) {
@@ -535,6 +748,147 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           count: _carouselItems.length, current: _carouselIndex,
           activeColor: _kG2)),
     ]);
+  }
+
+  // ── Quick Actions (arcade overhaul) ───────────────────────
+  //
+  // Four action cards that surface the new arcade flow:
+  //   • Challenges   — incoming + new (badge = pending count)
+  //   • Send Tokens  — peer-to-peer transfer
+  //   • Live         — spectate active matches
+  //   • My Invites   — sent invites (cancel + refund)
+  //
+  // Sits right under the carousel so it's the first interactive
+  // surface after the user lands. Without it, the new screens
+  // are invisible.
+
+  Widget _buildQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _sectionLabel('Quick Actions'),
+        const SizedBox(height: 12),
+        Row(children: [
+          _quickAction(
+            label:    'Challenges',
+            icon:     Icons.sports_esports_rounded,
+            gradient: const [_kG2, _kG1],
+            badge:    _pendingRequests,
+            onTap:    _openChallenges,
+          ),
+          const SizedBox(width: 10),
+          _quickAction(
+            label:    'Send 🪙',
+            icon:     Icons.send_rounded,
+            gradient: const [_kG3, _kG4],
+            onTap:    _openSendTokens,
+          ),
+          const SizedBox(width: 10),
+          _quickAction(
+            label:    'Live',
+            icon:     Icons.visibility_rounded,
+            gradient: const [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+            pulse:    true,
+            onTap:    _openLiveMatches,
+          ),
+          const SizedBox(width: 10),
+          _quickAction(
+            label:    'My Invites',
+            icon:     Icons.outbox_rounded,
+            gradient: const [Color(0xFF3F51B5), Color(0xFF512DA8)],
+            onTap:    _openSentInvites,
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _quickAction({
+    required String           label,
+    required IconData         icon,
+    required List<Color>      gradient,
+    required VoidCallback     onTap,
+    int                       badge = 0,
+    bool                      pulse = false,
+  }) {
+    final pill = Container(
+      height: 84,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _darkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: gradient.first.withOpacity(0.22)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(
+                  color: gradient.first.withOpacity(0.30),
+                  blurRadius: 10, offset: const Offset(0, 3))],
+            ),
+            child: Icon(icon, color: Colors.white, size: 17),
+          ),
+          const SizedBox(height: 6),
+          Text(label,
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily:    'Arch',
+              fontWeight:    FontWeight.bold,
+              color:         Colors.white,
+              fontSize:      10.5,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(clipBehavior: Clip.none, children: [
+          // Optional pulse glow for "Live"
+          if (pulse)
+            Positioned.fill(child: IgnorePointer(child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(
+                    color: gradient.first.withOpacity(0.18),
+                    blurRadius: 18, spreadRadius: 1)],
+              ),
+            ))),
+          pill,
+          if (badge > 0)
+            Positioned(top: -5, right: -5, child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 6, vertical: 2),
+              constraints: const BoxConstraints(minWidth: 20),
+              decoration: BoxDecoration(
+                color: _kG4,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _darkBg, width: 2),
+                boxShadow: [BoxShadow(
+                    color: _kG4.withOpacity(0.45), blurRadius: 8)],
+              ),
+              child: Center(child: Text(
+                badge > 99 ? '99+' : '$badge',
+                style: const TextStyle(
+                  fontFamily:    'Momo',
+                  fontWeight:    FontWeight.bold,
+                  color:         Colors.white,
+                  fontSize:      9.5,
+                ),
+              )),
+            )),
+        ]),
+      ),
+    );
   }
 
   // ── Active Gamers ─────────────────────────────────────────
@@ -923,56 +1277,72 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           ]),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-        // ── CLUB ACTIVITY HUB — placeholder until slice 3 ────
+        // ══════════════════════════════════════════════════════
+        // §11 — CLUB ACTIVITY HUB (live)
+        //
+        // Replaces the old "lands here soon" placeholder. Shows a
+        // newest-first stream of posts + events from every joined
+        // club. Header always visible (with a tiny spinner while
+        // loading); body is either an empty card or a list of rows.
+        // ══════════════════════════════════════════════════════
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: _kG2.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _kG2.withOpacity(0.18)),
-            ),
-            child: Row(children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _kG2.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.dynamic_feed_rounded,
-                    color: _kG2, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Club Activity Hub',
-                        style: TextStyle(
-                          fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.white,
-                        )),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Events, posts, and announcements\nfrom your clubs land here soon.',
-                      style: TextStyle(
-                        fontFamily: 'Momo',
-                        fontSize: 11,
-                        color: Colors.white.withOpacity(0.55),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ]),
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Row(children: [
+            const Icon(Icons.dynamic_feed_rounded, color: _kG2, size: 16),
+            const SizedBox(width: 8),
+            _sectionLabel('Club Activity Hub'),
+            const Spacer(),
+            if (_loadingHub)
+              const SizedBox(width: 14, height: 14,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _kG2)),
+          ]),
         ),
+
+        if (!_loadingHub && _hubItems.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _emptyHubCard(),
+          ),
+
+        if (!_loadingHub && _hubItems.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: _hubItems
+                  .map((it) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _HubItemRow(
+                          item: it,
+                          onTap: () {
+                            final club =
+                                it['_club'] as Map<String, dynamic>?;
+                            if (club != null) _openClub(club);
+                          },
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+
+        // While the hub is initially loading and we haven't shown
+        // anything yet, render a couple of shimmer rows so the area
+        // doesn't collapse to 0px and jump when content arrives.
+        if (_loadingHub && _hubItems.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(children: List.generate(3, (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ShimmerLoader(
+                height: 64,
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ))),
+          ),
+
+        const SizedBox(height: 8),
       ]),
     );
   }
@@ -1013,6 +1383,61 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               color: Colors.white.withOpacity(0.45),
               height: 1.5,
             )),
+      ]),
+    );
+  }
+
+  /// §11 — empty card for the Club Activity Hub.
+  /// Copy adapts to whether the user has joined any clubs at all:
+  /// before joining, "join to see activity"; after joining, "be the
+  /// first to post or schedule an event".
+  Widget _emptyHubCard() {
+    final hasAnyClubs = _myClubs.isNotEmpty;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _kG2.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kG2.withOpacity(0.18)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: _kG2.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.dynamic_feed_rounded,
+              color: _kG2, size: 22),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Nothing yet',
+                  style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  )),
+              const SizedBox(height: 3),
+              Text(
+                hasAnyClubs
+                    ? 'Posts and events from your clubs\nwill stream here as they happen.'
+                    : 'Join clubs to see their posts and\nevents stream in here.',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.55),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ]),
     );
   }
@@ -1948,4 +2373,159 @@ class _TrendingClubCard extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ═════════════════════════════════════════════════════════════
+// §11 — Club Activity Hub row
+//
+// One row in the live activity stream. Renders both posts and
+// events; appearance is driven by the synthetic `_kind` key set
+// during the fan-out in _loadActivityHub().
+//   • icon tint → coral for events, violet for posts
+//   • subtitle  → first line of post content / event title
+//   • metadata  → club name + relative timestamp
+//   • tap       → open the parent club screen
+// ═════════════════════════════════════════════════════════════
+
+class _HubItemRow extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final VoidCallback onTap;
+  const _HubItemRow({required this.item, required this.onTap});
+
+  bool   get _isEvent  => item['_kind'] == 'event';
+  String get _clubName => item['_club_name'] as String? ?? '';
+
+  String get _title {
+    if (_isEvent) {
+      return item['title'] as String? ?? 'Event';
+    }
+    final content = item['content'] as String? ?? '';
+    return content.isNotEmpty ? content : 'New post';
+  }
+
+  String get _whenLabel {
+    final raw = (item['_sort_at'] as String?) ?? '';
+    if (raw.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      if (_isEvent) {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+        final hh = dt.hour.toString().padLeft(2, '0');
+        final mm = dt.minute.toString().padLeft(2, '0');
+        return '${dt.day} ${months[dt.month - 1]} · $hh:$mm';
+      }
+      // Posts use a relative "Xm/h/d ago" format.
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1)  return 'just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours   < 24) return '${diff.inHours}h ago';
+      if (diff.inDays    < 7)  return '${diff.inDays}d ago';
+      return '${(diff.inDays / 7).floor()}w ago';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = _isEvent ? _kG3 : _kG2;
+    final icon = _isEvent
+        ? Icons.event_rounded
+        : Icons.chat_bubble_outline_rounded;
+    final tag  = _isEvent ? 'EVENT' : 'POST';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _darkCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: tint.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, color: tint, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top line: club name (left) + tag pill (right)
+                  Row(children: [
+                    Expanded(
+                      child: Text(
+                        _clubName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.55),
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: tint.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: tint,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  // Title / first line of content
+                  Text(
+                    _title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 12,
+                      color: Colors.white,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (_whenLabel.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _whenLabel,
+                      style: TextStyle(
+                        fontFamily: 'Momo',
+                        fontSize: 10,
+                        color: Colors.white.withOpacity(0.40),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

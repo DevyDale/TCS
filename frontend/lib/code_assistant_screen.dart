@@ -1,0 +1,765 @@
+// lib/screens/ai/code_assistant_screen.dart
+//
+// TCS Code Helper — chat screen styled to match the AI Hub:
+//   • Light page gradient (white → soft grey → white)
+//   • White card surfaces with animated SweepGradient borders
+//   • Dark ink text, monochrome chrome
+//   • Code helper identity preserved through:
+//       – Green/teal gradient fill on USER message bubbles
+//       – Green accent passed to AiMarkdown for inline code,
+//         blockquotes, and links
+//   • Code blocks inside assistant messages get rotating
+//     gradient borders automatically via AiMarkdown.
+//
+// Overflow fix:
+//   The Row at line ~359 (suggestion chip) was overflowing by
+//   70px because long suggestion labels like "Write a unit test
+//   for a Dart function that returns Future<int>" got rendered
+//   at their natural intrinsic width inside a Wrap with
+//   unbounded constraints. Fixed by:
+//     1. Constraining each chip to a sensible maxWidth.
+//     2. Wrapping the label Text in a Flexible so it soft-wraps
+//        to multiple lines instead of pushing the chip off-screen.
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:tcs_app/ai_markdown.dart';
+
+import '../../services/api_service.dart';
+
+// ── Light palette (matches AI Hub) ───────────────────────────
+const _kBg1     = Color(0xFFFAFAFC);
+const _kBg2     = Color(0xFFE6E6EE);
+const _kBg3     = Color(0xFFF2F2F6);
+
+const _kCard    = Color(0xFFFFFFFF);
+const _kCardLo  = Color(0xFFF5F5F8);
+
+const _kBorder  = Color(0xFFE5E7EB);
+
+const _kSlate2  = Color(0xFF9CA3AF);
+const _kSlate   = Color(0xFF6B7280);
+const _kInkSoft = Color(0xFF374151);
+const _kInk     = Color(0xFF0D0D1A);
+
+// Code-helper identity: teal/green pair used only for user
+// bubbles + the AiMarkdown accent. Everything else is mono.
+const _kCode2   = Color(0xFF11998E);
+const _kCode1   = Color(0xFF38EF7D);
+
+// Shared sweep-gradient palette for animated borders
+const _gradColors = <Color>[
+  Color(0xFF6DD5FA), // light blue
+  Color(0xFF7C3AED), // violet
+  Color(0xFFF59E0B), // amber
+  Color(0xFFFF4F6E), // coral
+  Color(0xFF6DD5FA), // close the loop
+];
+
+// ── Message model ─────────────────────────────────────────────
+
+class CodeMessage {
+  final String   role;
+  final String   content;
+  final bool     isStreaming;
+  final DateTime createdAt;
+
+  CodeMessage({
+    required this.role,
+    required this.content,
+    this.isStreaming = false,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  CodeMessage copyWith({String? content, bool? isStreaming}) => CodeMessage(
+        role:        role,
+        content:     content ?? this.content,
+        isStreaming: isStreaming ?? this.isStreaming,
+        createdAt:   createdAt,
+      );
+
+  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+}
+
+// ── Quick suggestion prompts ──────────────────────────────────
+
+const _codeSuggestions = [
+  ('🐍', 'Write a Python function to reverse a linked list'),
+  ('⚛️', 'Show me a Flutter widget with a gradient AppBar'),
+  ('🎨', 'CSS for a centered card with shadow'),
+  ('📊', 'SQL query: top 5 customers by revenue this year'),
+  ('🔧', 'Bash one-liner: find the 10 largest files in a folder'),
+  ('🧪', 'Write a unit test for a Dart function that returns Future<int>'),
+];
+
+// ═════════════════════════════════════════════════════════════
+// CODE ASSISTANT SCREEN
+// ═════════════════════════════════════════════════════════════
+
+class CodeAssistantScreen extends StatefulWidget {
+  const CodeAssistantScreen({super.key});
+
+  @override
+  State<CodeAssistantScreen> createState() => _CodeAssistantScreenState();
+}
+
+class _CodeAssistantScreenState extends State<CodeAssistantScreen>
+    with TickerProviderStateMixin {
+  final _inputCtrl  = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  final _inputFocus = FocusNode();
+  final _api        = ApiService();
+
+  final List<CodeMessage> _messages = [];
+  bool _isLoading       = false;
+  bool _showSuggestions = true;
+  int  _rateLimitUsed   = 0;
+  int  _rateLimitMax    = 60;
+
+  late final AnimationController _entryCtrl;
+  late final AnimationController _shimmerCtrl; // ← shared by every border
+  late final Animation<double>   _entryFade;
+
+  StreamSubscription<String>? _streamSub;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _entryCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600))
+      ..forward();
+    _entryFade = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
+
+    _shimmerCtrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 6))
+      ..repeat();
+
+    _addGreeting();
+    _fetchStatus();
+  }
+
+  @override
+  void dispose() {
+    _streamSub?.cancel();
+    _entryCtrl.dispose();
+    _shimmerCtrl.dispose();
+    _inputCtrl.dispose();
+    _scrollCtrl.dispose();
+    _inputFocus.dispose();
+    super.dispose();
+  }
+
+  void _addGreeting() {
+    _messages.add(CodeMessage(
+      role:    'assistant',
+      content: "Hey! 👋 I'm the **TCS Code Helper**.\n\n"
+               "Drop a coding question, paste a snippet you're stuck on, or "
+               "describe what you want to build. I'll reply with code in "
+               "Markdown — tap any block to copy it.\n\n"
+               "_Powered by Gemini 2.5 Flash._",
+    ));
+  }
+
+  Future<void> _fetchStatus() async {
+    try {
+      final data = await _api.get('/ai/status/');
+      if (mounted && data is Map) {
+        setState(() {
+          _rateLimitUsed = data['messages_used'] as int? ?? 0;
+          _rateLimitMax  = data['limit']         as int? ?? 60;
+        });
+      }
+    } catch (_) {}
+  }
+
+  // ── Send message ──────────────────────────────────────────
+
+  Future<void> _sendMessage(String text) async {
+    final msg = text.trim();
+    if (msg.isEmpty || _isLoading) return;
+
+    HapticFeedback.lightImpact();
+    _inputCtrl.clear();
+    _inputFocus.unfocus();
+
+    setState(() {
+      _messages.add(CodeMessage(role: 'user', content: msg));
+      _showSuggestions = false;
+      _isLoading       = true;
+    });
+
+    _scrollToBottom();
+
+    final aiMsgIndex = _messages.length;
+    setState(() {
+      _messages.add(
+          CodeMessage(role: 'assistant', content: '', isStreaming: true));
+    });
+
+    try {
+      final token   = await _api.accessToken;
+      final baseUrl = ApiConfig.baseUrl;
+      final history = _messages
+          .sublist(0, aiMsgIndex - 1)
+          .where((m) => !m.isStreaming)
+          .map((m) => m.toJson())
+          .toList();
+
+      final request = http.Request('POST', Uri.parse('$baseUrl/api/ai/code/'))
+        ..headers.addAll({
+          'Content-Type':  'application/json',
+          'Accept':        'text/event-stream',
+          'Authorization': 'Bearer $token',
+        })
+        ..body = jsonEncode({
+          'message': msg,
+          'history': history,
+          'stream':  true,
+        });
+
+      final streamed = await request.send();
+
+      _streamSub = streamed.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen(
+        (line) {
+          if (!line.startsWith('data:')) return;
+          final data = line.substring(5).trim();
+          if (data == '[DONE]') {
+            if (mounted) {
+              setState(() {
+                _messages[aiMsgIndex] =
+                    _messages[aiMsgIndex].copyWith(isStreaming: false);
+                _isLoading = false;
+                _rateLimitUsed++;
+              });
+            }
+            _scrollToBottom();
+            return;
+          }
+          try {
+            final chunk = jsonDecode(data);
+            if (chunk['error'] != null) {
+              _handleError(aiMsgIndex, chunk['error'] as String);
+              return;
+            }
+            final tok = chunk['token'] as String? ?? '';
+            if (tok.isEmpty) return;
+            if (!mounted) return;
+            setState(() {
+              final current = _messages[aiMsgIndex];
+              _messages[aiMsgIndex] =
+                  current.copyWith(content: current.content + tok);
+            });
+            _scrollToBottom();
+          } catch (_) {}
+        },
+        onError: (e) => _handleError(aiMsgIndex, e.toString()),
+        onDone: () {
+          if (mounted && _isLoading) {
+            setState(() {
+              _messages[aiMsgIndex] =
+                  _messages[aiMsgIndex].copyWith(isStreaming: false);
+              _isLoading = false;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      _handleError(aiMsgIndex, e.toString());
+    }
+  }
+
+  void _handleError(int idx, String err) {
+    if (!mounted) return;
+    setState(() {
+      _messages[idx] = _messages[idx].copyWith(
+        content:     "Sorry — ran into an error: $err",
+        isStreaming: false,
+      );
+      _isLoading = false;
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  // ── Build ─────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin:  Alignment.topLeft,
+            end:    Alignment.bottomRight,
+            colors: [_kBg1, _kBg2, _kBg3],
+            stops:  [0.0, 0.55, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              Expanded(
+                child: FadeTransition(
+                  opacity: _entryFade,
+                  child: ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    itemCount:
+                        _messages.length + (_showSuggestions ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      if (_showSuggestions && i == _messages.length) {
+                        return _buildSuggestions();
+                      }
+                      return _buildMessageBubble(_messages[i]);
+                    },
+                  ),
+                ),
+              ),
+              _buildInputBar(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Top bar (back + title + status chip) ──────────────────
+
+  Widget _buildTopBar() {
+    final canPop = Navigator.canPop(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      child: Row(
+        children: [
+          if (canPop) ...[
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+              },
+              child: _GradientBorderCard(
+                animation: _shimmerCtrl,
+                radius: 14,
+                borderWidth: 1.2,
+                innerColor: _kCard,
+                padding: const EdgeInsets.all(11),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: _kInk,
+                  size: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          // Title
+          const Expanded(
+            child: Text(
+              'Code Helper',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: _kInk,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+            ),
+          ),
+          // Rate-limit chip
+          _GradientBorderCard(
+            animation: _shimmerCtrl,
+            radius: 12,
+            borderWidth: 1.2,
+            innerColor: _kCard,
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded, color: _kInkSoft, size: 12),
+                const SizedBox(width: 4),
+                Text(
+                  '$_rateLimitUsed / $_rateLimitMax',
+                  style: const TextStyle(
+                      color: _kInk,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Suggestion chips (overflow-safe) ──────────────────────
+
+  Widget _buildSuggestions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 10, 2, 10),
+      child: Wrap(
+        spacing:    8,
+        runSpacing: 8,
+        children: _codeSuggestions.map(_buildSuggestionChip).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip((String, String) s) {
+    // Constrain chip width so a long label can soft-wrap to multiple
+    // lines instead of overflowing the row.
+    final maxWidth = MediaQuery.of(context).size.width * 0.78;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: GestureDetector(
+        onTap: () => _sendMessage(s.$2),
+        child: _GradientBorderCard(
+          animation: _shimmerCtrl,
+          radius: 18,
+          borderWidth: 1.2,
+          innerColor: _kCard,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(s.$1, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              // Flexible + soft-wrap = the actual overflow fix.
+              Flexible(
+                child: Text(
+                  s.$2,
+                  softWrap: true,
+                  style: const TextStyle(
+                    color: _kInk,
+                    fontSize: 13,
+                    height: 1.3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Message bubble ────────────────────────────────────────
+
+  Widget _buildMessageBubble(CodeMessage m) {
+    final isUser = m.role == 'user';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Align(
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.86),
+          child: isUser
+              ? _buildUserBubble(m)
+              : _buildAssistantBubble(m),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserBubble(CodeMessage m) {
+    // User bubbles keep the Code Helper identity — green/teal gradient
+    // fill, white text. Asymmetric corner so the bubble "points" right.
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_kCode2, _kCode1],
+          begin:  Alignment.topLeft,
+          end:    Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft:     Radius.circular(16),
+          topRight:    Radius.circular(16),
+          bottomLeft:  Radius.circular(16),
+          bottomRight: Radius.circular(4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color:      _kCode1.withOpacity(0.22),
+            blurRadius: 14,
+            offset:     const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        m.content,
+        style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+      ),
+    );
+  }
+
+  Widget _buildAssistantBubble(CodeMessage m) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: const BorderRadius.only(
+          topLeft:     Radius.circular(16),
+          topRight:    Radius.circular(16),
+          bottomLeft:  Radius.circular(4),
+          bottomRight: Radius.circular(16),
+        ),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+            color:      Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset:     const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: _buildAssistantContent(m),
+    );
+  }
+
+  Widget _buildAssistantContent(CodeMessage m) {
+    if (m.content.isEmpty && m.isStreaming) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Dot(delay: 0,   color: _kCode2),
+          _Dot(delay: 150, color: _kCode2),
+          _Dot(delay: 300, color: _kCode2),
+        ],
+      );
+    }
+    // The shared AiMarkdown widget renders dark text on the white
+    // bubble and gives code blocks a rotating SweepGradient border.
+    return AiMarkdown(
+      data:   m.content,
+      accent: _kCode2,
+      borderGradient: _gradColors,
+    );
+  }
+
+  // ── Input bar ─────────────────────────────────────────────
+
+  Widget _buildInputBar() {
+    final hasText = _inputCtrl.text.trim().isNotEmpty;
+    final canSend = hasText && !_isLoading;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        12, 10, 12,
+        MediaQuery.of(context).padding.bottom + 10,
+      ),
+      decoration: const BoxDecoration(
+        color: _kCard,
+        border: Border(top: BorderSide(color: _kBorder)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: _GradientBorderCard(
+              animation: _shimmerCtrl,
+              radius: 22,
+              borderWidth: 1.2,
+              innerColor: _kCardLo,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: TextField(
+                controller: _inputCtrl,
+                focusNode:  _inputFocus,
+                minLines:   1,
+                maxLines:   5,
+                onChanged:  (_) => setState(() {}),
+                style: const TextStyle(
+                    color: _kInk, fontSize: 14, height: 1.4),
+                cursorColor: _kCode2,
+                cursorWidth: 2,
+                cursorRadius: const Radius.circular(2),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  hintText: 'Ask for code, paste a snippet…',
+                  hintStyle: TextStyle(color: _kSlate2, fontSize: 14),
+                  contentPadding: EdgeInsets.symmetric(vertical: 13),
+                ),
+                onSubmitted: _sendMessage,
+                textInputAction: TextInputAction.send,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: canSend ? () => _sendMessage(_inputCtrl.text) : null,
+            child: Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                gradient: canSend
+                    ? const LinearGradient(
+                        colors: [_kCode2, _kCode1],
+                        begin: Alignment.topLeft,
+                        end:   Alignment.bottomRight,
+                      )
+                    : null,
+                color: canSend ? null : _kCardLo,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: canSend ? Colors.transparent : _kBorder,
+                ),
+                boxShadow: canSend
+                    ? [
+                        BoxShadow(
+                          color: _kCode1.withOpacity(0.40),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: _isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        color: _kSlate, strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(
+                      Icons.arrow_upward_rounded,
+                      color: canSend ? Colors.white : _kSlate2,
+                      size: 20,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// _GradientBorderCard — same widget pattern as in ai_hub_screen
+// ═════════════════════════════════════════════════════════════
+
+class _GradientBorderCard extends StatelessWidget {
+  final Animation<double>   animation;
+  final Widget              child;
+  final double              radius;
+  final double              borderWidth;
+  final Color               innerColor;
+  final EdgeInsetsGeometry? padding;
+  final List<Color>         colors;
+
+  const _GradientBorderCard({
+    required this.animation,
+    required this.child,
+    this.radius = 20,
+    this.borderWidth = 1.4,
+    this.innerColor = _kCard,
+    this.padding,
+    this.colors = _gradColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inner = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(
+          math.max(0.0, radius - borderWidth)),
+        color: innerColor,
+      ),
+      padding: padding,
+      child: child,
+    );
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, c) {
+        final t = animation.value * 2 * math.pi;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            gradient: SweepGradient(
+              colors: colors,
+              startAngle: t,
+              endAngle: t + 2 * math.pi,
+            ),
+          ),
+          padding: EdgeInsets.all(borderWidth),
+          child: c,
+        );
+      },
+      child: inner,
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Loading dot used while the assistant message is empty + streaming
+// ═════════════════════════════════════════════════════════════
+
+class _Dot extends StatefulWidget {
+  final int   delay;
+  final Color color;
+  const _Dot({required this.delay, required this.color});
+  @override
+  State<_Dot> createState() => _DotState();
+}
+
+class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync:    this,
+      duration: const Duration(milliseconds: 900),
+    );
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _c.repeat(reverse: true);
+    });
+  }
+
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: Tween(begin: 0.3, end: 1.0).animate(_c),
+        child: Container(
+          width: 6, height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+              color: widget.color, shape: BoxShape.circle),
+        ),
+      );
+}

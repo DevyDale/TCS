@@ -10,6 +10,13 @@
 // Bug fixes: replaced '\$page' / '\$id' literal escapes (which sent
 // the literal text "$page" / "$id" to the server) with proper
 // interpolation in getMyPosts / getMyFweets / getFavorites / deletePost.
+//
+// ARCADE OVERHAUL: full token-economy + multiplayer + spectator API.
+// Legacy methods (sendChallenge, getSession, updateSession,
+// checkAutoQuit) are kept so existing screens keep compiling, but
+// the ones whose backend endpoint was removed are marked @Deprecated
+// — migrate call sites to createChallenge / submitMatchResult /
+// forfeitSession.
 
 import 'dart:async';
 import 'dart:convert';
@@ -17,8 +24,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tcs_app/screens/auth/session_keys.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
+import '../screens/auth/session_keys.dart';
 
 
 // ─────────────────────────────────────────────────────────────
@@ -217,8 +225,8 @@ class ApiService {
       _req('GET', path, query: query, auth: auth);
 
   Future<dynamic> post(String path,
-      {Map<String, dynamic>? body, bool auth = true}) =>
-      _req('POST', path, body: body, auth: auth);
+    {Map<String, dynamic>? body, bool auth = true}) =>
+    _req('POST', path, body: body, auth: auth);
 
   Future<dynamic> put(String path,
       {Map<String, dynamic>? body, bool auth = true}) =>
@@ -400,6 +408,7 @@ class ApiService {
     String  location        = '',
     String  backgroundColor = '',
     String? feeling,
+    String? clubId,                          // Phase 6
   }) => post('/posts/', body: {
     'content':          content,
     'post_type':        postType,
@@ -407,6 +416,7 @@ class ApiService {
     'location':         location,
     'background_color': backgroundColor,
     if (feeling != null && feeling.isNotEmpty) 'feeling': feeling,
+    if (clubId  != null && clubId.isNotEmpty)  'club':    clubId,
   });
 
   Future<dynamic> getPost(String id)    => get('/posts/$id/');
@@ -672,6 +682,16 @@ class ApiService {
   Future<dynamic> removeClubMember(String clubId, String userId) =>
       delete('/clubs/$clubId/members/$userId/');
 
+/// GET /api/clubs/<id>/feed/
+  /// Returns { posts: [...], events: [...] } for the club's internal
+  /// Feed tab and the arcade's Club Activity Hub.
+  Future<dynamic> getClubFeed(String clubId) =>
+      get('/clubs/$clubId/feed/');
+
+  /// GET /api/posts/?club_id=<id>
+  /// Convenience wrapper to list posts scoped to a single club.
+  Future<dynamic> getClubPosts(String clubId, {int page = 1}) =>
+      get('/posts/', query: {'club_id': clubId, 'page': '$page'});
   /// PATCH /api/clubs/<id>/members/<user_id>/role/     (admin only)
   /// body: {"role": "member" | "executive" | "president"}
   /// Promoting to 'president' is allowed only if the caller is the
@@ -700,57 +720,214 @@ class ApiService {
           filePath: filePath, field: 'logo', mimeType: mimeType);
 
   // ══════════════════════════════════════════════════════════
-  // ARCADE
+  // ARCADE  — token economy + multiplayer + spectator overhaul
   // ══════════════════════════════════════════════════════════
+  //
+  // Backend is in apps.arcade. The new flow is built around three
+  // primitives:
+  //
+  //   1. TokenLedger     — every wallet write is audited
+  //   2. GameInvite      — parent invite (1 sender → 1..4 recipients)
+  //   3. GameSession     — actual match, with pot + winner + pot payout
+  //
+  // Legacy methods that no longer have a backend route (updateSession,
+  // checkAutoQuit) are marked @Deprecated and left in so old screens
+  // still compile. Migrate call sites to submitMatchResult /
+  // forfeitSession when you touch them.
+  //
+  // The wager/economic flow:
+  //
+  //   • Sender creates an invite → wager is escrowed immediately.
+  //   • Each recipient who accepts pays their own wager (escrowed too).
+  //   • When all participants finish, server picks the highest score
+  //     and pays the entire pot to the winner. Tie → all wagers refund.
+  //   • Decline / cancel / expire → sender's escrow is refunded.
+  //
+  // ──────────────────────────────────────────────────────────
 
-  Future<dynamic> getGames()          => get('/arcade/games/');
-  Future<dynamic> getPlayerStats()    => get('/arcade/stats/');
-  Future<dynamic> getTokenWallet()    => get('/arcade/tokens/');
+  // ── Catalog & stats ────────────────────────────────────────
 
+  Future<dynamic> getGames()        => get('/arcade/games/');
+  Future<dynamic> getPlayerStats()  => get('/arcade/stats/');
   Future<dynamic> getLeaderboard({String? gameSlug, int limit = 20}) =>
       get('/arcade/leaderboard/', query: {
         if (gameSlug != null) 'game': gameSlug,
         'limit': '$limit',
       });
 
+  // ── Wallet ─────────────────────────────────────────────────
+
+  /// Current balance + level/xp/gamer_tag.
+  Future<dynamic> getTokenWallet() => get('/arcade/tokens/');
+
+  /// Full wallet ledger (every credit + debit row, newest first).
+  Future<dynamic> getTokenHistory({int limit = 50}) =>
+      get('/arcade/tokens/history/', query: {'limit': '$limit'});
+
+  /// Peer-to-peer transfer history (both sent and received).
+  /// Each row has a `direction` field of 'in' | 'out'.
+  Future<dynamic> getTransferHistory({int limit = 50}) =>
+      get('/arcade/tokens/transfers/', query: {'limit': '$limit'});
+
+  /// Send tokens to another user. Server-side caps:
+  ///   • Max 200 per transfer
+  ///   • Max 500 outbound per day
+  ///   • Cannot send to yourself
+  Future<dynamic> sendTokens({
+    required String recipientUserId,
+    required int    amount,
+    String          note = '',
+  }) => post('/arcade/tokens/transfer/', body: {
+    'recipient_user_id': recipientUserId,
+    'amount':            amount,
+    'note':              note,
+  });
+
+  // ── Solo score ─────────────────────────────────────────────
+
   Future<dynamic> submitScore({
     required String game,
     required int    score,
-    int bonusTokens = 0,
+    int             bonusTokens = 0,
   }) => post('/arcade/submit-score/', body: {
     'game':         game,
     'score':        score,
     'bonus_tokens': bonusTokens,
   });
 
+  // ── Gamer tag & search ─────────────────────────────────────
+
   Future<dynamic> getGamerTag()           => get('/arcade/gamer-tag/');
+  Future<dynamic> setGamerTag(String tag) =>
+      patch('/arcade/gamer-tag/', body: {'gamer_tag': tag});
   Future<dynamic> uploadGamerAvatar(File file) =>
       uploadFile('/arcade/gamer-tag/avatar/',
           filePath: file.path, field: 'avatar', mimeType: 'image/jpeg');
 
-  Future<dynamic> getGameRequests()        => get('/arcade/game-requests/');
+  /// Typeahead search for the challenge-recipient picker. Searches
+  /// gamer_tag, preferred_name, and name (prefix match). Excludes
+  /// the current user and users with no gamer_tag set.
+  Future<dynamic> searchGamers({required String query, int limit = 10}) =>
+      get('/arcade/gamer-tag/search/', query: {
+        'q':     query,
+        'limit': '$limit',
+      });
+
+  // ── Invites & requests (multiplayer) ───────────────────────
+
+  /// Pending challenges I've received (incoming inbox).
+  Future<dynamic> getGameRequests() => get('/arcade/game-requests/');
+
+  /// Invites I've sent. Optional [status] narrows the list — common
+  /// values: 'pending', 'started', 'completed', 'expired', 'cancelled'.
+  Future<dynamic> getMySentInvites({String? status}) =>
+      get('/arcade/game-invites/sent/', query: {
+        if (status != null) 'status': status,
+      });
+
+  /// Create a challenge to 1..4 recipients. Sender's wager is
+  /// escrowed immediately; each accepting recipient pays the same
+  /// wager on accept. Winner takes the whole pot.
+  ///
+  /// For 1-on-1 first-come games (quiz battle, tic-tac-toe), pass a
+  /// single id in [recipientUserIds] — the first to accept locks
+  /// the match and the rest are auto-declined and refunded.
+  ///
+  /// For royale games (pool royale, spirit racers, battle bots,
+  /// ninja tag), pass up to 4 ids — everyone who accepts joins the
+  /// same lobby.
+  Future<dynamic> createChallenge({
+    required String       gameSlug,
+    required List<String> recipientUserIds,
+    required int          wager,
+  }) => post('/arcade/game-invites/', body: {
+    'game_slug':           gameSlug,
+    'recipient_user_ids':  recipientUserIds,
+    'wager':               wager,
+  });
+
+  /// Cancel a pending invite. Auto-declines all recipients and
+  /// refunds the sender's escrowed wager.
+  Future<dynamic> cancelInvite(String inviteId) =>
+      post('/arcade/game-invites/$inviteId/cancel/', body: {});
+
+  /// Legacy single-recipient form. Still works because the backend
+  /// accepts both `receiver_id` (legacy) and `recipient_user_ids`
+  /// (new). Prefer createChallenge for new code.
   Future<dynamic> sendChallenge({
     required String receiverId,
     required String gameSlug,
     required int    wager,
-  }) => post('/arcade/game-requests/', body: {
+  }) => post('/arcade/game-invites/', body: {
     'receiver_id': receiverId,
     'game_slug':   gameSlug,
     'wager':       wager,
   });
-  Future<dynamic> acceptChallenge(String id)  =>
-      post('/arcade/game-requests/$id/accept/', body: {});
-  Future<dynamic> declineChallenge(String id) =>
-      post('/arcade/game-requests/$id/decline/', body: {});
-  Future<dynamic> getSession(String id)       => get('/arcade/game-sessions/$id/');
+
+  Future<dynamic> acceptChallenge(String requestId) =>
+      post('/arcade/game-requests/$requestId/accept/', body: {});
+
+  Future<dynamic> declineChallenge(String requestId) =>
+      post('/arcade/game-requests/$requestId/decline/', body: {});
+
+  // ── Sessions ───────────────────────────────────────────────
+
+  /// Currently-active matches (anyone can spectate).
+  Future<dynamic> getLiveSessions() => get('/arcade/sessions/live/');
+
+  /// Session detail. NOTE — URL changed from /game-sessions/<id>/
+  /// to /sessions/<id>/. Method signature is unchanged so existing
+  /// call sites keep working.
+  Future<dynamic> getSession(String id) => get('/arcade/sessions/$id/');
+
+  /// Both players signal "ready" → flips waiting → active.
+  Future<dynamic> startSession(String id) =>
+      post('/arcade/sessions/$id/start/', body: {});
+
+  /// A player reports their final score for this match. Once every
+  /// non-forfeited participant has reported, the server settles the
+  /// pot and the response includes the payout summary.
+  Future<dynamic> submitMatchResult({
+    required String sessionId,
+    required int    score,
+  }) => post('/arcade/sessions/$sessionId/result/',
+            body: {'score': score});
+
+  /// Player forfeits the match. Other player(s) win automatically.
+  Future<dynamic> forfeitSession(String id) =>
+      post('/arcade/sessions/$id/forfeit/', body: {});
+
+  /// Recent chat/cheer messages for a match. Realtime delivery is
+  /// via the MatchWsService WebSocket; this is just the REST
+  /// fallback used when joining as a spectator to backfill the
+  /// scrolling overlay.
+  Future<dynamic> getMatchMessages(String sessionId, {int limit = 30}) =>
+      get('/arcade/sessions/$sessionId/messages/',
+          query: {'limit': '$limit'});
+
+  // ── Legacy (deprecated) ────────────────────────────────────
+  //
+  // The old `updateSession` endpoint used a single PATCH with an
+  // `action` field to do score updates / quits. The new flow splits
+  // that into submitMatchResult + forfeitSession. These wrappers
+  // route to the new endpoints so old call sites keep working —
+  // migrate when you touch the screens that use them.
+
+  @Deprecated('Use submitMatchResult / forfeitSession instead.')
   Future<dynamic> updateSession(String id,
-      {required String action, int? score}) =>
-      patch('/arcade/game-sessions/$id/', body: {
-        'action': action,
-        if (score != null) 'score': score,
-      });
-  Future<dynamic> checkAutoQuit(String id) =>
-      post('/arcade/game-sessions/$id/auto-quit/', body: {});
+      {required String action, int? score}) {
+    if (action == 'submit_score' && score != null) {
+      return submitMatchResult(sessionId: id, score: score);
+    }
+    if (action == 'quit' || action == 'forfeit') {
+      return forfeitSession(id);
+    }
+    // Unknown actions: noop, return current session state.
+    return getSession(id);
+  }
+
+  @Deprecated('No longer needed — server settles automatically.')
+  Future<dynamic> checkAutoQuit(String id) => getSession(id);
 
   // ══════════════════════════════════════════════════════════
   // NOTIFICATIONS

@@ -232,7 +232,6 @@ class PostSerializer(serializers.ModelSerializer):
                    width=200, height=200, crop="fill", gravity="face",
                    fetch_format="auto", quality="auto", secure=True)
 
-
 class CreatePostSerializer(serializers.ModelSerializer):
     # Client sends feeling as a slug string ("happy"), not a pk.
     # Inactive feelings are excluded from the queryset so the API
@@ -246,6 +245,31 @@ class CreatePostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Post
+        # `club` is optional. When the client posts from inside a
+        # club screen, it includes the club's UUID and the post is
+        # scoped to that club; otherwise it's a regular user post.
         fields = ["post_type", "content", "visibility",
-                  "location", "background_color", "group", "event",
+                  "location", "background_color",
+                  "group", "event", "club",
                   "feeling"]
+
+    def validate_club(self, value):
+        """
+        Only members of a club can post into it. Admins (executive,
+        president) are members too, so this also covers them.
+        """
+        if value is None:
+            return value
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError(
+                "Authentication required to post into a club.")
+        from apps.clubs.models import ClubMember
+        is_member = ClubMember.objects.filter(
+            club=value, user=user, status="active"
+        ).exists()
+        if not is_member:
+            raise serializers.ValidationError(
+                "You must be an active member of this club to post into it.")
+        return value

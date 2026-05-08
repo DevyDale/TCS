@@ -4,9 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/suggestion_box_screen.dart';
-import 'package:tcs_app/services/app_localisations.dart';
-import 'package:tcs_app/services/app_settings.dart';
+import '../services/app_localisations.dart';
+import '../services/app_settings.dart';
+import 'suggestion_box_screen.dart';
+
 
 
 const _kG1 = Color(0xFF6DD5FA);

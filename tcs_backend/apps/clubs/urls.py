@@ -27,4 +27,8 @@ urlpatterns = [
     # Image uploads
     path("<uuid:pk>/cover/",   v.upload_cover,               name="club-cover"),
     path("<uuid:pk>/logo/",    v.upload_logo,                name="club-logo"),
+
+    # Phase 6 — combined posts + events feed for a club
+    path("<uuid:pk>/feed/",    v.club_feed,                  name="club-feed"),
+
 ]

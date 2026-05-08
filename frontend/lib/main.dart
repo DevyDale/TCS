@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:tcs_app/screens/splash_screen.dart';
 
-import 'package:tcs_app/services/api_service.dart';
-import 'package:tcs_app/services/app_settings.dart';
-import 'package:tcs_app/services/app_localisations.dart';
+import 'screens/splash_screen.dart';
+import 'services/api_service.dart';
+import 'services/app_localisations.dart';
+import 'services/app_settings.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

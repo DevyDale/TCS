@@ -1,7 +1,7 @@
 // lib/screens/groups/study_hub_search_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
+import '../services/api_service.dart';
 
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);

@@ -19,8 +19,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/avator/avator_view.dart';
-import 'package:tcs_app/data/avators.dart';
+
+import '../data/avators.dart';
+import 'avator_view.dart';
 
 
 

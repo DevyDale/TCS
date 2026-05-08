@@ -10,7 +10,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../screens/arcade/game_engine.dart';
+import 'game_engine.dart';
 
 // ════════════════════════════════════════════════════════════
 // CountdownIntro — 3, 2, 1, GO!

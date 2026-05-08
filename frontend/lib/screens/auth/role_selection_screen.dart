@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/login_id_screen.dart';
 import 'dart:math' as math;
 
 import '../../utils/responsive_helper.dart';
+import '../login_id_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);

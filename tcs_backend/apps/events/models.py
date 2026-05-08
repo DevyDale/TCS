@@ -33,6 +33,12 @@ class Event(models.Model):
     group       = models.ForeignKey("groups.Group", null=True, blank=True,
                                     on_delete=models.SET_NULL)
 
+    # Phase 6 — Club ownership.
+    # Mirrors Post.club. Used by the in-club Feed tab and the
+    # arcade's Club Activity Hub to surface a club's events.
+    club        = models.ForeignKey("clubs.Club", null=True, blank=True,
+                                    on_delete=models.SET_NULL,
+                                    related_name="events")
     # ── Poster (Cloudinary) ──────────────────────────────────────
     # Was ImageField('events/%Y/%m/'), now CloudinaryField for parity with
     # avatars/covers/post media. django_cleanup deletes the asset when this

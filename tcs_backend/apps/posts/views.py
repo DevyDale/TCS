@@ -10,11 +10,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from .models import (
-    Feeling, Post, PostMedia, Like, Comment, Bookmark, PostFlag,
+    Feeling, Hashtag, Post, PostMedia, Like, Comment, Bookmark, PostFlag,
     attach_hashtags,
 )
 from .serializers import (
-    FeelingSerializer, PostSerializer, CreatePostSerializer,
+    FeelingSerializer, HashtagSerializer,
+    PostSerializer, CreatePostSerializer,
     PostMediaSerializer, CommentSerializer,
 )
 
@@ -108,13 +109,19 @@ class PostListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs      = (Post.objects
-                       .select_related("author")
+                       .select_related("author", "club")
                        .prefetch_related("media_files", "hashtags")
                        .filter(visibility="public")
                        .exclude(is_flagged=True))
         user_id = self.request.query_params.get("user_id")
+        club_id = self.request.query_params.get("club_id")
         if user_id:
             qs = qs.filter(author__user_id=user_id)
+        if club_id:
+            # Posts scoped to a specific club. Used by the in-club
+            # Feed tab. Visibility filter above already restricts to
+            # public; club admins can broaden this in a later phase.
+            qs = qs.filter(club_id=club_id)
         return qs.order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
@@ -224,10 +231,13 @@ def search_posts(request):
 # ─────────────────────────────────────────────────────────────
 # FEED
 # ─────────────────────────────────────────────────────────────
-
 class FeedView(generics.ListAPIView):
     """
-    GET /api/posts/feed/?type=home|following|trending|announcements&page=1
+    GET /api/posts/feed/?type=home|following|trending|announcements|club_posts&page=1
+
+    Phase 6: added `club_posts` type. Returns posts attached to clubs
+    the viewer is an active member of, plus public club posts from
+    any club. This powers the "Clubs" tab in the campus feed.
     """
     serializer_class   = PostSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -240,12 +250,27 @@ class FeedView(generics.ListAPIView):
         feed_type = self.request.query_params.get("type", "home")
         me        = self.request.user
         base = (Post.objects
-                    .select_related("author")
+                    .select_related("author", "club")
                     .prefetch_related("media_files", "hashtags")
                     .exclude(is_flagged=True))
 
         if feed_type == "announcements":
             return base.filter(post_type="announcement").order_by("-created_at")
+
+        # ── NEW: Club Posts tab ─────────────────────────────────
+        if feed_type == "club_posts":
+            from apps.clubs.models import ClubMember
+            my_club_ids = ClubMember.objects.filter(
+                user=me, status="active"
+            ).values_list("club_id", flat=True)
+            return (base
+                    .filter(club__isnull=False)
+                    .filter(
+                        Q(club_id__in=my_club_ids) |
+                        Q(visibility="public")
+                    )
+                    .distinct()
+                    .order_by("-created_at"))
 
         if feed_type == "following":
             following_ids = me.following.values_list("id", flat=True)
@@ -500,3 +525,49 @@ class CommentListCreateView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user, post=post)
         post.comments_count += 1
         post.save(update_fields=["comments_count"])
+
+
+# ─────────────────────────────────────────────────────────────
+# HASHTAGS  &  FEELINGS  (function-based list views)
+#
+# Wired by apps/posts/urls.py:
+#   path("hashtags/", views.list_hashtags, name="hashtags-list")
+#   path("feelings/", views.list_feelings, name="feelings-list")
+#
+# `FeelingListView` (class-based) above is a separate, parallel
+# entry point at /api/feelings/. Both can coexist — they hit the
+# same data through different URLs.
+# ─────────────────────────────────────────────────────────────
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def list_hashtags(request):
+    """
+    GET /api/posts/hashtags/?q=&limit=
+        ?q       — optional prefix filter (case-insensitive on slug)
+        ?limit   — optional, default 30, max 100
+
+    Returns trending hashtags ordered by posts_count desc, with
+    last_used_at desc as a tiebreaker so a tag that was just used
+    edges out one that hasn't been touched in a month.
+    """
+    q     = (request.query_params.get("q") or "").strip().lower()
+    limit = min(int(request.query_params.get("limit", 30)), 100)
+
+    qs = Hashtag.objects.all()
+    if q:
+        qs = qs.filter(slug__startswith=q)
+    qs = qs.order_by("-posts_count", "-last_used_at")[:limit]
+    return Response(HashtagSerializer(qs, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def list_feelings(request):
+    """
+    GET /api/posts/feelings/  — function-based companion to the
+    /api/feelings/ class-based view (FeelingListView). Returns
+    active feelings ordered by sort_order, then label.
+    """
+    qs = Feeling.objects.filter(is_active=True).order_by("sort_order", "label")
+    return Response(FeelingSerializer(qs, many=True).data)

@@ -1,481 +1,714 @@
 // lib/screens/arcade/game_requests_screen.dart
+//
+// Two tabs:
+//   • Incoming  — challenges sent to me (accept/decline)
+//   • New       — search players, pick a game, set a wager, send invite
+//
+// "New" tab supports up to 4 recipients for ROYALE games; 1-on-1 for
+// FIRST_COME games; and hides the "Challenge" button entirely for
+// SOLO_ONLY games.
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../services/api_service.dart';
-import 'game_engine.dart';
 
-// ─── Game request model ───────────────────────────────────────
-class GameRequest {
-  final String id, senderTag, receiverTag, gameSlug, gameName, senderId;
-  final int wager;
-  final String status; // pending|accepted|declined|expired
-  const GameRequest({
-    required this.id, required this.senderTag, required this.receiverTag,
-    required this.gameSlug, required this.gameName,
-    required this.wager, required this.status, required this.senderId,
-  });
-  factory GameRequest.fromJson(Map<String,dynamic> j) => GameRequest(
-    id:         j['id']?.toString()           ?? '',
-    senderTag:  j['sender_tag']               ?? '',
-    receiverTag:j['receiver_tag']             ?? '',
-    gameSlug:   j['game_slug']                ?? '',
-    gameName:   j['game_name']                ?? '',
-    wager:      (j['wager'] as num?)?.toInt() ?? 0,
-    status:     j['status']                   ?? 'pending',
-    senderId:   j['sender_id']?.toString()    ?? '',
-  );
-}
+import '../../services/api_service.dart';
+
+
+const _kDarkBg     = Color(0xFF0D0D1A);
+const _kDarkCard   = Color(0xFF161628);
+const _kDarkCard2  = Color(0xFF1E1E38);
+const _kNeonBlue   = Color(0xFF6DD5FA);
+const _kNeonPurple = Color(0xFF8E54E9);
+const _kNeonOrange = Color(0xFFF7971E);
+const _kNeonRed    = Color(0xFFFF5858);
+const _kTokenColor = Color(0xFFFFD700);
+
+const _kMaxRecipients = 4;
+const _kWagerOptions  = [0, 10, 25, 50, 100, 200, 500];
+
 
 // ─────────────────────────────────────────────────────────────
 class GameRequestsScreen extends StatefulWidget {
   final int myTokens;
   const GameRequestsScreen({super.key, required this.myTokens});
-  @override State<GameRequestsScreen> createState() => _GameRequestsScreenState();
+  @override
+  State<GameRequestsScreen> createState() => _GameRequestsScreenState();
 }
 
 class _GameRequestsScreenState extends State<GameRequestsScreen>
     with SingleTickerProviderStateMixin {
-  final _api        = ApiService();
-  final _searchCtrl = TextEditingController();
-  late final TabController _tabCtrl;
-  Timer? _pollTimer;
+  final _api  = ApiService();
+  late TabController _tab;
 
-  List<Map<String,dynamic>> _searchResults = [];
-  List<GameRequest>         _incoming      = [];
-  List<GameRequest>         _outgoing      = [];
-  bool _searching = false, _loadingReqs = true;
-
-  // New request form state
-  String? _selectedGameSlug, _selectedGameName;
-  int     _wager = 0;
-  Map<String,dynamic>? _selectedUser;
-
-  final _games = [
-    {'slug':'quiz-battle',    'name':'Quiz Battle',    'emoji':'🧠'},
-    {'slug':'tic-tac-toe',    'name':'Tic Tac Toe',    'emoji':'⭕'},
-    {'slug':'basketball',     'name':'Stickman Hoops', 'emoji':'🏀'},
-    {'slug':'texas-poker',    'name':"Texas Hold'em",  'emoji':'🃏'},
-    {'slug':'ninja-tag',      'name':'Ninja Tag',      'emoji':'🥷'},
-    {'slug':'sushi-rush',     'name':'Sushi Rush',     'emoji':'🍣'},
-    {'slug':'battle-bots',    'name':'Battle Bots',    'emoji':'🤖'},
-    {'slug':'campus-craft',   'name':'Campus Craft',   'emoji':'🏗️'},
-    {'slug':'pool-royale',    'name':'Pool Royale',    'emoji':'🎱'},
-    {'slug':'spirit-racers',  'name':'Spirit Racers',  'emoji':'🏎️'},
-    {'slug':'memory-match',   'name':'Memory Match',   'emoji':'🃏'},
-    {'slug':'snake',          'name':'Snake',          'emoji':'🐍'},
-    {'slug':'number-guesser', 'name':'Number Guesser', 'emoji':'🔢'},
-  ];
+  List<_Req>      _incoming  = [];
+  List<dynamic>   _games     = [];
+  bool _loading = true;
+  int  _myTokens = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
-    _loadRequests();
-    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadRequests());
+    _tab = TabController(length: 2, vsync: this);
+    _myTokens = widget.myTokens;
+    _loadAll();
   }
 
   @override
-  void dispose() { _tabCtrl.dispose(); _searchCtrl.dispose();
-    _pollTimer?.cancel(); super.dispose(); }
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
-  Future<void> _loadRequests() async {
+  Future<void> _loadAll() async {
+    setState(() => _loading = true);
     try {
-      final data = await _api.get('/arcade/game-requests/') as Map<String,dynamic>;
+      final reqs  = await _api.getGameRequests();
+      final games = await _api.getGames();
+      final wallet = await _api.getTokenWallet();
       if (!mounted) return;
       setState(() {
-        _incoming = ((data['incoming'] as List?) ?? [])
-            .map((e) => GameRequest.fromJson(e as Map<String,dynamic>)).toList();
-        _outgoing = ((data['outgoing'] as List?) ?? [])
-            .map((e) => GameRequest.fromJson(e as Map<String,dynamic>)).toList();
-        _loadingReqs = false;
+        _incoming = (reqs as List? ?? const [])
+            .map((m) => _Req.fromJson(m as Map<String, dynamic>))
+            .toList();
+        _games    = games as List? ?? const [];
+        _myTokens = (wallet as Map?)?['tokens'] as int? ?? _myTokens;
+        _loading  = false;
       });
-    } catch (_) { if (mounted) setState(() => _loadingReqs = false); }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  Future<void> _searchUsers(String q) async {
-    if (q.trim().isEmpty) { setState(() => _searchResults = []); return; }
-    setState(() => _searching = true);
-    try {
-      final data = await _api.get('/accounts/search/?q=${Uri.encodeComponent(q)}')
-          as Map<String,dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _searchResults = ((data['results'] as List?) ?? [])
-            .cast<Map<String,dynamic>>();
-        _searching = false;
-      });
-    } catch (_) { if (mounted) setState(() => _searching = false); }
-  }
-
-  Future<void> _sendRequest() async {
-    if (_selectedUser == null || _selectedGameSlug == null || _wager <= 0) {
-      _snack('Select a player, game and wager amount');
+  // ── Accept / decline ───────────────────────────────────
+  Future<void> _accept(_Req r) async {
+    if (r.wager > _myTokens) {
+      _snack('You only have $_myTokens 🪙 — wager is ${r.wager}');
       return;
     }
-    if (_wager > widget.myTokens) {
-      _snack('Not enough tokens! You have ${widget.myTokens} 🪙');
-      return;
-    }
-    HapticFeedback.heavyImpact();
-    try {
-      await _api.post('/arcade/game-requests/', body: {
-        'receiver_id':  _selectedUser!['user_id']?.toString() ?? _selectedUser!['id']?.toString(),
-        'game_slug':    _selectedGameSlug,
-        'wager':        _wager,
-      });
-      _snack('⚔️ Challenge sent to @${_selectedUser!['gamer_tag'] ?? _selectedUser!['name']}!',
-        success: true);
-      setState(() { _selectedUser = null; _selectedGameSlug = null; _wager = 0; });
-      _loadRequests();
-    } catch (e) { _snack('Failed: $e'); }
-  }
-
-  Future<void> _respond(GameRequest req, bool accept) async {
     HapticFeedback.mediumImpact();
     try {
-      await _api.post('/arcade/game-requests/${req.id}/${accept ? "accept" : "decline"}/', body: {});
-      if (accept) {
-        _snack('✅ Challenge accepted! Game starting...', success: true);
-        // Navigate to the game with multiplayer session
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (!mounted) return;
-          Navigator.pop(context, {'action':'start_game','request':req});
-        });
-      } else {
-        _snack('Declined the challenge');
-        _loadRequests();
-      }
+      final res = await _api.acceptChallenge(r.id) as Map<String, dynamic>;
+      _snack('⚔️ Challenge accepted!', success: true);
+      if (!mounted) return;
+      Navigator.pop(context, {
+        'action':  'start_game',
+        'session': res['session'],
+      });
+    } catch (e) {
+      _snack('Failed: $e');
+    }
+  }
+
+  Future<void> _decline(_Req r) async {
+    HapticFeedback.lightImpact();
+    try {
+      await _api.declineChallenge(r.id);
+      _snack('Declined');
+      _loadAll();
     } catch (e) { _snack('Failed: $e'); }
   }
 
   void _snack(String msg, {bool success = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontFamily:'Momo')),
-      backgroundColor: success ? Colors.green.shade700 : kDarkCard2,
-      behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16)));
+      content: Text(msg, style: const TextStyle(fontFamily: 'Momo')),
+      backgroundColor: success ? Colors.green.shade700 : _kNeonRed,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
+  // ── Build ──────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDarkBg,
-      body: SafeArea(child: Column(children: [
-        // Header
-        Container(padding: const EdgeInsets.fromLTRB(16,12,16,0),
-          child: Row(children: [
-            GestureDetector(onTap: () => Navigator.pop(context),
-              child: Container(width:40,height:40,
-                decoration:BoxDecoration(color:kDarkCard2,
-                  borderRadius:BorderRadius.circular(12),
-                  border:Border.all(color:Colors.white.withOpacity(0.08))),
-                child:const Icon(Icons.arrow_back_rounded,color:Colors.white60,size:20))),
-            const SizedBox(width:12),
-            const Expanded(child:Text('⚔️ Game Challenges',
-              style:TextStyle(fontFamily:'Alfa',fontSize:22,color:Colors.white))),
-            Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),
-              decoration:BoxDecoration(color:kNeonOrange.withOpacity(0.12),
-                borderRadius:BorderRadius.circular(10),
-                border:Border.all(color:kNeonOrange.withOpacity(0.3))),
-              child:Row(mainAxisSize:MainAxisSize.min,children:[
-                const Text('🪙',style:TextStyle(fontSize:14)),
-                const SizedBox(width:4),
-                Text('${widget.myTokens}',style:const TextStyle(fontFamily:'Alfa',
-                  fontSize:14,color:kNeonOrange)),
-              ])),
-          ])),
-        const SizedBox(height:12),
-        // Tabs
-        Container(margin:const EdgeInsets.symmetric(horizontal:16),
-          decoration:BoxDecoration(color:kDarkCard,
-            borderRadius:BorderRadius.circular(12),
-            border:Border.all(color:Colors.white.withOpacity(0.06))),
-          child:TabBar(controller:_tabCtrl,
-            indicator:BoxDecoration(
-              gradient:const LinearGradient(colors:[kNeonPurple,kNeonBlue]),
-              borderRadius:BorderRadius.circular(10)),
-            indicatorSize:TabBarIndicatorSize.tab,
-            labelStyle:const TextStyle(fontFamily:'Arch',fontWeight:FontWeight.bold,fontSize:13),
-            unselectedLabelColor:Colors.white38,
-            labelColor:Colors.white,
-            dividerColor:Colors.transparent,
-            tabs:const[Tab(text:'📨 Received'),Tab(text:'🗡 Challenge')])),
-        Expanded(child:TabBarView(controller:_tabCtrl,children:[
-          _requestsTab(),
-          _challengeTab(),
-        ])),
-      ])),
+      backgroundColor: _kDarkBg,
+      appBar: AppBar(
+        backgroundColor: _kDarkBg,
+        elevation: 0,
+        title: const Text('Challenges',
+          style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+        bottom: TabBar(
+          controller: _tab,
+          indicatorColor: _kNeonPurple,
+          labelStyle: const TextStyle(fontFamily: 'Arch',
+              fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: [
+            Tab(text: 'Incoming (${_incoming.length})'),
+            const Tab(text: 'New Challenge'),
+          ],
+        ),
+      ),
+      body: _loading
+        ? const Center(child: CircularProgressIndicator(color: _kNeonBlue))
+        : TabBarView(controller: _tab, children: [
+            _IncomingList(
+              items:    _incoming,
+              myTokens: _myTokens,
+              onAccept: _accept,
+              onDecline:_decline,
+              onRefresh:_loadAll,
+            ),
+            _NewChallengeTab(
+              games:    _games,
+              myTokens: _myTokens,
+              onSent:   _loadAll,
+            ),
+          ]),
     );
   }
-
-  // ── Received requests ─────────────────────────────────────
-
-  Widget _requestsTab() {
-    if (_loadingReqs) {
-      return const Center(
-        child: CircularProgressIndicator(color: kNeonPurple));
-    }
-
-    final pending = _incoming.where((r) => r.status == 'pending').toList();
-
-    if (pending.isEmpty) {
-      return Center(child: Column(
-      mainAxisSize:MainAxisSize.min, children:[
-      const Text('⚔️',style:TextStyle(fontSize:52)),
-      const SizedBox(height:14),
-      const Text('No Challenges',style:TextStyle(fontFamily:'Alfa',
-        fontSize:18,color:Colors.white)),
-      const SizedBox(height:6),
-      Text('Challenge friends from the Challenge tab!',
-        style:TextStyle(fontFamily:'Momo',fontSize:13,
-          color:Colors.white.withOpacity(0.4))),
-    ]));
-    }
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16,12,16,80),
-      children: pending.map((req) => _RequestCard(
-        req: req,
-        onAccept: () => _respond(req, true),
-        onDecline: () => _respond(req, false),
-      )).toList(),
-    );
-  }
-
-  // ── Send challenge ────────────────────────────────────────
-
-  Widget _challengeTab() => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(16,12,16,80),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Step 1: Search player
-      _stepLabel('1', 'Find a player'),
-      const SizedBox(height:8),
-      Container(padding:const EdgeInsets.symmetric(horizontal:14,vertical:4),
-        decoration:BoxDecoration(color:kDarkCard,borderRadius:BorderRadius.circular(14),
-          border:Border.all(color:Colors.white.withOpacity(0.07))),
-        child:TextField(controller:_searchCtrl,
-          style:const TextStyle(fontFamily:'Momo',fontSize:14,color:Colors.white),
-          decoration:InputDecoration(
-            hintText:'Search gamer tag...',
-            hintStyle:TextStyle(fontFamily:'Momo',color:Colors.white38),
-            prefixIcon:_searching
-              ?const Padding(padding:EdgeInsets.all(12),
-                child:SizedBox(width:16,height:16,child:CircularProgressIndicator(
-                  color:kNeonPurple,strokeWidth:2)))
-              :const Icon(Icons.search_rounded,color:Colors.white38),
-            border:InputBorder.none,
-            contentPadding:const EdgeInsets.symmetric(vertical:14)),
-          onChanged:_searchUsers)),
-      // Search results
-      if (_searchResults.isNotEmpty)
-        Container(margin:const EdgeInsets.only(top:8),
-          decoration:BoxDecoration(color:kDarkCard2,borderRadius:BorderRadius.circular(12)),
-          child:Column(children:_searchResults.take(5).map((u){
-            final name=u['gamer_tag']??u['display_name']??'Unknown';
-            final sel=_selectedUser==u;
-            return GestureDetector(onTap:()=>setState(()=>_selectedUser=u),
-              child:Container(
-                padding:const EdgeInsets.symmetric(horizontal:14,vertical:12),
-                decoration:BoxDecoration(
-                  color:sel?kNeonPurple.withOpacity(0.15):Colors.transparent,
-                  borderRadius:BorderRadius.circular(12),
-                  border:sel?Border.all(color:kNeonPurple.withOpacity(0.4)):null),
-                child:Row(children:[
-                  Container(width:36,height:36,
-                    decoration:BoxDecoration(gradient:const LinearGradient(
-                      colors:[kNeonBlue,kNeonPurple]),shape:BoxShape.circle),
-                    child:Center(child:Text(name.isNotEmpty?name[0].toUpperCase():'?',
-                      style:const TextStyle(color:Colors.white,fontFamily:'Arch',
-                        fontWeight:FontWeight.bold)))),
-                  const SizedBox(width:12),
-                  Expanded(child:Text('@$name',style:const TextStyle(fontFamily:'Arch',
-                    fontWeight:FontWeight.bold,fontSize:14,color:Colors.white))),
-                  if(sel)const Icon(Icons.check_circle_rounded,
-                    color:kNeonPurple,size:18),
-                ])));
-          }).toList())),
-
-      if (_selectedUser != null) ...[
-        const SizedBox(height:6),
-        Container(padding:const EdgeInsets.all(10),
-          decoration:BoxDecoration(color:kNeonPurple.withOpacity(0.08),
-            borderRadius:BorderRadius.circular(10)),
-          child:Row(children:[
-            const Text('⚔️ Challenging: ',style:TextStyle(fontFamily:'Momo',
-              fontSize:12,color:Colors.white54)),
-            Text('@${_selectedUser!['gamer_tag']??_selectedUser!['display_name']}',
-              style:const TextStyle(fontFamily:'Arch',fontWeight:FontWeight.bold,
-                fontSize:13,color:kNeonPurple)),
-          ])),
-      ],
-
-      const SizedBox(height:20),
-
-      // Step 2: Select game
-      _stepLabel('2','Pick a game'),
-      const SizedBox(height:10),
-      Wrap(spacing:8,runSpacing:8,children:_games.map((g){
-        final sel=_selectedGameSlug==g['slug'];
-        return GestureDetector(onTap:()=>setState((){
-          _selectedGameSlug=g['slug'] as String;
-          _selectedGameName=g['name'] as String;
-        }),child:AnimatedContainer(duration:const Duration(milliseconds:200),
-          padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),
-          decoration:BoxDecoration(
-            gradient:sel?const LinearGradient(colors:[kNeonBlue,kNeonPurple]):null,
-            color:sel?null:kDarkCard2,borderRadius:BorderRadius.circular(10),
-            border:Border.all(color:sel?Colors.transparent:Colors.white.withOpacity(0.07))),
-          child:Row(mainAxisSize:MainAxisSize.min,children:[
-            Text(g['emoji'] as String,style:const TextStyle(fontSize:16)),
-            const SizedBox(width:6),
-            Text(g['name'] as String,style:TextStyle(fontFamily:'Arch',
-              fontWeight:FontWeight.bold,fontSize:12,
-              color:sel?Colors.white:Colors.white60)),
-          ])));
-      }).toList()),
-
-      const SizedBox(height:20),
-
-      // Step 3: Wager
-      _stepLabel('3','Set wager'),
-      const SizedBox(height:8),
-      Text('You have ${widget.myTokens} 🪙 tokens',
-        style:TextStyle(fontFamily:'Momo',fontSize:12,color:Colors.white38)),
-      const SizedBox(height:10),
-      Wrap(spacing:8,runSpacing:8,children:[10,25,50,100,200,500].map((amt){
-        final sel=_wager==amt;
-        final enough=amt<=widget.myTokens;
-        return GestureDetector(onTap:enough?()=>setState(()=>_wager=amt):null,
-          child:AnimatedContainer(duration:const Duration(milliseconds:200),
-            padding:const EdgeInsets.symmetric(horizontal:16,vertical:10),
-            decoration:BoxDecoration(
-              gradient:sel?const LinearGradient(colors:[kNeonOrange,kNeonRed]):null,
-              color:sel?null:enough?kDarkCard2:kDarkCard2.withOpacity(0.4),
-              borderRadius:BorderRadius.circular(10),
-              border:Border.all(color:sel?Colors.transparent:
-                Colors.white.withOpacity(enough?0.08:0.03))),
-            child:Text('🪙 $amt',style:TextStyle(fontFamily:'Arch',
-              fontWeight:FontWeight.bold,fontSize:13,
-              color:sel?Colors.white:enough?Colors.white60:Colors.white24))));
-      }).toList()),
-
-      const SizedBox(height:24),
-
-      // Summary & send
-      if (_selectedUser != null && _selectedGameSlug != null && _wager > 0)
-        Container(padding:const EdgeInsets.all(16),
-          decoration:BoxDecoration(color:kDarkCard,borderRadius:BorderRadius.circular(16),
-            border:Border.all(color:kNeonOrange.withOpacity(0.2))),
-          child:Column(children:[
-            Row(children:[
-              const Text('🎮',style:TextStyle(fontSize:18)),
-              const SizedBox(width:10),
-              Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-                Text('vs @${_selectedUser!['gamer_tag']??'?'}',
-                  style:const TextStyle(fontFamily:'Arch',fontWeight:FontWeight.bold,
-                    fontSize:15,color:Colors.white)),
-                Text('$_selectedGameName · 🪙 $_wager at stake',
-                  style:const TextStyle(fontFamily:'Momo',fontSize:12,color:Colors.white54)),
-              ])),
-            ]),
-            const SizedBox(height:14),
-            GestureDetector(onTap:_sendRequest,
-              child:Container(width:double.infinity,height:50,
-                decoration:BoxDecoration(
-                  gradient:const LinearGradient(colors:[kNeonOrange,kNeonRed]),
-                  borderRadius:BorderRadius.circular(12)),
-                child:const Center(child:Text('⚔️ Send Challenge!',
-                  style:TextStyle(fontFamily:'Arch',fontWeight:FontWeight.bold,
-                    fontSize:16,color:Colors.white))))),
-          ])),
-    ]),
-  );
-
-  Widget _stepLabel(String n, String label) => Row(children:[
-    Container(width:26,height:26,
-      decoration:BoxDecoration(gradient:const LinearGradient(colors:[kNeonPurple,kNeonBlue]),
-        shape:BoxShape.circle),
-      child:Center(child:Text(n,style:const TextStyle(fontFamily:'Alfa',
-        fontSize:13,color:Colors.white)))),
-    const SizedBox(width:8),
-    Text(label,style:const TextStyle(fontFamily:'Alfa',fontSize:16,color:Colors.white)),
-  ]);
 }
 
-// ─── Request card ─────────────────────────────────────────────
-class _RequestCard extends StatelessWidget {
-  final GameRequest req;
-  final VoidCallback onAccept, onDecline;
-  const _RequestCard({required this.req, required this.onAccept, required this.onDecline});
 
+// ─────────────────────────────────────────────────────────────
+//                          DATA
+// ─────────────────────────────────────────────────────────────
+class _Req {
+  final String id, gameSlug, gameName, senderTag, senderName,
+               senderAvatar, inviteId;
+  final int    wager, senderLevel;
+  _Req({
+    required this.id, required this.inviteId,
+    required this.gameSlug, required this.gameName,
+    required this.senderTag, required this.senderName,
+    required this.senderAvatar, required this.wager,
+    required this.senderLevel,
+  });
+  factory _Req.fromJson(Map<String, dynamic> j) => _Req(
+    id:           j['id']            as String? ?? '',
+    inviteId:     j['invite_id']     as String? ?? '',
+    gameSlug:     j['game_slug']     as String? ?? '',
+    gameName:     j['game_name']     as String? ?? '',
+    senderTag:    j['sender_tag']    as String? ?? '',
+    senderName:   j['sender_name']   as String? ?? 'Player',
+    senderAvatar: j['sender_avatar'] as String? ?? '',
+    wager:        j['wager']         as int?    ?? 0,
+    senderLevel:  j['sender_level']  as int?    ?? 1,
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//                       INCOMING LIST
+// ─────────────────────────────────────────────────────────────
+class _IncomingList extends StatelessWidget {
+  final List<_Req> items;
+  final int        myTokens;
+  final Function(_Req) onAccept, onDecline;
+  final VoidCallback   onRefresh;
+  const _IncomingList({
+    required this.items, required this.myTokens,
+    required this.onAccept, required this.onDecline,
+    required this.onRefresh,
+  });
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async => onRefresh(),
+        child: ListView(children: const [
+          SizedBox(height: 120),
+          Center(child: Text('🎮', style: TextStyle(fontSize: 64))),
+          SizedBox(height: 12),
+          Center(child: Text('No challenges right now',
+            style: TextStyle(fontFamily: 'Alfa', color: Colors.white60,
+                fontSize: 16))),
+          SizedBox(height: 6),
+          Center(child: Text('Pull down to refresh',
+            style: TextStyle(fontFamily: 'Momo', color: Colors.white24,
+                fontSize: 12))),
+        ]),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () async => onRefresh(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: items.length,
+        itemBuilder: (_, i) => _IncomingCard(
+          req: items[i], myTokens: myTokens,
+          onAccept: () => onAccept(items[i]),
+          onDecline:() => onDecline(items[i]),
+        ),
+      ),
+    );
+  }
+}
+
+class _IncomingCard extends StatelessWidget {
+  final _Req req;
+  final int  myTokens;
+  final VoidCallback onAccept, onDecline;
+  const _IncomingCard({
+    required this.req, required this.myTokens,
+    required this.onAccept, required this.onDecline,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final canAfford = req.wager <= myTokens;
     return Container(
-      margin: const EdgeInsets.only(bottom:12),
+      margin:  const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: kDarkCard, borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: kNeonOrange.withOpacity(0.2)),
-        boxShadow:[BoxShadow(color:kNeonOrange.withOpacity(0.08),
-          blurRadius:12,offset:const Offset(0,4))]),
+      decoration: BoxDecoration(
+        color: _kDarkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kNeonPurple.withOpacity(0.2)),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width:44,height:44,
-            decoration:BoxDecoration(gradient:const LinearGradient(
-              colors:[kNeonPurple,kNeonBlue]),shape:BoxShape.circle),
-            child:Center(child:Text(
-              req.senderTag.isNotEmpty?req.senderTag[0].toUpperCase():'?',
-              style:const TextStyle(color:Colors.white,fontFamily:'Arch',
-                fontWeight:FontWeight.bold,fontSize:18)))),
-          const SizedBox(width:12),
-          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text('@${req.senderTag}',style:const TextStyle(fontFamily:'Arch',
-              fontWeight:FontWeight.bold,fontSize:15,color:Colors.white)),
-            Text('challenged you!',style:TextStyle(fontFamily:'Momo',
-              fontSize:12,color:Colors.white.withOpacity(0.5))),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: _kNeonPurple.withOpacity(0.25),
+            backgroundImage: req.senderAvatar.isNotEmpty
+                ? NetworkImage(req.senderAvatar) : null,
+            child: req.senderAvatar.isEmpty
+                ? Text(req.senderName.isNotEmpty
+                    ? req.senderName[0].toUpperCase() : '?',
+                  style: const TextStyle(color: Colors.white,
+                      fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                      fontSize: 18))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment:
+              CrossAxisAlignment.start, children: [
+            Text('@${req.senderTag.isNotEmpty ? req.senderTag : req.senderName}',
+              style: const TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 15,
+                  color: Colors.white)),
+            Text('Lv ${req.senderLevel} · challenged you',
+              style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                  color: Colors.white.withOpacity(0.5))),
           ])),
-          Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),
-            decoration:BoxDecoration(color:kNeonOrange.withOpacity(0.12),
-              borderRadius:BorderRadius.circular(20),
-              border:Border.all(color:kNeonOrange.withOpacity(0.3))),
-            child:Text('🪙 ${req.wager}',style:const TextStyle(fontFamily:'Alfa',
-              fontSize:14,color:kNeonOrange))),
+          Container(padding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _kNeonOrange.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _kNeonOrange.withOpacity(0.3))),
+            child: Text('🪙 ${req.wager}',
+              style: const TextStyle(fontFamily: 'Alfa',
+                  fontSize: 14, color: _kNeonOrange))),
         ]),
-        const SizedBox(height:12),
-        Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),
-          decoration:BoxDecoration(color:kDarkCard2,borderRadius:BorderRadius.circular(10)),
-          child:Row(children:[
-            const Text('🎮',style:TextStyle(fontSize:16)),
-            const SizedBox(width:8),
-            Text(req.gameName,style:const TextStyle(fontFamily:'Arch',
-              fontWeight:FontWeight.bold,fontSize:14,color:Colors.white)),
+        const SizedBox(height: 12),
+        Container(padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: _kDarkCard2,
+              borderRadius: BorderRadius.circular(10)),
+          child: Row(children: [
+            const Text('🎮', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Text(req.gameName,
+              style: const TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 14,
+                  color: Colors.white)),
           ])),
-        const SizedBox(height:10),
-        Text('Accepting deducts 🪙 ${req.wager} from your wallet.',
-          style:TextStyle(fontFamily:'Momo',fontSize:11,color:Colors.white38)),
-        const SizedBox(height:12),
-        Row(children:[
-          Expanded(child:GestureDetector(onTap:onDecline,
-            child:Container(height:44,
-              decoration:BoxDecoration(color:kNeonRed.withOpacity(0.1),
-                borderRadius:BorderRadius.circular(12),
-                border:Border.all(color:kNeonRed.withOpacity(0.3))),
-              child:const Center(child:Text('✕  Decline',style:TextStyle(
-                fontFamily:'Arch',fontWeight:FontWeight.bold,
-                fontSize:14,color:kNeonRed)))))),
-          const SizedBox(width:10),
-          Expanded(child:GestureDetector(onTap:onAccept,
-            child:Container(height:44,
-              decoration:BoxDecoration(
-                gradient:const LinearGradient(colors:[Color(0xFF388E3C),Color(0xFF1B5E20)]),
-                borderRadius:BorderRadius.circular(12)),
-              child:const Center(child:Text('⚔️  Accept!',style:TextStyle(
-                fontFamily:'Arch',fontWeight:FontWeight.bold,
-                fontSize:14,color:Colors.white)))))),
+        const SizedBox(height: 10),
+        Text(canAfford
+            ? 'Accepting deducts 🪙 ${req.wager} from your wallet.'
+            : '⚠ Not enough tokens (you have $myTokens 🪙).',
+          style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+              color: canAfford ? Colors.white38 : _kNeonRed)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: GestureDetector(onTap: onDecline,
+            child: Container(height: 44,
+              decoration: BoxDecoration(color: _kNeonRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _kNeonRed.withOpacity(0.3))),
+              child: const Center(child: Text('✕  Decline',
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 14,
+                    color: _kNeonRed)))))),
+          const SizedBox(width: 10),
+          Expanded(child: Opacity(opacity: canAfford ? 1.0 : 0.4,
+            child: GestureDetector(onTap: canAfford ? onAccept : null,
+              child: Container(height: 44,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [
+                    Color(0xFF388E3C), Color(0xFF1B5E20)]),
+                  borderRadius: BorderRadius.circular(12)),
+                child: const Center(child: Text('⚔  Accept',
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 14,
+                      color: Colors.white)))))))
         ]),
       ]),
     );
   }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//                       NEW CHALLENGE TAB
+// ─────────────────────────────────────────────────────────────
+class _NewChallengeTab extends StatefulWidget {
+  final List<dynamic> games;
+  final int           myTokens;
+  final VoidCallback  onSent;
+  const _NewChallengeTab({
+    required this.games, required this.myTokens, required this.onSent,
+  });
+  @override
+  State<_NewChallengeTab> createState() => _NewChallengeTabState();
+}
+
+class _NewChallengeTabState extends State<_NewChallengeTab> {
+  final _api    = ApiService();
+  final _search = TextEditingController();
+  Timer? _debounce;
+
+  List<Map<String, dynamic>> _searchResults  = [];
+  bool                       _searching      = false;
+
+  // Selected players (max 4)
+  final List<Map<String, dynamic>> _selected = [];
+
+  Map<String, dynamic>? _selectedGame;
+  int _wager = 0;
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
+    super.dispose();
+  }
+
+  // ── Game properties ────────────────────────────────────
+  bool get _isRoyale =>
+      _selectedGame?['invite_mode'] == 'royale';
+  bool get _isMultiCapable =>
+      _isRoyale; // only royale supports >1 recipient
+  int  get _maxSelectable => _isMultiCapable ? _kMaxRecipients : 1;
+
+  void _onSearchChange(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 280), () => _doSearch(q));
+  }
+
+  Future<void> _doSearch(String q) async {
+    if (q.trim().isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+    setState(() => _searching = true);
+    try {
+      final res = await _api.searchGamers(query: q.trim()) as Map?;
+      if (!mounted) return;
+      setState(() {
+        _searchResults = (res?['results'] as List? ?? const [])
+            .cast<Map<String, dynamic>>();
+        _searching = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  void _toggleSelected(Map<String, dynamic> u) {
+    HapticFeedback.lightImpact();
+    final id = u['user_id'] as String? ?? '';
+    if (id.isEmpty) return;
+    final already = _selected.indexWhere((x) => x['user_id'] == id);
+    setState(() {
+      if (already >= 0) {
+        _selected.removeAt(already);
+      } else {
+        if (_selected.length >= _maxSelectable) {
+          // For 1v1 games, replace; for royale, ignore extra clicks beyond max.
+          if (_maxSelectable == 1) _selected.clear();
+          else return;
+        }
+        _selected.add(u);
+      }
+    });
+  }
+
+  void _pickGame(Map<String, dynamic> g) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedGame = g;
+      // If switching from a royale to a 1v1 game with multiple selections,
+      // trim to 1.
+      if (!_isMultiCapable && _selected.length > 1) {
+        _selected.removeRange(1, _selected.length);
+      }
+    });
+  }
+
+  Future<void> _send() async {
+    if (_selected.isEmpty) {
+      _snack('Pick at least one player');         return;
+    }
+    if (_selectedGame == null) {
+      _snack('Pick a game');                       return;
+    }
+    final perPlayerCost = _wager;
+    if (perPlayerCost > widget.myTokens) {
+      _snack('Wager exceeds your wallet (${widget.myTokens} 🪙)'); return;
+    }
+
+    setState(() => _sending = true);
+    try {
+      await _api.createChallenge(
+        gameSlug:         _selectedGame!['slug'] as String,
+        recipientUserIds: _selected
+            .map((u) => u['user_id'] as String).toList(),
+        wager:            perPlayerCost,
+      );
+      if (!mounted) return;
+      _snack('⚔️ Challenge sent to ${_selected.length} player'
+          '${_selected.length > 1 ? 's' : ''}!', success: true);
+      setState(() {
+        _selected.clear();
+        _selectedGame = null;
+        _wager = 0;
+        _searchResults = [];
+        _search.clear();
+        _sending = false;
+      });
+      widget.onSent();
+    } catch (e) {
+      _snack('Failed: $e');
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _snack(String m, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(m, style: const TextStyle(fontFamily: 'Momo')),
+      backgroundColor: success ? Colors.green.shade700 : _kNeonRed,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  // ── UI ─────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final challengable = (widget.games as List)
+        .where((g) =>
+            (g as Map)['invite_mode'] != 'solo_only').toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _stepLabel('1', 'Find players'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _search,
+          onChanged:  _onSearchChange,
+          style: const TextStyle(color: Colors.white,
+              fontFamily: 'Momo', fontSize: 14),
+          decoration: InputDecoration(
+            hintText:  'Search by gamer tag or name...',
+            hintStyle: TextStyle(fontFamily: 'Momo',
+                color: Colors.white.withOpacity(0.3)),
+            filled: true, fillColor: _kDarkCard,
+            prefixIcon: const Icon(Icons.search, color: Colors.white54),
+            suffixIcon: _searching
+              ? const Padding(padding: EdgeInsets.all(14),
+                  child: SizedBox(width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2,
+                        color: _kNeonBlue)))
+              : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide:   BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Selected pills
+        if (_selected.isNotEmpty)
+          Wrap(spacing: 6, runSpacing: 6,
+            children: _selected.map((u) => _selectedPill(u)).toList()),
+
+        // Search results
+        if (_searchResults.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(color: _kDarkCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05))),
+            padding: const EdgeInsets.all(8),
+            child: Column(children: _searchResults.map((u) {
+              final id  = u['user_id']      as String? ?? '';
+              final tag = u['gamer_tag']    as String? ?? '';
+              final n   = u['display_name'] as String? ?? 'Player';
+              final av  = u['avatar_url']   as String? ?? '';
+              final sel = _selected.any((x) => x['user_id'] == id);
+              return GestureDetector(onTap: () => _toggleSelected(u),
+                child: Container(margin: const EdgeInsets.symmetric(vertical: 3),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: sel ? _kNeonPurple.withOpacity(0.15)
+                               : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: sel
+                        ? _kNeonPurple.withOpacity(0.5) : Colors.transparent)),
+                  child: Row(children: [
+                    CircleAvatar(radius: 16,
+                      backgroundColor: _kNeonPurple.withOpacity(0.25),
+                      backgroundImage: av.isNotEmpty ? NetworkImage(av) : null,
+                      child: av.isEmpty ? Text(
+                        n.isNotEmpty ? n[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white,
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold)) : null),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment:
+                        CrossAxisAlignment.start, children: [
+                      Text('@${tag.isNotEmpty ? tag : n}',
+                        style: const TextStyle(fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold, fontSize: 13,
+                            color: Colors.white)),
+                      Text(n, style: TextStyle(fontFamily: 'Momo',
+                          fontSize: 10, color: Colors.white38)),
+                    ])),
+                    if (sel) const Icon(Icons.check_circle_rounded,
+                        color: _kNeonPurple, size: 20),
+                  ])));
+            }).toList()),
+          ),
+        ],
+
+        const SizedBox(height: 22),
+        _stepLabel('2', 'Pick a game'),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 8, children: challengable.map((g) {
+          final m   = g as Map<String, dynamic>;
+          final sel = _selectedGame?['slug'] == m['slug'];
+          final royale = m['invite_mode'] == 'royale';
+          return GestureDetector(onTap: () => _pickGame(m),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: sel ? const LinearGradient(
+                    colors: [_kNeonBlue, _kNeonPurple]) : null,
+                color:    sel ? null : _kDarkCard2,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: sel ? Colors.transparent
+                               : Colors.white.withOpacity(0.07))),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(m['name'] as String? ?? '',
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 12,
+                      color: sel ? Colors.white : Colors.white60)),
+                if (royale) ...[
+                  const SizedBox(width: 6),
+                  Container(padding: const EdgeInsets.symmetric(
+                      horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _kNeonOrange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4)),
+                    child: const Text('1-4',
+                      style: TextStyle(fontFamily: 'Momo',
+                          fontWeight: FontWeight.bold, fontSize: 9,
+                          color: _kNeonOrange))),
+                ],
+              ])));
+        }).toList()),
+        if (_selectedGame != null) ...[
+          const SizedBox(height: 10),
+          Text(_isMultiCapable
+              ? '💡 Royale: invite up to $_kMaxRecipients players. '
+                  'Winner takes the whole pot.'
+              : '🆚 1-on-1 challenge.',
+            style: const TextStyle(fontFamily: 'Momo',
+                fontSize: 11, color: Colors.white54)),
+        ],
+
+        const SizedBox(height: 22),
+        _stepLabel('3', 'Set wager'),
+        const SizedBox(height: 6),
+        Text('You have ${widget.myTokens} 🪙',
+          style: const TextStyle(fontFamily: 'Momo',
+              fontSize: 12, color: Colors.white38)),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 8, children: _kWagerOptions.map((amt) {
+          final sel = _wager == amt;
+          final ok  = amt <= widget.myTokens;
+          return GestureDetector(
+            onTap: ok ? () { HapticFeedback.lightImpact();
+                              setState(() => _wager = amt); } : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                gradient: sel ? const LinearGradient(
+                    colors: [_kNeonOrange, _kNeonRed]) : null,
+                color:    sel ? null : _kDarkCard2,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: sel ? Colors.transparent
+                               : Colors.white.withOpacity(0.07))),
+              child: Text(amt == 0 ? 'Free' : '🪙 $amt',
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 13,
+                    color: ok ? (sel ? Colors.white : Colors.white60)
+                              : Colors.white24))));
+        }).toList()),
+
+        const SizedBox(height: 32),
+
+        // Send button
+        Opacity(opacity: _sending ? 0.6 : 1.0,
+          child: GestureDetector(
+            onTap: _sending ? null : _send,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [_kNeonBlue, _kNeonPurple]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: _kNeonPurple.withOpacity(0.3),
+                    blurRadius: 16, offset: const Offset(0, 6))]),
+              child: Center(child: _sending
+                ? const SizedBox(width: 22, height: 22,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5))
+                : const Text('⚔  Send Challenge',
+                    style: TextStyle(fontFamily: 'Alfa',
+                        fontSize: 16, color: Colors.white))))),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _selectedPill(Map<String, dynamic> u) {
+    final tag = u['gamer_tag'] as String? ?? '';
+    final n   = u['display_name'] as String? ?? '';
+    return GestureDetector(onTap: () => _toggleSelected(u),
+      child: Container(padding: const EdgeInsets.symmetric(
+          horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: _kNeonPurple.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kNeonPurple.withOpacity(0.5))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text('@${tag.isNotEmpty ? tag : n}',
+            style: const TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold,
+                fontSize: 12, color: Colors.white)),
+          const SizedBox(width: 6),
+          const Icon(Icons.close, size: 14, color: Colors.white70),
+        ])));
+  }
+
+  Widget _stepLabel(String num, String text) => Row(children: [
+    Container(width: 22, height: 22,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [_kNeonBlue, _kNeonPurple]),
+        shape: BoxShape.circle),
+      child: Center(child: Text(num,
+        style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
+            fontWeight: FontWeight.bold, fontSize: 12)))),
+    const SizedBox(width: 8),
+    Text(text, style: const TextStyle(fontFamily: 'Alfa',
+        fontSize: 16, color: Colors.white)),
+  ]);
 }

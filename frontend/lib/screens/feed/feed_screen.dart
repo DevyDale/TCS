@@ -1,27 +1,35 @@
 // lib/screens/feed/feed_screen.dart
 //
-// §6 fixes:
+// §6 fixes (unchanged):
 //   1. Media renders inline (CachedNetworkImage / video thumb with play
-//      overlay) instead of delegating to MediaItemView. Every slide has a
-//      placeholder + error fallback so the card center is never blank.
-//   2. Fweets get their distinctive colored block with bold centered text
-//      (matching the create page), so they actually appear in the feed.
-//   3. Layout is Instagram-style: author row on top (no longer overlaid),
-//      then media/fweet block, then caption, then location chip, then
-//      actions. Caption and location display naturally with the media.
-//   4. New _ago format: "5m ago" / "3h ago" / "2d ago", then actual date
-//      (e.g. "May 7" or "May 7, 2025") after 7 days. No more "X weeks ago".
+//      overlay). 2. Fweets get their colored block. 3. Instagram-style
+//      card layout. 4. New _ago format ("5m ago" / "May 7" etc.).
+//
+// §7 — UI tweak (this revision):
+//   • The floating "Create Post" FAB has been REMOVED.
+//   • A new circular gradient button now lives in the header row, just
+//     beside the "Suggest" button. It plays a Lottie animation
+//     (assets/lottie/robot.lottie) and serves the same function the
+//     FAB used to (currently just HapticFeedback.mediumImpact() — wire
+//     it to your create-post route when ready).
+//   • Requires the `lottie` package (v3.0+ for .lottie / dotLottie
+//     support) and the asset declared in pubspec.yaml. See bottom of
+//     this file for the exact pubspec snippet you need.
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/highlight_card.dart';
-import 'package:tcs_app/screens/event_details.dart';
-import 'package:tcs_app/screens/suggestion_box_screen.dart';
-import 'package:tcs_app/search/search_screen.dart';
+import 'package:lottie/lottie.dart';                      // ← NEW
+import 'package:tcs_app/ai_hub_screen.dart';
+import 'package:tcs_app/widgets/ai_assistant_screen.dart';
+
+import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
+import '../event_details.dart';
+import '../highlight_card.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
+import '../suggestion_box_screen.dart';
 
 
 // ── Palette ───────────────────────────────────────────────────
@@ -56,8 +64,7 @@ class _FeedScreenState extends State<FeedScreen>
   bool _feedHasMore  = true;
   bool _fetchingMore = false;
   int  _feedPage     = 1;
-  int  _feedTab      = 0; // 0=All 1=Following 2=Trending
-
+  int  _feedTab      = 0; // 0=All 1=Following 2=Trending 3=Clubs
   final _carouselCtrl = PageController(viewportFraction: 0.92);
   int  _carouselPage  = 0;
   Timer? _carouselTimer;
@@ -117,7 +124,7 @@ class _FeedScreenState extends State<FeedScreen>
         _feedLoading = true;
       });
     }
-    final types = ['home', 'following', 'trending'];
+    final types = ['home', 'following', 'trending', 'club_posts'];
     final type  = types[_feedTab];
     try {
       final data = await _api.getFeed(type: type, page: _feedPage)
@@ -139,7 +146,6 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Future<void> _loadHighlights() async {
-    // Phase 2 spec 10.3: events + announcements unified in one carousel.
     try {
       final data = await _api.getCampusHighlights(limit: 10)
           as Map<String, dynamic>;
@@ -213,6 +219,17 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  // Action that the (now-removed) FAB used to perform. Kept as its
+  // own method so the new header button (and any future entry point)
+  // calls a single, named handler. Wire it up to your create-post
+  // route here when you're ready.
+  void _onCreatePostTap() {
+  HapticFeedback.mediumImpact();
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const AiHubScreen()),
+  );
+}
+
   String get _greeting {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good morning';
@@ -229,6 +246,8 @@ class _FeedScreenState extends State<FeedScreen>
     final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: _kBg,
+      // floatingActionButton intentionally removed — the create-post
+      // entry now lives in the header row beside "Suggest".
       body: RefreshIndicator(
         color: _kViolet,
         displacement: 100,
@@ -283,11 +302,15 @@ class _FeedScreenState extends State<FeedScreen>
           ],
         ),
       ),
-      floatingActionButton: _buildFAB(),
     );
   }
 
   // ── Header ────────────────────────────────────────────────
+  // The header now hosts TWO action buttons on the right side:
+  //   1. The new robot-Lottie button (replaces the old FAB)
+  //   2. The existing "Suggest" pill
+  // They sit in a Row so they share vertical alignment and stay
+  // tightly grouped against the right edge.
 
   Widget _buildHeader(double topPad) {
     return Container(
@@ -303,6 +326,16 @@ class _FeedScreenState extends State<FeedScreen>
             const Text('StudentHub', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 28, color: _kInk, height: 1.1)),
           ])),
+
+          // ── NEW: Robot Lottie button (replaces FAB) ────────
+          // Same gradient + shadow language as the old FAB so the
+          // "create post" affordance still reads as the primary
+          // action; the Lottie inside gives it a playful identity.
+          _RobotLottieButton(onTap: _onCreatePostTap),
+
+          const SizedBox(width: 8),
+
+          // ── Existing Suggest button ────────────────────────
           GestureDetector(
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const SuggestionBoxScreen())),
@@ -443,7 +476,7 @@ class _FeedScreenState extends State<FeedScreen>
   // ── Feed label + tabs ─────────────────────────────────────
 
   Widget _buildFeedLabel() {
-    const tabs = ['All', 'Following', 'Trending'];
+    const tabs = ['All', 'Following', 'Trending', 'Clubs'];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
@@ -533,30 +566,84 @@ class _FeedScreenState extends State<FeedScreen>
     ));
   }
 
-  Widget _buildFAB() {
+  // _buildFAB() removed — the action lives in _RobotLottieButton now.
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROBOT LOTTIE BUTTON
+// ─────────────────────────────────────────────────────────────
+// Compact circular gradient button matched to the suggest pill's
+// height (~40px). The Lottie animation fills the inner area; we use
+// a small inset so the artwork doesn't kiss the rounded edge.
+//
+// Extracted into its own StatefulWidget so we can:
+//   • Hold a LottieController to pause/play (e.g. play on tap),
+//     in case you want it to react to interaction later.
+//   • Keep _FeedScreenState lean — it doesn't need to manage Lottie
+//     animation state.
+//
+// NOTE: Lottie.asset(...) for a `.lottie` (dotLottie) file requires
+// the `lottie` Flutter package at version ≥ 3.0.0.
+// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// ROBOT LOTTIE BUTTON
+// ─────────────────────────────────────────────────────────────
+// Stateless on purpose. Lottie.asset() auto-creates its own
+// controller and loops the animation by default — we don't need
+// to manage it ourselves. Anything we add (custom controller,
+// manual forward/repeat/reset) just creates more failure modes.
+
+class _RobotLottieButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _RobotLottieButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => HapticFeedback.mediumImpact(),
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-              colors: [_kViolet, _kBlue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: _kViolet.withOpacity(0.45),
-              blurRadius: 20, offset: const Offset(0, 8))]),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.edit_rounded, color: Colors.white, size: 17),
-          SizedBox(width: 8),
-          Text('Create Post', style: TextStyle(fontFamily: 'Arch',
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-        ]),
+            colors: [_kViolet, _kBlue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: _kViolet.withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Lottie.asset(
+            'assets/images/robot.json',
+            
+            // No controller, no onLoaded, no manual playback —
+            // Lottie auto-plays and loops by default.
+            errorBuilder: (context, error, stack) {
+              // Surface the real reason if it ever fails to load.
+              debugPrint('🤖 Lottie failed: $error');
+              return const Icon(
+                Icons.smart_toy_rounded,
+                color: Colors.white,
+                size: 22,
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────
 // STAGGERED ENTRY ANIMATION
 // ─────────────────────────────────────────────────────────────
@@ -599,14 +686,6 @@ class _AnimatedPostEntryState extends State<_AnimatedPostEntry>
 
 // ═════════════════════════════════════════════════════════════
 // POST CARD
-// ─────────────────────────────────────────────────────────────
-// New layout (top → bottom):
-//   1. Author row (avatar, name, time, role badge)
-//   2. Visual block — media carousel OR fweet colored block (whichever
-//      applies). Plain text posts skip this.
-//   3. Caption text (skipped for fweets — the text lives in the block)
-//   4. Location chip
-//   5. Action bar (like / comment / share / bookmark)
 // ─────────────────────────────────────────────────────────────
 
 class _PostCard extends StatefulWidget {
@@ -665,9 +744,6 @@ class _PostCardState extends State<_PostCard>
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 
-  /// Format: "5m ago" / "3h ago" / "2d ago" within the first week,
-  /// then the actual date ("May 7" or "May 7, 2025") after that.
-  /// Never returns "weeks ago".
   static String _ago(String iso) {
     if (iso.isEmpty) return '';
     try {
@@ -679,7 +755,6 @@ class _PostCardState extends State<_PostCard>
       if (d.inMinutes < 60)    return '${d.inMinutes}m ago';
       if (d.inHours   < 24)    return '${d.inHours}h ago';
       if (d.inDays    < 7)     return '${d.inDays}d ago';
-      // After 7 days → exact date
       if (dt.year == now.year) {
         return '${_months[dt.month - 1]} ${dt.day}';
       }
@@ -693,7 +768,6 @@ class _PostCardState extends State<_PostCard>
     return '$n';
   }
 
-  /// Parse "#RRGGBB" / "#AARRGGBB" / "RRGGBB" → Color, or null.
   static Color? _parseHex(String hex) {
     if (hex.isEmpty) return null;
     var h = hex.replaceAll('#', '').trim();
@@ -724,9 +798,6 @@ class _PostCardState extends State<_PostCard>
 
     final media      = (p['media'] as List? ?? []).cast<Map<String, dynamic>>();
     final hasMedia   = media.isNotEmpty;
-    // A fweet renders as a colored block. We require a non-empty caption
-    // because the block centers on the text; an empty fweet would just
-    // be a blank colored box.
     final hasFweetBg = isFweet && bgColor != null && content.isNotEmpty;
 
     return Container(
@@ -744,10 +815,8 @@ class _PostCardState extends State<_PostCard>
         borderRadius: BorderRadius.circular(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // 1. AUTHOR ROW — always at the top (no longer overlaid on media)
           _buildAuthorRow(avatar, initial, name, role, grad, isFweet, timeAgo),
 
-          // 2. VISUAL BLOCK — media carousel OR fweet colored block
           if (hasMedia) ...[
             const SizedBox(height: 12),
             _buildMediaCarousel(media),
@@ -756,8 +825,6 @@ class _PostCardState extends State<_PostCard>
             _buildFweetBlock(content, bgColor!),
           ],
 
-          // 3. CAPTION — shown for everything except fweet blocks
-          //    (fweet text lives inside the block already)
           if (content.isNotEmpty && !hasFweetBg) ...[
             SizedBox(height: hasMedia ? 14 : 12),
             Padding(
@@ -775,7 +842,6 @@ class _PostCardState extends State<_PostCard>
             ),
           ],
 
-          // 4. LOCATION CHIP
           if (location.isNotEmpty) ...[
             SizedBox(height: (content.isNotEmpty && !hasFweetBg) ? 10 : 12),
             Padding(
@@ -802,11 +868,9 @@ class _PostCardState extends State<_PostCard>
             ),
           ],
 
-          // Divider
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Divider(height: 1, color: Colors.grey.shade100)),
 
-          // 5. ACTIONS
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
             child: Row(children: [
@@ -846,16 +910,11 @@ class _PostCardState extends State<_PostCard>
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // AUTHOR ROW
-  // ─────────────────────────────────────────────────────────
-
   Widget _buildAuthorRow(String avatar, String initial, String name,
       String role, List<Color> grad, bool isFweet, String timeAgo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(children: [
-        // Avatar
         Stack(children: [
           Container(width: 44, height: 44,
             decoration: BoxDecoration(shape: BoxShape.circle,
@@ -882,7 +941,6 @@ class _PostCardState extends State<_PostCard>
                 border: Border.all(color: Colors.white, width: 2)))),
         ]),
         const SizedBox(width: 11),
-        // Name + time
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -909,7 +967,6 @@ class _PostCardState extends State<_PostCard>
                   fontSize: 11, color: _kSlate)),
             ],
           ])),
-        // Role badge
         if (role.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -926,11 +983,6 @@ class _PostCardState extends State<_PostCard>
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // MEDIA CAROUSEL — renders inline so it can never end up empty.
-  // Each slide has its own placeholder + error fallback.
-  // ─────────────────────────────────────────────────────────
-
   Widget _buildMediaCarousel(List<Map<String, dynamic>> media) {
     final multi = media.length > 1;
     return Padding(
@@ -938,14 +990,13 @@ class _PostCardState extends State<_PostCard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: AspectRatio(
-          aspectRatio: 4 / 5,        // tall-ish, like Instagram
+          aspectRatio: 4 / 5,
           child: Stack(children: [
             PageView.builder(
               itemCount: media.length,
               onPageChanged: (p) => setState(() => _mediaPage = p),
               itemBuilder: (_, i) => _buildMediaSlide(media[i]),
             ),
-            // Counter (top-right)
             if (multi)
               Positioned(top: 10, right: 10,
                 child: Container(
@@ -958,7 +1009,6 @@ class _PostCardState extends State<_PostCard>
                       style: const TextStyle(color: Colors.white,
                           fontFamily: 'Momo', fontSize: 11,
                           fontWeight: FontWeight.bold)))),
-            // Dots (bottom-centre)
             if (multi)
               Positioned(bottom: 10, left: 0, right: 0,
                 child: Row(mainAxisAlignment: MainAxisAlignment.center,
@@ -990,10 +1040,6 @@ class _PostCardState extends State<_PostCard>
     }
 
     if (isVideo) {
-      // Show thumbnail with a play overlay. If there's no thumbnail
-      // URL, fall back to the video URL itself (Cloudinary will serve
-      // a JPEG when you swap the extension; the CachedNetworkImage
-      // errorWidget covers the failure case).
       final imageUrl = thumb.isNotEmpty ? thumb : url;
       return Container(
         color: Colors.black,
@@ -1009,7 +1055,6 @@ class _PostCardState extends State<_PostCard>
                   color: Colors.white.withOpacity(0.4), size: 56),
             ),
           ),
-          // Play overlay
           Center(child: Container(
             width: 64, height: 64,
             decoration: BoxDecoration(
@@ -1019,7 +1064,6 @@ class _PostCardState extends State<_PostCard>
             child: const Icon(Icons.play_arrow_rounded,
                 color: Colors.white, size: 36),
           )),
-          // VIDEO badge
           Positioned(top: 10, left: 10,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1037,7 +1081,6 @@ class _PostCardState extends State<_PostCard>
       );
     }
 
-    // Image
     return Container(
       color: Colors.grey.shade100,
       child: CachedNetworkImage(
@@ -1067,12 +1110,6 @@ class _PostCardState extends State<_PostCard>
       ]),
     );
   }
-
-  // ─────────────────────────────────────────────────────────
-  // FWEET BLOCK — colored card with bold centered text, matching the
-  // create page. Without this, fweets in the feed looked identical to
-  // plain text posts and the user reported them as "not appearing".
-  // ─────────────────────────────────────────────────────────
 
   Widget _buildFweetBlock(String content, Color bgColor) {
     return Padding(
@@ -1507,3 +1544,30 @@ class _ShareSheetState extends State<_ShareSheet> {
     ),
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// SETUP CHECKLIST — do these or the new button won't render:
+// ─────────────────────────────────────────────────────────────
+//
+// 1. Add the lottie package to pubspec.yaml under dependencies:
+//
+//      dependencies:
+//        lottie: ^3.1.2     # 3.0+ required for .lottie / dotLottie
+//
+// 2. Drop your robot.lottie file at:
+//
+//      assets/lottie/robot.lottie
+//
+// 3. Register the asset in pubspec.yaml under flutter:
+//
+//      flutter:
+//        assets:
+//          - assets/lottie/robot.lottie
+//
+//    (Or just `- assets/lottie/` to grab everything in that folder.)
+//
+// 4. Run `flutter pub get` and hot-restart (NOT just hot-reload —
+//    new assets need a full restart).
+//
+// If the file is missing or fails to decode, the button falls back
+// to a white edit icon so the affordance is never invisible.

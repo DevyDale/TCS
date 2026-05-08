@@ -18,8 +18,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:tcs_app/screens/location_picker.dart';
-import 'package:tcs_app/services/api_service.dart';
+
+import '../services/api_service.dart';
+import 'location_picker.dart';
+
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);

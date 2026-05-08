@@ -18,12 +18,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
-import 'package:tcs_app/screens/chat/chat_audio_player.dart';
-import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
-import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
 
 import '../../services/api_service.dart';
+import 'chat_Sticker_picker.dart';
+import 'chat_audio_player.dart';
+import 'chat_audio_recorder.dart';
+import 'chat_sticker_bubble.dart';
 
 
 const _kG2 = Color(0xFF8E54E9);

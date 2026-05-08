@@ -52,7 +52,7 @@ dependencies:
   # UI Components
   flutter_svg: ^2.0.9
   shimmer: ^3.0.0
-  lottie: ^3.0.0
+  lottie: ^3.3.3
 
   
   # Utilities
@@ -68,6 +68,8 @@ dependencies:
   record: ^6.2.0
   just_audio: ^0.10.5
   video_player: ^2.11.1
+  flutter_markdown_plus: ^1.0.7
+  flutter_highlight: ^0.7.0
   
   
 dev_dependencies:

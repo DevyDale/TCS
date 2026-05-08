@@ -13,11 +13,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
-import 'package:tcs_app/services/app_localisations.dart';
+
+import '../../services/app_localisations.dart';
 import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
+import '../groups/groups_study_hub_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/ai_assistant_fab.dart';
 
@@ -196,8 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         ],
       ),
       extendBody: true,
-      floatingActionButton: _showFab ? const AiAssistantFab() : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+     
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
