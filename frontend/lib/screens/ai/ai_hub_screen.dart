@@ -24,10 +24,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
-import '../../services/api_service.dart';
+import '../../../../services/api_service.dart';
 import 'code_assistant_screen.dart';
-import 'companion_list_screen.dart';
-import 'image_generator_screen.dart';
+import 'companion_list_Screen.dart';
+import 'image_generator_Screen.dart';
 
 // ── Light palette ────────────────────────────────────────────
 const _kBg1      = Color(0xFFFAFAFC); // gradient start (near-white)

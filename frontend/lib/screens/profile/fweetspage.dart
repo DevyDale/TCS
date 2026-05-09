@@ -19,8 +19,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
-import '../services/api_service.dart';
-import 'location_picker.dart';
+import '../../services/api_service.dart';
+import '../../widgets/location_picker.dart';
 
 
 const _kG1 = Color(0xFF6DD5FA);

@@ -9,3 +9,13 @@ urlpatterns = [
     path("<uuid:notif_id>/read/", views.mark_read,           name="mark-read"),
     path("<uuid:notif_id>/",      views.delete_notification, name="delete-notif"),
 ]
+
+from django.apps import AppConfig
+
+
+class NotificationsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.notifications"
+
+    def ready(self):
+        from . import signals  # noqa: F401

@@ -17,9 +17,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:tcs_app/quiz_generator_Screen.dart';
-import 'package:tcs_app/saved_quizzes_screen.dart';
-import '../services/api_service.dart';
+import 'package:tcs_app/screens/ai/quiz_generator_Screen.dart';
+import 'package:tcs_app/screens/ai/saved_quizzes_screen.dart';
+import '../../../services/api_service.dart';
 
 
 // ── Light palette (matches ai_hub_screen.dart) ────────────────
@@ -330,7 +330,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-            Text('My Library',
+            Text('My Digital Library',
                 style: TextStyle(color: _kInk,
                     fontSize: 22, fontWeight: FontWeight.w800,
                     letterSpacing: -0.4, height: 1.1)),
@@ -443,49 +443,49 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
   }
 
   // ─── File-type filter chips ─────────────────────────────
-  Widget _buildTypeFilterRow() {
-    return SizedBox(
-      height: 44,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-        itemCount: _typeFilters.length,
-        itemBuilder: (_, i) {
-          final f = _typeFilters[i];
-          final selected = f == _typeFilter;
-          final inner = AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: _kCard,
-              borderRadius: BorderRadius.circular(15),
-              border: selected ? null : Border.all(color: _kBorder),
-            ),
-            child: Center(child: Text(f,
-                style: TextStyle(fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.1,
-                    color: selected ? _kInk : _kSlate))),
-          );
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () { setState(() => _typeFilter = f); _filter(); },
-              child: selected
-                  ? _GradientBorderCard(
-                      animation:   _shimmerCtrl,
-                      radius:      16,
-                      borderWidth: 1.2,
-                      innerColor:  _kCard,
-                      child:       inner)
-                  : inner,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
+  // ─── File-type filter chips ─────────────────────────────
+Widget _buildTypeFilterRow() {
+  return SizedBox(
+    height: 65,
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+      itemCount: _typeFilters.length,
+      itemBuilder: (_, i) {
+        final f = _typeFilters[i];
+        final selected = f == _typeFilter;
+        final inner = AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(18),
+            border: selected ? null : Border.all(color: _kBorder),
+          ),
+          child: Center(child: Text(f,
+              style: TextStyle(fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.1,
+                  color: selected ? _kInk : _kSlate))),
+        );
+        return Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: GestureDetector(
+            onTap: () { setState(() => _typeFilter = f); _filter(); },
+            child: selected
+                ? _GradientBorderCard(
+                    animation:   _shimmerCtrl,
+                    radius:      19,
+                    borderWidth: 1.4,
+                    innerColor:  _kCard,
+                    child:       inner)
+                : inner,
+          ),
+        );
+      },
+    ),
+  );
+}
   // ─── Empty state ─────────────────────────────────────────
   Widget _buildEmpty() {
     return Center(

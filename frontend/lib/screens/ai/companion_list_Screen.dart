@@ -9,8 +9,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/ai/companion_chat_screen.dart';
-import '../../../services/api_service.dart';
+import 'package:tcs_app/screens/ai/companion_chat_screen.dart';
+import '../../../../services/api_service.dart';
 
 // ── Light palette (matches AI Hub) ───────────────────────────
 const _kBg1     = Color(0xFFFAFAFC);

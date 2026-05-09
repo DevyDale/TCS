@@ -6,6 +6,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/services/notification_Service.dart';
 
 // ─── Config ───────────────────────────────────────────────────
 class ApiConfig {
@@ -210,8 +211,7 @@ class AuthService {
     return false;
   }
 
-  // ── Logout ──────────────────────────────────────────────────
-  Future<void> logout() async {
+ Future<void> logout() async {
     final p       = await SharedPreferences.getInstance();
     final refresh = p.getString(_Keys.refresh_token);
     final access  = p.getString(_Keys.access_token);
@@ -227,10 +227,11 @@ class AuthService {
         );
       } catch (_) {}
     }
+    // Tear down WS + clear in-memory notifications BEFORE wiping tokens
+    // so the service stops cleanly without trying to reconnect with stale auth.
+    await NotificationService.instance.disposeAll();
     await clearTokens();
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────
+  }  // ── Helpers ─────────────────────────────────────────────────
   Future<bool> get isLoggedIn async {
     final p = await SharedPreferences.getInstance();
     final t = p.getString(_Keys.access_token);

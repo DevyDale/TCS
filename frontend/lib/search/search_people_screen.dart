@@ -15,7 +15,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../screens/user_screen_profile.dart';
+import '../screens/profile/user_screen_profile.dart';
 import '../services/api_service.dart';
 
 

@@ -28,7 +28,7 @@ import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
 import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
 import 'package:tcs_app/screens/chat/chat_audio_player.dart';
 import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
-import 'package:tcs_app/ai/system_message_pill.dart';
+import 'package:tcs_app/screens/ai/system_message_pill.dart';
 
 import '../../services/api_service.dart';
 

@@ -1,13 +1,24 @@
 // lib/screens/settings/settings_screen.dart
-// Fully functional — all toggles persist + drive the whole app via AppSettings.
-// Uses AppL10n for every visible string so it switches with the language.
+// CHANGES:
+// • Removed quick theme toggle from header bar
+// • Dark/light applies app-wide through AppSettings (already wired)
+// • Improved dark-mode contrast (_sub is now white70 not white54)
+// • Replaced Tamil with Japanese, added Korean
+// • Removed Suggestion Box tile
+// • About: Taylors College Sydney, v5.0, navigates to dedicated pages
+// • Added About Developer & About Application tiles
+// • Notification toggles now call syncFcmTopics() so FCM subscriptions
+//   update the moment a switch is flipped
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/app_localisations.dart';
-import '../services/app_settings.dart';
-import 'suggestion_box_screen.dart';
-
+import 'package:tcs_app/main.dart'; // for syncFcmTopics()
+import 'package:tcs_app/screens/about_application_screen.dart';
+import 'package:tcs_app/screens/about_developer_screen.dart';
+import 'package:tcs_app/screens/privacy_policy_screen.dart';
+import 'package:tcs_app/screens/terms_of_service_screen.dart';
+import 'app_localisations.dart';
+import 'app_settings.dart';
 
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -24,7 +35,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _s = AppSettings();
 
-  // Local mirrors for instant UI response
   late bool   _dark;
   late String _lang;
   late bool   _pushEnabled;
@@ -34,11 +44,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool   _discoverable;
   bool        _langExpanded = false;
 
+  // Tamil removed → Japanese + Korean added
   final _languages = const {
     'en': ('English',           '🇬🇧'),
     'ms': ('Bahasa Malaysia',   '🇲🇾'),
     'zh': ('中文 (Chinese)',     '🇨🇳'),
-    'ta': ('தமிழ் (Tamil)',     '🇮🇳'),
+    'ja': ('日本語 (Japanese)',   '🇯🇵'),
+    'ko': ('한국어 (Korean)',     '🇰🇷'),
     'ar': ('العربية (Arabic)',  '🇸🇦'),
   };
 
@@ -54,12 +66,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _discoverable  = _s.discoverable;
   }
 
-  // ── Theme helpers — react to _dark in real time ────────────
+  // Stronger contrast values for dark mode so nothing disappears
   Color get _bg   => _dark ? const Color(0xFF0D0D1A) : const Color(0xFFF2F4F8);
   Color get _card => _dark ? const Color(0xFF161628) : Colors.white;
   Color get _text => _dark ? Colors.white            : const Color(0xFF1A1A2E);
-  Color get _sub  => _dark ? Colors.white54           : Colors.grey.shade500;
-  Color get _divC => _dark ? Colors.white10           : Colors.grey.shade100;
+  Color get _sub  => _dark ? Colors.white70          : Colors.grey.shade600;
+  Color get _divC => _dark ? Colors.white12          : Colors.grey.shade200;
 
   void _snack(String msg, {Color? color}) {
     if (!mounted) return;
@@ -91,7 +103,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fontSize: 18, color: _text)),
           const SizedBox(height: 12),
           Text(body, style: TextStyle(fontFamily: 'Momo',
-              fontSize: 14, color: _sub, height: 1.65)),
+              fontSize: 14, color: _sub, height: 1.65),
+              textAlign: TextAlign.center),
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () => Navigator.pop(context),
@@ -106,41 +119,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showDocument(String title) {
-    final l = AppL10n.of(context);
-    final isTerms = title == l.settingsTerms;
-    final content = isTerms
-      ? 'By using TCS StudentHub you agree to use the platform responsibly, '
-        'respect other users, and follow Taylors College community guidelines. '
-        'Content that is harmful, offensive, or violates academic integrity '
-        'policies is strictly prohibited.'
-      : 'TCS StudentHub collects only the data necessary to provide its services. '
-        'Your personal data is stored securely and never sold to third parties. '
-        'You may request deletion of your account and data at any time by '
-        'contacting the Taylors College IT helpdesk.';
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: TextStyle(fontFamily: 'Alfa',
-            fontSize: 18, color: _text)),
-        content: Text(content, style: TextStyle(fontFamily: 'Momo',
-            fontSize: 13, color: _sub, height: 1.65)),
-        actions: [TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.btnClose, style: const TextStyle(
-              fontFamily: 'Arch', fontWeight: FontWeight.bold, color: _kG2)),
-        )],
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // BUILD
-  // ══════════════════════════════════════════════════════════
-
   @override
   Widget build(BuildContext context) {
     final l   = AppL10n.of(context);
@@ -150,7 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: _bg,
       body: Column(children: [
 
-        // ── Header ──────────────────────────────────────────
+        // ── Header (theme toggle REMOVED) ─────────────────
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           color: _card,
@@ -169,36 +147,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(width: 12),
             Text(l.settingsTitle, style: TextStyle(fontFamily: 'Alfa',
                 fontSize: 22, color: _text)),
-            const Spacer(),
-            // ── Quick dark-mode toggle ─────────────────────
-            GestureDetector(
-              onTap: () async {
-                HapticFeedback.lightImpact();
-                setState(() => _dark = !_dark);
-                await _s.setDark(_dark);
-                // AppSettings notifies → TCSApp rebuilds MaterialApp → whole
-                // app switches theme. The snack uses new l10n strings too.
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 52, height: 28,
-                decoration: BoxDecoration(
-                  color: _dark ? _kG2 : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.all(3),
-                child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  alignment: _dark ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(width: 22, height: 22,
-                    decoration: const BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(
-                      _dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                      size: 13,
-                      color: _dark ? _kG2 : Colors.grey.shade500))),
-              ),
-            ),
           ]),
         ),
 
@@ -223,7 +171,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     HapticFeedback.lightImpact();
                     setState(() => _dark = v);
                     await _s.setDark(v);
-                    // MaterialApp theme switches immediately app-wide
                   },
                 ),
               ]),
@@ -232,7 +179,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 20),
               _section(l.settingsLanguage),
               _group([
-                // Header row (tap to expand)
                 GestureDetector(
                   onTap: () { HapticFeedback.lightImpact();
                     setState(() => _langExpanded = !_langExpanded); },
@@ -261,7 +207,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ]),
                   ),
                 ),
-                // Expandable language list
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -273,9 +218,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           HapticFeedback.lightImpact();
                           setState(() { _lang = e.key; _langExpanded = false; });
                           await _s.setLang(e.key);
-                          // AppSettings.notifyListeners() → TCSApp rebuilds
-                          // MaterialApp with new locale → AppL10nProvider
-                          // propagates new language to every screen
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -316,6 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (!v) { _announcements = false; _groupActivity = false; }
                     });
                     await _s.setPush(v);
+                    await syncFcmTopics(); // re-subscribe / unsubscribe FCM
                     _snack(v ? '🔔 ${l.settingsPushOn}' : '🔕 ${l.settingsPushOff}',
                         color: v ? Colors.green.shade600 : Colors.grey.shade600);
                   },
@@ -332,6 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     HapticFeedback.lightImpact();
                     setState(() => _announcements = v);
                     await _s.setAnnouncements(v);
+                    await syncFcmTopics(); // toggle 'announcements' topic
                   },
                 ),
                 _divLine(),
@@ -346,16 +290,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     HapticFeedback.lightImpact();
                     setState(() => _groupActivity = v);
                     await _s.setGroupActivity(v);
+                    await syncFcmTopics(); // toggle 'group_activity' topic
                   },
                 ),
               ]),
-
-              _divLine(),
-GestureDetector(
-  onTap: () => Navigator.push(context, MaterialPageRoute(
-    builder: (_) => const SuggestionBoxScreen())),
-  child: _info(Icons.lightbulb_rounded, 'Suggestion Box',
-      'Share your ideas ›', const Color(0xFFF7971E))),
 
               // ── PRIVACY ───────────────────────────────────
               const SizedBox(height: 20),
@@ -370,6 +308,8 @@ GestureDetector(
                     HapticFeedback.lightImpact();
                     setState(() => _showOnline = v);
                     await _s.setShowOnline(v);
+                    // PresenceService writes the flag to Firestore so other
+                    // users' clients respect it (see additional changes)
                     _snack(v ? '🟢 ${l.settingsOnlineOn}' : '⚫ ${l.settingsOnlineOff}');
                   },
                   onInfo: () => _showInfoSheet(l.settingsOnline,
@@ -401,25 +341,39 @@ GestureDetector(
               _section(l.settingsAbout),
               _group([
                 _info(Icons.info_outline_rounded, l.settingsVersion,
-                    'TCS StudentHub v1.0.0', _kG2),
+                    'TCS StudentHub v5.0', _kG2),
                 _divLine(),
                 _info(Icons.school_rounded, l.settingsInstitution,
-                    'Taylors College, Malaysia', const Color(0xFF3F51B5)),
+                    'Taylors College, Sydney', const Color(0xFF3F51B5)),
                 _divLine(),
                 GestureDetector(
-                  onTap: () => _showDocument(l.settingsTerms),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const TermsOfServiceScreen())),
                   child: _info(Icons.gavel_rounded, l.settingsTerms,
                       l.settingsView, Colors.grey.shade600)),
                 _divLine(),
                 GestureDetector(
-                  onTap: () => _showDocument(l.settingsPrivacyPol),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyScreen())),
                   child: _info(Icons.privacy_tip_rounded, l.settingsPrivacyPol,
                       l.settingsView, Colors.grey.shade600)),
                 _divLine(),
                 GestureDetector(
-                  onTap: () => _snack('✉️  helpdesk@taylors.edu.my'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const AboutApplicationScreen())),
+                  child: _info(Icons.apps_rounded, 'About Application',
+                      'View ›', _kG1)),
+                _divLine(),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const AboutDeveloperScreen())),
+                  child: _info(Icons.code_rounded, 'About Developer',
+                      'View ›', _kG3)),
+                _divLine(),
+                GestureDetector(
+                  onTap: () => _snack('✉️  helpdesk@taylorscollege.edu.au'),
                   child: _info(Icons.support_agent_rounded, l.settingsSupport,
-                      'helpdesk@taylors.edu.my', _kG1)),
+                      'helpdesk@taylorscollege.edu.au', _kG2)),
               ]),
 
               const SizedBox(height: 48),
@@ -430,8 +384,7 @@ GestureDetector(
     );
   }
 
-  // ── Widget helpers ────────────────────────────────────────
-
+  // ── helpers ───────────────────────────────────────────────
   Widget _section(String label) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 8),
     child: Text(label, style: TextStyle(
@@ -509,8 +462,6 @@ GestureDetector(
     );
 }
 
-// ── Extension convenience so screens can do: ─────────────────
-// Text(context.l10n.feedTitle)
 extension AppL10nContext on BuildContext {
   AppL10n get l10n => AppL10n.of(this);
 }

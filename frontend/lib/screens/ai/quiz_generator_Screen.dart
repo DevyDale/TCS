@@ -12,9 +12,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tcs_app/quiz_play_Screen.dart';
+import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
-import '../../services/api_service.dart';
+import '../../../../services/api_service.dart';
 
 // Library palette (matches saved materials screen)
 const _kShelf     = Color(0xFF2C1810);

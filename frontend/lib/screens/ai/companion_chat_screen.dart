@@ -15,9 +15,9 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:tcs_app/ai_markdown.dart';
+import 'package:tcs_app/widgets/ai_markdown.dart';
 
-import '../../services/api_service.dart';
+import '../../../services/api_service.dart';
 
 // ── Light palette ─────────────────────────────────────────────
 const _kBg1         = Color(0xFFFAFAFC);

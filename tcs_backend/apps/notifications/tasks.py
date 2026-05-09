@@ -149,23 +149,168 @@ def push_chat_notification(message_id, room_id):
     except Exception as e:
         logger.error(f"push_chat_notification: {e}")
 
-
+# REPLACE the existing push_game_request_notification with this fixed version
 @shared_task(name="push_game_request_notification", ignore_result=True)
 def push_game_request_notification(request_id):
     from apps.arcade.models import GameRequest
     try:
-        gr    = GameRequest.objects.select_related("from_user", "to_user", "game").get(id=request_id)
+        gr = GameRequest.objects.select_related("sender", "receiver").get(id=request_id)
         title = "Game request! 🎮"
-        body  = f"{gr.from_user.display_name} challenged you to {gr.game.name}!"
-        notif = _create(str(gr.to_user.id), str(gr.from_user.id), "game_request",
+        body  = (f"{gr.sender.display_name} challenged you to {gr.game_name} "
+                 f"for 🪙 {gr.wager}!")
+        notif = _create(str(gr.receiver.id), str(gr.sender.id), "game_request",
                         title, body, "game_request", str(gr.id))
         if notif:
-            _fcm_send(gr.to_user.fcm_token, title, body,
-                      {"type": "game_request", "request_id": str(request_id)})
+            _fcm_send(gr.receiver.fcm_token, title, body,
+                      {"type": "game_request", "request_id": str(gr.id)})
     except Exception as e:
         logger.error(f"push_game_request_notification: {e}")
 
 
+# NEW — Chat request
+@shared_task(name="push_chat_request_notification", ignore_result=True)
+def push_chat_request_notification(request_id):
+    from apps.chat.models import ChatRequest
+    try:
+        cr = ChatRequest.objects.select_related("sender", "receiver").get(id=request_id)
+        title = "New chat request 💬"
+        preview = cr.message.strip()[:80] if cr.message else "wants to chat with you"
+        body  = f"{cr.sender.display_name}: {preview}"
+        notif = _create(str(cr.receiver.id), str(cr.sender.id), "chat_request",
+                        title, body, "chat_request", str(cr.id))
+        if notif:
+            _fcm_send(cr.receiver.fcm_token, title, body,
+                      {"type": "chat_request", "request_id": str(cr.id)})
+    except Exception as e:
+        logger.error(f"push_chat_request_notification: {e}")
+
+
+# NEW — Highlight (event OR announcement post). Fans out to all active users.
+@shared_task(name="push_highlight_notification", ignore_result=True)
+def push_highlight_notification(kind, target_id, actor_id=None):
+    """
+    kind: 'event' | 'announcement'
+    target_id: Event UUID or Post UUID
+    actor_id: organizer/author (excluded from recipients)
+    """
+    try:
+        if kind == "event":
+            from apps.events.models import Event
+            obj   = Event.objects.select_related("organizer").get(id=target_id)
+            title = f"📣 New event: {obj.title[:60]}"
+            body  = (obj.description[:120] + "…") if len(obj.description) > 120 else obj.description
+            target_type = "event"
+        else:  # announcement
+            from apps.posts.models import Post
+            obj   = Post.objects.select_related("author").get(id=target_id)
+            title = f"📢 Announcement from {obj.author.display_name}"
+            body  = (obj.content[:140] + "…") if len(obj.content) > 140 else obj.content
+            target_type = "announcement"
+
+        recipients = User.objects.filter(is_active=True)
+        if actor_id:
+            recipients = recipients.exclude(id=actor_id)
+
+        # Bulk insert in chunks to avoid hammering the WS layer
+        from .models import Notification
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = None
+        try:
+            layer = get_channel_layer()
+        except Exception:
+            pass
+
+        bulk = []
+        for u in recipients.iterator(chunk_size=500):
+            bulk.append(Notification(
+                recipient=u, actor_id=actor_id, notif_type="highlight",
+                title=title, body=body,
+                target_type=target_type, target_id=str(target_id),
+            ))
+            if len(bulk) >= 500:
+                Notification.objects.bulk_create(bulk, ignore_conflicts=True)
+                _fanout_ws(layer, bulk, title, body, target_type, target_id, actor_id)
+                bulk = []
+        if bulk:
+            Notification.objects.bulk_create(bulk, ignore_conflicts=True)
+            _fanout_ws(layer, bulk, title, body, target_type, target_id, actor_id)
+    except Exception as e:
+        logger.error(f"push_highlight_notification: {e}")
+
+
+def _fanout_ws(layer, notifs, title, body, target_type, target_id, actor_id):
+    """Helper — push the just-created notifications to each recipient's WS group."""
+    if not layer:
+        return
+    from asgiref.sync import async_to_sync
+    actor_name = None
+    if actor_id:
+        try:
+            actor_name = User.objects.get(id=actor_id).display_name
+        except User.DoesNotExist:
+            pass
+    for n in notifs:
+        group = f"notif_{str(n.recipient_id).replace('-', '_')}"
+        try:
+            async_to_sync(layer.group_send)(group, {
+                "type":        "send.notification",
+                "id":          str(n.id),
+                "notif_type":  "highlight",
+                "title":       title,
+                "body":        body,
+                "actor_name":  actor_name,
+                "target_type": target_type,
+                "target_id":   str(target_id),
+                "created_at":  n.created_at.isoformat() if n.created_at else None,
+            })
+        except Exception:
+            pass
+
+
+# NEW — Study buddy request
+@shared_task(name="push_study_buddy_request_notification", ignore_result=True)
+def push_study_buddy_request_notification(buddy_id, inviter_id, subject=""):
+    try:
+        buddy   = User.objects.get(id=buddy_id)
+        inviter = User.objects.get(id=inviter_id)
+        title = "📚 New study buddy request"
+        body  = f"{inviter.display_name} wants to study"
+        if subject:
+            body += f" {subject}"
+        body += " with you!"
+        notif = _create(str(buddy_id), str(inviter_id), "study_buddy_request",
+                        title, body, "user", str(inviter.user_id))
+        if notif:
+            _fcm_send(buddy.fcm_token, title, body,
+                      {"type": "study_buddy_request",
+                       "user_id": str(inviter.user_id)})
+    except Exception as e:
+        logger.error(f"push_study_buddy_request_notification: {e}")
+
+
+# NEW — Study group invite (added to a group)
+@shared_task(name="push_study_group_invite_notification", ignore_result=True)
+def push_study_group_invite_notification(group_id, user_id, added_by_id=None):
+    from apps.groups.models import Group
+    try:
+        group = Group.objects.get(id=group_id)
+        user  = User.objects.get(id=user_id)
+        added_by = (User.objects.filter(id=added_by_id).first()
+                    if added_by_id else None)
+        title = f"👥 Added to {group.name}"
+        if added_by:
+            body = f"{added_by.display_name} added you to the study group “{group.name}”."
+        else:
+            body = f"You've been added to the study group “{group.name}”."
+        notif = _create(str(user_id), str(added_by_id) if added_by_id else None,
+                        "study_group_invite", title, body,
+                        "group", str(group_id))
+        if notif:
+            _fcm_send(user.fcm_token, title, body,
+                      {"type": "study_group_invite", "group_id": str(group_id)})
+    except Exception as e:
+        logger.error(f"push_study_group_invite_notification: {e}")
 @shared_task(name="push_event_reminders", ignore_result=True)
 def push_event_reminders():
     from datetime import timedelta

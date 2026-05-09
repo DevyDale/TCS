@@ -23,6 +23,10 @@
 // dedicated QUIZ section that talks to the new /api/quiz/* routes.
 // The frontend never sends file bytes for quiz generation — the
 // backend pulls the file straight from Cloudinary and extracts text.
+//
+// CHAT BUBBLES (Phase 3B): createBubble / discoverBubbles / joinBubble
+// / inviteToBubble / getMyBubbleInvites / acceptBubbleInvite /
+// declineBubbleInvite live in the CHAT section of ApiService.
 
 import 'dart:async';
 import 'dart:convert';
@@ -547,6 +551,68 @@ class ApiService {
       });
 
   Future<dynamic> getStudyBuddies()         => get('/chat/study-buddy/');
+
+  // ══════════════════════════════════════════════════════════
+  // CHAT BUBBLES (Phase 3B)
+  // ══════════════════════════════════════════════════════════
+  //
+  // A "bubble" is a Room with room_type=group plus the new is_public,
+  // about, and ai_enabled fields. The creator becomes admin + member;
+  // everyone else gets a pending RoomInvite they must accept.
+
+  /// POST /api/chat/bubbles/
+  /// Returns the new room object. memberIds become PENDING invites
+  /// (they don't auto-join — they accept or decline).
+  Future<dynamic> createBubble({
+    required String       name,
+    String                about     = '',
+    bool                  isPublic  = false,
+    List<String>          memberIds = const [],
+  }) =>
+      post('/chat/bubbles/', body: {
+        'name':       name,
+        'about':      about,
+        'is_public':  isPublic,
+        'member_ids': memberIds,
+      });
+
+  /// GET /api/chat/bubbles/discover/?q=
+  /// Public bubbles only, excluding ones the user is already in.
+  Future<dynamic> discoverBubbles({String q = ''}) =>
+      get('/chat/bubbles/discover/',
+          query: {if (q.isNotEmpty) 'q': q});
+
+  /// POST /api/chat/bubbles/<id>/join/
+  /// Public bubbles only — for private bubbles you need an invite.
+  Future<dynamic> joinBubble(String roomId) =>
+      post('/chat/bubbles/$roomId/join/');
+
+  /// POST /api/chat/bubbles/<id>/invite/
+  /// Member of the bubble invites others. Each id in userIds gets a
+  /// pending RoomInvite they can accept or decline.
+  Future<dynamic> inviteToBubble({
+    required String       roomId,
+    required List<String> userIds,
+    String                message = '',
+  }) =>
+      post('/chat/bubbles/$roomId/invite/', body: {
+        'user_ids': userIds,
+        if (message.isNotEmpty) 'message': message,
+      });
+
+  /// GET /api/chat/invites/  — pending bubble invites for the current user.
+  Future<dynamic> getMyBubbleInvites() => get('/chat/invites/');
+
+  /// POST /api/chat/invites/<id>/accept/
+  /// Joins the bubble + posts a system message announcing the join +
+  /// notifies the inviter (in their DM with Dale). Returns the room.
+  Future<dynamic> acceptBubbleInvite(String inviteId) =>
+      post('/chat/invites/$inviteId/accept/');
+
+  /// POST /api/chat/invites/<id>/decline/
+  /// Marks the invite declined and notifies the inviter.
+  Future<dynamic> declineBubbleInvite(String inviteId) =>
+      post('/chat/invites/$inviteId/decline/');
 
   // ══════════════════════════════════════════════════════════
   // GROUPS  (study groups — separate from CLUBS)

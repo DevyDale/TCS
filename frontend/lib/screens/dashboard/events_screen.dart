@@ -16,7 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:gradient_borders/gradient_borders.dart';
 import 'package:intl/intl.dart';
 
-import '../services/api_service.dart';
+import '../../services/api_service.dart';
 import 'event_details.dart';
 
 const _kG1 = Color(0xFF6DD5FA);

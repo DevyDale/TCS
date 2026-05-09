@@ -1,31 +1,74 @@
 // lib/screens/profile/profile_screen.dart
+//
+// Profile (own) — redesigned to match the arcade light theme.
+//
+// Visual identity:
+//   • Light page gradient (white → soft grey → white)
+//   • White card surfaces with thin _kBorder outlines
+//   • Animated SweepGradient borders on the avatar ring and the
+//     primary CTA (Edit Bio). Keeps the arcade visual language.
+//   • Custom segmented tab bar (no animated_segmented_tab_control,
+//     same swap as arcade to avoid the dispose-after-listener crash).
+//
+// Layout, top to bottom:
+//   1. Cover banner (180px) — image, or a soft animated gradient
+//      using the role palette as the default
+//   2. Avatar (overlapping cover) with animated gradient ring
+//   3. Identity strip — name, role · handle
+//   4. Stats row — Posts / Followers / Following
+//   5. Action row — Edit Bio (primary, gradient border) + Share
+//   6. Bio card (only if filled)
+//   7. Interests strip
+//   8. Sticky tab bar — Posts · Fweets · Favorites
+//   9. Tab content
+//
+// Functionality unchanged: image picking, uploads, fetches, deletes,
+// privacy toggles, share-profile sheet — all the existing methods are
+// preserved verbatim.
+
 import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import '../../models/biodata.dart';
 import '../../services/api_service.dart';
-import '../bio.dart';
-import '../createpostspage.dart';
-import '../fweetspage.dart';
-import '../interests.dart';
-import '../media_item_view.dart';
-import '../privacy_toggle_sheet.dart';
-import '../share_profile_screen.dart';
+import 'bio.dart';
+import 'createpostspage.dart';
+import 'fweetspage.dart';
+import 'interests.dart';
+import 'media_item_view.dart';
+import '../../widgets/privacy_toggle_sheet.dart';
+import 'share_profile_screen.dart';
 
+// ── Light palette (matches arcade) ───────────────────────────
+const _kBg1     = Color(0xFFFAFAFC);
+const _kBg2     = Color(0xFFE6E6EE);
+const _kBg3     = Color(0xFFF2F2F6);
+const _kCard    = Color(0xFFFFFFFF);
+const _kCardLo  = Color(0xFFF5F5F8);
+const _kBorder  = Color(0xFFE5E7EB);
+const _kSlate2  = Color(0xFF9CA3AF);
+const _kSlate   = Color(0xFF6B7280);
+const _kInkSoft = Color(0xFF374151);
+const _kInk     = Color(0xFF0D0D1A);
 
-const _kG1  = Color(0xFF6DD5FA);
-const _kG2  = Color(0xFF8E54E9);
-const _kG3  = Color(0xFFF7971E);
-const _kG4  = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
-const _kBg  = Color(0xFFF2F4F8);
+const _kBlue   = Color(0xFF6DD5FA);
+const _kPurple = Color(0xFF7C3AED);
+const _kAmber  = Color(0xFFF59E0B);
+const _kCoral  = Color(0xFFFF4F6E);
 
-// ── Global notifier ───────────────────────────────────────────
+const _gradColors = <Color>[
+  Color(0xFF6DD5FA), Color(0xFF7C3AED),
+  Color(0xFFF59E0B), Color(0xFFFF4F6E),
+  Color(0xFF6DD5FA),
+];
+
+// ── Global notifier (preserved) ──────────────────────────────
 final deletedPostIds = ValueNotifier<Set<String>>({});
 void notifyPostDeleted(String id) =>
     deletedPostIds.value = {...deletedPostIds.value, id};
@@ -50,6 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   final _api    = ApiService();
   final _picker = ImagePicker();
   late final TabController _tabCtrl;
+  late final AnimationController _shimmerCtrl;
 
   List<Map<String, dynamic>> _posts     = [];
   List<Map<String, dynamic>> _fweets    = [];
@@ -62,29 +106,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _fweetsLoading    = true;
   bool _favoritesLoading = true;
 
-  // Phase 3: my own user_id, populated from getMyProfile().
-  // Needed so the share-profile bottom sheet can embed the right user
-  // when sharing my own profile to a chat.
   String? _myUserId;
 
-  // Phase 3: visibility settings, mirrored from the backend.
-  // bio_public lives under privacy_settings; interests_visibility
-  // is its own top-level field on the user model. Both are loaded in
-  // _fetchStats() and persisted via api_service helpers
-  // (setBioPublic / setInterestsVisibility) introduced in Section 1.
   bool   _bioPublic    = true;
   String _interestsVis = 'public';
-
-  // Guard so we only seed _interests from the backend on the FIRST
-  // /me/ response — otherwise a later refetch could overwrite changes
-  // the user just made via the InterestsPage editor.
   bool _interestsSeeded = false;
 
   BioData? _bioData;
 
-  // ── Image state ───────────────────────────────────────────
-  // Local File for instant display while upload is in flight.
-  // Cloudinary URL is persisted to SharedPreferences once upload succeeds.
   File?   _avatarFile;
   String? _avatarUrl;
   File?   _coverFile;
@@ -94,13 +123,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   static const _kAvatarUrl = 'profile_avatar_cloudinary_url';
   static const _kCoverUrl  = 'profile_cover_cloudinary_url';
-  static const _kCoverH    = 220.0;
+  static const _kCoverH    = 180.0;
   static const _kAvatarR   = 52.0;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
+    _shimmerCtrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 6))..repeat();
     _loadSavedUrls();
     _fetchPosts();
     _fetchFweets();
@@ -111,10 +143,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _shimmerCtrl.dispose();
     super.dispose();
   }
 
-  // ── Data fetches ──────────────────────────────────────────
+  // ── Data fetches (unchanged) ──────────────────────────────
 
   Future<void> _fetchPosts() async {
     setState(() => _postsLoading = true);
@@ -156,30 +189,22 @@ class _ProfileScreenState extends State<ProfileScreen>
         _followers = d['followers_count'] as int? ?? 0;
         _following = d['following_count'] as int? ?? 0;
 
-        // Phase 3: capture my own user_id for the share sheet.
         final uid = d['user_id'] as String?;
         if (uid != null && uid.isNotEmpty) _myUserId = uid;
 
-        // Phase 3: visibility settings.
         final ps = (d['privacy_settings'] as Map?)?.cast<String, dynamic>()
             ?? const {};
         _bioPublic    = ps['bio_public'] as bool? ?? true;
         _interestsVis = d['interests_visibility'] as String? ?? 'public';
 
-        // Phase 3: seed _interests from the backend on the FIRST fetch
-        // only. The interests editor (_openInterests) is the source of
-        // truth after that, so we don't clobber pending changes.
         if (!_interestsSeeded) {
           final saved = (d['interests'] as List?)?.cast<String>();
           if (saved != null && saved.isNotEmpty) {
-            _interests
-              ..clear()
-              ..addAll(saved);
+            _interests..clear()..addAll(saved);
           }
           _interestsSeeded = true;
         }
 
-        // Sync Cloudinary URLs from the backend profile response.
         final av = d['avatar_url'] as String?;
         final cv = d['cover_url']  as String?;
         if (av != null && av.isNotEmpty && _avatarFile == null) _avatarUrl = av;
@@ -204,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _saveCoverUrl(String url) async =>
       (await SharedPreferences.getInstance()).setString(_kCoverUrl, url);
 
-  // ── Delete ────────────────────────────────────────────────
+  // ── Delete (unchanged) ────────────────────────────────────
 
   Future<void> _deletePost(int i) async {
     final id = _posts[i]['id']?.toString() ?? '';
@@ -234,23 +259,24 @@ class _ProfileScreenState extends State<ProfileScreen>
     await showDialog<bool>(
       context: ctx,
       builder: (_) => AlertDialog(
+        backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete $type?', style: const TextStyle(
-            fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
+            fontSize: 17, fontWeight: FontWeight.w900,
+            color: _kInk, letterSpacing: -0.3)),
         content: Text('This $type will be permanently removed.',
-            style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                color: Colors.grey.shade600, height: 1.5)),
+            style: const TextStyle(fontSize: 13, color: _kSlate, height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, color: Colors.grey.shade500))),
+            child: const Text('Cancel', style: TextStyle(
+                fontWeight: FontWeight.w700, color: _kSlate))),
           GestureDetector(onTap: () => Navigator.pop(ctx, true),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(color: _kG4,
+              decoration: BoxDecoration(color: _kCoral,
                   borderRadius: BorderRadius.circular(12)),
-              child: const Text('Delete', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)))),
+              child: const Text('Delete', style: TextStyle(
+                  fontWeight: FontWeight.w800, color: Colors.white, fontSize: 13)))),
           const SizedBox(width: 4),
         ],
       ),
@@ -259,15 +285,15 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontFamily: 'Momo')),
+      content: Text(msg, style: const TextStyle(color: Colors.white)),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? _kG4 : Colors.green.shade600,
+      backgroundColor: error ? _kCoral : Colors.green.shade600,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       margin: const EdgeInsets.all(16),
     ));
   }
 
-  // ── Image picking + upload ─────────────────────────────────
+  // ── Image picking + upload (unchanged) ────────────────────
 
   Future<void> _pickAvatar() async {
     final x = await _picker.pickImage(
@@ -305,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     finally { if (mounted) setState(() => _coverUploading = false); }
   }
 
-  // ── Navigation ────────────────────────────────────────────
+  // ── Navigation (unchanged) ────────────────────────────────
 
   Future<void> _openInterests() async {
     final r = await Navigator.of(context).push<List<String>>(
@@ -337,12 +363,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (r != null && r.isNotEmpty) _fetchFweets();
   }
 
-  // Phase 3: share my own profile via the bottom sheet.
   Future<void> _shareMyProfile() async {
     HapticFeedback.lightImpact();
-
-    // If we don't have my user_id yet (initial fetch failed or hasn't
-    // returned), grab it now so the share message is correct.
     if (_myUserId == null || _myUserId!.isEmpty) {
       try {
         final me = await _api.getMyProfile() as Map<String, dynamic>;
@@ -378,21 +400,16 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── Phase 3: privacy pickers ──────────────────────────────
-
   Future<void> _changeBioPrivacy() async {
     HapticFeedback.lightImpact();
     final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
+      context: context, backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => PrivacyToggleSheet.bio(currentPublic: _bioPublic),
     );
     if (result == null) return;
-
     final wanted = result == 'public';
     if (wanted == _bioPublic) return;
-
     final was = _bioPublic;
     setState(() => _bioPublic = wanted);
     try {
@@ -407,14 +424,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _changeInterestsPrivacy() async {
     HapticFeedback.lightImpact();
     final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
+      context: context, backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => PrivacyToggleSheet.interests(
           currentVisibility: _interestsVis),
     );
     if (result == null || result == _interestsVis) return;
-
     final was = _interestsVis;
     setState(() => _interestsVis = result);
     try {
@@ -430,11 +445,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   List<Color> get _roleGradient {
     switch (widget.role.toLowerCase()) {
-      case 'student':        return [const Color(0xFF43E97B), const Color(0xFF38F9D7)];
+      case 'student':        return [const Color(0xFF22C55E), const Color(0xFF06B6D4)];
       case 'teaching_staff':
-      case 'staff':          return [_kG2, _kG1];
-      case 'parent':         return [_kG3, _kG4];
-      default:               return [_kG1, _kG2];
+      case 'staff':          return [_kPurple, _kBlue];
+      case 'parent':         return [_kAmber, _kCoral];
+      default:               return [_kBlue, _kPurple];
     }
   }
 
@@ -451,6 +466,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   String get _handleName =>
       '@${widget.preferredName.toLowerCase().replaceAll(' ', '_')}';
 
+  IconData _visibilityIcon(String vis) {
+    switch (vis) {
+      case 'private':   return Icons.lock_rounded;
+      case 'followers': return Icons.people_alt_rounded;
+      default:          return Icons.public_rounded;
+    }
+  }
+
   // ══════════════════════════════════════════════════════════
   // BUILD
   // ══════════════════════════════════════════════════════════
@@ -458,37 +481,43 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: CustomScrollView(
-        physics: const ClampingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(child: _buildCoverSection()),
-          SliverToBoxAdapter(child: _buildIdentitySection()),
-          if (_bioData != null && !_bioData!.isEmpty)
-            SliverToBoxAdapter(child: _buildBioCard()),
-          SliverToBoxAdapter(child: _buildInterestsStrip()),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _StickyTabDelegate(child: _buildTabBar()),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: true,
-            child: TabBarView(
-              controller: _tabCtrl,
-              physics: const ClampingScrollPhysics(),
-              children: [
-                _PostsTab(posts: _posts, loading: _postsLoading,
-                    onCreate: _openCreatePost, onDelete: _deletePost,
-                    onRefresh: _fetchPosts),
-                _FweetsTab(fweets: _fweets, loading: _fweetsLoading,
-                    onCreate: _openCreateFweet, onDelete: _deleteFweet,
-                    onRefresh: _fetchFweets),
-                _FavoritesTab(favorites: _favorites, loading: _favoritesLoading,
-                    onRefresh: _fetchFavorites),
-              ],
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [_kBg1, _kBg2, _kBg3], stops: [0.0, 0.55, 1.0]),
+        ),
+        child: NestedScrollView(
+          headerSliverBuilder: (_, __) => [
+            SliverToBoxAdapter(child: _buildCoverSection()),
+            SliverToBoxAdapter(child: _buildIdentitySection()),
+            if (_bioData != null && !_bioData!.isEmpty)
+              SliverToBoxAdapter(child: _buildBioCard()),
+            SliverToBoxAdapter(child: _buildInterestsStrip()),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyTabBarDelegate(
+                height: 60,
+                builder: (_) => _buildTabBar(),
+              ),
             ),
+          ],
+          body: TabBarView(
+            controller: _tabCtrl,
+            physics: const ClampingScrollPhysics(),
+            children: [
+              _PostsTab(posts: _posts, loading: _postsLoading,
+                  onCreate: _openCreatePost, onDelete: _deletePost,
+                  onRefresh: _fetchPosts),
+              _FweetsTab(fweets: _fweets, loading: _fweetsLoading,
+                  onCreate: _openCreateFweet, onDelete: _deleteFweet,
+                  onRefresh: _fetchFweets),
+              _FavoritesTab(favorites: _favorites, loading: _favoritesLoading,
+                  onRefresh: _fetchFavorites),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -500,8 +529,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     return SizedBox(
       height: _kCoverH + _kAvatarR,
       child: Stack(clipBehavior: Clip.none, children: [
-
-        // Cover
         Positioned(top: 0, left: 0, right: 0, height: _kCoverH,
           child: GestureDetector(onTap: _pickCover,
             child: Stack(children: [
@@ -512,53 +539,69 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: Colors.white, strokeWidth: 2))),
             ]))),
 
-        // Back
+        // Back button
         Positioned(top: topPad + 12, left: 16,
           child: GestureDetector(onTap: () => Navigator.pop(context),
-            child: Container(width: 36, height: 36,
+            child: Container(width: 38, height: 38,
               decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
+                  color: _kCard,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.2))),
+                  border: Border.all(color: _kBorder),
+                  boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8, offset: const Offset(0, 2))]),
               child: const Icon(Icons.arrow_back_rounded,
-                  color: Colors.white, size: 18)))),
+                  color: _kInk, size: 18)))),
 
-        // Edit cover
+        // Edit cover button
         Positioned(top: topPad + 12, right: 16,
           child: GestureDetector(onTap: _pickCover,
-            child: Container(width: 36, height: 36,
+            child: Container(width: 38, height: 38,
               decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
+                  color: _kCard,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.2))),
+                  border: Border.all(color: _kBorder),
+                  boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8, offset: const Offset(0, 2))]),
               child: const Icon(Icons.photo_camera_rounded,
-                  color: Colors.white, size: 16)))),
+                  color: _kInkSoft, size: 16)))),
 
-        // Avatar
+        // Avatar with animated gradient ring
         Positioned(top: _kCoverH - _kAvatarR, left: 0, right: 0,
           child: Center(child: GestureDetector(onTap: _pickAvatar,
             child: Stack(children: [
-              _buildAvatarCircle(),
+              _GradientBorderCard(
+                animation: _shimmerCtrl,
+                radius: _kAvatarR + 4,
+                borderWidth: 3.5,
+                innerColor: _kCard,
+                padding: const EdgeInsets.all(0),
+                child: ClipOval(child: SizedBox(
+                  width: _kAvatarR * 2, height: _kAvatarR * 2,
+                  child: _buildAvatarContent(),
+                )),
+              ),
               if (_avatarUploading)
                 Positioned.fill(child: ClipOval(child: Container(
                   color: Colors.black38,
                   child: const Center(child: CircularProgressIndicator(
                       color: Colors.white, strokeWidth: 2))))),
               Positioned(bottom: 2, right: 2,
-                child: Container(width: 26, height: 26,
+                child: Container(width: 28, height: 28,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: _roleGradient),
-                    border: Border.all(color: Colors.white, width: 2)),
+                    gradient: LinearGradient(colors: _roleGradient,
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    border: Border.all(color: _kCard, width: 2.5)),
                   child: const Icon(Icons.photo_camera_rounded,
-                      color: Colors.white, size: 12))),
+                      color: Colors.white, size: 13))),
             ])))),
       ]),
     );
   }
 
   Widget _buildCoverImage() {
-    // Priority: local file (uploading now) → Cloudinary URL → gradient
     if (_coverFile != null) {
       return Image.file(_coverFile!, fit: BoxFit.cover, width: double.infinity);
     }
@@ -566,8 +609,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       return CachedNetworkImage(
         imageUrl: _coverUrl!,
         fit: BoxFit.cover,
-        width: double.infinity,
-        height: _kCoverH,
+        width: double.infinity, height: _kCoverH,
         placeholder: (_, __) => _coverGradient(),
         errorWidget: (_, __, ___) => _coverGradient(),
       );
@@ -578,69 +620,39 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _coverGradient() => Container(
     decoration: BoxDecoration(
       gradient: LinearGradient(
-        colors: [const Color(0xFF1A1A2E),
-                 ..._roleGradient.map((c) => c.withOpacity(0.7)),
-                 const Color(0xFF1A1A2E)],
+        colors: _roleGradient.map((c) => c.withOpacity(0.85)).toList(),
         begin: Alignment.topLeft, end: Alignment.bottomRight)),
     child: Stack(children: [
       Positioned(right: -40, top: -40, child: Container(width: 200, height: 200,
         decoration: BoxDecoration(shape: BoxShape.circle,
-          color: _roleGradient.first.withOpacity(0.15)))),
+          color: _kCard.withOpacity(0.10)))),
       Positioned(left: -30, bottom: 0, child: Container(width: 140, height: 140,
         decoration: BoxDecoration(shape: BoxShape.circle,
-          color: _roleGradient.last.withOpacity(0.1)))),
+          color: _kCard.withOpacity(0.08)))),
     ]));
 
-  Widget _buildAvatarCircle() {
-    final diameter = _kAvatarR * 2;
-    final decoration = BoxDecoration(
-      shape: BoxShape.circle,
-      border: Border.all(color: Colors.white, width: 4),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18),
-          blurRadius: 18, offset: const Offset(0, 6))]);
-
-    // Local file: show immediately
+  Widget _buildAvatarContent() {
     if (_avatarFile != null) {
-      return Container(width: diameter, height: diameter,
-        decoration: decoration.copyWith(
-            image: DecorationImage(
-                image: FileImage(_avatarFile!), fit: BoxFit.cover)));
+      return Image.file(_avatarFile!, fit: BoxFit.cover);
     }
-    // Cloudinary URL
     if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-      return Container(width: diameter, height: diameter,
-        decoration: decoration,
-        child: ClipOval(child: CachedNetworkImage(
-          imageUrl: _avatarUrl!, fit: BoxFit.cover,
-          width: diameter, height: diameter,
-          placeholder: (_, __) => Container(
-            decoration: BoxDecoration(gradient: LinearGradient(
-                colors: _roleGradient,
-                begin: Alignment.topLeft, end: Alignment.bottomRight)),
-            child: Center(child: Text(
-              widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(fontFamily: 'Alfa',
-                  fontSize: 40, color: Colors.white)))),
-          errorWidget: (_, __, ___) => Container(
-            decoration: BoxDecoration(gradient: LinearGradient(
-                colors: _roleGradient,
-                begin: Alignment.topLeft, end: Alignment.bottomRight)),
-            child: Center(child: Text(
-              widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(fontFamily: 'Alfa',
-                  fontSize: 40, color: Colors.white)))),
-        )));
+      return CachedNetworkImage(
+        imageUrl: _avatarUrl!, fit: BoxFit.cover,
+        placeholder: (_, __) => _avatarFallback(),
+        errorWidget: (_, __, ___) => _avatarFallback(),
+      );
     }
-    // No image — gradient with initial
-    return Container(width: diameter, height: diameter,
-      decoration: decoration.copyWith(
-          gradient: LinearGradient(colors: _roleGradient,
-              begin: Alignment.topLeft, end: Alignment.bottomRight)),
-      child: Center(child: Text(
-        widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : '?',
-        style: const TextStyle(fontFamily: 'Alfa',
-            fontSize: 40, color: Colors.white))));
+    return _avatarFallback();
   }
+
+  Widget _avatarFallback() => Container(
+    decoration: BoxDecoration(gradient: LinearGradient(
+        colors: _roleGradient,
+        begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    child: Center(child: Text(
+        widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : '?',
+        style: const TextStyle(fontSize: 36,
+            fontWeight: FontWeight.w900, color: Colors.white))));
 
   // ── Identity section ──────────────────────────────────────
 
@@ -649,59 +661,68 @@ class _ProfileScreenState extends State<ProfileScreen>
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: Column(children: [
         Text(widget.fullName, textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
+          style: const TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w900,
+              color: _kInk, letterSpacing: -0.5)),
         const SizedBox(height: 4),
         Text('$_roleLabel  ·  $_handleName', textAlign: TextAlign.center,
-          style: TextStyle(fontFamily: 'Arch', fontSize: 13,
-              color: Colors.grey.shade500, letterSpacing: 0.2)),
-        const SizedBox(height: 20),
-        IntrinsicHeight(child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _StatCell(value: _posts.length, label: 'Posts'),
-            _divider(),
-            _StatCell(value: _followers, label: 'Followers'),
-            _divider(),
-            _StatCell(value: _following, label: 'Following'),
-          ],
-        )),
-        const SizedBox(height: 20),
+          style: const TextStyle(fontSize: 12, color: _kSlate,
+              fontWeight: FontWeight.w600, letterSpacing: 0.2)),
+        const SizedBox(height: 18),
+
+        // Stats card
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _kBorder)),
+          child: IntrinsicHeight(child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _StatCell(value: _posts.length, label: 'Posts'),
+              _divider(),
+              _StatCell(value: _followers, label: 'Followers'),
+              _divider(),
+              _StatCell(value: _following, label: 'Following'),
+            ],
+          )),
+        ),
+        const SizedBox(height: 14),
+
+        // Action row — Edit Bio (primary, animated border) + Share
         Row(children: [
           Expanded(flex: 3, child: GestureDetector(onTap: _openBio,
-            child: Container(height: 42,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_kG2, _kG1],
-                    begin: Alignment.centerLeft, end: Alignment.centerRight),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [BoxShadow(color: _kG2.withOpacity(0.25),
-                    blurRadius: 10, offset: const Offset(0, 4))]),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
-                const SizedBox(width: 6),
-                Text(_bioData != null ? 'Edit Bio' : 'Add Bio',
-                  style: const TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, color: Colors.white,
-                      fontSize: 13)),
-              ])))),
+            child: _GradientBorderCard(
+              animation: _shimmerCtrl,
+              radius: 14, borderWidth: 1.4,
+              innerColor: _kCard,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.edit_rounded, color: _kInk, size: 14),
+                  const SizedBox(width: 6),
+                  Text(_bioData != null ? 'Edit Bio' : 'Add Bio',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: _kInk, fontSize: 13, letterSpacing: -0.2)),
+                ])),
+          )),
           const SizedBox(width: 10),
-          // Phase 3: share button opens the share-profile bottom sheet.
           GestureDetector(onTap: _shareMyProfile,
-            child: Container(width: 42, height: 42,
-              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-                    blurRadius: 6, offset: const Offset(0, 2))]),
-              child: Icon(Icons.ios_share_rounded, size: 16,
-                  color: Colors.grey.shade600))),
+            child: Container(width: 46, height: 46,
+              decoration: BoxDecoration(
+                color: _kCard, shape: BoxShape.circle,
+                border: Border.all(color: _kBorder)),
+              child: const Icon(Icons.ios_share_rounded, size: 18,
+                  color: _kInkSoft))),
         ]),
         const SizedBox(height: 8),
       ]),
     );
   }
 
-  Widget _divider() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 18),
-    child: VerticalDivider(color: Colors.grey.shade200, thickness: 1.5, width: 1.5));
+  Widget _divider() => Container(width: 1, height: 28, color: _kBorder);
 
   // ── Bio card ──────────────────────────────────────────────
 
@@ -713,38 +734,36 @@ class _ProfileScreenState extends State<ProfileScreen>
         margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FB),
+          color: _kCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+          border: Border.all(color: _kBorder)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(width: 28, height: 28,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_kG2, _kG1]),
+                color: _kPurple.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.person_outlined,
-                  color: Colors.white, size: 14)),
+              child: const Icon(Icons.person_outline_rounded,
+                  color: _kPurple, size: 14)),
             const SizedBox(width: 8),
-            const Text('About me', style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
+            const Text('About me', style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 13,
+                color: _kInk, letterSpacing: -0.2)),
             const Spacer(),
-            // Phase 3: bio visibility chip. Tap-only target — its own
-            // GestureDetector wins the gesture arena, so the parent's
-            // _showBioSheet won't fire when the chip is tapped.
             _privacyChip(
               icon:  _bioPublic ? Icons.public_rounded : Icons.lock_rounded,
               label: PrivacyToggleSheet.bioLabel(_bioPublic),
               onTap: _changeBioPrivacy,
             ),
             const SizedBox(width: 10),
-            Text('Edit ›', style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 12, color: _kG2)),
+            const Text('Edit ›', style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 12, color: _kPurple)),
           ]),
           if (bio.bio != null) ...[
             const SizedBox(height: 8),
             Text(bio.bio!, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                  color: Colors.grey.shade600, height: 1.5)),
+              style: const TextStyle(fontSize: 13,
+                  color: _kInkSoft, height: 1.5)),
           ],
           if (bio.country != null || bio.year != null) ...[
             const SizedBox(height: 8),
@@ -752,7 +771,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               if (bio.country != null) _metaChip('📍 ${bio.country!}'),
               if (bio.year    != null) _metaChip('🎓 ${bio.year!}'),
               if (bio.availableForStudy)
-                _metaChip('📚 Study Buddy', color: Colors.green.shade600),
+                _metaChip('📚 Study Buddy', color: const Color(0xFF22C55E)),
             ]),
           ],
         ]),
@@ -763,15 +782,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _metaChip(String label, {Color? color}) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: (color ?? Colors.grey.shade600).withOpacity(0.08),
+      color: (color ?? _kSlate).withOpacity(0.08),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: (color ?? Colors.grey.shade600).withOpacity(0.15))),
-    child: Text(label, style: TextStyle(fontFamily: 'Momo',
-        fontSize: 11, color: color ?? Colors.grey.shade600)));
+      border: Border.all(color: (color ?? _kSlate).withOpacity(0.18))),
+    child: Text(label, style: TextStyle(
+        fontSize: 11, color: color ?? _kSlate,
+        fontWeight: FontWeight.w600)));
 
-  // Phase 3: small "🌐 Public ▾" pill used in the bio + interests
-  // section headers. Has its own GestureDetector so taps don't bubble
-  // to whatever surface it's sitting on.
   Widget _privacyChip({
     required IconData icon,
     required String label,
@@ -783,40 +800,26 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _kCardLo,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade300, width: 1),
+          border: Border.all(color: _kBorder, width: 1),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 11, color: Colors.grey.shade600),
+          Icon(icon, size: 11, color: _kSlate),
           const SizedBox(width: 4),
-          Text(label,
-            style: TextStyle(
-              fontFamily: 'Arch',
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
-            ),
-          ),
+          Text(label, style: const TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w800, color: _kInkSoft)),
           const SizedBox(width: 2),
-          Icon(Icons.keyboard_arrow_down_rounded,
-              size: 12, color: Colors.grey.shade500),
+          const Icon(Icons.keyboard_arrow_down_rounded,
+              size: 12, color: _kSlate2),
         ]),
       ),
     );
 
-  IconData _visibilityIcon(String vis) {
-    switch (vis) {
-      case 'private':   return Icons.lock_rounded;
-      case 'followers': return Icons.people_alt_rounded;
-      default:          return Icons.public_rounded;
-    }
-  }
-
   void _showBioSheet() {
     final bio = _bioData!;
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.white,
+      context: context, isScrollControlled: true, backgroundColor: _kBg1,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => DraggableScrollableSheet(
@@ -825,28 +828,29 @@ class _ProfileScreenState extends State<ProfileScreen>
           controller: ctrl, padding: const EdgeInsets.all(24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Center(child: Container(width: 44, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade200,
+              decoration: BoxDecoration(color: _kBorder,
                   borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 20),
             const Text('Bio', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
+                fontSize: 22, fontWeight: FontWeight.w900,
+                color: _kInk, letterSpacing: -0.4)),
             const SizedBox(height: 16),
-            if (bio.bio        != null) _BioRow(Icons.edit_note_rounded,    'Bio',         bio.bio!,        _kG2),
-            if (bio.quote      != null) _BioRow(Icons.format_quote_rounded, 'Quote',       bio.quote!,      _kG3),
-            if (bio.pronouns   != null) _BioRow(Icons.tag_rounded,          'Pronouns',    bio.pronouns!,   _kG1),
-            if (bio.country    != null) _BioRow(Icons.public_rounded,       'Country',     bio.country!,    _kG4),
-            if (bio.year       != null) _BioRow(Icons.grade_rounded,        'Year',        bio.year!,       _kG1),
-            if (bio.school     != null) _BioRow(Icons.location_city_rounded,'School',      bio.school!,     _kG3),
-            if (bio.studyStyle != null) _BioRow(Icons.menu_book_rounded,    'Study Style', bio.studyStyle!, _kG3),
+            if (bio.bio        != null) _BioRow(Icons.edit_note_rounded,    'Bio',         bio.bio!,        _kPurple),
+            if (bio.quote      != null) _BioRow(Icons.format_quote_rounded, 'Quote',       bio.quote!,      _kAmber),
+            if (bio.pronouns   != null) _BioRow(Icons.tag_rounded,          'Pronouns',    bio.pronouns!,   _kBlue),
+            if (bio.country    != null) _BioRow(Icons.public_rounded,       'Country',     bio.country!,    _kCoral),
+            if (bio.year       != null) _BioRow(Icons.grade_rounded,        'Year',        bio.year!,       _kBlue),
+            if (bio.school     != null) _BioRow(Icons.location_city_rounded,'School',      bio.school!,     _kAmber),
+            if (bio.studyStyle != null) _BioRow(Icons.menu_book_rounded,    'Study Style', bio.studyStyle!, _kAmber),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () { Navigator.pop(context); _openBio(); },
               child: Container(width: double.infinity, height: 50,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kG2, _kG1]),
+                  color: _kInk,
                   borderRadius: BorderRadius.circular(14)),
                 child: const Center(child: Text('Edit Bio', style: TextStyle(
-                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white, fontSize: 14))))),
           ]),
         ),
@@ -857,43 +861,35 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── Interests strip ───────────────────────────────────────
 
   Widget _buildInterestsStrip() {
-    // Empty state — single "Add your interests" pill, no privacy chip
-    // (nothing to be private about yet).
     if (_interests.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: GestureDetector(onTap: _openInterests,
           child: Container(
             margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            height: 40,
-            decoration: BoxDecoration(color: const Color(0xFFF7F8FB),
+            height: 42,
+            decoration: BoxDecoration(color: _kCard,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.grey.shade200, width: 1.5)),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.add_circle_outline_rounded, size: 14,
-                  color: Colors.grey.shade400),
-              const SizedBox(width: 6),
-              Text('Add your interests', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 12,
-                  color: Colors.grey.shade400)),
+              border: Border.all(color: _kBorder, width: 1.5)),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.add_circle_outline_rounded, size: 14, color: _kSlate2),
+              SizedBox(width: 6),
+              Text('Add your interests', style: TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 12, color: _kSlate2)),
             ]))),
       );
     }
 
-    // Filled state — section header (title + privacy chip) above the
-    // horizontal scrollable chips.
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
           child: Row(children: [
-            const Text('Interests',
-              style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 12,
+            const Text('Interests', style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 12,
                 color: _kInk, letterSpacing: 0.5)),
             const SizedBox(width: 10),
-            // Phase 3: interests visibility chip.
             _privacyChip(
               icon:  _visibilityIcon(_interestsVis),
               label: PrivacyToggleSheet.interestsLabel(_interestsVis),
@@ -901,10 +897,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ]),
         ),
-        SizedBox(height: 38,
+        SizedBox(height: 40,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             itemCount: _interests.length + 1,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
@@ -914,22 +910,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                          color: Colors.grey.shade300, width: 1.5),
+                      color: _kCard,
+                      border: Border.all(color: _kBorder, width: 1.5),
                       borderRadius: BorderRadius.circular(22)),
-                    child: Text('+ Edit', style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 11,
-                        color: Colors.grey.shade500))));
+                    child: const Text('+ Edit', style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11,
+                        color: _kSlate))));
               }
-              final c = [_kG1, _kG2, _kG3, _kG4][i % 4];
+              final c = [_kBlue, _kPurple, _kAmber, _kCoral][i % 4];
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: c.withOpacity(0.1),
-                  border: Border.all(color: c.withOpacity(0.3), width: 1.5),
+                  color: c.withOpacity(0.10),
+                  border: Border.all(color: c.withOpacity(0.30), width: 1.5),
                   borderRadius: BorderRadius.circular(22)),
-                child: Text(_interests[i], style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 11, color: c)));
+                child: Text(_interests[i], style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 11, color: c)));
             },
           ),
         ),
@@ -937,36 +933,145 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── Tab bar ───────────────────────────────────────────────
+  // ── Custom segmented tab bar (matching arcade) ────────────
 
   Widget _buildTabBar() {
-    return Container(
-      color: Colors.white,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Divider(height: 1, color: Colors.grey.shade100),
-        TabBar(
-          controller: _tabCtrl,
-          indicator: UnderlineTabIndicator(
-            borderSide: BorderSide(width: 2.5, color: _roleGradient.first),
-            insets: const EdgeInsets.symmetric(horizontal: 24)),
-          indicatorSize: TabBarIndicatorSize.tab,
-          labelStyle: const TextStyle(fontFamily: 'Arch',
-              fontWeight: FontWeight.bold, fontSize: 13),
-          labelColor: _kInk,
-          unselectedLabelColor: Colors.grey.shade400,
-          dividerColor: Colors.transparent,
-          tabs: const [Tab(text: 'Posts'), Tab(text: 'Fweets'),
-                       Tab(text: 'Favorites')],
+    const labels = ['Posts', 'Fweets', 'Favorites'];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _kCardLo,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _kBorder),
         ),
-        Divider(height: 1, color: Colors.grey.shade100),
-      ]),
+        child: AnimatedBuilder(
+          animation: _tabCtrl.animation!,
+          builder: (_, __) {
+            final pos = _tabCtrl.animation!.value.clamp(0.0, 2.0);
+            return LayoutBuilder(builder: (_, c) {
+              final segW = c.maxWidth / 3;
+              return Stack(children: [
+                Positioned(
+                  left: pos * segW,
+                  top: 0, bottom: 0, width: segW,
+                  child: Container(decoration: BoxDecoration(
+                    color: _kInk, borderRadius: BorderRadius.circular(10))),
+                ),
+                Row(children: [
+                  for (int i = 0; i < 3; i++)
+                    Expanded(child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _tabCtrl.animateTo(i);
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: Text(labels[i], style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w800,
+                            letterSpacing: -0.1,
+                            color: Color.lerp(_kSlate, Colors.white,
+                                1.0 - (pos - i).abs().clamp(0.0, 1.0)))),
+                      ),
+                    )),
+                ]),
+              ]);
+            });
+          },
+        ),
+      ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
+// _GradientBorderCard
+// ═════════════════════════════════════════════════════════════
+
+class _GradientBorderCard extends StatelessWidget {
+  final Animation<double>   animation;
+  final Widget              child;
+  final double              radius;
+  final double              borderWidth;
+  final Color               innerColor;
+  final EdgeInsetsGeometry? padding;
+  final List<Color>         colors;
+
+  const _GradientBorderCard({
+    required this.animation,
+    required this.child,
+    this.radius = 20,
+    this.borderWidth = 1.4,
+    this.innerColor = _kCard,
+    this.padding,
+    this.colors = _gradColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inner = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(
+            math.max(0.0, radius - borderWidth)),
+        color: innerColor,
+      ),
+      padding: padding,
+      child: child,
+    );
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, c) {
+        final v = animation.value * 2 * math.pi;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            gradient: SweepGradient(
+              colors: colors, startAngle: v, endAngle: v + 2 * math.pi),
+          ),
+          padding: EdgeInsets.all(borderWidth),
+          child: c,
+        );
+      },
+      child: inner,
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Sticky tab bar delegate
+// ═════════════════════════════════════════════════════════════
+
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final WidgetBuilder builder;
+  final double height;
+  _StickyTabBarDelegate({required this.builder, required this.height});
+
+  @override double get minExtent => height;
+  @override double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kBg1,
+        border: Border(bottom: BorderSide(color: _kBorder, width: 0.5)),
+      ),
+      child: builder(context),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyTabBarDelegate old) =>
+      old.height != height;
+}
+
+// ═════════════════════════════════════════════════════════════
 // STAT CELL
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _StatCell extends StatelessWidget {
   final int value; final String label;
@@ -977,31 +1082,19 @@ class _StatCell extends StatelessWidget {
     return '$value';
   }
   @override
-  Widget build(BuildContext context) => Column(children: [
+  Widget build(BuildContext context) => Expanded(child: Column(children: [
     Text(_fmt, style: const TextStyle(
-        fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+        fontSize: 19, fontWeight: FontWeight.w900,
+        color: _kInk, letterSpacing: -0.3)),
     const SizedBox(height: 2),
-    Text(label, style: TextStyle(fontFamily: 'Momo',
-        fontSize: 11, color: Colors.grey.shade500)),
-  ]);
+    Text(label, style: const TextStyle(
+        fontSize: 11, color: _kSlate, fontWeight: FontWeight.w600)),
+  ]));
 }
 
-// ─────────────────────────────────────────────────────────────
-// STICKY HEADER DELEGATE
-// ─────────────────────────────────────────────────────────────
-
-class _StickyTabDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  const _StickyTabDelegate({required this.child});
-  @override double get minExtent => 50;
-  @override double get maxExtent => 50;
-  @override Widget build(BuildContext ctx, double shrink, bool overlaps) => child;
-  @override bool shouldRebuild(_StickyTabDelegate o) => o.child != child;
-}
-
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // POSTS TAB
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _PostsTab extends StatelessWidget {
   final List<Map<String, dynamic>> posts;
@@ -1017,21 +1110,18 @@ class _PostsTab extends StatelessWidget {
     if (loading) return const _TabLoadingShimmer();
     if (posts.isEmpty) {
       return _EmptyTab(
-      icon: Icons.article_outlined, label: 'No Posts Yet',
-      sub: 'Share something with the campus',
-      buttonLabel: 'Create First Post', color: _kG2, onTap: onCreate);
+        icon: Icons.article_outlined, label: 'No Posts Yet',
+        sub: 'Share something with the campus',
+        buttonLabel: 'Create First Post', color: _kPurple, onTap: onCreate);
     }
     return RefreshIndicator(
-      color: _kG2, onRefresh: onRefresh,
+      color: _kInk, onRefresh: onRefresh,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         physics: const ClampingScrollPhysics(),
         itemCount: posts.length,
         itemBuilder: (_, i) {
           final p = posts[i];
-          // media items: {url, thumbnail_url, media_type, order, id}.
-          // Pass the full list through so the card can branch on
-          // media_type and render images vs videos via MediaItemView.
           final media = (p['media'] as List? ?? [])
               .cast<Map<String, dynamic>>();
           return _ProfilePostCard(
@@ -1045,15 +1135,12 @@ class _PostsTab extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // PROFILE POST CARD
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _ProfilePostCard extends StatefulWidget {
   final Map<String, dynamic> post;
-
-  /// Full media list (images + videos). Each item has the keys
-  /// `url`, `thumbnail_url`, `media_type`, `order`, `id`.
   final List<Map<String, dynamic>> media;
   final String content;
   final VoidCallback onDelete;
@@ -1074,47 +1161,33 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05),
-            blurRadius: 12, offset: const Offset(0, 4))]),
+        border: Border.all(color: _kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        // ── Media (images + videos from Cloudinary) ───────
-        // PageView delegates per-item rendering to MediaItemView, which
-        // shows a play badge on videos and opens FullscreenVideoPlayer
-        // when tapped. Visual-only overlays (counter, dots) sit on top
-        // wrapped in IgnorePointer so video taps reach the card; the
-        // delete button is the one exception — it stays interactive.
         if (hasMedia) ...[
           Stack(children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
               child: SizedBox(
                 height: 220,
                 child: PageView.builder(
                   itemCount: widget.media.length,
                   onPageChanged: (p) => setState(() => _page = p),
                   itemBuilder: (_, i) => MediaItemView(
-                    item:   widget.media[i],
-                    height: 220,
-                  ),
+                    item:   widget.media[i], height: 220),
                 ),
               ),
             ),
-            // Page counter
             if (multi) Positioned(top: 10, right: 10,
               child: IgnorePointer(child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withOpacity(0.55),
                     borderRadius: BorderRadius.circular(20)),
                 child: Text('${_page + 1}/${widget.media.length}',
-                    style: const TextStyle(fontFamily: 'Momo',
-                        color: Colors.white, fontSize: 11))))),
-            // Dot indicators
+                    style: const TextStyle(color: Colors.white, fontSize: 11,
+                        fontWeight: FontWeight.w700))))),
             if (multi) Positioned(bottom: 8, left: 0, right: 0,
               child: IgnorePointer(child: Row(mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(widget.media.length, (i) {
@@ -1127,19 +1200,17 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
                       color: active ? Colors.white : Colors.white.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(3)));
                 })))),
-            // Delete button — stays tappable (its own GestureDetector).
             Positioned(top: 10, left: 10,
               child: GestureDetector(onTap: widget.onDelete,
                 child: Container(width: 32, height: 32,
                   decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withOpacity(0.55),
                       shape: BoxShape.circle),
                   child: const Icon(Icons.delete_rounded,
                       color: Colors.white, size: 16)))),
           ]),
         ],
 
-        // ── Text / location ───────────────────────────────
         Padding(padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (!hasMedia)
@@ -1148,27 +1219,27 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(color: _kG4.withOpacity(0.08),
+                  decoration: BoxDecoration(color: _kCoral.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(10)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.delete_outline_rounded, size: 14, color: _kG4),
-                    const SizedBox(width: 4),
-                    Text('Delete', style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 11, fontWeight: FontWeight.bold, color: _kG4)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.delete_outline_rounded, size: 14, color: _kCoral),
+                    SizedBox(width: 4),
+                    Text('Delete', style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w800, color: _kCoral)),
                   ]))),
             ]),
           if (widget.content.isNotEmpty) ...[
             if (!hasMedia) const SizedBox(height: 4),
             Text(widget.content, style: const TextStyle(
-                fontFamily: 'Momo', fontSize: 14, color: _kInk, height: 1.5)),
+                fontSize: 14, color: _kInk, height: 1.5)),
           ],
           if (location.isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(children: [
-              Icon(Icons.location_on_rounded, size: 13, color: _kG4),
+              const Icon(Icons.location_on_rounded, size: 13, color: _kCoral),
               const SizedBox(width: 4),
-              Text(location, style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12, color: Colors.grey.shade500)),
+              Text(location, style: const TextStyle(
+                  fontSize: 12, color: _kSlate)),
             ]),
           ],
         ])),
@@ -1177,9 +1248,9 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // FWEETS TAB
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _FweetsTab extends StatelessWidget {
   final List<Map<String, dynamic>> fweets;
@@ -1195,12 +1266,12 @@ class _FweetsTab extends StatelessWidget {
     if (loading) return const _TabLoadingShimmer();
     if (fweets.isEmpty) {
       return _EmptyTab(
-      icon: Icons.chat_bubble_outline_rounded, label: 'No Fweets Yet',
-      sub: 'Quick thoughts and campus updates',
-      buttonLabel: 'Create First Fweet', color: _kG4, onTap: onCreate);
+        icon: Icons.chat_bubble_outline_rounded, label: 'No Fweets Yet',
+        sub: 'Quick thoughts and campus updates',
+        buttonLabel: 'Create First Fweet', color: _kCoral, onTap: onCreate);
     }
     return RefreshIndicator(
-      color: _kG2, onRefresh: onRefresh,
+      color: _kInk, onRefresh: onRefresh,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         physics: const ClampingScrollPhysics(),
@@ -1219,30 +1290,30 @@ class _FweetsTab extends StatelessWidget {
           return Container(
             margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
-              color: bg ?? Colors.white,
+              color: bg ?? _kCard,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [BoxShadow(
-                  color: (bg ?? Colors.black).withOpacity(0.08),
-                  blurRadius: 12, offset: const Offset(0, 4))]),
+              border: Border.all(color: bg != null
+                  ? Colors.white.withOpacity(0.15) : _kBorder)),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(17),
               child: Column(children: [
                 Container(
-                  color: Colors.black.withOpacity(0.06),
+                  color: bg != null
+                      ? Colors.black.withOpacity(0.10) : _kCardLo,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 8),
                   child: Row(children: [
-                    Text('⚡ Fweet', style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 11,
-                        color: bg != null ? Colors.white : _kG4)),
+                    Text('⚡ Fweet', style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11,
+                        color: bg != null ? Colors.white : _kCoral,
+                        letterSpacing: 0.3)),
                     const Spacer(),
                     GestureDetector(onTap: () => onDelete(i),
                       child: Icon(Icons.delete_outline_rounded, size: 18,
-                          color: bg != null ? Colors.white70 : _kG4)),
+                          color: bg != null ? Colors.white70 : _kCoral)),
                   ])),
                 Padding(padding: const EdgeInsets.all(16),
-                  child: Text(content, style: TextStyle(fontFamily: 'Momo',
+                  child: Text(content, style: TextStyle(
                       fontSize: 15, height: 1.5,
                       color: bg != null ? Colors.white : _kInk))),
               ])),
@@ -1253,9 +1324,9 @@ class _FweetsTab extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // FAVORITES TAB
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _FavoritesTab extends StatelessWidget {
   final List<Map<String, dynamic>> favorites;
@@ -1269,11 +1340,11 @@ class _FavoritesTab extends StatelessWidget {
     if (loading) return const _TabLoadingShimmer();
     if (favorites.isEmpty) {
       return const _EmptyTab(
-      icon: Icons.bookmark_outline_rounded, label: 'No Favorites Yet',
-      sub: 'Posts you bookmark from the feed appear here', color: _kG2);
+        icon: Icons.bookmark_outline_rounded, label: 'No Favorites Yet',
+        sub: 'Posts you bookmark from the feed appear here', color: _kPurple);
     }
     return RefreshIndicator(
-      color: _kG2, onRefresh: onRefresh,
+      color: _kInk, onRefresh: onRefresh,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         physics: const ClampingScrollPhysics(),
@@ -1284,61 +1355,50 @@ class _FavoritesTab extends StatelessWidget {
           final author  = p['author_name'] as String? ?? 'Unknown';
           final isFweet = p['post_type']   == 'fweet';
           final initial = author.isNotEmpty ? author[0].toUpperCase() : '?';
-          // Keep the full media list — the first item drives the
-          // preview, and MediaItemView handles both image and video
-          // (videos show a thumbnail with play badge → fullscreen on tap).
           final media   = (p['media'] as List? ?? [])
               .cast<Map<String, dynamic>>();
           return Container(
             margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _kCard,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [BoxShadow(color: _kG2.withOpacity(0.06),
-                  blurRadius: 12, offset: const Offset(0, 4))]),
+              border: Border.all(color: _kBorder)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Author header
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 10),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF7F8FB),
-                  borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(18))),
+                  color: _kCardLo,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(17))),
                 child: Row(children: [
                   Container(width: 26, height: 26,
                     decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: [_kG1, _kG2])),
+                        gradient: LinearGradient(colors: [_kBlue, _kPurple])),
                     child: Center(child: Text(initial, style: const TextStyle(
-                        color: Colors.white, fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 11)))),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800, fontSize: 11)))),
                   const SizedBox(width: 8),
-                  Text(author, style: const TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
+                  Text(author, style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 12, color: _kInk)),
                   if (isFweet) ...[
                     const SizedBox(width: 6),
                     Container(padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: _kG4.withOpacity(0.1),
+                      decoration: BoxDecoration(color: _kCoral.withOpacity(0.10),
                           borderRadius: BorderRadius.circular(6)),
                       child: const Text('⚡', style: TextStyle(fontSize: 10))),
                   ],
                   const Spacer(),
-                  const Icon(Icons.bookmark_rounded, color: _kG2, size: 16),
+                  const Icon(Icons.bookmark_rounded, color: _kPurple, size: 16),
                 ])),
-              // First media item — image or video — from Cloudinary.
               if (media.isNotEmpty)
                 ClipRRect(child: MediaItemView(
-                  item:   media.first,
-                  height: 180,
-                )),
+                  item: media.first, height: 180)),
               if (content.isNotEmpty)
                 Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Text(content, style: const TextStyle(
-                      fontFamily: 'Momo', fontSize: 14,
-                      color: _kInk, height: 1.5))),
+                      fontSize: 14, color: _kInk, height: 1.5))),
               if (content.isEmpty) const SizedBox(height: 8),
             ]),
           );
@@ -1348,9 +1408,9 @@ class _FavoritesTab extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // LOADING SHIMMER
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _TabLoadingShimmer extends StatefulWidget {
   const _TabLoadingShimmer();
@@ -1372,7 +1432,7 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
   @override
   Widget build(BuildContext context) =>
     AnimatedBuilder(animation: _a, builder: (_, __) {
-      final o = 0.06 + _a.value * 0.08;
+      final o = 0.04 + _a.value * 0.06;
       return ListView(padding: const EdgeInsets.all(16), children: [
         _sh(o, 200), const SizedBox(height: 16),
         _sh(o, 120), const SizedBox(height: 16),
@@ -1380,31 +1440,29 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
       ]);
     });
   Widget _sh(double o, double h) => Container(
-    decoration: BoxDecoration(color: Colors.white,
+    decoration: BoxDecoration(color: _kCard,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-            blurRadius: 10, offset: const Offset(0, 3))]),
+        border: Border.all(color: _kBorder)),
     child: Column(children: [
       Container(height: h,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(o),
-          borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20)))),
+          color: _kInk.withOpacity(o),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(19)))),
       Padding(padding: const EdgeInsets.all(14), child: Column(children: [
         Container(height: 14, width: double.infinity,
-          decoration: BoxDecoration(color: Colors.black.withOpacity(o),
+          decoration: BoxDecoration(color: _kInk.withOpacity(o),
               borderRadius: BorderRadius.circular(6))),
         const SizedBox(height: 8),
         Container(height: 14, width: 160,
-          decoration: BoxDecoration(color: Colors.black.withOpacity(o),
+          decoration: BoxDecoration(color: _kInk.withOpacity(o),
               borderRadius: BorderRadius.circular(6))),
       ])),
     ]));
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // EMPTY STATE
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _EmptyTab extends StatelessWidget {
   final IconData icon; final String label; final String sub;
@@ -1417,36 +1475,34 @@ class _EmptyTab extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 72, height: 72,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08), shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.15), width: 1.5)),
-          child: Icon(icon, size: 32, color: color.withOpacity(0.5))),
+            color: color.withOpacity(0.10), shape: BoxShape.circle,
+            border: Border.all(color: color.withOpacity(0.25), width: 1.5)),
+          child: Icon(icon, size: 30, color: color.withOpacity(0.7))),
         const SizedBox(height: 18),
         Text(label, style: const TextStyle(
-            fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
-        const SizedBox(height: 7),
-        Text(sub, textAlign: TextAlign.center, style: TextStyle(
-            fontFamily: 'Momo', fontSize: 13, color: Colors.grey.shade400)),
+            fontSize: 16, fontWeight: FontWeight.w900,
+            color: _kInk, letterSpacing: -0.3)),
+        const SizedBox(height: 6),
+        Text(sub, textAlign: TextAlign.center, style: const TextStyle(
+            fontSize: 12, color: _kSlate)),
         if (buttonLabel != null && onTap != null) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           GestureDetector(onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [color, color.withOpacity(0.7)]),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: color.withOpacity(0.3),
-                    blurRadius: 12, offset: const Offset(0, 4))]),
+                color: _kInk,
+                borderRadius: BorderRadius.circular(14)),
               child: Text(buttonLabel!, style: const TextStyle(
-                  fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                   color: Colors.white, fontSize: 13)))),
         ],
       ])));
 }
 
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 // BIO ROW
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
 
 class _BioRow extends StatelessWidget {
   final IconData icon; final String label, value; final Color color;
@@ -1456,18 +1512,17 @@ class _BioRow extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 14),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(width: 32, height: 32,
-        decoration: BoxDecoration(color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: color, size: 16)),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        Text(label, style: TextStyle(fontFamily: 'Arch',
-            fontWeight: FontWeight.bold, fontSize: 11,
-            color: Colors.grey.shade400)),
+        Text(label, style: const TextStyle(
+            fontWeight: FontWeight.w800, fontSize: 11,
+            color: _kSlate2, letterSpacing: 0.5)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(
-            fontFamily: 'Momo', fontSize: 14, color: _kInk)),
+        Text(value, style: const TextStyle(fontSize: 14, color: _kInk)),
       ])),
     ]));
 }

@@ -1,31 +1,50 @@
 // lib/screens/dashboard/dashboard_screen.dart
 //
-// SECTION 2 FIX — top-down welcome banner.
+// Nav bar redesign — floating pill matching the supplied reference.
 //
-// Before: a "Welcome back, X 🎉" SnackBar fired from login_id_screen
-// just before navigating here, sliding up from the BOTTOM. That was
-// removed in Section 1 (so there's currently no welcome at all).
+// Visual structure:
+//   • Pill-shaped bar (22px radius), white surface, _kBorder outline,
+//     soft drop shadow. Floats with 16px horizontal margin and 10px
+//     bottom margin so the device edge shows through.
+//   • 5 slots: Home · Groups · [Arcade centre] · Chat · Profile.
+//     Icons only (per the reference image) — l10n strings still flow
+//     through as Tooltip semantic labels for accessibility.
+//   • Active slot: soft _kCardLo pill behind the icon + ink colour.
+//   • Centre Arcade button: 56x56 rounded square (16px radius),
+//     rotating SweepGradient through the arcade palette, white 3px
+//     ring so it pops on the pale bar, dual shadow underneath. Raised
+//     ~14px above the bar surface; tapping launches the Arcade modal
+//     (existing behaviour preserved).
 //
-// Now: a proper banner mounted on the dashboard itself. It slides
-// DOWN from above the screen, holds for a beat, then slides back up
-// out of view. Tap to dismiss early. Fires once per dashboard mount
-// (i.e. once per cold start / once per fresh login).
+// Welcome banner — kept as-is. Same SECTION 2 controllers, animation
+// curves, and gradient. Only swap is the colour aliases below.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../services/app_localisations.dart';
+import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
+import 'package:tcs_app/services/app_localisations.dart';
 import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
-import '../groups/groups_study_hub_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/ai_assistant_fab.dart';
 
-const _kG1 = Color(0xFF6DD5FA);
+// Arcade palette (used by the centre button + welcome banner)
+const _kBlue   = Color(0xFF6DD5FA);
+const _kPurple = Color(0xFF7C3AED);
+const _kAmber  = Color(0xFFF59E0B);
+const _kCoral  = Color(0xFFFF4F6E);
+
+// Legacy aliases — welcome banner gradient still references these
+const _kG1 = _kBlue;
 const _kG2 = Color(0xFF8E54E9);
-const _kG3 = Color(0xFFF7971E);
-const _kG4 = Color(0xFFFF5858);
+
+// Light theme surfaces (matches arcade + profile)
+const _kCard   = Color(0xFFFFFFFF);
+const _kCardLo = Color(0xFFF5F5F8);
+const _kBorder = Color(0xFFE5E7EB);
+const _kInk    = Color(0xFF0D0D1A);
+const _kSlate2 = Color(0xFF9CA3AF);
 
 class DashboardScreen extends StatefulWidget {
   final String fullName;
@@ -50,11 +69,14 @@ class _DashboardScreenState extends State<DashboardScreen>
   late final AnimationController _tabSwitchCtrl;
   late final Animation<double>   _tabScaleAnim;
 
-  // ── SECTION 2 — top-down welcome banner ───────────────────
+  // Welcome banner controllers (preserved)
   late final AnimationController _welcomeCtrl;
   late final Animation<Offset>   _welcomeSlide;
   late final Animation<double>   _welcomeFade;
   bool _welcomeVisible = false;
+
+  // Sweep gradient controller for the centre Arcade button
+  late final AnimationController _shimmerCtrl;
 
   @override
   void initState() {
@@ -72,10 +94,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       curve: Curves.easeOut,
     );
 
-    // Welcome banner controllers.
-    // Begin Offset(0, -1.6) means the banner starts ~1.6 banner-heights
-    // ABOVE its rest position; end Offset.zero is its visible rest spot
-    // just inside SafeArea.top. Reversed it slides back up off-screen.
+    _shimmerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+
     _welcomeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -94,15 +117,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       reverseCurve: const Interval(0.4, 1.0, curve: Curves.easeIn),
     );
 
-    // Fire after the first frame so the dashboard body has time to
-    // render behind the banner.
     WidgetsBinding.instance.addPostFrameCallback((_) => _runWelcome());
   }
 
   Future<void> _runWelcome() async {
     if (!mounted) return;
-    // Tiny delay so the splash → dashboard fade has settled before
-    // the banner animates in.
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
@@ -110,7 +129,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     HapticFeedback.lightImpact();
     await _welcomeCtrl.forward();
 
-    // Hold time on screen.
     await Future.delayed(const Duration(milliseconds: 2400));
     if (!mounted) return;
 
@@ -131,6 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _tabSwitchCtrl.dispose();
     _welcomeCtrl.dispose();
+    _shimmerCtrl.dispose();
     super.dispose();
   }
 
@@ -139,9 +158,9 @@ class _DashboardScreenState extends State<DashboardScreen>
         const GroupsStudyHubScreen(),
         const ChatListScreen(),
         ProfileScreen(
-          fullName: widget.fullName,
+          fullName:      widget.fullName,
           preferredName: widget.preferredName,
-          role: widget.role,
+          role:          widget.role,
         ),
       ];
 
@@ -155,7 +174,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             return SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0, 1),
-                end: Offset.zero,
+                end:   Offset.zero,
               ).animate(
                 CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
               ),
@@ -185,29 +204,24 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Existing tab content
           ScaleTransition(
             scale: _tabScaleAnim,
             child: _screens[_currentIndex],
           ),
-
-          // Welcome banner overlay — only mounted while visible so it
-          // can never accidentally absorb taps when off-screen.
           if (_welcomeVisible) _buildWelcomeBanner(context),
         ],
       ),
       extendBody: true,
-     
+      backgroundColor: Colors.transparent,
+      
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  // ── Welcome banner — slides DOWN from above ───────────────
+  // ── Welcome banner (preserved) ────────────────────────────
+
   Widget _buildWelcomeBanner(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Resolve the friendliest available name. Preferred name wins;
-    // fall back to first word of full name; final fallback "there".
     final raw  = widget.preferredName.trim();
     final full = widget.fullName.trim();
     final name = raw.isNotEmpty
@@ -245,7 +259,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   child: Row(
                     children: [
-                      // Wave avatar
                       Container(
                         width: 46, height: 46,
                         decoration: BoxDecoration(
@@ -261,7 +274,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       ),
                       const SizedBox(width: 14),
-                      // Greeting
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,8 +303,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ],
                         ),
                       ),
-                      // Close affordance — visual only, the whole card
-                      // is tappable to dismiss.
                       Container(
                         width: 28, height: 28,
                         decoration: BoxDecoration(
@@ -316,59 +326,110 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    final l    = AppL10n.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  // ── Floating pill nav bar ─────────────────────────────────
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A24) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
+  Widget _buildBottomNav(BuildContext context) {
+    final l = AppL10n.of(context);
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          height: 76,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
             children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: l.navFeed,
-                index: 0,
-                selected: _navIndex == 0,
-                onTap: () => _onTabTap(0),
+              // The pill bar itself
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: Container(
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: _kCard,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: _kBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(children: [
+                    _NavSlot(
+                      icon: Icons.home_rounded,
+                      label: l.navFeed,
+                      selected: _navIndex == 0,
+                      onTap: () => _onTabTap(0),
+                    ),
+                    _NavSlot(
+                      icon: Icons.groups_rounded,
+                      label: l.navGroups,
+                      selected: _navIndex == 1,
+                      onTap: () => _onTabTap(1),
+                    ),
+                    // Spacer slot beneath the raised centre button
+                    const Expanded(child: SizedBox.shrink()),
+                    _NavSlot(
+                      icon: Icons.chat_bubble_rounded,
+                      label: l.navChat,
+                      selected: _navIndex == 3,
+                      onTap: () => _onTabTap(3),
+                    ),
+                    _NavSlot(
+                      icon: Icons.person_rounded,
+                      label: l.navProfile,
+                      selected: _navIndex == 4,
+                      onTap: () => _onTabTap(4),
+                    ),
+                  ]),
+                ),
               ),
-              _NavItem(
-                icon: Icons.groups_rounded,
-                label: l.navGroups,
-                index: 1,
-                selected: _navIndex == 1,
-                onTap: () => _onTabTap(1),
-              ),
-              _ArcadeNavButton(
-                label: l.navArcade,
-                onTap: () => _onTabTap(2),
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_rounded,
-                label: l.navChat,
-                index: 3,
-                selected: _navIndex == 3,
-                onTap: () => _onTabTap(3),
-              ),
-              _NavItem(
-                icon: Icons.person_rounded,
-                label: l.navProfile,
-                index: 4,
-                selected: _navIndex == 4,
-                onTap: () => _onTabTap(4),
+
+              // Raised centre Arcade button
+              Positioned(
+                bottom: 18,
+                child: GestureDetector(
+                  onTap: () => _onTabTap(2),
+                  child: Tooltip(
+                    message: l.navArcade,
+                    child: AnimatedBuilder(
+                      animation: _shimmerCtrl,
+                      builder: (_, child) => Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          gradient: SweepGradient(
+                            colors: const [_kBlue, _kPurple, _kAmber, _kCoral, _kBlue],
+                            startAngle: _shimmerCtrl.value * 6.28,
+                            endAngle:   _shimmerCtrl.value * 6.28 + 6.28,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _kCard, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _kPurple.withOpacity(0.40),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                            BoxShadow(
+                              color: _kCoral.withOpacity(0.20),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: child,
+                      ),
+                      child: const Icon(
+                        Icons.sports_esports_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -378,153 +439,47 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// ── Individual nav item ───────────────────────────────────────
+// ── Single nav slot (regular icon, non-centre) ───────────────
 
-class _NavItem extends StatelessWidget {
+class _NavSlot extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final int index;
-  final bool selected;
+  final String   label;
+  final bool     selected;
   final VoidCallback onTap;
 
-  const _NavItem({
+  const _NavSlot({
     required this.icon,
     required this.label,
-    required this.index,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final selColor   = isDark ? _kG1 : _kG2;
-    final unselColor = isDark ? const Color(0xFF555566) : const Color(0xFFB0B0B0);
-
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              decoration: BoxDecoration(
-                color: selected
-                    ? selColor.withOpacity(0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                size: 22,
-                color: selected ? selColor : unselColor,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Momo',
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected ? selColor : unselColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Centre Arcade button ──────────────────────────────────────
-
-class _ArcadeNavButton extends StatefulWidget {
-  final VoidCallback onTap;
-  final String label;
-  const _ArcadeNavButton({required this.onTap, required this.label});
-
-  @override
-  State<_ArcadeNavButton> createState() => _ArcadeNavButtonState();
-}
-
-class _ArcadeNavButtonState extends State<_ArcadeNavButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _shimmerCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _shimmerCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _shimmerCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: SizedBox(
-        width: 72,
-        height: 64,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Transform.translate(
-              offset: const Offset(0, -6),
-              child: AnimatedBuilder(
-                animation: _shimmerCtrl,
-                builder: (_, child) => Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    gradient: SweepGradient(
-                      colors: const [_kG1, _kG2, _kG3, _kG4, _kG1],
-                      startAngle: _shimmerCtrl.value * 6.28,
-                      endAngle: _shimmerCtrl.value * 6.28 + 6.28,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kG2.withOpacity(0.45),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: child,
+        child: SizedBox.expand(
+          child: Center(
+            child: Tooltip(
+              message: label,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: selected ? _kCardLo : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.sports_esports_rounded,
-                  color: Colors.white,
+                child: Icon(
+                  icon,
                   size: 22,
+                  color: selected ? _kInk : _kSlate2,
                 ),
               ),
             ),
-            Transform.translate(
-              offset: const Offset(0, -4),
-              child: Text(
-                widget.label,
-                style: const TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF8E54E9),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

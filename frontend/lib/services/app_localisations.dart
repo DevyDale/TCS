@@ -1,139 +1,135 @@
-// lib/l10n/app_localizations.dart
-// Full translation table for EN / MS / ZH / TA / AR
+// lib/services/app_localisations.dart
+// Translations for EN / MS / ZH / JA / KO / AR
 // Access via: AppL10n.of(context).key
 
 import 'package:flutter/material.dart';
 
-// ─────────────────────────────────────────────────────────────
-// TRANSLATION MAP
-// ─────────────────────────────────────────────────────────────
 const _translations = {
   // ── Navigation ──────────────────────────────────────────
-  'nav_feed':     {'en':'Feed',        'ms':'Suapan',     'zh':'动态',        'ta':'ஊட்டம்',     'ar':'الموجز'},
-  'nav_groups':   {'en':'Groups',      'ms':'Kumpulan',   'zh':'群组',        'ta':'குழுக்கள்',  'ar':'المجموعات'},
-  'nav_events':   {'en':'Events',      'ms':'Acara',      'zh':'活动',        'ta':'நிகழ்வுகள்', 'ar':'الفعاليات'},
-  'nav_arcade':   {'en':'Arcade',      'ms':'Arkad',      'zh':'游戏厅',      'ta':'ஆர்கேட்',    'ar':'الألعاب'},
-  'nav_chat':     {'en':'Chat',        'ms':'Chat',       'zh':'聊天',        'ta':'அரட்டை',    'ar':'الدردشة'},
-  'nav_profile':  {'en':'Profile',     'ms':'Profil',     'zh':'我的',        'ta':'சுயவிவரம்', 'ar':'الملف'},
-  'nav_settings': {'en':'Settings',    'ms':'Tetapan',    'zh':'设置',        'ta':'அமைப்புகள்','ar':'الإعدادات'},
+  'nav_feed':     {'en':'Feed','ms':'Suapan','zh':'动态','ja':'フィード','ko':'피드','ar':'الموجز'},
+  'nav_groups':   {'en':'Groups','ms':'Kumpulan','zh':'群组','ja':'グループ','ko':'그룹','ar':'المجموعات'},
+  'nav_events':   {'en':'Events','ms':'Acara','zh':'活动','ja':'イベント','ko':'이벤트','ar':'الفعاليات'},
+  'nav_arcade':   {'en':'Arcade','ms':'Arkad','zh':'游戏厅','ja':'アーケード','ko':'아케이드','ar':'الألعاب'},
+  'nav_chat':     {'en':'Chat','ms':'Chat','zh':'聊天','ja':'チャット','ko':'채팅','ar':'الدردشة'},
+  'nav_profile':  {'en':'Profile','ms':'Profil','zh':'我的','ja':'プロフィール','ko':'프로필','ar':'الملف'},
+  'nav_settings': {'en':'Settings','ms':'Tetapan','zh':'设置','ja':'設定','ko':'설정','ar':'الإعدادات'},
 
   // ── Common ───────────────────────────────────────────────
-  'btn_save':      {'en':'Save',       'ms':'Simpan',     'zh':'保存',        'ta':'சேமி',       'ar':'حفظ'},
-  'btn_cancel':    {'en':'Cancel',     'ms':'Batal',      'zh':'取消',        'ta':'ரத்து',      'ar':'إلغاء'},
-  'btn_close':     {'en':'Close',      'ms':'Tutup',      'zh':'关闭',        'ta':'மூடு',       'ar':'إغلاق'},
-  'btn_confirm':   {'en':'Confirm',    'ms':'Sahkan',     'zh':'确认',        'ta':'உறுதி',      'ar':'تأكيد'},
-  'btn_edit':      {'en':'Edit',       'ms':'Edit',       'zh':'编辑',        'ta':'திருத்து',   'ar':'تعديل'},
-  'btn_delete':    {'en':'Delete',     'ms':'Padam',      'zh':'删除',        'ta':'நீக்கு',     'ar':'حذف'},
-  'btn_follow':    {'en':'Follow',     'ms':'Ikuti',      'zh':'关注',        'ta':'பின்தொடர்',  'ar':'متابعة'},
-  'btn_unfollow':  {'en':'Unfollow',   'ms':'Berhenti',   'zh':'取消关注',    'ta':'நிறுத்து',   'ar':'إلغاء المتابعة'},
-  'btn_join':      {'en':'Join',       'ms':'Sertai',     'zh':'加入',        'ta':'சேரு',       'ar':'انضم'},
-  'btn_leave':     {'en':'Leave',      'ms':'Keluar',     'zh':'退出',        'ta':'வெளியேறு',   'ar':'مغادرة'},
-  'btn_send':      {'en':'Send',       'ms':'Hantar',     'zh':'发送',        'ta':'அனுப்பு',    'ar':'إرسال'},
-  'btn_search':    {'en':'Search',     'ms':'Cari',       'zh':'搜索',        'ta':'தேடு',       'ar':'بحث'},
-  'btn_create':    {'en':'Create',     'ms':'Cipta',      'zh':'创建',        'ta':'உருவாக்கு',  'ar':'إنشاء'},
-  'btn_back':      {'en':'Back',       'ms':'Kembali',    'zh':'返回',        'ta':'திரும்பு',   'ar':'رجوع'},
-  'btn_got_it':    {'en':'Got it',     'ms':'Faham',      'zh':'明白了',      'ta':'புரிந்தது',  'ar':'حسناً'},
-  'lbl_loading':   {'en':'Loading...', 'ms':'Memuatkan...','zh':'加载中...',  'ta':'ஏற்றுகிறது...','ar':'جاري التحميل...'},
-  'lbl_error':     {'en':'Something went wrong','ms':'Ralat berlaku','zh':'出错了','ta':'பிழை ஏற்பட்டது','ar':'حدث خطأ'},
-  'lbl_no_results':{'en':'No results', 'ms':'Tiada keputusan','zh':'无结果',  'ta':'முடிவுகள் இல்லை','ar':'لا توجد نتائج'},
+  'btn_save':      {'en':'Save','ms':'Simpan','zh':'保存','ja':'保存','ko':'저장','ar':'حفظ'},
+  'btn_cancel':    {'en':'Cancel','ms':'Batal','zh':'取消','ja':'キャンセル','ko':'취소','ar':'إلغاء'},
+  'btn_close':     {'en':'Close','ms':'Tutup','zh':'关闭','ja':'閉じる','ko':'닫기','ar':'إغلاق'},
+  'btn_confirm':   {'en':'Confirm','ms':'Sahkan','zh':'确认','ja':'確認','ko':'확인','ar':'تأكيد'},
+  'btn_edit':      {'en':'Edit','ms':'Edit','zh':'编辑','ja':'編集','ko':'편집','ar':'تعديل'},
+  'btn_delete':    {'en':'Delete','ms':'Padam','zh':'删除','ja':'削除','ko':'삭제','ar':'حذف'},
+  'btn_follow':    {'en':'Follow','ms':'Ikuti','zh':'关注','ja':'フォロー','ko':'팔로우','ar':'متابعة'},
+  'btn_unfollow':  {'en':'Unfollow','ms':'Berhenti','zh':'取消关注','ja':'フォロー解除','ko':'언팔로우','ar':'إلغاء المتابعة'},
+  'btn_join':      {'en':'Join','ms':'Sertai','zh':'加入','ja':'参加','ko':'참여','ar':'انضم'},
+  'btn_leave':     {'en':'Leave','ms':'Keluar','zh':'退出','ja':'退出','ko':'나가기','ar':'مغادرة'},
+  'btn_send':      {'en':'Send','ms':'Hantar','zh':'发送','ja':'送信','ko':'보내기','ar':'إرسال'},
+  'btn_search':    {'en':'Search','ms':'Cari','zh':'搜索','ja':'検索','ko':'검색','ar':'بحث'},
+  'btn_create':    {'en':'Create','ms':'Cipta','zh':'创建','ja':'作成','ko':'만들기','ar':'إنشاء'},
+  'btn_back':      {'en':'Back','ms':'Kembali','zh':'返回','ja':'戻る','ko':'뒤로','ar':'رجوع'},
+  'btn_got_it':    {'en':'Got it','ms':'Faham','zh':'明白了','ja':'了解','ko':'확인','ar':'حسناً'},
+  'lbl_loading':   {'en':'Loading...','ms':'Memuatkan...','zh':'加载中...','ja':'読み込み中...','ko':'로딩 중...','ar':'جاري التحميل...'},
+  'lbl_error':     {'en':'Something went wrong','ms':'Ralat berlaku','zh':'出错了','ja':'エラーが発生しました','ko':'오류가 발생했습니다','ar':'حدث خطأ'},
+  'lbl_no_results':{'en':'No results','ms':'Tiada keputusan','zh':'无结果','ja':'結果がありません','ko':'결과 없음','ar':'لا توجد نتائج'},
 
   // ── Feed ─────────────────────────────────────────────────
-  'feed_title':       {'en':'Feed',            'ms':'Suapan',         'zh':'动态',           'ta':'ஊட்டம்',         'ar':'الموجز'},
-  'feed_home':        {'en':'Home',            'ms':'Utama',          'zh':'首页',            'ta':'முகப்பு',         'ar':'الرئيسية'},
-  'feed_following':   {'en':'Following',       'ms':'Mengikuti',      'zh':'关注中',          'ta':'பின்தொடர்வது',   'ar':'المتابَعون'},
-  'feed_announcements':{'en':'Announcements',  'ms':'Pengumuman',     'zh':'公告',            'ta':'அறிவிப்புகள்',   'ar':'الإعلانات'},
-  'feed_whats_on':    {'en':'What\'s on your mind?','ms':'Apa pendapat anda?','zh':'说点什么吧...','ta':'என்ன நினைக்கிறீர்கள்?','ar':'ما الذي يدور في ذهنك؟'},
-  'feed_no_posts':    {'en':'No posts yet',    'ms':'Tiada catatan',  'zh':'还没有帖子',      'ta':'இடுகைகள் இல்லை', 'ar':'لا توجد منشورات'},
-  'feed_like':        {'en':'Like',            'ms':'Suka',           'zh':'赞',              'ta':'விரும்பு',        'ar':'إعجاب'},
-  'feed_comment':     {'en':'Comment',         'ms':'Komen',          'zh':'评论',            'ta':'கருத்து',         'ar':'تعليق'},
-  'feed_share':       {'en':'Share',           'ms':'Kongsi',         'zh':'分享',            'ta':'பகிர்',           'ar':'مشاركة'},
-  'feed_bookmark':    {'en':'Bookmark',        'ms':'Tandakan',       'zh':'收藏',            'ta':'புக்மார்க்',      'ar':'حفظ'},
+  'feed_title':       {'en':'Feed','ms':'Suapan','zh':'动态','ja':'フィード','ko':'피드','ar':'الموجز'},
+  'feed_home':        {'en':'Home','ms':'Utama','zh':'首页','ja':'ホーム','ko':'홈','ar':'الرئيسية'},
+  'feed_following':   {'en':'Following','ms':'Mengikuti','zh':'关注中','ja':'フォロー中','ko':'팔로잉','ar':'المتابَعون'},
+  'feed_announcements':{'en':'Announcements','ms':'Pengumuman','zh':'公告','ja':'お知らせ','ko':'공지사항','ar':'الإعلانات'},
+  'feed_whats_on':    {'en':'What\'s on your mind?','ms':'Apa pendapat anda?','zh':'说点什么吧...','ja':'何を考えていますか?','ko':'무슨 생각을 하고 있나요?','ar':'ما الذي يدور في ذهنك؟'},
+  'feed_no_posts':    {'en':'No posts yet','ms':'Tiada catatan','zh':'还没有帖子','ja':'投稿がありません','ko':'게시물 없음','ar':'لا توجد منشورات'},
+  'feed_like':        {'en':'Like','ms':'Suka','zh':'赞','ja':'いいね','ko':'좋아요','ar':'إعجاب'},
+  'feed_comment':     {'en':'Comment','ms':'Komen','zh':'评论','ja':'コメント','ko':'댓글','ar':'تعليق'},
+  'feed_share':       {'en':'Share','ms':'Kongsi','zh':'分享','ja':'シェア','ko':'공유','ar':'مشاركة'},
+  'feed_bookmark':    {'en':'Bookmark','ms':'Tandakan','zh':'收藏','ja':'ブックマーク','ko':'북마크','ar':'حفظ'},
 
   // ── Groups ───────────────────────────────────────────────
-  'groups_title':     {'en':'Groups',          'ms':'Kumpulan',       'zh':'群组',            'ta':'குழுக்கள்',       'ar':'المجموعات'},
-  'groups_my':        {'en':'My Groups',       'ms':'Kumpulan Saya',  'zh':'我的群组',        'ta':'என் குழுக்கள்',   'ar':'مجموعاتي'},
-  'groups_discover':  {'en':'Discover',        'ms':'Terokai',        'zh':'发现',            'ta':'கண்டுபிடி',       'ar':'اكتشاف'},
-  'groups_create':    {'en':'Create Group',    'ms':'Cipta Kumpulan', 'zh':'创建群组',        'ta':'குழு உருவாக்கு',  'ar':'إنشاء مجموعة'},
-  'groups_members':   {'en':'members',         'ms':'ahli',           'zh':'成员',            'ta':'உறுப்பினர்கள்',   'ar':'عضو'},
-  'groups_study_hub': {'en':'Study Hub',       'ms':'Hab Belajar',    'zh':'学习中心',        'ta':'படிப்பு மையம்',   'ar':'مركز الدراسة'},
+  'groups_title':     {'en':'Groups','ms':'Kumpulan','zh':'群组','ja':'グループ','ko':'그룹','ar':'المجموعات'},
+  'groups_my':        {'en':'My Groups','ms':'Kumpulan Saya','zh':'我的群组','ja':'マイグループ','ko':'내 그룹','ar':'مجموعاتي'},
+  'groups_discover':  {'en':'Discover','ms':'Terokai','zh':'发现','ja':'見つける','ko':'둘러보기','ar':'اكتشاف'},
+  'groups_create':    {'en':'Create Group','ms':'Cipta Kumpulan','zh':'创建群组','ja':'グループ作成','ko':'그룹 만들기','ar':'إنشاء مجموعة'},
+  'groups_members':   {'en':'members','ms':'ahli','zh':'成员','ja':'メンバー','ko':'멤버','ar':'عضو'},
+  'groups_study_hub': {'en':'Study Hub','ms':'Hab Belajar','zh':'学习中心','ja':'学習ハブ','ko':'스터디 허브','ar':'مركز الدراسة'},
 
   // ── Events ───────────────────────────────────────────────
-  'events_title':     {'en':'Events',          'ms':'Acara',          'zh':'活动',            'ta':'நிகழ்வுகள்',      'ar':'الفعاليات'},
-  'events_upcoming':  {'en':'Upcoming',        'ms':'Akan Datang',    'zh':'即将举行',        'ta':'வரவிருக்கும்',    'ar':'القادمة'},
-  'events_past':      {'en':'Past',            'ms':'Lepas',          'zh':'已结束',          'ta':'கடந்த',           'ar':'السابقة'},
-  'events_rsvp':      {'en':'RSVP',            'ms':'Daftar',         'zh':'报名',            'ta':'பதிவு செய்',      'ar':'تسجيل'},
-  'events_attending': {'en':'Attending',       'ms':'Menghadiri',     'zh':'已报名',          'ta':'கலந்துகொள்கிறேன்','ar':'حاضر'},
-  'events_no_events': {'en':'No events yet',   'ms':'Tiada acara',    'zh':'暂无活动',        'ta':'நிகழ்வுகள் இல்லை','ar':'لا توجد فعاليات'},
+  'events_title':     {'en':'Events','ms':'Acara','zh':'活动','ja':'イベント','ko':'이벤트','ar':'الفعاليات'},
+  'events_upcoming':  {'en':'Upcoming','ms':'Akan Datang','zh':'即将举行','ja':'今後の予定','ko':'예정','ar':'القادمة'},
+  'events_past':      {'en':'Past','ms':'Lepas','zh':'已结束','ja':'過去','ko':'지난','ar':'السابقة'},
+  'events_rsvp':      {'en':'RSVP','ms':'Daftar','zh':'报名','ja':'参加登録','ko':'참가 신청','ar':'تسجيل'},
+  'events_attending': {'en':'Attending','ms':'Menghadiri','zh':'已报名','ja':'参加予定','ko':'참석 예정','ar':'حاضر'},
+  'events_no_events': {'en':'No events yet','ms':'Tiada acara','zh':'暂无活动','ja':'イベントはありません','ko':'이벤트 없음','ar':'لا توجد فعاليات'},
 
   // ── Arcade ───────────────────────────────────────────────
-  'arcade_title':      {'en':'Arcade',         'ms':'Arkad',          'zh':'游戏厅',          'ta':'ஆர்கேட்',         'ar':'الألعاب'},
-  'arcade_play':       {'en':'Play',           'ms':'Main',           'zh':'开始游戏',        'ta':'விளையாடு',        'ar':'العب'},
-  'arcade_leaderboard':{'en':'Leaderboard',    'ms':'Papan Markah',   'zh':'排行榜',          'ta':'தரவரிசை',         'ar':'لوحة المتصدرين'},
-  'arcade_tokens':     {'en':'Tokens',         'ms':'Token',          'zh':'代币',            'ta':'டோக்கன்கள்',      'ar':'الرموز'},
-  'arcade_challenges': {'en':'Challenges',     'ms':'Cabaran',        'zh':'挑战',            'ta':'சவால்கள்',        'ar':'التحديات'},
-  'arcade_gamer_tag':  {'en':'Gamer Tag',      'ms':'Tag Gamer',      'zh':'玩家标签',        'ta':'கேமர் டேக்',       'ar':'علامة اللاعب'},
-  'arcade_my_games':   {'en':'My Games',       'ms':'Permainan Saya', 'zh':'我的游戏',        'ta':'என் விளையாட்டுகள்','ar':'ألعابي'},
+  'arcade_title':      {'en':'Arcade','ms':'Arkad','zh':'游戏厅','ja':'アーケード','ko':'아케이드','ar':'الألعاب'},
+  'arcade_play':       {'en':'Play','ms':'Main','zh':'开始游戏','ja':'プレイ','ko':'플레이','ar':'العب'},
+  'arcade_leaderboard':{'en':'Leaderboard','ms':'Papan Markah','zh':'排行榜','ja':'リーダーボード','ko':'리더보드','ar':'لوحة المتصدرين'},
+  'arcade_tokens':     {'en':'Tokens','ms':'Token','zh':'代币','ja':'トークン','ko':'토큰','ar':'الرموز'},
+  'arcade_challenges': {'en':'Challenges','ms':'Cabaran','zh':'挑战','ja':'チャレンジ','ko':'도전과제','ar':'التحديات'},
+  'arcade_gamer_tag':  {'en':'Gamer Tag','ms':'Tag Gamer','zh':'玩家标签','ja':'ゲーマータグ','ko':'게이머 태그','ar':'علامة اللاعب'},
+  'arcade_my_games':   {'en':'My Games','ms':'Permainan Saya','zh':'我的游戏','ja':'マイゲーム','ko':'내 게임','ar':'ألعابي'},
 
   // ── Chat ─────────────────────────────────────────────────
-  'chat_title':        {'en':'Messages',       'ms':'Mesej',          'zh':'消息',            'ta':'செய்திகள்',        'ar':'الرسائل'},
-  'chat_new':          {'en':'New Chat',       'ms':'Chat Baru',      'zh':'新聊天',          'ta':'புதிய அரட்டை',    'ar':'دردشة جديدة'},
-  'chat_type_msg':     {'en':'Type a message...','ms':'Taip mesej...','zh':'输入消息...',     'ta':'செய்தி தட்டச்சு செய்...','ar':'اكتب رسالة...'},
-  'chat_no_messages':  {'en':'No messages yet','ms':'Tiada mesej',    'zh':'暂无消息',        'ta':'செய்திகள் இல்லை', 'ar':'لا توجد رسائل'},
-  'chat_saved':        {'en':'Saved Materials','ms':'Bahan Disimpan', 'zh':'已保存资料',      'ta':'சேமித்த பொருட்கள்','ar':'المواد المحفوظة'},
+  'chat_title':        {'en':'Messages','ms':'Mesej','zh':'消息','ja':'メッセージ','ko':'메시지','ar':'الرسائل'},
+  'chat_new':          {'en':'New Chat','ms':'Chat Baru','zh':'新聊天','ja':'新規チャット','ko':'새 채팅','ar':'دردشة جديدة'},
+  'chat_type_msg':     {'en':'Type a message...','ms':'Taip mesej...','zh':'输入消息...','ja':'メッセージを入力...','ko':'메시지 입력...','ar':'اكتب رسالة...'},
+  'chat_no_messages':  {'en':'No messages yet','ms':'Tiada mesej','zh':'暂无消息','ja':'メッセージはありません','ko':'메시지 없음','ar':'لا توجد رسائل'},
+  'chat_saved':        {'en':'Saved Materials','ms':'Bahan Disimpan','zh':'已保存资料','ja':'保存済み資料','ko':'저장된 자료','ar':'المواد المحفوظة'},
 
   // ── Profile ──────────────────────────────────────────────
-  'profile_posts':     {'en':'Posts',          'ms':'Catatan',        'zh':'帖子',            'ta':'இடுகைகள்',        'ar':'المنشورات'},
-  'profile_followers': {'en':'Followers',      'ms':'Pengikut',       'zh':'粉丝',            'ta':'பின்தொடர்பவர்கள்','ar':'المتابعون'},
-  'profile_following': {'en':'Following',      'ms':'Mengikuti',      'zh':'关注',            'ta':'பின்தொடர்வது',    'ar':'يتابع'},
-  'profile_activity':  {'en':'Activity',       'ms':'Aktiviti',       'zh':'活动',            'ta':'செயல்பாடு',       'ar':'النشاط'},
-  'profile_fweets':    {'en':'Fweets',         'ms':'Fweets',         'zh':'推文',            'ta':'ஃப்வீட்ஸ்',       'ar':'فويتس'},
-  'profile_add_bio':   {'en':'Add Bio',        'ms':'Tambah Bio',     'zh':'添加简介',        'ta':'கதை சேர்',         'ar':'إضافة نبذة'},
-  'profile_edit_bio':  {'en':'Edit Bio',       'ms':'Edit Bio',       'zh':'编辑简介',        'ta':'திருத்து',         'ar':'تعديل النبذة'},
-  'profile_interests': {'en':'Interests',      'ms':'Minat',          'zh':'兴趣',            'ta':'ஆர்வங்கள்',        'ar':'الاهتمامات'},
-  'profile_no_posts':  {'en':'No Posts Yet',   'ms':'Tiada Catatan',  'zh':'还没有帖子',      'ta':'இடுகைகள் இல்லை',  'ar':'لا توجد منشورات'},
-  'profile_create_post':{'en':'Create First Post','ms':'Cipta Catatan Pertama','zh':'创建第一篇帖子','ta':'முதல் இடுகை உருவாக்கு','ar':'أنشئ أول منشور'},
+  'profile_posts':     {'en':'Posts','ms':'Catatan','zh':'帖子','ja':'投稿','ko':'게시물','ar':'المنشورات'},
+  'profile_followers': {'en':'Followers','ms':'Pengikut','zh':'粉丝','ja':'フォロワー','ko':'팔로워','ar':'المتابعون'},
+  'profile_following': {'en':'Following','ms':'Mengikuti','zh':'关注','ja':'フォロー中','ko':'팔로잉','ar':'يتابع'},
+  'profile_activity':  {'en':'Activity','ms':'Aktiviti','zh':'活动','ja':'アクティビティ','ko':'활동','ar':'النشاط'},
+  'profile_fweets':    {'en':'Fweets','ms':'Fweets','zh':'推文','ja':'フウィート','ko':'프윗','ar':'فويتس'},
+  'profile_add_bio':   {'en':'Add Bio','ms':'Tambah Bio','zh':'添加简介','ja':'自己紹介を追加','ko':'소개 추가','ar':'إضافة نبذة'},
+  'profile_edit_bio':  {'en':'Edit Bio','ms':'Edit Bio','zh':'编辑简介','ja':'自己紹介を編集','ko':'소개 편집','ar':'تعديل النبذة'},
+  'profile_interests': {'en':'Interests','ms':'Minat','zh':'兴趣','ja':'興味','ko':'관심사','ar':'الاهتمامات'},
+  'profile_no_posts':  {'en':'No Posts Yet','ms':'Tiada Catatan','zh':'还没有帖子','ja':'投稿がありません','ko':'게시물 없음','ar':'لا توجد منشورات'},
+  'profile_create_post':{'en':'Create First Post','ms':'Cipta Catatan Pertama','zh':'创建第一篇帖子','ja':'最初の投稿を作成','ko':'첫 게시물 만들기','ar':'أنشئ أول منشور'},
 
   // ── Settings ─────────────────────────────────────────────
-  'settings_title':        {'en':'Settings',           'ms':'Tetapan',              'zh':'设置',              'ta':'அமைப்புகள்',          'ar':'الإعدادات'},
-  'settings_appearance':   {'en':'APPEARANCE',          'ms':'PENAMPILAN',           'zh':'外观',              'ta':'தோற்றம்',             'ar':'المظهر'},
-  'settings_language':     {'en':'LANGUAGE',            'ms':'BAHASA',               'zh':'语言',              'ta':'மொழி',                'ar':'اللغة'},
-  'settings_notifications':{'en':'NOTIFICATIONS',       'ms':'PEMBERITAHUAN',        'zh':'通知',              'ta':'அறிவிப்புகள்',        'ar':'الإشعارات'},
-  'settings_privacy':      {'en':'PRIVACY',             'ms':'PRIVASI',              'zh':'隐私',              'ta':'தனியுரிமை',            'ar':'الخصوصية'},
-  'settings_about':        {'en':'ABOUT',               'ms':'TENTANG',              'zh':'关于',              'ta':'பற்றி',                'ar':'عن التطبيق'},
-  'settings_dark_mode':    {'en':'Dark Mode',           'ms':'Mod Gelap',            'zh':'深色模式',           'ta':'இருண்ட முறை',          'ar':'الوضع الداكن'},
-  'settings_dark_on':      {'en':'Dark theme active',  'ms':'Tema gelap aktif',     'zh':'深色主题已启用',     'ta':'இருண்ட தீம் செயலில்', 'ar':'الوضع الداكن مُفعّل'},
-  'settings_dark_off':     {'en':'Light theme active', 'ms':'Tema cerah aktif',     'zh':'浅色主题已启用',     'ta':'ஒளி தீம் செயலில்',    'ar':'الوضع الفاتح مُفعّل'},
-  'settings_lang_label':   {'en':'Language',           'ms':'Bahasa',               'zh':'语言',              'ta':'மொழி',                'ar':'اللغة'},
-  'settings_push':         {'en':'Push Notifications', 'ms':'Pemberitahuan Tolak',  'zh':'推送通知',           'ta':'புஷ் அறிவிப்புகள்',   'ar':'الإشعارات الفورية'},
-  'settings_push_on':      {'en':'All notifications on','ms':'Semua pemberitahuan hidup','zh':'所有通知已开启', 'ta':'அனைத்து அறிவிப்புகளும் இயக்கப்பட்டன','ar':'كل الإشعارات مُفعَّلة'},
-  'settings_push_off':     {'en':'All notifications off','ms':'Semua pemberitahuan mati','zh':'所有通知已关闭', 'ta':'அனைத்து அறிவிப்புகளும் அணைக்கப்பட்டன','ar':'كل الإشعارات مُعطَّلة'},
-  'settings_announcements':{'en':'Announcements',      'ms':'Pengumuman',           'zh':'公告',              'ta':'அறிவிப்புகள்',         'ar':'الإعلانات'},
-  'settings_campus_ann':   {'en':'Campus-wide announcements','ms':'Pengumuman kampus','zh':'校园公告',         'ta':'வளாக அறிவிப்புகள்',   'ar':'إعلانات الحرم الجامعي'},
-  'settings_group_act':    {'en':'Group Activity',     'ms':'Aktiviti Kumpulan',    'zh':'群组动态',           'ta':'குழு செயல்பாடு',       'ar':'نشاط المجموعة'},
-  'settings_group_sub':    {'en':'New posts in your groups','ms':'Catatan baru dalam kumpulan','zh':'群组中的新帖子','ta':'குழுக்களில் புதிய இடுகைகள்','ar':'منشورات جديدة في مجموعاتك'},
-  'settings_online':       {'en':'Show Online Status', 'ms':'Tunjuk Status Dalam Talian','zh':'显示在线状态',   'ta':'ஆன்லைன் நிலை காட்டு', 'ar':'إظهار حالة الاتصال'},
-  'settings_online_on':    {'en':'Others can see when you\'re active','ms':'Orang lain boleh lihat status anda','zh':'其他人可以看到你的在线状态','ta':'மற்றவர்கள் உங்கள் நிலையை பார்க்கலாம்','ar':'يمكن للآخرين رؤية حالتك'},
-  'settings_online_off':   {'en':'You appear offline','ms':'Anda kelihatan luar talian','zh':'你显示为离线',    'ta':'நீங்கள் ஆஃப்லைனாக தெரிகிறீர்கள்','ar':'تظهر غير متصل'},
-  'settings_discoverable': {'en':'Discoverable',       'ms':'Boleh Dijumpai',       'zh':'可被发现',           'ta':'கண்டுபிடிக்கக்கூடியது','ar':'قابل للاكتشاف'},
-  'settings_disc_on':      {'en':'You appear in search results','ms':'Anda muncul dalam carian','zh':'你出现在搜索结果中','ta':'நீங்கள் தேடல் முடிவுகளில் தெரிகிறீர்கள்','ar':'تظهر في نتائج البحث'},
-  'settings_disc_off':     {'en':'Hidden from search', 'ms':'Tersembunyi dari carian','zh':'对搜索隐藏',        'ta':'தேடலில் இருந்து மறைக்கப்பட்டது','ar':'مخفي من البحث'},
-  'settings_version':      {'en':'Version',            'ms':'Versi',                'zh':'版本',              'ta':'பதிப்பு',              'ar':'الإصدار'},
-  'settings_institution':  {'en':'Institution',        'ms':'Institusi',            'zh':'学校',              'ta':'நிறுவனம்',             'ar':'المؤسسة'},
-  'settings_terms':        {'en':'Terms of Service',   'ms':'Terma Perkhidmatan',   'zh':'服务条款',           'ta':'சேவை விதிமுறைகள்',    'ar':'شروط الخدمة'},
-  'settings_privacy_pol':  {'en':'Privacy Policy',     'ms':'Dasar Privasi',        'zh':'隐私政策',           'ta':'தனியுரிமைக் கொள்கை',  'ar':'سياسة الخصوصية'},
-  'settings_support':      {'en':'Support',            'ms':'Sokongan',             'zh':'支持',              'ta':'ஆதரவு',               'ar':'الدعم'},
-  'settings_view':         {'en':'View ›',             'ms':'Lihat ›',              'zh':'查看 ›',             'ta':'பார் ›',               'ar':'عرض ›'},
+  'settings_title':        {'en':'Settings','ms':'Tetapan','zh':'设置','ja':'設定','ko':'설정','ar':'الإعدادات'},
+  'settings_appearance':   {'en':'APPEARANCE','ms':'PENAMPILAN','zh':'外观','ja':'外観','ko':'화면','ar':'المظهر'},
+  'settings_language':     {'en':'LANGUAGE','ms':'BAHASA','zh':'语言','ja':'言語','ko':'언어','ar':'اللغة'},
+  'settings_notifications':{'en':'NOTIFICATIONS','ms':'PEMBERITAHUAN','zh':'通知','ja':'通知','ko':'알림','ar':'الإشعارات'},
+  'settings_privacy':      {'en':'PRIVACY','ms':'PRIVASI','zh':'隐私','ja':'プライバシー','ko':'개인정보','ar':'الخصوصية'},
+  'settings_about':        {'en':'ABOUT','ms':'TENTANG','zh':'关于','ja':'情報','ko':'정보','ar':'عن التطبيق'},
+  'settings_dark_mode':    {'en':'Dark Mode','ms':'Mod Gelap','zh':'深色模式','ja':'ダークモード','ko':'다크 모드','ar':'الوضع الداكن'},
+  'settings_dark_on':      {'en':'Dark theme active','ms':'Tema gelap aktif','zh':'深色主题已启用','ja':'ダークテーマ有効','ko':'다크 테마 활성','ar':'الوضع الداكن مُفعّل'},
+  'settings_dark_off':     {'en':'Light theme active','ms':'Tema cerah aktif','zh':'浅色主题已启用','ja':'ライトテーマ有効','ko':'라이트 테마 활성','ar':'الوضع الفاتح مُفعّل'},
+  'settings_lang_label':   {'en':'Language','ms':'Bahasa','zh':'语言','ja':'言語','ko':'언어','ar':'اللغة'},
+  'settings_push':         {'en':'Push Notifications','ms':'Pemberitahuan Tolak','zh':'推送通知','ja':'プッシュ通知','ko':'푸시 알림','ar':'الإشعارات الفورية'},
+  'settings_push_on':      {'en':'All notifications on','ms':'Semua pemberitahuan hidup','zh':'所有通知已开启','ja':'すべての通知が有効','ko':'모든 알림 활성','ar':'كل الإشعارات مُفعَّلة'},
+  'settings_push_off':     {'en':'All notifications off','ms':'Semua pemberitahuan mati','zh':'所有通知已关闭','ja':'すべての通知が無効','ko':'모든 알림 비활성','ar':'كل الإشعارات مُعطَّلة'},
+  'settings_announcements':{'en':'Announcements','ms':'Pengumuman','zh':'公告','ja':'お知らせ','ko':'공지사항','ar':'الإعلانات'},
+  'settings_campus_ann':   {'en':'Campus-wide announcements','ms':'Pengumuman kampus','zh':'校园公告','ja':'キャンパス全体のお知らせ','ko':'캠퍼스 전체 공지','ar':'إعلانات الحرم الجامعي'},
+  'settings_group_act':    {'en':'Group Activity','ms':'Aktiviti Kumpulan','zh':'群组动态','ja':'グループ活動','ko':'그룹 활동','ar':'نشاط المجموعة'},
+  'settings_group_sub':    {'en':'New posts in your groups','ms':'Catatan baru dalam kumpulan','zh':'群组中的新帖子','ja':'グループの新しい投稿','ko':'그룹의 새 게시물','ar':'منشورات جديدة في مجموعاتك'},
+  'settings_online':       {'en':'Show Online Status','ms':'Tunjuk Status Dalam Talian','zh':'显示在线状态','ja':'オンライン状態を表示','ko':'온라인 상태 표시','ar':'إظهار حالة الاتصال'},
+  'settings_online_on':    {'en':'Others can see when you\'re active','ms':'Orang lain boleh lihat status anda','zh':'其他人可以看到你的在线状态','ja':'他の人があなたの状態を見られます','ko':'다른 사람이 내 상태를 볼 수 있음','ar':'يمكن للآخرين رؤية حالتك'},
+  'settings_online_off':   {'en':'You appear offline','ms':'Anda kelihatan luar talian','zh':'你显示为离线','ja':'オフラインとして表示','ko':'오프라인으로 표시','ar':'تظهر غير متصل'},
+  'settings_discoverable': {'en':'Discoverable','ms':'Boleh Dijumpai','zh':'可被发现','ja':'検索可能','ko':'검색 가능','ar':'قابل للاكتشاف'},
+  'settings_disc_on':      {'en':'You appear in search results','ms':'Anda muncul dalam carian','zh':'你出现在搜索结果中','ja':'検索結果に表示されます','ko':'검색 결과에 표시','ar':'تظهر في نتائج البحث'},
+  'settings_disc_off':     {'en':'Hidden from search','ms':'Tersembunyi dari carian','zh':'对搜索隐藏','ja':'検索から非表示','ko':'검색에서 숨김','ar':'مخفي من البحث'},
+  'settings_version':      {'en':'Version','ms':'Versi','zh':'版本','ja':'バージョン','ko':'버전','ar':'الإصدار'},
+  'settings_institution':  {'en':'Institution','ms':'Institusi','zh':'学校','ja':'機関','ko':'기관','ar':'المؤسسة'},
+  'settings_terms':        {'en':'Terms of Service','ms':'Terma Perkhidmatan','zh':'服务条款','ja':'利用規約','ko':'이용약관','ar':'شروط الخدمة'},
+  'settings_privacy_pol':  {'en':'Privacy Policy','ms':'Dasar Privasi','zh':'隐私政策','ja':'プライバシーポリシー','ko':'개인정보처리방침','ar':'سياسة الخصوصية'},
+  'settings_support':      {'en':'Support','ms':'Sokongan','zh':'支持','ja':'サポート','ko':'지원','ar':'الدعم'},
+  'settings_view':         {'en':'View ›','ms':'Lihat ›','zh':'查看 ›','ja':'表示 ›','ko':'보기 ›','ar':'عرض ›'},
 };
 
 // ─────────────────────────────────────────────────────────────
-// LOCALIZATION CLASS — used throughout the app
+// LOCALIZATION CLASS
 // ─────────────────────────────────────────────────────────────
 
 class AppL10n {
   final String languageCode;
   const AppL10n(this.languageCode);
 
-  /// Get a translated string. Falls back to English if key/lang missing.
   String t(String key) {
     final map = _translations[key];
     if (map == null) return key;
@@ -146,7 +142,7 @@ class AppL10n {
     return inherited?.l10n ?? const AppL10n('en');
   }
 
-  // ── Convenience getters ───────────────────────────────────
+  // Convenience getters (unchanged from your existing file)
   String get navFeed           => t('nav_feed');
   String get navGroups         => t('nav_groups');
   String get navEvents         => t('nav_events');
@@ -247,10 +243,6 @@ class AppL10n {
   String get settingsSupport        => t('settings_support');
   String get settingsView           => t('settings_view');
 }
-
-// ─────────────────────────────────────────────────────────────
-// INHERITED WIDGET — put at MaterialApp root
-// ─────────────────────────────────────────────────────────────
 
 class _AppL10nInherited extends InheritedWidget {
   final AppL10n l10n;

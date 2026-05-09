@@ -21,14 +21,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';                      // ← NEW
-import 'package:tcs_app/ai_hub_screen.dart';
+import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
+import 'package:tcs_app/screens/notification_Screen.dart';
+import 'package:tcs_app/services/notification_Service.dart';
 
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
-import '../event_details.dart';
-import '../highlight_card.dart';
+import '../dashboard/event_details.dart';
+import '../dashboard/highlight_card.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
-import '../suggestion_box_screen.dart';
+import '../dashboard/suggestion_box_screen.dart';
 
 
 // ── Palette ───────────────────────────────────────────────────
@@ -334,8 +336,7 @@ class _FeedScreenState extends State<FeedScreen>
 
           const SizedBox(width: 8),
 
-          // ── Existing Suggest button ────────────────────────
-          GestureDetector(
+         GestureDetector(
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const SuggestionBoxScreen())),
             child: Container(
@@ -345,47 +346,162 @@ class _FeedScreenState extends State<FeedScreen>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kViolet.withOpacity(0.15))),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.lightbulb_outline_rounded, color: _kViolet, size: 16),
-                const SizedBox(width: 6),
-                Text('Suggest', style: TextStyle(fontFamily: 'Arch',
+                Text('📝', style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, color: _kViolet, fontSize: 12)),
               ]))),
-        ]),
+          const SizedBox(width: 8),
+          // ── Notification bell with live unread badge ──────────
+       // ── Notification bell — Lottie when unread, static icon otherwise ──
+          AnimatedBuilder(
+            animation: NotificationService.instance,
+            builder: (_, __) {
+              final n = NotificationService.instance.unreadCount;
+              final hasUnread = n > 0;
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen())),
+                child: Stack(clipBehavior: Clip.none, children: [
+                  Container(
+                    // Lottie needs slightly less inner padding so the bell
+                    // sits at the same visual size as the static icon.
+                    padding: EdgeInsets.all(hasUnread ? 6 : 10),
+                    decoration: BoxDecoration(
+                      color: _kViolet.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _kViolet.withOpacity(0.15))),
+                    child: hasUnread
+                        ? SizedBox(
+                            width: 26, height: 26,
+                            child: Lottie.asset(
+                              'assets/lottie/bell.json',
+                              repeat: true,
+                              fit: BoxFit.contain,
+                              // Tint the animation to match the violet accent.
+                              // Comment this delegate out if your bell.json
+                              // already has the colour you want.
+                              delegates: LottieDelegates(values: [
+                                ValueDelegate.color(
+                                  const ['**'],
+                                  value: _kViolet,
+                                ),
+                              ]),
+                            ),
+                          )
+                        : Icon(Icons.notifications_outlined,
+                            color: _kViolet, size: 18),
+                  ),
+                  if (hasUnread) Positioned(
+                    right: -4, top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 2),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF5858),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      child: Text(n > 99 ? '99+' : '$n',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white,
+                            fontSize: 10, fontWeight: FontWeight.bold,
+                            fontFamily: 'Arch')),
+                    ),
+                  ),
+                ]),
+              );
+            },
+          ),
+        ]),    
         const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SearchScreen())),
+ Row(
+  children: [
+    // ── Small Refresh Button ─────────────────────────
+    GestureDetector(
+      onTap: () {
+        // refresh logic
+      },
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kViolet, _kBlue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: _kBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.refresh_rounded,
+            size: 20,
+            color: _kViolet,
+          ),
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 10),
+
+    // ── Search Bar With Gradient Border ──────────────
+    Expanded(
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const SearchScreen(),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_kViolet, _kBlue],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 13,
+            ),
             decoration: BoxDecoration(
               color: _kBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.grey.shade200)),
-            child: Row(children: [
-              Icon(Icons.search_rounded,
-                  color: _kSlate.withOpacity(0.5), size: 19),
-              const SizedBox(width: 10),
-              Expanded(child: Text('Search posts, people, clubs...',
-                  style: TextStyle(fontFamily: 'Momo',
-                      color: _kSlate.withOpacity(0.5), fontSize: 13))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_kViolet, _kBlue],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: _kViolet.withOpacity(0.3),
-                      blurRadius: 8, offset: const Offset(0, 3))]),
-                child: const Text('Search', style: TextStyle(
-                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                    color: Colors.white, fontSize: 11))),
-            ]),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  color: _kSlate.withOpacity(0.5),
+                  size: 19,
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Text(
+                    'Search posts, people, clubs...',
+                    style: TextStyle(
+                      fontFamily: 'Momo',
+                      color: _kSlate.withOpacity(0.5),
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ]),
-    );
+      ),
+    ),
+  ],
+) ])  );
   }
 
   // ── Highlights (events + announcements) ───────────────────

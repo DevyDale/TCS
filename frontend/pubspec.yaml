@@ -32,7 +32,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   
   # Firebase
-  firebase_core: ^2.24.2
+  firebase_core: ^2.32.0
   firebase_storage: ^11.6.0
   firebase_auth: ^4.16.0
   
@@ -70,6 +70,8 @@ dependencies:
   video_player: ^2.11.1
   flutter_markdown_plus: ^1.0.7
   flutter_highlight: ^0.7.0
+  firebase_messaging: ^14.7.10
+  flutter_local_notifications: ^21.0.0
   
   
 dev_dependencies:

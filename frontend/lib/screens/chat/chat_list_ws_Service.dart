@@ -2,7 +2,8 @@
 //
 // Single WebSocket connection that powers the chat list's realtime
 // updates. The backend's ChatListConsumer joins all of the user's
-// room groups behind the scenes and forwards relevant events here:
+// chatlist_<room_id> groups behind the scenes and forwards the
+// relevant events here:
 //
 //   { "event": "new_message", "room_id": "...", "message": {...} }
 //   { "event": "typing",      "room_id": "...", "user_id": "...",
@@ -13,23 +14,23 @@
 //     "is_online": bool, "last_active_at": iso8601 }
 //   { "event": "ai_enabled",  "room_id": "...", "ai_enabled": bool }
 //
-// Auto-reconnects with backoff. Token is read from secure storage
-// the same way the per-room ChatWebSocketService does it.
+// Auto-reconnects with exponential backoff. Token is read via the
+// public ApiService().accessToken getter — same SharedPreferences-
+// backed token store the rest of the app uses.
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:tcs_app/services/api_service.dart';
 
-import 'api_service.dart';
 
 class ChatListWebSocketService {
-  WebSocket? _ws;
-  StreamSubscription? _sub;
-  Timer? _reconnect;
-  bool _disposed = false;
-  int _attempt = 0;
+  WebSocket?           _ws;
+  StreamSubscription?  _sub;
+  Timer?               _reconnect;
+  bool                 _disposed = false;
+  int                  _attempt  = 0;
 
   final _ctrl = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get stream => _ctrl.stream;
@@ -55,19 +56,20 @@ class ChatListWebSocketService {
 
   Future<void> _open() async {
     try {
-      final token = await const FlutterSecureStorage().read(key: 'access_token');
+      // Same SharedPreferences-backed token store the rest of the
+      // app uses. The previous version read flutter_secure_storage
+      // directly which always returned null because tokens are
+      // saved via _Tokens / SessionKeys in api_service.dart.
+      final token = await ApiService().accessToken;
       if (token == null || token.isEmpty) {
         _scheduleReconnect();
         return;
       }
 
-      // Same host as ApiService, but websocket scheme.
-      final apiBase = ApiService.baseUrl;          // e.g. https://api.tcs.dev/api
-      final root    = apiBase.replaceFirst(RegExp(r'/api/?$'), '');
-      final wsRoot  = root
-          .replaceFirst('https://', 'wss://')
-          .replaceFirst('http://',  'ws://');
-      final url     = '$wsRoot/ws/chat-list/?token=$token';
+      // ApiConfig.ws is the project-wide ws:// (or wss://) base URL —
+      // it already does the http→ws scheme swap, so we don't need
+      // any manual replaceFirst here.
+      final url = '${ApiConfig.ws}/ws/chat-list/?token=$token';
 
       _ws = await WebSocket.connect(url);
       _attempt = 0;

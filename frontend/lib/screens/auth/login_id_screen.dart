@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/services/notification_Service.dart';
 
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import 'auth/session_keys.dart';
-import 'dashboard/dashboard_screen.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
+import 'session_keys.dart';
+import '../dashboard/dashboard_screen.dart';
 
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -167,11 +168,15 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         );
       }
 
-      final result = await _authService.loginWithId(
+     final result = await _authService.loginWithId(
         userId:      _idCtrl.text.trim(),
         dateOfBirth: _formattedDate,
         role:        _isStudent ? 'student' : 'teaching_staff',
       );
+
+      // Start the notifications service immediately on a fresh login so
+      // the bell badge is live by the time the dashboard renders.
+      await NotificationService.instance.bootstrap();
 
       if (!mounted) return;
 

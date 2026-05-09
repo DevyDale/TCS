@@ -1,28 +1,25 @@
 // lib/screens/chat/chat_list_screen.dart
 //
-// Phase 8: WhatsApp-grade chat list.
+// Phase 3B: WhatsApp-grade chat list + Chat Bubbles.
 //
-// What's new:
-//   • Realtime typing / recording indicators per chat tile
-//     (replace the last-message preview while active, accent-coloured)
-//   • "Active now" / "Last seen Xm ago" subtitle line under the preview
-//   • New messages auto-bump the chat to the top of the list,
-//     unread count increments live
-//   • WhatsApp-style FAB → bottom sheet with two options:
-//     "Start new chat" (existing flow) and "Create chat bubble"
-//   • Connects to ChatListWebSocketService for live updates across
-//     all of the user's rooms in a single socket
+// What's new on top of Phase 8:
+//   • Bubble create button moves to the app bar (where the notification
+//     icon used to live). Tap → CreateChatBubbleScreen wizard.
+//   • Bottom-right FAB is now a single "New" pill (1-on-1 chats).
+//   • Requests tab now shows BOTH pending bubble invites AND legacy DM
+//     chat-requests, with accept/decline. Tab badge counts both.
 //
-// All previous functionality (request tab, last-msg preview for media
-// types, pull-to-refresh) is preserved.
+// Realtime indicators (typing / recording / new_message / presence /
+// ai_enabled) and last-message preview rendering are unchanged.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
+import 'package:tcs_app/screens/chat/create_chat_bubble_Screen.dart';
 
-import '../chat_search_screen.dart';
+import 'chat_search_screen.dart';
 import 'chat_room_screen.dart';
 import '../../services/api_service.dart';
 
@@ -47,18 +44,20 @@ class _ChatListScreenState extends State<ChatListScreen>
   late final TabController _tabCtrl;
   StreamSubscription? _wsSub;
 
-  List<Map<String, dynamic>> _chats    = [];
-  List<Map<String, dynamic>> _requests = [];
+  List<Map<String, dynamic>> _chats          = [];
+  List<Map<String, dynamic>> _requests       = [];   // 1-on-1 chat requests
+  List<Map<String, dynamic>> _bubbleInvites  = [];   // pending bubble invites
   bool _loadingChats    = true;
   bool _loadingRequests = true;
 
   /// Per-room ephemeral state (kept in memory, fed by WebSocket events)
-  final Map<String, Set<String>> _typingByRoom    = {};   // roomId → user_ids typing
-  final Map<String, Map<String, String>> _typingNames = {}; // roomId → {userId: name}
+  final Map<String, Set<String>> _typingByRoom    = {};
+  final Map<String, Map<String, String>> _typingNames = {};
   final Map<String, Set<String>> _recordingByRoom = {};
 
-  /// Current user's ID — fetched once so we can suppress events from ourselves
   String? _meUserId;
+
+  int get _totalRequests => _requests.length + _bubbleInvites.length;
 
   @override
   void initState() {
@@ -66,7 +65,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     _tabCtrl = TabController(length: 2, vsync: this);
     _tabCtrl.addListener(() => setState(() {}));
     _loadChats();
-    _loadRequests();
+    _loadRequestsAndInvites();
     _bootstrapMe();
     _connectWs();
   }
@@ -104,26 +103,23 @@ class _ChatListScreenState extends State<ChatListScreen>
     }
   }
 
-  Future<void> _loadRequests() async {
+  Future<void> _loadRequestsAndInvites() async {
     setState(() => _loadingRequests = true);
-    try {
-      final data = await _api.get('/chat/requests/') as List;
-      if (!mounted) return;
-      setState(() {
-        _requests        = data.cast<Map<String, dynamic>>();
-        _loadingRequests = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loadingRequests = false);
-    }
-  }
-
-  Future<void> _refreshAll() async {
-    await Future.wait([_loadChats(), _loadRequests()]);
+    final results = await Future.wait([
+      _api.get('/chat/requests/').catchError((_) => <dynamic>[]),
+      _api.getMyBubbleInvites().catchError((_) => <dynamic>[]),
+    ]);
+    if (!mounted) return;
+    final dmReqs   = results[0] is List ? (results[0] as List).cast<Map<String, dynamic>>() : <Map<String, dynamic>>[];
+    final invites  = results[1] is List ? (results[1] as List).cast<Map<String, dynamic>>() : <Map<String, dynamic>>[];
+    setState(() {
+      _requests        = dmReqs;
+      _bubbleInvites   = invites;
+      _loadingRequests = false;
+    });
   }
 
   /// WhatsApp-style sort: most recent activity first.
-  /// Falls back to created_at if no last_message_at.
   void _sortChats(List<Map<String, dynamic>> list) {
     int ts(Map<String, dynamic> c) {
       final last = c['last_message'] as Map<String, dynamic>?;
@@ -183,8 +179,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     final idx = _chats.indexWhere((c) => c['id'] == roomId);
     if (idx == -1) {
-      // Brand-new room: just refresh the list to pick it up
-      _loadChats();
+      _loadChats();   // brand-new room → refresh
       return;
     }
 
@@ -195,19 +190,18 @@ class _ChatListScreenState extends State<ChatListScreen>
       chat['unread_count'] = (chat['unread_count'] as int? ?? 0) + 1;
     }
 
-    // Clear any typing/recording state from this user once their msg lands
     _typingByRoom[roomId]?.remove(senderId);
     _typingNames[roomId]?.remove(senderId);
     _recordingByRoom[roomId]?.remove(senderId);
 
     setState(() {
       _chats.removeAt(idx);
-      _chats.insert(0, chat);     // bump to top
+      _chats.insert(0, chat);
     });
   }
 
   void _handleTyping(String roomId, String userId, String userName, bool isTyping) {
-    if (userId == _meUserId) return;     // never show our own typing
+    if (userId == _meUserId) return;
     final set   = _typingByRoom.putIfAbsent(roomId, () => <String>{});
     final names = _typingNames.putIfAbsent(roomId, () => <String, String>{});
     if (isTyping) {
@@ -217,7 +211,6 @@ class _ChatListScreenState extends State<ChatListScreen>
       set.remove(userId);
       names.remove(userId);
     }
-    // Typing supersedes recording from the same user
     _recordingByRoom[roomId]?.remove(userId);
     if (mounted) setState(() {});
   }
@@ -225,11 +218,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _handleRecording(String roomId, String userId, bool isRecording) {
     if (userId == _meUserId) return;
     final set = _recordingByRoom.putIfAbsent(roomId, () => <String>{});
-    if (isRecording) {
-      set.add(userId);
-    } else {
-      set.remove(userId);
-    }
+    if (isRecording) { set.add(userId); } else { set.remove(userId); }
     if (mounted) setState(() {});
   }
 
@@ -249,12 +238,10 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _handleAi(String roomId, bool aiEnabled) {
     final idx = _chats.indexWhere((c) => c['id'] == roomId);
     if (idx == -1) return;
-    setState(() {
-      _chats[idx]['ai_enabled'] = aiEnabled;
-    });
+    setState(() => _chats[idx]['ai_enabled'] = aiEnabled);
   }
 
-  // ── Request tab actions ──────────────────────────────────
+  // ── Requests / Invites tab actions ───────────────────────
 
   Future<void> _acceptRequest(String reqId, int index) async {
     try {
@@ -279,6 +266,34 @@ class _ChatListScreenState extends State<ChatListScreen>
       await _api.post('/chat/requests/$reqId/decline/');
       setState(() => _requests.removeAt(index));
     } catch (e) { _snack('Failed: $e'); }
+  }
+
+  Future<void> _acceptBubbleInvite(String inviteId, int index) async {
+    try {
+      final res = await _api.acceptBubbleInvite(inviteId) as Map<String, dynamic>;
+      setState(() => _bubbleInvites.removeAt(index));
+      final room = res['room'] as Map<String, dynamic>?;
+      if (room != null && mounted) {
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ChatRoomScreen(
+            roomId:   room['id']   as String? ?? '',
+            roomName: room['name'] as String? ?? 'Bubble',
+            userName: 'You',
+            roomType: 'group',
+          ),
+        ));
+        _loadChats();
+      } else if (mounted) {
+        _loadChats();
+      }
+    } catch (e) { _snack('Couldn\'t accept: $e'); }
+  }
+
+  Future<void> _declineBubbleInvite(String inviteId, int index) async {
+    try {
+      await _api.declineBubbleInvite(inviteId);
+      setState(() => _bubbleInvites.removeAt(index));
+    } catch (e) { _snack('Couldn\'t decline: $e'); }
   }
 
   void _snack(String msg) {
@@ -309,7 +324,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           ])),
         ]),
       ),
-      floatingActionButton: _buildFAB(),
+      floatingActionButton: _buildNewFab(),
     );
   }
 
@@ -328,6 +343,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         const SizedBox(width: 12),
         const Expanded(child: Text('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
+        // Search button
         GestureDetector(
           onTap: _openSearch,
           child: Container(width: 40, height: 40,
@@ -336,16 +352,19 @@ class _ChatListScreenState extends State<ChatListScreen>
               child: Icon(Icons.search_rounded, color: Colors.grey.shade600, size: 20)),
         ),
         const SizedBox(width: 8),
-        Stack(children: [
-          Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.notifications_rounded, color: Colors.grey.shade600, size: 20)),
-          if (_requests.isNotEmpty)
-            Positioned(right: 8, top: 8,
-              child: Container(width: 8, height: 8,
-                  decoration: const BoxDecoration(color: _kG4, shape: BoxShape.circle))),
-        ]),
+        // Bubble create button (took the notification icon's spot)
+        GestureDetector(
+          onTap: () { HapticFeedback.lightImpact(); _openCreateBubble(); },
+          child: Container(width: 40, height: 40,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kG3, _kG4],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: _kG4.withOpacity(0.35),
+                    blurRadius: 10, offset: const Offset(0, 4))]),
+              child: const Icon(Icons.bubble_chart_rounded,
+                  color: Colors.white, size: 20)),
+        ),
       ]),
     );
   }
@@ -361,7 +380,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         unselectedLabelStyle: const TextStyle(fontFamily: 'Arch', fontSize: 13),
         tabs: [
           const Tab(text: 'All Chats'),
-          Tab(text: _requests.isEmpty ? 'Requests' : 'Requests (${_requests.length})'),
+          Tab(text: _totalRequests == 0 ? 'Requests' : 'Requests ($_totalRequests)'),
         ],
       ),
     );
@@ -422,7 +441,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     final lastTime  = _timeLabel(lastMsg?['created_at'] as String? ?? '');
     final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    // ── Preview state: typing > recording > last message ──
     final typingSet    = _typingByRoom[roomId];
     final recordingSet = _recordingByRoom[roomId];
     final isTyping     = typingSet != null && typingSet.isNotEmpty;
@@ -451,7 +469,6 @@ class _ChatListScreenState extends State<ChatListScreen>
       preview = _previewLastMessage(lastMsg);
     }
 
-    // ── Presence subtitle ──
     String? presenceLabel;
     if (!isGroup) {
       if (isOnline) {
@@ -464,7 +481,6 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     return GestureDetector(
       onTap: () async {
-        // Clear unread on entry; the room's own logic will mark-read on the server
         setState(() => c['unread_count'] = 0);
         await Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ChatRoomScreen(
@@ -482,7 +498,6 @@ class _ChatListScreenState extends State<ChatListScreen>
               blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── Avatar ──
           Stack(children: [
             Container(width: 52, height: 52,
               decoration: BoxDecoration(
@@ -509,11 +524,9 @@ class _ChatListScreenState extends State<ChatListScreen>
           ]),
           const SizedBox(width: 12),
 
-          // ── Body (3 rows: name / preview / presence) ──
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: name + tags
               Row(children: [
                 Flexible(
                   child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -532,7 +545,6 @@ class _ChatListScreenState extends State<ChatListScreen>
               ]),
               const SizedBox(height: 3),
 
-              // Row 2: preview (typing / recording / last message)
               Row(children: [
                 if (preview.icon != null) ...[
                   Icon(preview.icon,
@@ -563,7 +575,6 @@ class _ChatListScreenState extends State<ChatListScreen>
                 ),
               ]),
 
-              // Row 3 (optional): presence subtitle
               if (presenceLabel != null) ...[
                 const SizedBox(height: 2),
                 Text(
@@ -582,7 +593,6 @@ class _ChatListScreenState extends State<ChatListScreen>
             ],
           )),
 
-          // ── Right column: time + unread badge ──
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(lastTime, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
@@ -623,13 +633,13 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  // ── Requests tab (unchanged) ──────────────────────────────
+  // ── Requests tab (DM requests + bubble invites) ──────────
 
   Widget _buildRequestsTab() {
     if (_loadingRequests) return const Center(child: CircularProgressIndicator(color: _kG2));
-    if (_requests.isEmpty) {
+    if (_requests.isEmpty && _bubbleInvites.isEmpty) {
       return RefreshIndicator(
-        color: _kG2, onRefresh: _loadRequests,
+        color: _kG2, onRefresh: _loadRequestsAndInvites,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -637,11 +647,12 @@ class _ChatListScreenState extends State<ChatListScreen>
             Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.mail_outline_rounded, size: 52, color: Colors.grey.shade300),
               const SizedBox(height: 16),
-              const Text('No Message Requests', style: TextStyle(fontFamily: 'Alfa',
+              const Text('No Pending Requests', style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 20, color: _kInk)),
               const SizedBox(height: 8),
-              Text('Chat requests will appear here', style: TextStyle(
-                  fontFamily: 'Momo', color: Colors.grey.shade500)),
+              Text('Chat requests and bubble invites will appear here',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500)),
             ]),
           ],
         ),
@@ -649,103 +660,225 @@ class _ChatListScreenState extends State<ChatListScreen>
     }
 
     return RefreshIndicator(
-      color: _kG2, onRefresh: _loadRequests,
-      child: ListView.builder(
+      color: _kG2, onRefresh: _loadRequestsAndInvites,
+      child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        itemCount: _requests.length,
-        itemBuilder: (_, i) {
-          final r         = _requests[i];
-          final reqId     = r['id'] as String? ?? '';
-          final name      = r['sender_name']   as String? ?? 'Unknown';
-          final role      = r['sender_role']   as String? ?? '';
-          final avatarUrl = r['sender_avatar'] as String? ?? '';
-          final message   = r['message']       as String? ?? '';
-          final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _kG3.withOpacity(0.3)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10, offset: const Offset(0, 3))]),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(width: 48, height: 48,
-                  decoration: BoxDecoration(shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [_kG3, _kG4]),
-                    image: avatarUrl.isNotEmpty
-                        ? DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover) : null),
-                  child: avatarUrl.isEmpty ? Center(child: Text(initial, style: const TextStyle(
-                      color: Colors.white, fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 20))) : null),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(name, style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                      fontSize: 15, color: _kInk)),
-                  Text(role, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
-                ])),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: _kG3.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6)),
-                  child: const Text('Chat Request', style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 10, fontWeight: FontWeight.bold, color: _kG3))),
-              ]),
-              if (message.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Text(message, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 13, color: Colors.grey.shade700, height: 1.4))),
-              ],
-              const SizedBox(height: 14),
-              Row(children: [
-                Expanded(child: GestureDetector(
-                  onTap: () => _declineRequest(reqId, i),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300)),
-                    child: const Center(child: Text('Decline', style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)))),
-                )),
-                const SizedBox(width: 10),
-                Expanded(child: GestureDetector(
-                  onTap: () => _acceptRequest(reqId, i),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_kG1, _kG2]),
-                      borderRadius: BorderRadius.circular(12)),
-                    child: const Center(child: Text('Accept', style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)))),
-                )),
-              ]),
-            ]),
-          );
-        },
+        children: [
+          if (_bubbleInvites.isNotEmpty) ...[
+            _sectionHeader('Bubble invites', _bubbleInvites.length),
+            const SizedBox(height: 8),
+            for (var i = 0; i < _bubbleInvites.length; i++)
+              _buildBubbleInviteCard(_bubbleInvites[i], i),
+            const SizedBox(height: 8),
+          ],
+          if (_requests.isNotEmpty) ...[
+            _sectionHeader('Chat requests', _requests.length),
+            const SizedBox(height: 8),
+            for (var i = 0; i < _requests.length; i++)
+              _buildChatRequestCard(_requests[i], i),
+          ],
+        ],
       ),
     );
   }
 
-  // ── FAB → bottom sheet with two options ──────────────────
+  Widget _sectionHeader(String label, int count) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+    child: Row(children: [
+      Text(label.toUpperCase(),
+          style: TextStyle(fontFamily: 'Arch', fontSize: 11,
+              fontWeight: FontWeight.bold, color: Colors.grey.shade500,
+              letterSpacing: 0.6)),
+      const SizedBox(width: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+            color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+        child: Text('$count', style: const TextStyle(fontFamily: 'Momo',
+            fontSize: 10, fontWeight: FontWeight.bold, color: _kInk)),
+      ),
+    ]),
+  );
 
-  Widget _buildFAB() {
+  Widget _buildBubbleInviteCard(Map<String, dynamic> r, int index) {
+    final reqId        = r['id']            as String? ?? '';
+    final inviter      = r['inviter_name']  as String? ?? r['inviter']?['name']?.toString() ?? 'Someone';
+    final bubbleName   = r['room_name']     as String? ?? r['room']?['name']?.toString()    ?? 'Bubble';
+    final bubbleAbout  = r['room_about']    as String? ?? r['room']?['about']?.toString()   ?? '';
+    final isPublic     = (r['room_is_public'] as bool?)
+                       ?? (r['room']?['is_public'] as bool?) ?? false;
+    final memberCount  = (r['room_member_count'] as int?)
+                       ?? (r['room']?['member_count'] as int?) ?? 0;
+    final message      = r['message']       as String? ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kG4.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+            blurRadius: 10, offset: const Offset(0, 3))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 52, height: 52,
+            decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kG3, _kG4]),
+                borderRadius: BorderRadius.circular(14)),
+            child: const Icon(Icons.bubble_chart_rounded,
+                color: Colors.white, size: 26)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(bubbleName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 15, color: _kInk)),
+            const SizedBox(height: 3),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              _miniTag(isPublic ? 'Public' : 'Private',
+                  isPublic ? _kG1 : _kG2),
+              if (memberCount > 0)
+                Text('· $memberCount member${memberCount == 1 ? '' : 's'}',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                        color: Colors.grey.shade500)),
+            ]),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: _kG4.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6)),
+            child: const Text('Bubble', style: TextStyle(fontFamily: 'Momo',
+                fontSize: 10, fontWeight: FontWeight.bold, color: _kG4))),
+        ]),
+        const SizedBox(height: 10),
+        Text('$inviter invited you to join.',
+            style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                color: Colors.grey.shade700)),
+        if (bubbleAbout.isNotEmpty || message.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10)),
+            child: Text(message.isNotEmpty ? message : bubbleAbout,
+                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
+                    color: Colors.grey.shade700, height: 1.4))),
+        ],
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(child: GestureDetector(
+            onTap: () => _declineBubbleInvite(reqId, index),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300)),
+              child: const Center(child: Text('Decline', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)))),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: GestureDetector(
+            onTap: () => _acceptBubbleInvite(reqId, index),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_kG3, _kG4]),
+                  borderRadius: BorderRadius.circular(12)),
+              child: const Center(child: Text('Join', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)))),
+          )),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _buildChatRequestCard(Map<String, dynamic> r, int i) {
+    final reqId     = r['id'] as String? ?? '';
+    final name      = r['sender_name']   as String? ?? 'Unknown';
+    final role      = r['sender_role']   as String? ?? '';
+    final avatarUrl = r['sender_avatar'] as String? ?? '';
+    final message   = r['message']       as String? ?? '';
+    final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kG3.withOpacity(0.3)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+              blurRadius: 10, offset: const Offset(0, 3))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 48, height: 48,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: [_kG3, _kG4]),
+              image: avatarUrl.isNotEmpty
+                  ? DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover) : null),
+            child: avatarUrl.isEmpty ? Center(child: Text(initial, style: const TextStyle(
+                color: Colors.white, fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 20))) : null),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(name, style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                fontSize: 15, color: _kInk)),
+            Text(role, style: TextStyle(fontFamily: 'Momo',
+                fontSize: 12, color: Colors.grey.shade500)),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: _kG3.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6)),
+            child: const Text('Chat Request', style: TextStyle(fontFamily: 'Momo',
+                fontSize: 10, fontWeight: FontWeight.bold, color: _kG3))),
+        ]),
+        if (message.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10)),
+            child: Text(message, style: TextStyle(fontFamily: 'Momo',
+                fontSize: 13, color: Colors.grey.shade700, height: 1.4))),
+        ],
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(child: GestureDetector(
+            onTap: () => _declineRequest(reqId, i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300)),
+              child: const Center(child: Text('Decline', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)))),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: GestureDetector(
+            onTap: () => _acceptRequest(reqId, i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kG1, _kG2]),
+                borderRadius: BorderRadius.circular(12)),
+              child: const Center(child: Text('Accept', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)))),
+          )),
+        ]),
+      ]),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // FAB — single "New" pill for 1-on-1 chats
+  // ══════════════════════════════════════════════════════════
+
+  Widget _buildNewFab() {
     return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        _showNewChatMenu();
-      },
+      onTap: () { HapticFeedback.mediumImpact(); _openSearch(); },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_kG1, _kG2, _kG3, _kG4],
+          gradient: const LinearGradient(colors: [_kG1, _kG2],
               begin: Alignment.centerLeft, end: Alignment.centerRight),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [BoxShadow(color: _kG2.withOpacity(0.4), blurRadius: 16,
@@ -760,84 +893,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  void _showNewChatMenu() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                )),
-              const SizedBox(height: 18),
-              _newMenuTile(
-                icon: Icons.chat_bubble_rounded,
-                gradient: const [_kG1, _kG2],
-                title: 'Start new chat',
-                subtitle: 'Find someone and start a 1-on-1 conversation',
-                onTap: () { Navigator.pop(context); _openSearch(); },
-              ),
-              _newMenuTile(
-                icon: Icons.group_add_rounded,
-                gradient: const [_kG3, _kG4],
-                title: 'Create chat bubble',
-                subtitle: 'Group chat with custom members + AI support',
-                onTap: () { Navigator.pop(context); _openCreateBubble(); },
-              ),
-              const SizedBox(height: 14),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _newMenuTile({
-    required IconData icon,
-    required List<Color> gradient,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(children: [
-          Container(width: 44, height: 44,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: gradient,
-                  begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: Colors.white, size: 22)),
-          const SizedBox(width: 14),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12, color: Colors.grey.shade500)),
-            ],
-          )),
-          Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300),
-        ]),
-      ),
-    );
-  }
+  // ── Navigation ───────────────────────────────────────────
 
   Future<void> _openSearch() async {
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
@@ -855,14 +911,18 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   Future<void> _openCreateBubble() async {
-    // Phase 3B will replace this with the real wizard.
-    _snack('Create-bubble wizard ships in the next phase.');
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const CreateChatBubbleScreen(),
+    ));
+    // Refresh in case the user created a bubble — they may already be inside
+    // it (we used pushReplacement on success), but if they backed out we want
+    // any new room/state reflected.
+    _loadChats();
+    _loadRequestsAndInvites();
   }
 
   // ── Helpers ───────────────────────────────────────────────
 
-  /// Build a preview line for the last message in a room. Handles
-  /// every message_type the backend produces and falls back gracefully.
   _PreviewLine _previewLastMessage(Map<String, dynamic>? lastMsg) {
     if (lastMsg == null) {
       return const _PreviewLine(text: 'No messages yet', italic: true);
@@ -873,7 +933,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     final dur     = (lastMsg['duration']     as int?)    ?? 0;
     final isAi    = lastMsg['is_ai'] == true;
 
-    // Dale's messages get a special preview prefix
     if (isAi && type == 'text' && rawText.isNotEmpty) {
       return _PreviewLine(
         text: 'Dale: $rawText',
@@ -931,7 +990,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     } catch (_) { return ''; }
   }
 
-  /// Returns a human-readable "ago" string, or null for very old timestamps.
   String? _timeAgo(String iso) {
     if (iso.isEmpty) return null;
     try {
@@ -942,12 +1000,10 @@ class _ChatListScreenState extends State<ChatListScreen>
       if (diff.inHours < 24)    return '${diff.inHours}h ago';
       if (diff.inDays  < 2)     return 'yesterday';
       if (diff.inDays  < 7)     return '${diff.inDays}d ago';
-      return null;        // too long ago — don't surface
+      return null;
     } catch (_) { return null; }
   }
 }
-
-// ── Internal helper ──
 
 class _PreviewLine {
   final String   text;

@@ -475,7 +475,20 @@ def start_study_buddy_chat(request):
     except User.DoesNotExist:
         return Response({"error": "User not found."}, status=404)
 
-    room, _ = Room.get_or_create_study_buddy(request.user, other, subject)
+    room, created = Room.get_or_create_study_buddy(request.user, other, subject)
+
+    # ── Notify the other user that they've been asked to be a study buddy.
+    # Fires only on initial room creation so re-opening an existing
+    # study-buddy chat doesn't spam the recipient.
+    if created:
+        try:
+            from apps.notifications.tasks import push_study_buddy_request_notification
+            push_study_buddy_request_notification.delay(
+                str(other.id), str(request.user.id), subject)
+        except Exception:
+            # Celery / notifications app unavailable — non-fatal.
+            pass
+
     return Response(RoomSerializer(room, context={"request": request}).data,
                     status=status.HTTP_201_CREATED)
 
