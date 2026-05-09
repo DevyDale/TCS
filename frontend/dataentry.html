@@ -61,7 +61,6 @@
       overflow-y: auto;
     }
 
-    /* logo */
     .sb-logo { display: flex; align-items: center; gap: 14px; }
 
     .sb-monogram {
@@ -86,10 +85,8 @@
     }
     .sb-sub { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .3px; }
 
-    /* divider */
     .sb-divider { height: 1px; background: var(--border); }
 
-    /* steps */
     .sb-steps-label {
       font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
       text-transform: uppercase; color: var(--muted2); margin-bottom: 16px;
@@ -122,7 +119,6 @@
     .sb-step-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .sb-step-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
 
-    /* note */
     .sb-note {
       background: rgba(109,213,250,.05);
       border: 1px solid rgba(109,213,250,.12);
@@ -135,7 +131,6 @@
     }
     .sb-note p { font-size: 12px; color: rgba(109,213,250,.55); line-height: 1.7; }
 
-    /* lumora */
     .sb-lumora { text-align: center; margin-top: auto; }
     .sb-lumora-word {
       font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800;
@@ -159,7 +154,6 @@
 
     .main-inner { width: 100%; max-width: 560px; }
 
-    /* ── Mobile header ── */
     .mob-header {
       text-align: center;
       padding-bottom: 36px;
@@ -189,7 +183,6 @@
     }
     .mob-site-sub { font-size: .85rem; color: var(--muted); font-weight: 500; line-height: 1.5; }
 
-    /* ── Progress bar (mobile) ── */
     .progress-wrap {
       display: flex; align-items: center; gap: 8px;
       margin-bottom: 28px;
@@ -213,7 +206,6 @@
     .prog-step.active .prog-step-fill  { width: 100%; }
     .prog-step.done   .prog-step-fill  { width: 100%; background: linear-gradient(90deg,#1D9E75,#5DCAA5); }
 
-    /* ── Card ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -227,7 +219,6 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* section head */
     .sec-head {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 28px;
@@ -237,69 +228,6 @@
       background: linear-gradient(180deg, var(--g2), var(--g1));
     }
     .sec-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--text); }
-
-    /* ── ROLE CARDS ── */
-    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 0; }
-
-    .role-card {
-      position: relative; overflow: hidden;
-      background: var(--card2);
-      border: 1.5px solid var(--border);
-      border-radius: 18px;
-      padding: 24px 16px;
-      cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-      transition: all .25s cubic-bezier(.4,0,.2,1);
-      user-select: none;
-    }
-    .role-card::before {
-      content: ''; position: absolute; inset: 0; opacity: 0;
-      background: linear-gradient(135deg, rgba(142,84,233,.10), rgba(109,213,250,.06));
-      transition: opacity .25s;
-    }
-    .role-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
-    .role-card:hover::before { opacity: 1; }
-    .role-card.selected {
-      border-color: var(--g2);
-      background: rgba(142,84,233,.10);
-      box-shadow: 0 0 0 1px rgba(142,84,233,.25), 0 12px 32px rgba(142,84,233,.18);
-      transform: translateY(-2px);
-    }
-    .role-card.selected::before { opacity: 1; }
-
-    .role-check {
-      position: absolute; top: 12px; right: 12px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--g2), var(--g1));
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; transform: scale(.5) rotate(-20deg);
-      transition: all .3s cubic-bezier(.34,1.56,.64,1);
-    }
-    .role-card.selected .role-check { opacity: 1; transform: scale(1) rotate(0); }
-    .role-check svg { width: 11px; height: 11px; stroke: white; stroke-width: 2.5; fill: none; }
-
-    .role-icon-wrap {
-      width: 56px; height: 56px; border-radius: 18px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
-      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
-    }
-    .role-card:hover .role-icon-wrap,
-    .role-card.selected .role-icon-wrap { transform: scale(1.08); }
-
-    .role-icon-wrap.student { background: linear-gradient(135deg, rgba(109,213,250,.18), rgba(37,117,252,.18)); }
-    .role-icon-wrap.staff   { background: linear-gradient(135deg, rgba(247,151,30,.18), rgba(255,88,88,.18)); }
-
-    .role-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text); }
-    .role-desc { font-size: .72rem; color: var(--muted); text-align: center; line-height: 1.4; }
-
-    /* ── DIVIDER ── */
-    .divider {
-      display: flex; align-items: center; gap: 14px;
-      margin: 28px 0 24px;
-    }
-    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.06); }
-    .divider-label { font-size: .72rem; font-weight: 700; color: var(--muted2); letter-spacing: .8px; text-transform: uppercase; }
 
     /* ── FORM FIELDS ── */
     .form-grid { display: flex; flex-direction: column; gap: 16px; }
@@ -349,42 +277,6 @@
       filter: invert(1) opacity(.3); cursor: pointer;
     }
 
-    /* ── STAFF TYPE PILLS ── */
-    .staff-pills-label {
-      font-size: .72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .7px;
-      color: rgba(247,151,30,.8); margin-bottom: 10px;
-    }
-
-    .staff-pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
-
-    .s-pill {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 14px 8px;
-      background: var(--card2);
-      border: 1.5px solid rgba(255,255,255,.06);
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: all .2s cubic-bezier(.4,0,.2,1);
-      text-align: center;
-    }
-    .s-pill:hover { border-color: rgba(247,151,30,.3); background: rgba(247,151,30,.05); transform: translateY(-2px); }
-    .s-pill.selected {
-      border-color: var(--g3); background: rgba(247,151,30,.10);
-      box-shadow: 0 0 0 1px rgba(247,151,30,.2), 0 8px 24px rgba(247,151,30,.12);
-      transform: translateY(-2px);
-    }
-    .s-pill-ico { font-size: 20px; line-height: 1; }
-    .s-pill-lbl { font-size: .65rem; font-weight: 700; color: var(--muted); letter-spacing: .2px; }
-    .s-pill.selected .s-pill-lbl { color: var(--g3); }
-
-    /* ── FIELDS PANEL ── */
-    .fields-panel { display: none; }
-    .fields-panel.visible {
-      display: block;
-      animation: fadeUp .4s cubic-bezier(.16,1,.3,1) both;
-    }
-
     /* ── SUBMIT BUTTON ── */
     .submit-wrap { margin-top: 28px; }
 
@@ -415,7 +307,6 @@
     .submit-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
     .submit-btn svg { width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 2; flex-shrink: 0; }
 
-    /* info note */
     .info-note {
       display: flex; align-items: flex-start; gap: 10px;
       padding: 12px 14px;
@@ -426,7 +317,6 @@
     .info-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; opacity: .5; }
     .info-note p { font-size: .75rem; color: var(--muted2); line-height: 1.6; }
 
-    /* ── TOAST ── */
     .toast {
       position: fixed; bottom: 28px; left: 50%;
       transform: translateX(-50%) translateY(16px);
@@ -449,7 +339,6 @@
     }
     .toast svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-    /* ── LOADING ── */
     .loading {
       position: fixed; inset: 0;
       background: rgba(11,11,24,.88);
@@ -468,7 +357,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading p { font-size: .88rem; color: var(--muted); font-weight: 500; }
 
-    /* ── SUCCESS ── */
     .success-screen {
       display: none; text-align: center; padding: 52px 24px;
       animation: fadeUp .6s cubic-bezier(.16,1,.3,1) both;
@@ -505,7 +393,6 @@
     }
     .another-btn:hover { border-color: var(--g2); background: rgba(142,84,233,.1); }
 
-    /* ── LUMORA FOOTER (mobile) ── */
     .mob-lumora { text-align: center; margin-top: 52px; }
     .mob-lumora-word {
       font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; letter-spacing: 8px;
@@ -523,15 +410,12 @@
       .card { padding: 24px 18px; border-radius: 20px; }
       .mob-site-name { font-size: 1.8rem; }
       .row-2 { grid-template-columns: 1fr; }
-      .staff-pills { grid-template-columns: repeat(3, 1fr); }
     }
 
     @media (min-width: 640px) {
       .main { padding: 52px 36px 80px; }
       .card { padding: 42px 38px; }
       .mob-site-name { font-size: 2.6rem; }
-      .role-card { padding: 28px 20px; }
-      .role-icon-wrap { width: 64px; height: 64px; font-size: 30px; border-radius: 20px; }
     }
 
     @media (min-width: 1024px) {
@@ -555,8 +439,6 @@
     }
 
     @media (hover: none) {
-      .role-card:hover { transform: none; border-color: var(--border); }
-      .s-pill:hover { transform: none; border-color: rgba(255,255,255,.06); background: var(--card2); }
       .submit-btn:hover { transform: none; box-shadow: 0 10px 40px rgba(142,84,233,.30); }
     }
   </style>
@@ -594,19 +476,12 @@
         <div class="sb-step">
           <div class="sb-step-num active" id="sc1">1</div>
           <div class="sb-step-text">
-            <div class="sb-step-name">Select Role</div>
-            <div class="sb-step-desc">Choose student or staff</div>
-          </div>
-        </div>
-        <div class="sb-step">
-          <div class="sb-step-num" id="sc2">2</div>
-          <div class="sb-step-text">
             <div class="sb-step-name">Fill Details</div>
             <div class="sb-step-desc">Enter your personal info</div>
           </div>
         </div>
         <div class="sb-step">
-          <div class="sb-step-num" id="sc3">3</div>
+          <div class="sb-step-num" id="sc2">2</div>
           <div class="sb-step-text">
             <div class="sb-step-name">Submit</div>
             <div class="sb-step-desc">Confirm and register</div>
@@ -616,7 +491,7 @@
 
       <div class="sb-note">
         <div class="sb-note-title">Why are we collecting this?</div>
-        <p>Your details verify your identity when logging into the TCS StudentHub app. After registering, use your ID and date of birth to log in.</p>
+        <p>Your details verify your identity when logging into the TCS StudentHub app. After registering, use your ID and date of birth to log in. Your account is automatically removed the day after your completion date passes.</p>
       </div>
 
       <div class="sb-lumora">
@@ -636,11 +511,10 @@
           <div class="mob-site-sub">Taylors College Social &amp; Arcade · Self-Service Registration</div>
         </div>
 
-        <!-- Progress dots (mobile) -->
+        <!-- Progress dots (mobile) — 2 steps -->
         <div class="progress-wrap">
           <div class="prog-step active" id="p1"><div class="prog-step-fill"></div></div>
           <div class="prog-step" id="p2"><div class="prog-step-fill"></div></div>
-          <div class="prog-step" id="p3"><div class="prog-step-fill"></div></div>
         </div>
 
         <!-- Card -->
@@ -648,119 +522,50 @@
 
           <div class="sec-head">
             <div class="sec-accent"></div>
-            <div class="sec-title">Who are you?</div>
+            <div class="sec-title">Student Registration</div>
           </div>
 
-          <!-- Role selection -->
-          <div class="role-grid">
-            <div class="role-card" id="role-student" onclick="selectRole('student')">
-              <div class="role-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div class="role-icon-wrap student">🎓</div>
-              <div class="role-name">Student</div>
-              <div class="role-desc">Enrolled at Taylors College</div>
+          <div class="form-grid">
+            <div class="field">
+              <label class="c1">Full Legal Name</label>
+              <input type="text" id="fullName" placeholder="As it appears on your ID card" autocomplete="name">
             </div>
-            <div class="role-card" id="role-staff" onclick="selectRole('staff')">
-              <div class="role-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div class="role-icon-wrap staff">👔</div>
-              <div class="role-name">Staff</div>
-              <div class="role-desc">Teaching or non-teaching</div>
-            </div>
-          </div>
-
-          <!-- ── STUDENT FIELDS ── -->
-          <div class="fields-panel" id="studentFields">
-            <div class="divider">
-              <div class="divider-line"></div>
-              <div class="divider-label">Student Details</div>
-              <div class="divider-line"></div>
-            </div>
-            <div class="form-grid">
+            <div class="row-2">
               <div class="field">
-                <label class="c1">Full Legal Name</label>
-                <input type="text" id="fullName" placeholder="As it appears on your ID card" autocomplete="name">
-              </div>
-              <div class="row-2">
-                <div class="field">
-                  <label class="c2">Preferred Name</label>
-                  <input type="text" id="preferredName" placeholder="What we call you">
-                </div>
-                <div class="field">
-                  <label class="c2">Student ID</label>
-                  <input type="text" id="studentId" placeholder="e.g. 0123456">
-                </div>
+                <label class="c2">Preferred Name</label>
+                <input type="text" id="preferredName" placeholder="What we call you">
               </div>
               <div class="field">
-                <label class="c3">Date of Birth</label>
-                <input type="date" id="dob">
+                <label class="c2">Student ID</label>
+                <input type="text" id="studentId" placeholder="e.g. 0123456">
               </div>
-              <div class="field">
-                <label class="c3">Type of Course</label>
-                <select id="courseType">
-                  <option value="">Select your programme…</option>
-                  <option value="standard">📚 Standard Programme</option>
-                  <option value="intensive">⚡ Intensive Programme</option>
-                </select>
-              </div>
+            </div>
+            <div class="field">
+              <label class="c3">Date of Birth</label>
+              <input type="date" id="dob">
+            </div>
+            <div class="field">
+              <label class="c3">Type of Course</label>
+              <select id="courseType">
+                <option value="">Select your programme…</option>
+                <option value="standard">📚 Standard Programme</option>
+                <option value="intensive">⚡ Intensive Programme</option>
+              </select>
+            </div>
+            <div class="row-2">
               <div class="field">
                 <label class="c4">Date of Commencement</label>
                 <input type="date" id="commencement">
               </div>
-            </div>
-          </div>
-
-          <!-- ── STAFF FIELDS ── -->
-          <div class="fields-panel" id="staffFields">
-            <div class="divider">
-              <div class="divider-line"></div>
-              <div class="divider-label">Staff Details</div>
-              <div class="divider-line"></div>
-            </div>
-            <div class="staff-pills-label">Department / Role</div>
-            <div class="staff-pills">
-              <div class="s-pill" onclick="selectStaffType(this,'teaching')">
-                <span class="s-pill-ico">👨‍🏫</span>
-                <span class="s-pill-lbl">Teaching</span>
-              </div>
-              <div class="s-pill" onclick="selectStaffType(this,'security')">
-                <span class="s-pill-ico">🔒</span>
-                <span class="s-pill-lbl">Security</span>
-              </div>
-              <div class="s-pill" onclick="selectStaffType(this,'cleaning')">
-                <span class="s-pill-ico">🧹</span>
-                <span class="s-pill-lbl">Cleaning</span>
-              </div>
-              <div class="s-pill" onclick="selectStaffType(this,'administrative')">
-                <span class="s-pill-ico">📋</span>
-                <span class="s-pill-lbl">Admin</span>
-              </div>
-              <div class="s-pill" onclick="selectStaffType(this,'reception')">
-                <span class="s-pill-ico">📞</span>
-                <span class="s-pill-lbl">Reception</span>
-              </div>
-            </div>
-            <input type="hidden" id="staffType">
-            <div class="form-grid">
               <div class="field">
-                <label class="c1">Staff ID</label>
-                <input type="text" id="staffId" placeholder="Your staff identification number">
-              </div>
-              <div class="field">
-                <label class="c2">Full Legal Name</label>
-                <input type="text" id="staffFullName" placeholder="As it appears on your ID card" autocomplete="name">
-              </div>
-              <div class="field">
-                <label class="c2">Preferred Name</label>
-                <input type="text" id="staffPreferredName" placeholder="What we call you">
-              </div>
-              <div class="field">
-                <label class="c3">Date of Birth</label>
-                <input type="date" id="staffDob">
+                <label class="c4">Date of Finishing</label>
+                <input type="date" id="completion">
               </div>
             </div>
           </div>
 
           <!-- Submit -->
-          <div class="submit-wrap" id="submitWrap" style="display:none">
+          <div class="submit-wrap">
             <button class="submit-btn" id="submitBtn" type="button" onclick="handleSubmit()">
               <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
               Submit Registration
@@ -771,7 +576,7 @@
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              <p>Your details are used solely for identity verification within TCS. We do not share your information with third parties.</p>
+              <p>Your details are used solely for identity verification within TCS. Your account and all associated data will be permanently deleted the day after your finishing date passes.</p>
             </div>
           </div>
 
@@ -800,20 +605,18 @@
   </div>
 
   <script>
-    let selectedRole = '', selectedStaffType = '';
-
     function setStep(step) {
-      // sidebar circles
-      ['sc1','sc2','sc3'].forEach((id, i) => {
+      // sidebar circles — 2 steps now
+      ['sc1','sc2'].forEach((id, i) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.className = 'sb-step-num';
-        if (i + 1 < step)       { el.classList.add('done');   el.textContent = '✓'; }
+        if (i + 1 < step)        { el.classList.add('done');   el.textContent = '✓'; }
         else if (i + 1 === step) { el.classList.add('active'); el.textContent = i + 1; }
         else                      { el.textContent = i + 1; }
       });
       // mobile progress bars
-      ['p1','p2','p3'].forEach((id, i) => {
+      ['p1','p2'].forEach((id, i) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.className = 'prog-step';
@@ -822,56 +625,38 @@
       });
     }
 
-    function selectRole(role) {
-      selectedRole = role;
-      document.getElementById('role-student').classList.toggle('selected', role === 'student');
-      document.getElementById('role-staff').classList.toggle('selected', role === 'staff');
-      document.getElementById('studentFields').classList.toggle('visible', role === 'student');
-      document.getElementById('staffFields').classList.toggle('visible', role === 'staff');
-      document.getElementById('submitWrap').style.display = 'block';
-      setStep(2);
-      setTimeout(() => {
-        const panel = document.getElementById(role === 'student' ? 'studentFields' : 'staffFields');
-        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 120);
-    }
-
-    function selectStaffType(el, type) {
-      selectedStaffType = type;
-      document.getElementById('staffType').value = type;
-      document.querySelectorAll('.s-pill').forEach(p => p.classList.remove('selected'));
-      el.classList.add('selected');
-    }
-
     async function handleSubmit() {
-      if (!selectedRole) { showToast('Please select your role first.', false); return; }
+      const fn  = document.getElementById('fullName').value.trim();
+      const pn  = document.getElementById('preferredName').value.trim();
+      const sid = document.getElementById('studentId').value.trim();
+      const dob = document.getElementById('dob').value;
+      const ct  = document.getElementById('courseType').value;
+      const com = document.getElementById('commencement').value;
+      const fin = document.getElementById('completion').value;
 
-      let url = '', payload = {};
-
-      if (selectedRole === 'student') {
-        const fn  = document.getElementById('fullName').value.trim();
-        const pn  = document.getElementById('preferredName').value.trim();
-        const sid = document.getElementById('studentId').value.trim();
-        const dob = document.getElementById('dob').value;
-        const ct  = document.getElementById('courseType').value;
-        const com = document.getElementById('commencement').value;
-        if (!fn || !sid || !dob || !ct || !com) { showToast('Please fill in all required fields.', false); return; }
-        url = 'http://localhost:8000/api/dataentry/student/';
-        payload = { full_name: fn, preferred_name: pn || fn.split(' ')[0], student_id: sid, date_of_birth: dob, course_type: ct, date_of_commencement: com };
-      } else {
-        const st  = document.getElementById('staffType').value;
-        const sid = document.getElementById('staffId').value.trim();
-        const fn  = document.getElementById('staffFullName').value.trim();
-        const pn  = document.getElementById('staffPreferredName').value.trim();
-        const dob = document.getElementById('staffDob').value;
-        if (!st || !sid || !fn || !dob) { showToast('Please fill in all required fields.', false); return; }
-        url = 'http://localhost:8000/api/dataentry/staff/';
-        payload = { staff_type: st, staff_id: sid, full_name: fn, preferred_name: pn || fn.split(' ')[0], date_of_birth: dob };
+      if (!fn || !sid || !dob || !ct || !com || !fin) {
+        showToast('Please fill in all required fields.', false);
+        return;
       }
+      if (new Date(fin) <= new Date(com)) {
+        showToast('Finishing date must be after commencement.', false);
+        return;
+      }
+
+      const url = 'http://localhost:8000/api/dataentry/student/';
+      const payload = {
+        full_name:            fn,
+        preferred_name:       pn || fn.split(' ')[0],
+        student_id:           sid,
+        date_of_birth:        dob,
+        course_type:          ct,
+        date_of_commencement: com,
+        date_of_finishing:    fin
+      };
 
       document.getElementById('loading').classList.add('show');
       document.getElementById('submitBtn').disabled = true;
-      setStep(3);
+      setStep(2);
 
       try {
         const res = await fetch(url, {
@@ -881,8 +666,7 @@
         });
         document.getElementById('loading').classList.remove('show');
         if (res.ok) {
-          const idField = selectedRole === 'student' ? payload.student_id : payload.staff_id;
-          document.getElementById('successId').textContent = 'ID: ' + idField;
+          document.getElementById('successId').textContent = 'ID: ' + payload.student_id;
           document.getElementById('main-card').style.display = 'none';
           document.getElementById('successScreen').classList.add('show');
           showToast('Registration submitted!', true);
@@ -915,17 +699,9 @@
     }
 
     function resetForm() {
-      selectedRole = ''; selectedStaffType = '';
       document.getElementById('main-card').style.display = 'block';
       document.getElementById('successScreen').classList.remove('show');
-      document.getElementById('role-student').classList.remove('selected');
-      document.getElementById('role-staff').classList.remove('selected');
-      document.getElementById('studentFields').classList.remove('visible');
-      document.getElementById('staffFields').classList.remove('visible');
-      document.getElementById('submitWrap').style.display = 'none';
       document.getElementById('submitBtn').disabled = false;
-      document.getElementById('staffType').value = '';
-      document.querySelectorAll('.s-pill').forEach(p => p.classList.remove('selected'));
       document.querySelectorAll('input[type="text"], input[type="date"]').forEach(el => el.value = '');
       document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
       setStep(1);

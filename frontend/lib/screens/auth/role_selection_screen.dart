@@ -13,7 +13,7 @@ const _dark  = Color(0xFF0D0D1A);
 const _card  = Color(0xFF141428);
 
 // ─────────────────────────────────────────────────────────────
-// Role data — Student and Staff only, loginType removed
+// Role data — Student only.
 // ─────────────────────────────────────────────────────────────
 
 class _Role {
@@ -42,14 +42,6 @@ const _roles = [
     icon:        Icons.school_rounded,
     gradient:    [Color(0xFF6DD5FA), Color(0xFF2575FC)],
     perks:       ['Feed & Announcements', 'Study Hub & Buddies', 'Arcade & Leaderboard'],
-  ),
-  _Role(
-    title:       'Staff',
-    subtitle:    'Login with ID & Date of Birth',
-    description: 'Manage announcements, monitor students, and engage with campus life.',
-    icon:        Icons.badge_rounded,
-    gradient:    [Color(0xFF81C784), Color(0xFF388E3C)],
-    perks:       ['Post Announcements', 'Student Groups', 'Campus Events'],
   ),
 ];
 
@@ -102,7 +94,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
     super.dispose();
   }
 
-  // All roles use ID login — no branching needed
   void _navigate(_Role role) {
     HapticFeedback.mediumImpact();
     Navigator.of(context).push(PageRouteBuilder(
@@ -180,21 +171,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                             _buildHeader(res, logoSize),
                             SizedBox(height: res.lg),
 
-                            // Phone: vertical list | Tablet+: 2-col grid
-                            if (context.isPhone)
-                              ..._roles.asMap().entries.map((e) =>
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 14),
-                                  child: _RoleCard(
-                                    role:      e.value,
-                                    index:     e.key,
-                                    onTap:     () => _navigate(e.value),
-                                    pulseAnim: _pulseAnim,
-                                  ),
+                            // Single Student card — same vertical
+                            // layout on every device size.
+                            ..._roles.asMap().entries.map((e) =>
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: _RoleCard(
+                                  role:      e.value,
+                                  index:     e.key,
+                                  onTap:     () => _navigate(e.value),
+                                  pulseAnim: _pulseAnim,
                                 ),
-                              )
-                            else
-                              _buildGrid(res),
+                              ),
+                            ),
 
                             SizedBox(height: res.md),
                             _buildFooter(res),
@@ -265,7 +254,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             borderRadius: BorderRadius.circular(20),
             border:       Border.all(color: _kG2.withOpacity(0.25)),
           ),
-          child: Text('Select your role to get started',
+          child: Text('Tap to continue',
             style: TextStyle(
               fontFamily:    'Arch',
               fontSize:      res.caption + 1,
@@ -275,24 +264,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             )),
         ),
       ],
-    );
-  }
-
-  Widget _buildGrid(R res) {
-    return GridView.count(
-      crossAxisCount:   2,
-      crossAxisSpacing: 14,
-      mainAxisSpacing:  14,
-      childAspectRatio: 1.05,
-      shrinkWrap:       true,
-      physics:          const NeverScrollableScrollPhysics(),
-      children: _roles.asMap().entries.map((e) => _RoleCard(
-        role:      e.value,
-        index:     e.key,
-        onTap:     () => _navigate(e.value),
-        pulseAnim: _pulseAnim,
-        compact:   false,
-      )).toList(),
     );
   }
 
@@ -339,14 +310,12 @@ class _RoleCard extends StatefulWidget {
   final int               index;
   final VoidCallback      onTap;
   final Animation<double> pulseAnim;
-  final bool              compact;
 
   const _RoleCard({
     required this.role,
     required this.index,
     required this.onTap,
     required this.pulseAnim,
-    this.compact = true,
   });
 
   @override
@@ -398,152 +367,78 @@ class _RoleCardState extends State<_RoleCard>
               ),
             ],
           ),
-          child: widget.compact
-              ? _buildHorizontal(g, res)
-              : _buildVertical(g, res),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHorizontal(List<Color> g, R res) {
-    return Padding(
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Container(
-            width: 58, height: 58,
-            decoration: BoxDecoration(
-              shape:    BoxShape.circle,
-              gradient: LinearGradient(colors: g,
-                  begin: Alignment.topLeft, end: Alignment.bottomRight),
-              boxShadow: [BoxShadow(
-                  color:      g.last.withOpacity(0.35),
-                  blurRadius: 14,
-                  offset:     const Offset(0, 4))],
-            ),
-            child: Icon(widget.role.icon, color: Colors.white, size: 26),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
               children: [
-                Text(widget.role.title,
-                    style: TextStyle(
-                      fontFamily:    'Alfa',
-                      fontSize:      res.subheading,
-                      color:         Colors.white,
-                      letterSpacing: 0.3,
-                    )),
-                const SizedBox(height: 3),
-                Text(widget.role.subtitle,
-                    style: TextStyle(
-                      fontFamily: 'Arch',
-                      fontSize:   res.caption,
-                      color:      Colors.white.withOpacity(0.45),
-                    )),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6, runSpacing: 5,
-                  children: widget.role.perks.take(2).map((p) =>
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color:        g.first.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border:       Border.all(color: g.first.withOpacity(0.2)),
+                Container(
+                  width: 58, height: 58,
+                  decoration: BoxDecoration(
+                    shape:    BoxShape.circle,
+                    gradient: LinearGradient(colors: g,
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    boxShadow: [BoxShadow(
+                        color:      g.last.withOpacity(0.35),
+                        blurRadius: 14,
+                        offset:     const Offset(0, 4))],
+                  ),
+                  child: Icon(widget.role.icon, color: Colors.white, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.role.title,
+                          style: TextStyle(
+                            fontFamily:    'Alfa',
+                            fontSize:      res.subheading,
+                            color:         Colors.white,
+                            letterSpacing: 0.3,
+                          )),
+                      const SizedBox(height: 3),
+                      Text(widget.role.subtitle,
+                          style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontSize:   res.caption,
+                            color:      Colors.white.withOpacity(0.45),
+                          )),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6, runSpacing: 5,
+                        children: widget.role.perks.take(2).map((p) =>
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color:        g.first.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
+                              border:       Border.all(color: g.first.withOpacity(0.2)),
+                            ),
+                            child: Text(p,
+                              style: TextStyle(
+                                fontFamily:  'Arch', fontSize: 10,
+                                color:       g.first, fontWeight: FontWeight.w600,
+                              )),
+                          ),
+                        ).toList(),
                       ),
-                      child: Text(p,
-                        style: TextStyle(
-                          fontFamily:  'Arch', fontSize: 10,
-                          color:       g.first, fontWeight: FontWeight.w600,
-                        )),
-                    ),
-                  ).toList(),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    gradient:     LinearGradient(colors: g,
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.arrow_forward_ios_rounded,
+                      color: Colors.white, size: 14),
                 ),
               ],
             ),
           ),
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              gradient:     LinearGradient(colors: g,
-                  begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white, size: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVertical(List<Color> g, R res) {
-    return Padding(
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 54, height: 54,
-                decoration: BoxDecoration(
-                  shape:    BoxShape.circle,
-                  gradient: LinearGradient(colors: g,
-                      begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  boxShadow: [BoxShadow(
-                      color: g.last.withOpacity(0.35), blurRadius: 14)],
-                ),
-                child: Icon(widget.role.icon, color: Colors.white, size: 24),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color:        g.first.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border:       Border.all(color: g.first.withOpacity(0.2)),
-                ),
-                child: Icon(Icons.arrow_forward_rounded, color: g.first, size: 16),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(widget.role.title,
-              style: TextStyle(
-                fontFamily:    'Alfa',
-                fontSize:      res.subheading + 2,
-                color:         Colors.white,
-                letterSpacing: 0.3,
-              )),
-          const SizedBox(height: 4),
-          Text(widget.role.subtitle,
-              style: TextStyle(
-                fontFamily: 'Arch',
-                fontSize:   res.caption,
-                color:      Colors.white.withOpacity(0.4),
-              )),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: widget.role.perks.map((p) => Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(children: [
-                Container(width: 5, height: 5,
-                    decoration: BoxDecoration(
-                        color: g.first, shape: BoxShape.circle)),
-                const SizedBox(width: 8),
-                Text(p, style: TextStyle(
-                  fontFamily: 'Arch', fontSize: res.caption,
-                  color: Colors.white.withOpacity(0.65),
-                )),
-              ]),
-            )).toList(),
-          ),
-        ],
+        ),
       ),
     );
   }

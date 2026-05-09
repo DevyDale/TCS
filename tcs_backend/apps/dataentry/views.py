@@ -43,6 +43,16 @@ def register_student(request):
                     status=status.HTTP_201_CREATED)
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_student(request, student_id):
+    try:
+        rec = StudentRecord.objects.get(student_id=student_id)
+        return Response(StudentSerializer(rec).data)
+    except StudentRecord.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_staff(request):

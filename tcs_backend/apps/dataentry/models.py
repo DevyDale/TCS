@@ -12,6 +12,7 @@ class StudentRecord(models.Model):
     date_of_birth        = models.DateField()
     course_type          = models.CharField(max_length=20, choices=CourseType.choices)
     date_of_commencement = models.DateField()
+    date_of_finishing = models.DateField(null=True, blank=True)
     created_at           = models.DateTimeField(auto_now_add=True)
     updated_at           = models.DateTimeField(auto_now=True)
 
