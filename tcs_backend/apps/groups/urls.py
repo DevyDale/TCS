@@ -13,4 +13,6 @@ urlpatterns = [
     path("<uuid:group_id>/materials/",      views.group_materials,                name="group-materials"),
     path("buddies/",                        views.study_buddies,                  name="study-buddies"),
     path("buddies/me/",                     views.update_study_buddy,             name="update-buddy"),
+    path("<uuid:group_id>/materials/<uuid:material_id>/save/",
+     views.save_group_material, name="save-group-material"),
 ]

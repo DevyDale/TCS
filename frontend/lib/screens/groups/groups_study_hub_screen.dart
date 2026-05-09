@@ -2,13 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
+import 'package:lottie/lottie.dart';
+import 'package:tcs_app/ai_hub_screen.dart';
+import 'package:tcs_app/saved_materials_screen.dart';
 
 
 import '../../services/api_service.dart';
 import '../chat/chat_room_screen.dart';
 import '../create_group_page.dart';
 import '../group_Screen.dart';
-import '../saved_materials_screen.dart';
 import '../settings_Screen.dart';
 import '../study_hub_search_screen.dart';
 
@@ -286,50 +288,78 @@ class _GroupsStudyHubScreenState
   }
 
   // ── Header ────────────────────────────────────────────────
+Widget _buildHeader() {
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+    ),
+    child: Row(children: [
+      // Logo + title
+      Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              colors: [_indigo, _deepPurple],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(12)),
+        child: const Icon(Icons.school_rounded,
+            color: Colors.white, size: 20)),
+      const SizedBox(width: 12),
+      const Text('Study Hub',
+          style: TextStyle(fontFamily: 'Alfa',
+              fontSize: 22, color: Color(0xFF1A1A2E))),
+      const Spacer(),
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
-      ),
-      child: Row(children: [
-        // Logo + title
-        Container(
+      // ── Search → navigates to StudyHubSearchScreen ──────
+      GestureDetector(
+        onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => const StudyHubSearchScreen())),
+        child: _hdrBtn(Icons.search_rounded)),
+      const SizedBox(width: 8),
+
+      // ── AI → navigates to AiHubScreen ───────────────────
+      GestureDetector(
+        onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => const AiHubScreen())),
+        child: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [_indigo, _deepPurple],
+                colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.school_rounded,
-              color: Colors.white, size: 20)),
-        const SizedBox(width: 12),
-        const Text('Study Hub',
-            style: TextStyle(fontFamily: 'Alfa',
-                fontSize: 22, color: Color(0xFF1A1A2E))),
-        const Spacer(),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [BoxShadow(
+                color: const Color(0xFF8E54E9).withOpacity(0.3),
+                blurRadius: 8, offset: const Offset(0, 2))]),
+          child: Center(
+            child: Lottie.asset(
+              'assets/images/robot.json',
+              width: 26, height: 26,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                  Icons.smart_toy_rounded,
+                  color: Colors.white, size: 20),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
 
-        // ── Search → navigates to StudyHubSearchScreen ──────
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const StudyHubSearchScreen())),
-          child: _hdrBtn(Icons.search_rounded)),
-        const SizedBox(width: 8),
-
-        // ── Settings → navigates to SettingsScreen ──────────
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const SettingsScreen())),
-          child: _hdrBtn(Icons.settings_rounded)),
-      ]),
-    );
-  }
-
+      // ── Settings → navigates to SettingsScreen ──────────
+      GestureDetector(
+        onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => const SettingsScreen())),
+        child: _hdrBtn(Icons.settings_rounded)),
+    ]),
+  );
+}
   Widget _hdrBtn(IconData icon) => Container(
     width: 40, height: 40,
     decoration: BoxDecoration(

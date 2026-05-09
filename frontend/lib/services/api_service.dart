@@ -17,6 +17,12 @@
 // the ones whose backend endpoint was removed are marked @Deprecated
 // — migrate call sites to createChallenge / submitMatchResult /
 // forfeitSession.
+//
+// SAVED MATERIALS + QUIZ: added updateSavedMaterial in the CHAT
+// section, saveGroupMaterialToLibrary in the GROUPS section, and a
+// dedicated QUIZ section that talks to the new /api/quiz/* routes.
+// The frontend never sends file bytes for quiz generation — the
+// backend pulls the file straight from Cloudinary and extracts text.
 
 import 'dart:async';
 import 'dart:convert';
@@ -522,6 +528,24 @@ class ApiService {
   Future<dynamic> getStickerPacks()         => get('/chat/stickers/');
   Future<dynamic> getSavedMaterials()       => get('/chat/saved/');
   Future<dynamic> deleteSavedMaterial(String id) => delete('/chat/saved/$id/');
+
+  // ── NEW — retag a saved-material entry (title / subject / source / group).
+  //   Pass `groupId: ''` (empty string) to detach an existing group link.
+  //   Backend route: PATCH /api/chat/saved/<id>/  → views.update_saved_material
+  Future<dynamic> updateSavedMaterial({
+    required String id,
+    String? title,
+    String? subject,
+    String? sourceName,
+    String? groupId,
+  }) =>
+      patch('/chat/saved/$id/', body: {
+        if (title       != null) 'title':       title,
+        if (subject     != null) 'subject':     subject,
+        if (sourceName  != null) 'source_name': sourceName,
+        if (groupId     != null) 'group_id':    groupId,
+      });
+
   Future<dynamic> getStudyBuddies()         => get('/chat/study-buddy/');
 
   // ══════════════════════════════════════════════════════════
@@ -534,8 +558,117 @@ class ApiService {
   Future<dynamic> joinGroup(String id)         => post('/groups/$id/join/');
   Future<dynamic> leaveGroup(String id)        => delete('/groups/$id/leave/');
   Future<dynamic> getGroupMaterials(String id) => get('/groups/$id/materials/');
+
+  // ── NEW — save a group's uploaded material into the user's
+  //   personal SavedMaterial library, with subject + source group
+  //   auto-tagged. The result is immediately quizzable.
+  //   Backend route: POST /api/groups/<gid>/materials/<mid>/save/
+  Future<dynamic> saveGroupMaterialToLibrary({
+    required String groupId,
+    required String materialId,
+    String? title,
+    String? subject,
+  }) =>
+      post('/groups/$groupId/materials/$materialId/save/', body: {
+        if (title   != null) 'title':   title,
+        if (subject != null) 'subject': subject,
+      });
+
   Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
       put('/groups/buddies/me/', body: data);
+
+  // ══════════════════════════════════════════════════════════
+  // QUIZ  — NEW: AI-generated quizzes from saved materials
+  // ══════════════════════════════════════════════════════════
+  //
+  // Backend lives at apps.quiz / /api/quiz/. The flow is:
+  //   1. User picks a material in their library and tap "Quiz me".
+  //   2. Frontend calls generateQuiz(materialId: ...).
+  //   3. Backend pulls the file from Cloudinary, extracts text from
+  //      the PDF/DOCX, asks OpenAI for questions, persists a
+  //      GeneratedQuiz row, returns it ready to play.
+  //   4. Frontend shows quiz_play_screen → submitQuizAttempt on done.
+  //   5. Server-side grading is authoritative — the client cannot
+  //      fake a score.
+  //
+  // Daily rate limit: 20 generations per user per rolling 24h window
+  // (enforced server-side; throws ApiException with 429 if exceeded).
+  // ──────────────────────────────────────────────────────────
+
+  /// GET /api/quiz/?subject=... — list my generated quizzes.
+  /// Each row includes question_count, attempt_count, and last_score
+  /// for the saved-quizzes browser.
+  Future<dynamic> getMyQuizzes({String? subject}) =>
+      get('/quiz/', query: {
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      });
+
+  /// POST /api/quiz/generate/  — AI-generate a quiz from a saved material.
+  ///
+  /// Only the `materialId` is strictly required; everything else has
+  /// sensible defaults. The backend does the file-download + text
+  /// extraction + LLM round-trip, so this single call usually takes
+  /// a few seconds on a typical PDF.
+  ///
+  /// `numQuestions` is clamped server-side to 3–25.
+  /// `difficulty` is one of: 'easy' | 'medium' | 'hard' | 'mixed'.
+  /// `questionTypes` is any subset of: 'mcq' | 'true_false' | 'short'.
+  Future<dynamic> generateQuiz({
+    required String      materialId,
+    String?              subject,
+    int                  numQuestions = 10,
+    String               difficulty   = 'medium',
+    List<String>         questionTypes = const ['mcq', 'true_false', 'short'],
+  }) =>
+      post('/quiz/generate/', body: {
+        'material_id':    materialId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        'num_questions':  numQuestions,
+        'difficulty':     difficulty,
+        'question_types': questionTypes,
+      });
+
+  /// GET /api/quiz/<id>/play/ — questions WITHOUT correct answers.
+  /// Used by quiz_play_screen when the quiz wasn't preloaded by the
+  /// generator (e.g. retaking an old quiz from the saved-quizzes list).
+  Future<dynamic> getQuizForPlay(String quizId) =>
+      get('/quiz/$quizId/play/');
+
+  /// POST /api/quiz/<id>/submit/ — finalise the attempt.
+  ///
+  /// `answers` keys are question ids (e.g. 'q1'); values are:
+  ///   • String 'A'..'D'        for mcq
+  ///   • bool                    for true_false
+  ///   • String free-form text   for short
+  ///
+  /// Response includes the QuizAttempt row, a per-question breakdown
+  /// (with the correct answer + explanation revealed), and the full
+  /// questions list for the results screen review section.
+  Future<dynamic> submitQuizAttempt({
+    required String              quizId,
+    required Map<String, dynamic> answers,
+    int                          durationSeconds = 0,
+  }) =>
+      post('/quiz/$quizId/submit/', body: {
+        'answers':           answers,
+        'duration_seconds':  durationSeconds,
+      });
+
+  /// GET /api/quiz/<id>/  — full quiz including correct answers.
+  /// Use AFTER an attempt has been submitted; for the play flow,
+  /// prefer getQuizForPlay().
+  Future<dynamic> getQuizDetail(String quizId) =>
+      get('/quiz/$quizId/');
+
+  /// DELETE /api/quiz/<id>/ — permanently delete a quiz and all its
+  /// attempts. Backend enforces ownership.
+  Future<dynamic> deleteQuiz(String quizId) =>
+      delete('/quiz/$quizId/');
+
+  /// GET /api/quiz/<id>/attempts/ — full attempt history for one quiz,
+  /// newest first. Useful for showing improvement over retakes.
+  Future<dynamic> getQuizAttempts(String quizId) =>
+      get('/quiz/$quizId/attempts/');
 
   // ══════════════════════════════════════════════════════════
   // EVENTS  (Phase 2)

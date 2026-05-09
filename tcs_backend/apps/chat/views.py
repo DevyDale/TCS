@@ -1,4 +1,5 @@
 import json
+import re
 import urllib.request
 import urllib.parse
 from django.contrib.auth import get_user_model
@@ -11,6 +12,7 @@ from rest_framework.response import Response
 from django.conf import settings as django_settings
 
 from .models import Room, RoomMember, Message, StickerPack, Sticker, ChatRequest, SavedMaterial
+from apps.groups.models import Group         # ← used to auto-tag saved materials
 from apps.media.validators import validate_file
 
 User = get_user_model()
@@ -122,9 +124,21 @@ class ChatRequestSerializer(serializers.ModelSerializer):
 
 
 class SavedMaterialSerializer(serializers.ModelSerializer):
+    source_group_name = serializers.SerializerMethodField()
+    source_group_id   = serializers.SerializerMethodField()
+
     class Meta:
         model  = SavedMaterial
-        fields = ["id", "title", "file_url", "file_name", "file_type", "created_at"]
+        fields = ["id", "title", "file_url", "file_name", "file_type",
+                  "subject", "source_type", "source_name",
+                  "source_group_id", "source_group_name",
+                  "created_at"]
+
+    def get_source_group_name(self, obj):
+        return obj.source_group.name if obj.source_group else (obj.source_name or "")
+
+    def get_source_group_id(self, obj):
+        return str(obj.source_group_id) if obj.source_group_id else None
 
 
 class StickerSerializer(serializers.ModelSerializer):
@@ -428,42 +442,148 @@ def start_study_buddy_chat(request):
 
 # ── Saved Materials ───────────────────────────────────────────
 
+# Matches the room.name pattern from Room.get_or_create_study_buddy:
+#   "Study Buddy (Mathematics)" → captures "Mathematics"
+_STUDY_BUDDY_NAME_RE = re.compile(r"^Study Buddy \((.+)\)$")
+
+
 @api_view(["GET"])
 def saved_materials(request):
     """GET /api/chat/saved/"""
-    items = SavedMaterial.objects.filter(user=request.user)
+    items = (SavedMaterial.objects
+             .filter(user=request.user)
+             .select_related("source_group"))
     return Response(SavedMaterialSerializer(items, many=True).data)
 
 
 @api_view(["POST"])
 def save_material(request):
-    """POST /api/chat/saved/save/ — { message_id?, title, file_url, file_name, file_type }"""
-    msg_id    = request.data.get("message_id")
-    title     = request.data.get("title", "")
-    file_url  = request.data.get("file_url", "")
-    file_name = request.data.get("file_name", "")
-    file_type = request.data.get("file_type", "")
+    """
+    POST /api/chat/saved/save/
 
-    message = None
+    Body fields (all optional except where noted):
+      message_id?   — chat message to save (file_url/name/type pulled from it)
+      group_id?     — explicit study-group context (sets source_type='group')
+      subject?      — manual override; otherwise auto-derived
+      title?        — manual override; otherwise pulled from message/file_name
+      file_url, file_name, file_type — required if no message_id is given
+
+    Auto-derivation rules:
+      • Saving from a study-buddy chat: subject is extracted from the room
+        name pattern "Study Buddy (X)" → subject = "X".
+      • Saving with an explicit group_id: subject defaults to the group's
+        display_subject (subject || theme display name) if not provided.
+      • source_name falls back to the room name, then the sender's name.
+    """
+    msg_id     = request.data.get("message_id")
+    group_id   = request.data.get("group_id")
+    title      = (request.data.get("title")     or "").strip()
+    file_url   =  request.data.get("file_url")  or ""
+    file_name  = (request.data.get("file_name") or "").strip()
+    file_type  = (request.data.get("file_type") or "").strip()
+    subject    = (request.data.get("subject")   or "").strip()
+
+    message      = None
+    source_group = None
+    source_type  = "manual"
+    source_name  = ""
+
+    # ── Resolve from a chat message if given ─────────────
     if msg_id:
         try:
             message = Message.objects.get(id=msg_id)
+
             if not file_url:
-                file_url = request.build_absolute_uri(message.media.url) if message.media else ""
+                if message.media:
+                    file_url = request.build_absolute_uri(message.media.url)
+                elif message.media_url:
+                    file_url = message.media_url
             if not file_name:
-                file_name = message.file_name
+                file_name = message.file_name or ""
             if not file_type:
-                file_type = message.message_type
+                file_type = message.message_type or ""
             if not title:
-                title = file_name or "Saved Material"
+                title = file_name or (message.text[:60] if message.text else "Saved Material")
+
+            source_type = "chat"
+            source_name = message.sender.display_name if message.sender else ""
+
+            # Pull subject hint from the room when it's a study-buddy chat.
+            room = message.room
+            if room:
+                if room.name and not source_name:
+                    source_name = room.name
+                if not subject and room.room_type == "study_buddy" and room.name:
+                    m = _STUDY_BUDDY_NAME_RE.match(room.name)
+                    if m:
+                        subject = m.group(1).strip()
         except Message.DoesNotExist:
             pass
 
+    # ── Explicit group context wins ──────────────────────
+    if group_id:
+        try:
+            source_group = Group.objects.get(id=group_id)
+            source_type  = "group"
+            source_name  = source_group.name
+            if not subject:
+                subject = source_group.display_subject
+        except (Group.DoesNotExist, ValueError):
+            # Bad UUID or no such group → silently skip the group context.
+            pass
+
+    if not title:
+        title = file_name or "Saved Material"
+
     item = SavedMaterial.objects.create(
         user=request.user, message=message,
-        title=title, file_url=file_url, file_name=file_name, file_type=file_type,
+        title=title, file_url=file_url,
+        file_name=file_name, file_type=file_type,
+        subject=subject,
+        source_type=source_type,
+        source_group=source_group,
+        source_name=source_name,
     )
-    return Response(SavedMaterialSerializer(item).data, status=status.HTTP_201_CREATED)
+    return Response(SavedMaterialSerializer(item).data,
+                    status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH"])
+def update_saved_material(request, material_id):
+    """
+    PATCH /api/chat/saved/<id>/
+
+    Lets the user retag a library entry — change its title, subject,
+    source name, or link it to a study group after the fact.
+
+    Body fields (all optional):
+      title, subject, source_name — string overrides
+      group_id                    — UUID, or empty/null to detach
+    """
+    try:
+        item = SavedMaterial.objects.get(id=material_id, user=request.user)
+    except SavedMaterial.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    for field in ("title", "subject", "source_name"):
+        if field in request.data:
+            setattr(item, field, (request.data.get(field) or "").strip())
+
+    if "group_id" in request.data:
+        gid = request.data.get("group_id")
+        if gid:
+            try:
+                item.source_group = Group.objects.get(id=gid)
+                item.source_type  = "group"
+                if not item.source_name:
+                    item.source_name = item.source_group.name
+            except (Group.DoesNotExist, ValueError):
+                return Response({"error": "Group not found."}, status=404)
+        else:
+            item.source_group = None
+
+    item.save()
+    return Response(SavedMaterialSerializer(item).data)
 
 
 @api_view(["DELETE"])

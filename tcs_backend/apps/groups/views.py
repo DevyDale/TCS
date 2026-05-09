@@ -6,6 +6,8 @@ from rest_framework import generics, serializers, status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+
+from apps.chat.models import SavedMaterial          # ← for the new save-to-library endpoint
 from .models import Group, GroupMember, GroupMaterial
 
 User = get_user_model()
@@ -14,16 +16,20 @@ User = get_user_model()
 # ── Serializers ───────────────────────────────────────────────
 
 class GroupSerializer(serializers.ModelSerializer):
-    avatar_url  = serializers.SerializerMethodField()
-    is_joined   = serializers.SerializerMethodField()
-    is_admin    = serializers.SerializerMethodField()
-    is_expired  = serializers.SerializerMethodField()
+    avatar_url      = serializers.SerializerMethodField()
+    is_joined       = serializers.SerializerMethodField()
+    is_admin        = serializers.SerializerMethodField()
+    is_expired      = serializers.SerializerMethodField()
+    # ── exposed from new model properties ──────────────────
+    display_subject = serializers.ReadOnlyField()
+    display_emoji   = serializers.ReadOnlyField()
 
     class Meta:
         model  = Group
         fields = [
             "id", "name", "description", "purpose", "category", "theme",
-            "theme_icon", "subject", "avatar_url", "is_public", "is_academic",
+            "theme_icon", "display_emoji", "subject", "display_subject",
+            "avatar_url", "is_public", "is_academic",
             "requires_approval", "members_count", "active_now",
             "duration_days", "expires_at", "is_joined", "is_admin",
             "is_expired", "created_at",
@@ -44,9 +50,8 @@ class GroupSerializer(serializers.ModelSerializer):
         return bool(u) and (obj.created_by == u or obj.admins.filter(id=u.id).exists())
 
     def get_is_expired(self, obj):
-        if obj.expires_at:
-            return timezone.now() > obj.expires_at
-        return False
+        # Delegate to the model property so this logic lives in one place.
+        return obj.is_expired
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):
@@ -73,11 +78,17 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 class GroupMaterialSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source="uploaded_by.display_name", read_only=True)
     file_url         = serializers.SerializerMethodField()
+    # ── from model property — frontend uses this to show "Quiz me" ──
+    is_quizable      = serializers.ReadOnlyField()
+    # ── group context — handy when listing materials cross-group ────
+    group_id         = serializers.CharField(source="group_id", read_only=True)
+    group_name       = serializers.CharField(source="group.name", read_only=True)
 
     class Meta:
         model  = GroupMaterial
         fields = ["id", "title", "file_url", "file_name", "file_type",
-                  "file_size", "uploaded_by_name", "created_at"]
+                  "file_size", "uploaded_by_name", "created_at",
+                  "is_quizable", "group_id", "group_name"]
 
     def get_file_url(self, obj):
         req = self.context.get("request")
@@ -264,7 +275,7 @@ def group_materials(request, group_id):
         return Response({"error": "Must be a member."}, status=403)
 
     if request.method == "GET":
-        materials = group.materials.select_related("uploaded_by")
+        materials = group.materials.select_related("uploaded_by", "group")
         return Response(GroupMaterialSerializer(materials, many=True,
                                                 context={"request": request}).data)
 
@@ -280,6 +291,78 @@ def group_materials(request, group_id):
     )
     return Response(GroupMaterialSerializer(mat, context={"request": request}).data,
                     status=status.HTTP_201_CREATED)
+
+
+# ── NEW: Save a group material into the user's personal library ───
+#
+# This is what closes the gap for the quiz feature: a user browsing a
+# study group can tap "Save to my library" on any material, and it
+# lands in their SavedMaterial list with subject + source_group already
+# tagged — so it shows up correctly in the By-Subject / By-Group views
+# and is immediately available for AI quiz generation.
+
+@api_view(["POST"])
+def save_group_material(request, group_id, material_id):
+    """
+    POST /api/groups/<group_id>/materials/<material_id>/save/
+
+    Body (all optional):
+      { "title": "...", "subject": "..." }   — overrides the auto-derived values.
+
+    Returns the new SavedMaterial (chat app's serializer would normally
+    render this, but we return a minimal payload to avoid a cross-app
+    serializer import).
+    """
+    try:
+        group = Group.objects.get(id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        return Response({"error": "Group not found."}, status=404)
+
+    if not GroupMember.objects.filter(
+            group=group, user=request.user, status="active").exists():
+        return Response({"error": "You must be a member of this group."}, status=403)
+
+    try:
+        material = GroupMaterial.objects.get(id=material_id, group=group)
+    except GroupMaterial.DoesNotExist:
+        return Response({"error": "Material not found in this group."}, status=404)
+
+    if not material.file:
+        return Response({"error": "This material has no associated file."}, status=400)
+
+    # Build an absolute URL so SavedMaterial can fetch it later for the
+    # quiz generator. With Cloudinary this is already a full https:// URL.
+    file_url = (request.build_absolute_uri(material.file.url)
+                if request else material.file.url)
+
+    title   = (request.data.get("title")   or material.title or material.file_name).strip()
+    subject = (request.data.get("subject") or group.display_subject).strip()
+
+    saved = SavedMaterial.objects.create(
+        user=request.user,
+        message=None,
+        title=title,
+        file_url=file_url,
+        file_name=material.file_name or "",
+        file_type=material.file_type or "",
+        subject=subject,
+        source_type="group",
+        source_group=group,
+        source_name=group.name,
+    )
+
+    return Response({
+        "id":                 str(saved.id),
+        "title":              saved.title,
+        "file_url":           saved.file_url,
+        "file_name":          saved.file_name,
+        "file_type":          saved.file_type,
+        "subject":            saved.subject,
+        "source_type":        saved.source_type,
+        "source_group_id":    str(saved.source_group_id) if saved.source_group_id else None,
+        "source_group_name":  saved.source_name,
+        "created_at":         saved.created_at.isoformat(),
+    }, status=status.HTTP_201_CREATED)
 
 
 # ── Study Buddy ───────────────────────────────────────────────

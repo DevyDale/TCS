@@ -209,19 +209,44 @@ class ChatRequest(models.Model):
 
 
 # ── NEW: Saved Material ───────────────────────────────────────
-
 class SavedMaterial(models.Model):
-    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                                   related_name="saved_materials")
-    message    = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="saves",
-                                   null=True, blank=True)
-    title      = models.CharField(max_length=200, blank=True)
-    file_url   = models.URLField(blank=True)
-    file_name  = models.CharField(max_length=200, blank=True)
-    file_type  = models.CharField(max_length=50, blank=True)  # pdf, audio, doc, image
-    created_at = models.DateTimeField(auto_now_add=True)
+    SOURCE_CHOICES = [
+        ("chat",   "Chat"),
+        ("group",  "Study Group"),
+        ("manual", "Manual upload"),
+    ]
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user        = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                    on_delete=models.CASCADE,
+                                    related_name="saved_materials")
+    message     = models.ForeignKey(Message, on_delete=models.CASCADE,
+                                    related_name="saves",
+                                    null=True, blank=True)
+
+    title       = models.CharField(max_length=200, blank=True)
+    file_url    = models.URLField(blank=True)
+    file_name   = models.CharField(max_length=200, blank=True)
+    file_type   = models.CharField(max_length=50, blank=True)
+
+    # ── NEW: library organisation + quiz seeding ─────────────
+    subject       = models.CharField(max_length=100, blank=True)
+    source_type   = models.CharField(max_length=20, choices=SOURCE_CHOICES,
+                                     default="chat", blank=True)
+    source_group  = models.ForeignKey("groups.Group",
+                                      on_delete=models.SET_NULL,
+                                      null=True, blank=True,
+                                      related_name="saved_materials")
+    source_name   = models.CharField(max_length=200, blank=True)
+
+    created_at  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "saved_materials"
         ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["user", "subject"],
+                         name="savedmat_user_subj_idx"),
+            models.Index(fields=["user", "source_group"],
+                         name="savedmat_user_src_idx"),
+        ]

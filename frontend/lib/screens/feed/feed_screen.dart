@@ -22,7 +22,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';                      // ← NEW
 import 'package:tcs_app/ai_hub_screen.dart';
-import 'package:tcs_app/widgets/ai_assistant_screen.dart';
 
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
@@ -232,9 +231,9 @@ class _FeedScreenState extends State<FeedScreen>
 
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return '🤓Good morning';
+    if (h < 17) return '🙂Good afternoon';
+    return '👋Good evening';
   }
 
   // ══════════════════════════════════════════════════════════
