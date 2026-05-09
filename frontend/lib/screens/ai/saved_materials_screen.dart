@@ -288,9 +288,13 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
       ]),
     );
   }
-
-  // ─── Header ──────────────────────────────────────────────
+// ─── Header ──────────────────────────────────────────────
   Widget _buildHeader() {
+    final rounded = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -353,43 +357,72 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
         ]),
         const SizedBox(height: 14),
 
-        // Search bar
-        Container(
-          height: 46,
-          decoration: BoxDecoration(
+        // Search bar — gradient-bordered, with Material + Theme
+        // override so the white fill stays rounded and the dark
+        // global inputDecorationTheme can't leak in.
+        _GradientBorderCard(
+          animation:   _shimmerCtrl,
+          radius:      13,
+          borderWidth: 1.4,
+          innerColor:  _kCard,
+          padding:     EdgeInsets.zero,
+          child: Material(
             color: _kCard,
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: _kBorder),
-            boxShadow: [BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6, offset: const Offset(0, 2))],
-          ),
-          child: TextField(
-            controller: _search,
-            style: const TextStyle(color: _kInk, fontSize: 14),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search_rounded,
-                  color: _kSlate2, size: 19),
-              prefixIconConstraints: const BoxConstraints(
-                  minWidth: 42, minHeight: 42),
-              suffixIcon: _search.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear_rounded,
-                          color: _kSlate2, size: 16),
-                      onPressed: () { _search.clear(); _filter(); }),
-              hintText: 'Search title, subject, group…',
-              hintStyle: const TextStyle(color: _kSlate2, fontSize: 13),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 13),
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              height: 46,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  inputDecorationTheme: InputDecorationTheme(
+                    filled: true,
+                    fillColor: _kCard,
+                    border:         rounded,
+                    enabledBorder:  rounded,
+                    focusedBorder:  rounded,
+                    disabledBorder: rounded,
+                  ),
+                  textSelectionTheme: const TextSelectionThemeData(
+                    cursorColor: _kInk,
+                    selectionColor: Color(0x33A78BFA),
+                    selectionHandleColor: _kInk,
+                  ),
+                ),
+                child: TextField(
+                  controller: _search,
+                  cursorColor: _kInk,
+                  style: const TextStyle(color: _kInk, fontSize: 14),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: _kCard,
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        color: _kSlate2, size: 19),
+                    prefixIconConstraints: const BoxConstraints(
+                        minWidth: 42, minHeight: 42),
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear_rounded,
+                                color: _kSlate2, size: 16),
+                            onPressed: () { _search.clear(); _filter(); }),
+                    hintText: 'Search title, subject, group…',
+                    hintStyle: const TextStyle(color: _kSlate2, fontSize: 13),
+                    border:         rounded,
+                    enabledBorder:  rounded,
+                    focusedBorder:  rounded,
+                    disabledBorder: rounded,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 13),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       ]),
     );
   }
-
   // ─── Tab row ────────────────────────────────────────────
   Widget _buildTabRow() {
     Widget tab(_LibTab t, IconData icon, String label) {

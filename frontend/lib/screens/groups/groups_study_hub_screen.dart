@@ -283,7 +283,6 @@ class _GroupsStudyHubScreenState
           ),
         ]),
       ),
-      floatingActionButton: _buildCreateFAB(),
     );
   }
 
@@ -645,41 +644,7 @@ Widget _buildHeader() {
   }
 
   // ── FAB ───────────────────────────────────────────────────
-
-  Widget _buildCreateFAB() {
-    return GestureDetector(
-      onTap: () async {
-        HapticFeedback.mediumImpact();
-        final created = await Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => const CreateGroupPage()));
-        if (created != null) _loadGroups();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [_indigo, _deepPurple],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(
-            color: _indigo.withOpacity(0.4),
-            blurRadius: 16, offset: const Offset(0, 6))],
-        ),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.add_rounded, color: Colors.white, size: 20),
-          SizedBox(width: 8),
-          Text('Create', style: TextStyle(fontFamily: 'Arch',
-              color: Colors.white, fontWeight: FontWeight.bold,
-              fontSize: 14)),
-        ]),
-      ),
-    );
-  }
-
-  // ── Shared helper widgets ─────────────────────────────────
+ // ── Shared helper widgets ─────────────────────────────────
 
   Widget _availBanner() => Container(
     margin: const EdgeInsets.only(bottom: 16),

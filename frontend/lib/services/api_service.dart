@@ -193,26 +193,37 @@ class ApiService {
 
   // ── Token refresh ─────────────────────────────────────────
   // URL: /api/accounts/token/refresh/  ← FIXED (was /api/auth/)
+Future<bool> _tryRefresh() async {
+  final r = await _Tokens.refresh();
+  if (r == null) return false;
 
-  Future<bool> _tryRefresh() async {
-    final r = await _Tokens.refresh();
-    if (r == null) return false;
-    try {
-      final res = await _client.post(
-        Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': r}),
-      );
-      if (res.statusCode == 200) {
-        final d = jsonDecode(res.body) as Map<String, dynamic>;
-        await _Tokens.save(d['access'] as String, r);
-        return true;
-      }
-    } catch (_) {}
-    await _Tokens.clear();
+  try {
+    final res = await _client.post(
+      Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refresh': r}),
+    ).timeout(const Duration(seconds: 8));
+
+    if (res.statusCode == 200) {
+      final d = jsonDecode(res.body) as Map<String, dynamic>;
+      await _Tokens.save(d['access'] as String, r);
+      return true;
+    }
+
+    // Server is reachable AND tells us the refresh token is dead —
+    // only THEN wipe the session and force a real re-login.
+    if (res.statusCode == 401 || res.statusCode == 400) {
+      await _Tokens.clear();
+    }
+    // Any other status (500, 502, 503, etc.): server hiccup, keep session.
+    return false;
+  } catch (_) {
+    // Network error / timeout / DNS failure / backend not running.
+    // DO NOT wipe the session — user is just offline or backend is
+    // booting. The next API call will retry the refresh anyway.
     return false;
   }
-
+}
   Future<dynamic> _req(String method, String path,
       {Map<String, dynamic>? body,
        Map<String, String>?  query,

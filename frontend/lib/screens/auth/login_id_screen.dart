@@ -127,6 +127,20 @@ class _LoginIdScreenState extends State<LoginIdScreen>
   Future<void> _selectDate() async {
     HapticFeedback.lightImpact();
     final now = DateTime.now();
+
+    // Light input fill that matches the rest of the app's date field.
+    const fieldFill = Color(0xFFF7F8FA);
+    const inkColor  = Color(0xFF1A1A2E);
+
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: _accentColor, width: 2),
+    );
+
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000),
@@ -134,10 +148,45 @@ class _LoginIdScreenState extends State<LoginIdScreen>
       lastDate: now,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
+          // Force light scheme so the dialog (and the input-mode field)
+          // can't inherit your global dark theme.
+          brightness: Brightness.light,
           colorScheme: ColorScheme.light(
             primary: _accentColor,
             onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: inkColor,
           ),
+          dialogBackgroundColor: Colors.white,
+          scaffoldBackgroundColor: Colors.white,
+          // KEY FIX — kills the global dark inputDecorationTheme that's
+          // making the manual-entry text field render with a black fill.
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: fieldFill,
+            hintStyle: const TextStyle(
+                fontFamily: 'Momo', color: Color(0xFF9CA3AF)),
+            labelStyle: TextStyle(
+                fontFamily: 'Arch',
+                color: _accentColor,
+                fontWeight: FontWeight.w600),
+            helperStyle: const TextStyle(
+                fontFamily: 'Momo', color: Color(0xFF6B7280)),
+            errorStyle: const TextStyle(fontFamily: 'Momo'),
+            border:         inputBorder,
+            enabledBorder:  inputBorder,
+            disabledBorder: inputBorder,
+            focusedBorder:  focusedBorder,
+          ),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: _accentColor,
+            selectionColor: _accentColor.withOpacity(0.25),
+            selectionHandleColor: _accentColor,
+          ),
+          textTheme: Theme.of(ctx).textTheme.apply(
+                bodyColor: inkColor,
+                displayColor: inkColor,
+              ),
         ),
         child: child!,
       ),
@@ -556,46 +605,54 @@ class _LoginField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+   return Container(
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: Colors.grey.shade200, width: 1.5),
+  ),
+  child: TextFormField(
+    controller: controller,
+    focusNode: focusNode,
+    obscureText: obscure,
+    keyboardType: keyboardType,
+    style: const TextStyle(
+      fontFamily: 'Momo',
+      fontSize: 15,
+      color: Color(0xFF1A1A2E),
+    ),
+    decoration: InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: Colors.grey.shade400,
+        fontFamily: 'Momo',
       ),
-      child: TextFormField(
-        controller: controller,
-        focusNode: focusNode,
-        obscureText: obscure,
-        keyboardType: keyboardType,
-        style: const TextStyle(
-            fontFamily: 'Momo',
-            fontSize: 15,
-            color: Color(0xFF1A1A2E)),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle:
-              TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
-          prefixIcon: Container(
-            margin: const EdgeInsets.all(10),
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: gradient),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: Colors.white, size: 18),
-          ),
-          suffixIcon: suffix,
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-          errorStyle: const TextStyle(fontFamily: 'Momo'),
+      prefixIcon: Container(
+        margin: const EdgeInsets.all(10),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: gradient),
+          borderRadius: BorderRadius.circular(10),
         ),
-        validator: validator,
+        child: Icon(icon, color: Colors.white, size: 18),
       ),
-    );
+      suffixIcon: suffix,
+      border: InputBorder.none,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 16,
+      ),
+      errorStyle: const TextStyle(fontFamily: 'Momo'),
+    ),
+    validator: validator,
+  ),
+);
   }
 }
+
 
 class _DateField extends StatelessWidget {
   final DateTime? date;
@@ -742,8 +799,8 @@ class _LoginButton extends StatelessWidget {
                         color: Colors.white, size: 20),
                   ],
                 ),
-        ),
-      ),
-    );
-  }
-}
+              ),
+            ),
+          );
+        }
+      }

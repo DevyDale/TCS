@@ -1,7 +1,8 @@
 // lib/screens/settings/settings_screen.dart
 // CHANGES:
-// • Removed quick theme toggle from header bar
-// • Dark/light applies app-wide through AppSettings (already wired)
+// • Removed APPEARANCE section (dark/light theme toggle)
+// • Removed Support tile from ABOUT section
+// • Dark/light still applies app-wide through AppSettings (theme set elsewhere)
 // • Improved dark-mode contrast (_sub is now white70 not white54)
 // • Replaced Tamil with Japanese, added Korean
 // • Removed Suggestion Box tile
@@ -128,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: _bg,
       body: Column(children: [
 
-        // ── Header (theme toggle REMOVED) ─────────────────
+        // ── Header ────────────────────────────────────────
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           color: _card,
@@ -158,25 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(16),
             children: [
 
-              // ── APPEARANCE ────────────────────────────────
-              _section(l.settingsAppearance),
-              _group([
-                _toggle(
-                  icon: Icons.contrast_rounded,
-                  iconColor: _dark ? _kG2 : _kG3,
-                  title: l.settingsDarkMode,
-                  subtitle: _dark ? l.settingsDarkOn : l.settingsDarkOff,
-                  value: _dark,
-                  onChanged: (v) async {
-                    HapticFeedback.lightImpact();
-                    setState(() => _dark = v);
-                    await _s.setDark(v);
-                  },
-                ),
-              ]),
-
               // ── LANGUAGE ──────────────────────────────────
-              const SizedBox(height: 20),
               _section(l.settingsLanguage),
               _group([
                 GestureDetector(
@@ -369,11 +352,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (_) => const AboutDeveloperScreen())),
                   child: _info(Icons.code_rounded, 'About Developer',
                       'View ›', _kG3)),
-                _divLine(),
-                GestureDetector(
-                  onTap: () => _snack('✉️  helpdesk@taylorscollege.edu.au'),
-                  child: _info(Icons.support_agent_rounded, l.settingsSupport,
-                      'helpdesk@taylorscollege.edu.au', _kG2)),
               ]),
 
               const SizedBox(height: 48),

@@ -2,18 +2,23 @@
 //
 // Phase 3B: WhatsApp-grade chat list + Chat Bubbles.
 //
-// What's new on top of Phase 8:
-//   • Bubble create button moves to the app bar (where the notification
-//     icon used to live). Tap → CreateChatBubbleScreen wizard.
-//   • Bottom-right FAB is now a single "New" pill (1-on-1 chats).
-//   • Requests tab now shows BOTH pending bubble invites AND legacy DM
-//     chat-requests, with accept/decline. Tab badge counts both.
+// CHANGE LOG (this revision):
+//   • Replaced the stock Material `TabBar` with `SegmentedTabControl` from
+//     the `animated_segmented_tab_control` package — a pill / segmented
+//     control with an animated sliding indicator, matching the rest of
+//     the app's gradient/rounded design system.
+//   • The TabController is still owned by this screen, so ChatRoomScreen
+//     navigation and tab-state listeners work exactly as before.
+//   • The Requests-tab badge is preserved by injecting the count straight
+//     into the SegmentTab `label` (e.g. "Requests (3)"), since the package
+//     accepts plain text labels.
 //
-// Realtime indicators (typing / recording / new_message / presence /
-// ai_enabled) and last-message preview rendering are unchanged.
+// Everything else (realtime indicators, presence, AI tag, last-message
+// preview, FAB navigation) is untouched.
 
 import 'dart:async';
 
+import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
@@ -63,6 +68,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    // We still listen so the badge / any tab-aware UI re-renders on swipe.
     _tabCtrl.addListener(() => setState(() {}));
     _loadChats();
     _loadRequestsAndInvites();
@@ -324,7 +330,6 @@ class _ChatListScreenState extends State<ChatListScreen>
           ])),
         ]),
       ),
-      floatingActionButton: _buildNewFab(),
     );
   }
 
@@ -369,19 +374,82 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
+  // ── Animated Segmented Tab Control ──────────────────────────
+  // Replaces the stock Material TabBar. Visually it's a "pill" track with
+  // an animated, gradient-filled indicator that slides between segments.
+  // The package wires itself to our existing TabController, so the rest of
+  // the screen (TabBarView, swipe, badge updates) keeps working unchanged.
   Widget _buildTabBar() {
+    final requestsLabel = _totalRequests == 0
+        ? 'Requests'
+        : 'Requests ($_totalRequests)';
+
     return Container(
+      // White surround so the segmented bar sits cleanly under the app bar.
       color: Colors.white,
-      child: TabBar(
-        controller: _tabCtrl,
-        labelColor: _kG2, unselectedLabelColor: Colors.grey.shade500,
-        indicatorColor: _kG2, indicatorSize: TabBarIndicatorSize.label,
-        labelStyle: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontFamily: 'Arch', fontSize: 13),
-        tabs: [
-          const Tab(text: 'All Chats'),
-          Tab(text: _totalRequests == 0 ? 'Requests' : 'Requests ($_totalRequests)'),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+      child: SizedBox(
+        // SegmentedTabControl wants a bounded height. 48 matches its default
+        // touch target and looks balanced against the surrounding paddings.
+        height: 48,
+        child: SegmentedTabControl(
+          // Bind to OUR TabController so swipes on TabBarView and taps on the
+          // segmented control stay perfectly in sync.
+          controller: _tabCtrl,
+
+          // Slight inset so the indicator doesn't kiss the bar's edges.
+          indicatorPadding: const EdgeInsets.all(4),
+
+          // Bar (the unselected track behind the pill indicator).
+          barDecoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200, width: 1),
+          ),
+
+          // Indicator (the moving pill). Uses our brand gradient so it
+          // matches the AppBar logo + bubble button.
+          indicatorDecoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_kG1, _kG2],
+              begin: Alignment.topLeft,
+              end:   Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(11),
+            boxShadow: [
+              BoxShadow(
+                color: _kG2.withOpacity(0.30),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+
+          // Text styling: brand fonts on both states; just swap the color.
+          tabTextColor: Colors.grey.shade600,
+          selectedTabTextColor: Colors.white,
+          textStyle: const TextStyle(
+            fontFamily: 'Arch',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          selectedTextStyle: const TextStyle(
+            fontFamily: 'Arch',
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+
+          // Subtle ripple that feels in-family with the rest of the UI.
+          splashColor: _kG2.withOpacity(0.10),
+          splashHighlightColor: _kG2.withOpacity(0.06),
+
+          // The two segments. Per-tab overrides aren't needed because we
+          // already styled the bar/indicator above globally.
+          tabs: [
+            const SegmentTab(label: 'All Chats'),
+            SegmentTab(label: requestsLabel),
+          ],
+        ),
       ),
     );
   }
@@ -869,31 +937,8 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   // ══════════════════════════════════════════════════════════
-  // FAB — single "New" pill for 1-on-1 chats
+  // Navigation
   // ══════════════════════════════════════════════════════════
-
-  Widget _buildNewFab() {
-    return GestureDetector(
-      onTap: () { HapticFeedback.mediumImpact(); _openSearch(); },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_kG1, _kG2],
-              begin: Alignment.centerLeft, end: Alignment.centerRight),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: _kG2.withOpacity(0.4), blurRadius: 16,
-              offset: const Offset(0, 6))]),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.edit_rounded, color: Colors.white, size: 18),
-          SizedBox(width: 8),
-          Text('New', style: TextStyle(fontFamily: 'Arch', color: Colors.white,
-              fontWeight: FontWeight.bold, fontSize: 14)),
-        ]),
-      ),
-    );
-  }
-
-  // ── Navigation ───────────────────────────────────────────
 
   Future<void> _openSearch() async {
     final result = await Navigator.of(context).push<Map<String, dynamic>>(

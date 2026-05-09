@@ -34,6 +34,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/services/settings_Screen.dart';
 
 import '../../models/biodata.dart';
 import '../../services/api_service.dart';
@@ -362,43 +363,456 @@ class _ProfileScreenState extends State<ProfileScreen>
         MaterialPageRoute(builder: (_) => const CreateFweetPage()));
     if (r != null && r.isNotEmpty) _fetchFweets();
   }
+Future<void> _shareMyProfile() async {
+  HapticFeedback.lightImpact();
 
-  Future<void> _shareMyProfile() async {
-    HapticFeedback.lightImpact();
-    if (_myUserId == null || _myUserId!.isEmpty) {
-      try {
-        final me = await _api.getMyProfile() as Map<String, dynamic>;
-        _myUserId = me['user_id'] as String? ?? '';
-      } catch (_) {
-        _snack('Could not load your profile to share.', error: true);
-        return;
-      }
-    }
-    if (_myUserId == null || _myUserId!.isEmpty) {
+  // ── Ensure current user id exists ─────────────────────────
+  if (_myUserId == null || _myUserId!.isEmpty) {
+    try {
+      final me = await _api.getMyProfile() as Map<String, dynamic>;
+      _myUserId = me['user_id'] as String? ?? '';
+    } catch (_) {
       _snack('Could not load your profile to share.', error: true);
       return;
     }
-
-    if (!mounted) return;
-    await showShareProfileSheet(
-      context,
-      profile: {
-        'user_id':    _myUserId,
-        'name':       widget.fullName,
-        'avatar_url': _avatarUrl ?? '',
-        'role':       widget.role,
-      },
-      onShareTo: (room) async {
-        final roomId = room['id']?.toString() ?? '';
-        if (roomId.isEmpty) return;
-        await _api.shareProfileToRoom(
-          roomId:       roomId,
-          targetUserId: _myUserId!,
-          targetName:   widget.fullName,
-        );
-      },
-    );
   }
+
+  if (_myUserId == null || _myUserId!.isEmpty) {
+    _snack('Could not load your profile to share.', error: true);
+    return;
+  }
+
+  // ── Load recent chats directly here ──────────────────────
+  List<Map<String, dynamic>> recent = [];
+
+  try {
+    final data = await _api.getRecentChats(limit: 5);
+
+    if (data is List) {
+      recent = data.cast<Map<String, dynamic>>();
+    }
+  } catch (_) {
+    try {
+      final data = await _api.getChatRooms();
+
+      if (data is List) {
+        recent = data
+            .cast<Map<String, dynamic>>()
+            .take(5)
+            .toList();
+      }
+    } catch (_) {}
+  }
+
+  if (!mounted) return;
+
+  final searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> filtered = List.from(recent);
+
+  String roomName(Map<String, dynamic> r) {
+    final type = r['room_type'] as String? ?? 'direct';
+
+    if (type == 'group') {
+      return (r['name'] as String?) ?? 'Group';
+    }
+
+    final other = r['other_user'] as Map<String, dynamic>?;
+
+    return (other?['name'] as String?) ?? 'Unknown';
+  }
+
+  String? roomAvatar(Map<String, dynamic> r) {
+    final type = r['room_type'] as String? ?? 'direct';
+
+    if (type == 'group') {
+      return r['avatar_url'] as String?;
+    }
+
+    final other = r['other_user'] as Map<String, dynamic>?;
+
+    return other?['avatar_url'] as String?;
+  }
+
+  // ── Bottom sheet directly inside function ────────────────
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          void applyFilter(String q) {
+            final query = q.trim().toLowerCase();
+
+            setModalState(() {
+              if (query.isEmpty) {
+                filtered = List.from(recent);
+              } else {
+                filtered = recent.where((r) {
+                  return roomName(r)
+                      .toLowerCase()
+                      .contains(query);
+                }).toList();
+              }
+            });
+          }
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.55,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (_, scrollCtrl) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Handle
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(top: 12, bottom: 4),
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Header
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Share Profile',
+                            style: TextStyle(
+                              fontFamily: 'Alfa',
+                              fontSize: 20,
+                              color: Color(0xFF1A1A2E),
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          Expanded(
+                            child: Text(
+                              '· ${widget.fullName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Momo',
+                                fontSize: 13,
+                                color: Color(0xFF64687A),
+                              ),
+                            ),
+                          ),
+
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Color(0xFF64687A),
+                            ),
+                            onPressed: () =>
+                                Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Search
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F5FA),
+                          borderRadius:
+                              BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                          ),
+                        ),
+                 child: TextField(
+  controller: searchCtrl,
+  onChanged: applyFilter,
+  style: const TextStyle(
+    fontFamily: 'Momo',
+    fontSize: 14,
+  ),
+  decoration: InputDecoration(
+    filled: true,
+    fillColor: Colors.white, // <- white fill color
+    hintText: 'Search recent chats...',
+    hintStyle: TextStyle(
+      fontFamily: 'Momo',
+      fontSize: 13,
+      color: Colors.grey.shade500,
+    ),
+    prefixIcon: Icon(
+      Icons.search_rounded,
+      color: Colors.grey.shade500,
+      size: 20,
+    ),
+    border: InputBorder.none,
+    contentPadding: const EdgeInsets.symmetric(
+      vertical: 14,
+    ),
+  ),
+),    ),
+                    ),
+
+                    // List
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(
+                              child: Text(
+                                recent.isEmpty
+                                    ? 'No recent chats yet'
+                                    : 'No matches',
+                                style: const TextStyle(
+                                  fontFamily: 'Alfa',
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollCtrl,
+                              padding:
+                                  const EdgeInsets.fromLTRB(
+                                      12, 4, 12, 24),
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final room = filtered[i];
+
+                                final name = roomName(room);
+                                final avatar =
+                                    roomAvatar(room);
+
+                                final type =
+                                    room['room_type']
+                                            as String? ??
+                                        'direct';
+
+                                final isGroup =
+                                    type == 'group';
+
+                                final initial =
+                                    name.isNotEmpty
+                                        ? name[0]
+                                            .toUpperCase()
+                                        : '?';
+
+                                return InkWell(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          14),
+                                  onTap: () async {
+                                    try {
+                                      HapticFeedback
+                                          .mediumImpact();
+
+                                      final roomId =
+                                          room['id']
+                                                  ?.toString() ??
+                                              '';
+
+                                      if (roomId
+                                          .isEmpty) return;
+
+                                      await _api
+                                          .shareProfileToRoom(
+                                        roomId: roomId,
+                                        targetUserId:
+                                            _myUserId!,
+                                        targetName:
+                                            widget.fullName,
+                                      );
+
+                                      if (!mounted) return;
+
+                                      Navigator.pop(
+                                          context);
+
+                                      _snack(
+                                        'Profile shared to $name ✓',
+                                      );
+                                    } catch (e) {
+                                      _snack(
+                                        'Share failed',
+                                        error: true,
+                                      );
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration:
+                                              BoxDecoration(
+                                            gradient:
+                                                const LinearGradient(
+                                              colors: [
+                                                Color(
+                                                    0xFF6DD5FA),
+                                                Color(
+                                                    0xFF8E54E9),
+                                              ],
+                                            ),
+                                            shape: isGroup
+                                                ? BoxShape
+                                                    .rectangle
+                                                : BoxShape
+                                                    .circle,
+                                            borderRadius:
+                                                isGroup
+                                                    ? BorderRadius
+                                                        .circular(
+                                                            14)
+                                                    : null,
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                isGroup
+                                                    ? BorderRadius
+                                                        .circular(
+                                                            14)
+                                                    : BorderRadius
+                                                        .circular(
+                                                            24),
+                                            child: avatar !=
+                                                        null &&
+                                                    avatar
+                                                        .isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl:
+                                                        avatar,
+                                                    fit: BoxFit
+                                                        .cover,
+                                                    errorWidget:
+                                                        (_, __,
+                                                                ___) =>
+                                                            Center(
+                                                      child:
+                                                          Text(
+                                                        initial,
+                                                        style:
+                                                            const TextStyle(
+                                                          color:
+                                                              Colors.white,
+                                                          fontFamily:
+                                                              'Arch',
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : Center(
+                                                    child:
+                                                        Text(
+                                                      initial,
+                                                      style:
+                                                          const TextStyle(
+                                                        color: Colors
+                                                            .white,
+                                                        fontFamily:
+                                                            'Arch',
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 12),
+
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment
+                                                    .start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow
+                                                        .ellipsis,
+                                                style:
+                                                    const TextStyle(
+                                                  fontFamily:
+                                                      'Arch',
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .bold,
+                                                  fontSize:
+                                                      14,
+                                                  color: Color(
+                                                      0xFF1A1A2E),
+                                                ),
+                                              ),
+                                              Text(
+                                                isGroup
+                                                    ? 'Group chat'
+                                                    : 'Direct message',
+                                                style:
+                                                    TextStyle(
+                                                  fontFamily:
+                                                      'Momo',
+                                                  fontSize:
+                                                      11,
+                                                  color: Colors
+                                                      .grey
+                                                      .shade500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        const Icon(
+                                          Icons
+                                              .send_rounded,
+                                          color: Color(
+                                              0xFF8E54E9),
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
 
   Future<void> _changeBioPrivacy() async {
     HapticFeedback.lightImpact();
@@ -539,20 +953,39 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: Colors.white, strokeWidth: 2))),
             ]))),
 
-        // Back button
-        Positioned(top: topPad + 12, left: 16,
-          child: GestureDetector(onTap: () => Navigator.pop(context),
-            child: Container(width: 38, height: 38,
-              decoration: BoxDecoration(
-                  color: _kCard,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _kBorder),
-                  boxShadow: [BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 8, offset: const Offset(0, 2))]),
-              child: const Icon(Icons.arrow_back_rounded,
-                  color: _kInk, size: 18)))),
-
+      Positioned(
+  top: topPad + 12,
+  left: 16,
+  child: GestureDetector(
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SettingsScreen(),
+      ),
+    ),
+    child: Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: const Icon(
+        Icons.settings_rounded,
+        color: _kInk,
+        size: 18,
+      ),
+    ),
+  ),
+),
         // Edit cover button
         Positioned(top: topPad + 12, right: 16,
           child: GestureDetector(onTap: _pickCover,
