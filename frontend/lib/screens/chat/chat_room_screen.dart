@@ -1,31 +1,39 @@
 // lib/screens/chat/chat_room_screen.dart
-// KEY CHANGE: accepts roomId (for backend) + roomType label
-// Drop-in replacement — same file path
 //
-// Now wired for stickers + voice notes:
-//   • Sticker button on the left of the input bar opens the picker
-//     bottom sheet (chat_sticker_picker.dart)
-//   • Mic button replaces the send button when text input is empty,
-//     hold-to-record produces an AAC m4a, slide-up cancels
-//   • Sticker bubbles render naked (no purple background, like Telegram)
-//   • Audio bubbles use ChatAudioPlayer with play/pause + progress bar
-//   • ChatWebSocketService is connected on init for realtime delivery
-//   • Optimistic UI for both — bubble appears instantly, replaced by
-//     server response when upload completes
+// Phase 7: Dale AI in chat (Meta-AI style).
+//
+// What's new on top of the previous version:
+//   • Dale button in the app bar (top-right). Tap behaviour:
+//       - Dale OFF → enables Dale, who joins the room and posts a
+//         "Dale joined" system pill + a first context-aware reply
+//       - Dale ON  → opens the Ask Dale bottom sheet
+//   • Dale messages render via DaleMessageBubble (gradient avatar,
+//     gradient-bordered white bubble, "Dale ✨ AI" label).
+//   • System messages (is_system: true) render as centered pills.
+//   • Room metadata is fetched on init so we know whether Dale is
+//     already enabled when reopening the room.
+//
+// Existing features (text, stickers, audio, file, websocket optimistic
+// UI) are preserved unchanged.
 
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
+import 'package:tcs_app/widgets/ask_dale_sheet.dart';
+import 'package:tcs_app/widgets/dale_appbar_button.dart';
+import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
+import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
+import 'package:tcs_app/screens/chat/chat_audio_player.dart';
+import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
+import 'package:tcs_app/ai/system_message_pill.dart';
 
 import '../../services/api_service.dart';
-import 'chat_Sticker_picker.dart';
-import 'chat_audio_player.dart';
-import 'chat_audio_recorder.dart';
-import 'chat_sticker_bubble.dart';
 
 
+const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 
 class ChatRoomScreen extends StatefulWidget {
@@ -58,6 +66,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _sending  = false;
   bool _isTyping = false;
 
+  // ── Dale state ──
+  bool _aiEnabled  = false;   // true if Dale is currently in the room
+  bool _aiBusy     = false;   // true while a Dale-related API call is in flight
+
   /// Cache of sticker_id → image_url so optimistic bubbles render
   /// instantly without a re-fetch.
   final Map<int, String> _stickerById = {};
@@ -68,6 +80,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void initState() {
     super.initState();
     _loadHistory();
+    _loadRoomMeta();
     _connectWebSocket();
     _msgCtrl.addListener(() => setState(() => _isTyping = _msgCtrl.text.isNotEmpty));
   }
@@ -120,6 +133,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     } catch (_) { setState(() => _loading = false); }
   }
 
+  /// Fetch the room object so we know if Dale is already a member.
+  /// Falls back silently if the endpoint isn't reachable — in which
+  /// case the Dale button will start in the OFF state and the user
+  /// can still enable him.
+  Future<void> _loadRoomMeta() async {
+    try {
+      final res = await _api.get('/chat/rooms/${widget.roomId}/');
+      if (!mounted || res is! Map) return;
+      setState(() => _aiEnabled = res['ai_enabled'] as bool? ?? false);
+    } catch (_) { /* silent */ }
+  }
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollCtrl.hasClients) {
@@ -127,6 +152,79 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // Dale AI
+  // ══════════════════════════════════════════════════════════
+
+  Future<void> _handleDaleTap() async {
+    if (_aiBusy) return;
+    HapticFeedback.lightImpact();
+
+    if (!_aiEnabled) {
+      await _enableDale();
+    } else {
+      // Dale already here — open Ask Dale sheet.
+      await showAskDaleSheet(
+        context,
+        onAsk:    _askDale,
+        onRemove: _disableDale,
+      );
+    }
+  }
+
+  Future<void> _enableDale() async {
+    setState(() => _aiBusy = true);
+    try {
+      final res = await _api.post('/chat/rooms/${widget.roomId}/ai/enable/')
+          as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _aiEnabled = res['ai_enabled'] as bool? ?? true;
+      });
+      // The endpoint returns Dale's first reply directly. The "Dale
+      // joined" system message is emitted by the backend before that
+      // reply, so when we refresh the message list it'll appear in
+      // order. Easiest path: reload history.
+      await _loadHistory();
+    } catch (e) {
+      _showSnack('Couldn\'t add Dale. Try again.');
+    } finally {
+      if (mounted) setState(() => _aiBusy = false);
+    }
+  }
+
+  Future<void> _askDale(String message) async {
+    setState(() => _aiBusy = true);
+    try {
+      await _api.post(
+        '/chat/rooms/${widget.roomId}/ai/summon/',
+        body: {if (message.isNotEmpty) 'message': message},
+      );
+      if (!mounted) return;
+      // Pull the new Dale reply (and the user's question if it was
+      // posted as a system note) into the local list.
+      await _loadHistory();
+    } catch (_) {
+      _showSnack('Dale couldn\'t reply right now.');
+    } finally {
+      if (mounted) setState(() => _aiBusy = false);
+    }
+  }
+
+  Future<void> _disableDale() async {
+    setState(() => _aiBusy = true);
+    try {
+      await _api.post('/chat/rooms/${widget.roomId}/ai/disable/');
+      if (!mounted) return;
+      setState(() => _aiEnabled = false);
+      await _loadHistory();
+    } catch (_) {
+      _showSnack('Couldn\'t remove Dale right now.');
+    } finally {
+      if (mounted) setState(() => _aiBusy = false);
+    }
   }
 
   // ── Send: text ───────────────────────────────────────────
@@ -147,10 +245,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() { _messages.add(tempMsg); _sending = false; });
     _scrollToBottom();
 
-    // Realtime broadcast via WebSocket. Backend persists from there.
-    try {
-      _chatWs.sendText(text);
-    } catch (_) {}
+    try { _chatWs.sendText(text); } catch (_) {}
   }
 
   // ── Send: sticker ────────────────────────────────────────
@@ -165,9 +260,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final url = sticker['image_url'] as String? ?? '';
     if (id == null) return;
 
-    // Cache so the optimistic bubble can render the URL immediately
-    // and any future incoming messages with the same sticker_id can
-    // resolve without a re-fetch.
     if (url.isNotEmpty) _stickerById[id] = url;
 
     final tempMsg = {
@@ -183,9 +275,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _scrollToBottom();
     HapticFeedback.lightImpact();
 
-    try {
-      _chatWs.sendSticker(id);
-    } catch (_) {}
+    try { _chatWs.sendSticker(id); } catch (_) {}
   }
 
   // ── Send: voice note ─────────────────────────────────────
@@ -212,7 +302,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         mimeType: 'audio/m4a',
       ) as Map<String, dynamic>;
 
-      final mediaUrl = (res['media_url'] ?? res['url']) as String? ?? '';
+      final mediaUrl  = (res['media_url'] ?? res['url']) as String? ?? '';
       final messageId = res['message_id'] ?? res['id'] ?? tempId;
 
       if (!mounted) return;
@@ -228,7 +318,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         }
       });
 
-      // Broadcast over WebSocket so other room members see it live.
       try {
         _chatWs.sendMedia(
           messageType: 'audio',
@@ -279,7 +368,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return Container(
       padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top,
-          left: 8, right: 16, bottom: 12),
+          left: 8, right: 12, bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _isStudyBuddy
@@ -295,14 +384,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context)),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.roomName, style: const TextStyle(color: Colors.white,
-                fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Arch')),
+                fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Arch')),
             if (_isStudyBuddy)
               const Text('Study Buddy Session 📚', style: TextStyle(
-                  color: Colors.white70, fontSize: 12, fontFamily: 'Momo')),
+                  color: Colors.white70, fontSize: 11.5, fontFamily: 'Momo'))
+            else if (_aiEnabled)
+              Row(children: [
+                const Icon(Icons.smart_toy_rounded,
+                    color: Colors.white70, size: 11),
+                const SizedBox(width: 4),
+                Text('Dale is here',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 11.5,
+                        fontFamily: 'Momo')),
+              ]),
           ])),
+
           if (_isStudyBuddy) ...[
             GestureDetector(
               onTap: () => _showSnack('Materials shared — check Saved Materials'),
@@ -318,7 +419,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ]),
               ),
             ),
+            const SizedBox(width: 8),
           ],
+
+          // ── Dale AI button ─────────────────────────────
+          DaleAppBarButton(
+            active:       _aiEnabled,
+            busy:         _aiBusy,
+            onTap:        _handleDaleTap,
+            onLongPress:  _aiEnabled ? _disableDale : null,
+          ),
         ]),
       ),
     );
@@ -351,13 +461,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       itemCount: _messages.length,
       itemBuilder: (_, i) {
         final msg     = _messages[i];
+        final prev    = i > 0 ? _messages[i - 1] : null;
+
+        // ── System messages render as a centered pill ──
+        final isSystem = msg['is_system'] == true;
+        if (isSystem) {
+          final text = (msg['text'] as String?) ?? '';
+          return SystemMessagePill(text: text);
+        }
+
+        // ── Dale (non-system AI) messages get their own bubble ──
+        final isAi = msg['is_ai'] == true;
+        if (isAi) {
+          final prevAi = prev != null
+              && prev['is_ai'] == true
+              && prev['is_system'] != true;
+          return DaleMessageBubble(message: msg, collapseHeader: prevAi);
+        }
+
+        // ── Regular user messages (existing renderer) ──
         final isMe    = msg['is_me'] as bool? ?? (msg['sender_name'] == widget.userName);
         final time    = _fmt(msg['created_at'] as String? ?? '');
         final name    = msg['sender_name'] as String? ?? '';
         final msgType = msg['message_type'] as String? ?? 'text';
         final showName = !isMe && (i == 0 || _messages[i-1]['sender_name'] != name);
 
-        // ── Stickers render WITHOUT a bubble (Telegram/WhatsApp style) ──
+        // Stickers render WITHOUT a bubble
         if (msgType == 'sticker') {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -401,7 +530,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           );
         }
 
-        // ── Default: text / audio / image / file rendered inside the bubble ──
+        // Default: text / audio / image / file rendered inside the bubble
         final text = msg['text'] as String? ?? msg['display_text'] as String? ?? '';
 
         return Padding(
@@ -476,9 +605,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final fileName = msg['file_name']    as String? ?? 'File';
     final color    = isMe ? Colors.white : Colors.deepPurple.shade600;
 
-    // ── Audio (voice note) ──
     if (type == 'audio') {
-      // Optimistic upload state — show a spinner before media_url arrives
       if (msg['_uploading'] == true) {
         return SizedBox(
           width: 220, height: 38,
@@ -506,7 +633,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return const Icon(Icons.image_rounded, size: 40, color: Colors.white70);
     }
 
-    // Generic file / document fallback
     return Row(children: [
       Icon(Icons.attach_file_rounded, color: color, size: 20),
       const SizedBox(width: 8),
@@ -538,7 +664,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05),
               blurRadius: 10, offset: const Offset(0, -2))]),
       child: SafeArea(top: false, child: Row(children: [
-        // ── Sticker picker button ──
         GestureDetector(
           onTap: _openStickerPicker,
           child: Container(
@@ -552,8 +677,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
         ),
         const SizedBox(width: 8),
-
-        // ── Text field ──
         Expanded(
           child: Container(
             decoration: BoxDecoration(color: Colors.grey.shade100,
@@ -573,8 +696,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
         ),
         const SizedBox(width: 8),
-
-        // ── Send (when typing) OR mic recorder (when not) ──
         _isTyping
             ? GestureDetector(
                 onTap: _sendMessage,

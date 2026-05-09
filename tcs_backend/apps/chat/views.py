@@ -48,9 +48,11 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Room
+        # Phase 1 / 3A additions: ai_enabled, is_public, about
         fields = ["id", "room_type", "name", "description", "avatar_url",
                   "members", "member_count", "unread_count", "other_user",
-                  "last_message", "created_at", "updated_at"]
+                  "last_message", "created_at", "updated_at",
+                  "ai_enabled", "is_public", "about"]
 
     def get_avatar_url(self, obj):
         req = self.context.get("request")
@@ -67,12 +69,16 @@ class RoomSerializer(serializers.ModelSerializer):
         if not other_member:
             return None
         u = other_member.user
+        # last_active_at is optional on the User model — handle gracefully so
+        # this doesn't crash on a User schema that hasn't added the field yet.
+        last_active = getattr(u, "last_active_at", None)
         return {
-            "user_id":    u.user_id,
-            "name":       u.display_name,
-            "role":       u.role,
-            "avatar_url": req.build_absolute_uri(u.avatar.url) if u.avatar else None,
-            "is_online":  u.is_online,
+            "user_id":        u.user_id,
+            "name":           u.display_name,
+            "role":           u.role,
+            "avatar_url":     req.build_absolute_uri(u.avatar.url) if u.avatar else None,
+            "is_online":      u.is_online,
+            "last_active_at": last_active.isoformat() if last_active else None,
         }
 
     def get_unread_count(self, obj):
@@ -98,6 +104,10 @@ class RoomSerializer(serializers.ModelSerializer):
                 "message_type": msg.message_type,
                 "sender_name":  msg.sender.display_name if msg.sender else "",
                 "created_at":   msg.created_at.isoformat(),
+                # Phase 2: surface AI / system flags so the chat list can
+                # render "Dale: …" previews and skip system pills here.
+                "is_ai":        getattr(msg, "is_ai", False),
+                "is_system":    msg.is_system,
             }
         return None
 
@@ -170,6 +180,31 @@ class StickerPackSerializer(serializers.ModelSerializer):
         return None
 
 
+# ── Chat-list channel layer broadcaster (Phase 3A) ───────────
+#
+# Used by REST endpoints (upload_chat_media etc.) to push events to
+# ChatListConsumer subscribers without going through the WebSocket
+# consumer. Lives here so any sync view can call it; safe to no-op
+# when channels isn't configured.
+
+def _broadcast_to_list_group(room_id, event_type, payload):
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+    except Exception:
+        return
+    layer = get_channel_layer()
+    if not layer:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            f"chatlist_{room_id}",
+            {"type": event_type, **payload},
+        )
+    except Exception:
+        # Channel layer may be unavailable in tests / dev — non-fatal.
+        pass
+
 
 # ── Room views ────────────────────────────────────────────────
 
@@ -197,6 +232,7 @@ def recent_chats(request):
     return Response(
         RoomSerializer(rooms, many=True, context={"request": request}).data
     )
+
 
 class RoomListCreateView(generics.GenericAPIView):
     serializer_class = RoomSerializer
@@ -329,6 +365,10 @@ def message_history(request, room_id):
             "file_name":    m.file_name or None,
             "file_size":    m.file_size,
             "is_deleted":   m.is_deleted,
+            # Phase 2: surface AI / system flags so the chat room can render
+            # Dale messages and system pills correctly on history load.
+            "is_ai":        getattr(m, "is_ai", False),
+            "is_system":    m.is_system,
             "created_at":   m.created_at.isoformat(),
         }
         for m in msgs
@@ -626,9 +666,34 @@ def upload_chat_media(request):
         last_message_at=timezone.now(),
         last_message_sender=request.user,
     )
+
+    media_url = request.build_absolute_uri(msg.media.url)
+
+    # Phase 3A: push the new message into the chat list group so the chat
+    # list bumps this room to the top and increments the unread badge live.
+    _broadcast_to_list_group(room_id, "list.new_message", {
+        "room_id": str(room_id),
+        "message": {
+            "id":           str(msg.id),
+            "room_id":      str(msg.room_id),
+            "sender_id":    request.user.user_id,
+            "sender_name":  request.user.display_name,
+            "message_type": msg.message_type,
+            "text":         msg.text or "",
+            "media_url":    media_url,
+            "file_name":    msg.file_name or None,
+            "file_size":    msg.file_size,
+            "duration":     msg.duration,
+            "is_ai":        getattr(msg, "is_ai", False),
+            "is_system":    msg.is_system,
+            "is_deleted":   msg.is_deleted,
+            "created_at":   msg.created_at.isoformat(),
+        },
+    })
+
     return Response({
         "message_id":   str(msg.id),
-        "media_url":    request.build_absolute_uri(msg.media.url),
+        "media_url":    media_url,
         "message_type": msg.message_type,
         "file_name":    msg.file_name,
         "file_size":    msg.file_size,

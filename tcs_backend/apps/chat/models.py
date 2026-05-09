@@ -25,6 +25,12 @@ class Room(models.Model):
     direct_key  = models.CharField(max_length=200, unique=True, null=True, blank=True,
                                    db_index=True)
     is_active   = models.BooleanField(default=True)
+
+    # ── Chat Bubble + AI fields (Phase 1) ────────────────────
+    is_public   = models.BooleanField(default=False, db_index=True)
+    about       = models.TextField(blank=True)
+    ai_enabled  = models.BooleanField(default=False)
+
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
 
@@ -102,7 +108,13 @@ class Message(models.Model):
 
     id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     room         = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="messages")
-    sender       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    # Phase 1: sender is now nullable + SET_NULL.
+    #   • Lets AI-authored messages have null sender (Dale uses a system user
+    #     so this isn't strictly required, but it's defensive)
+    #   • Keeps message history intact when a user account is deleted
+    sender       = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                     on_delete=models.SET_NULL,
+                                     null=True, blank=True,
                                      related_name="sent_messages")
     message_type = models.CharField(max_length=10, choices=MsgType.choices, default=MsgType.TEXT)
     text         = models.TextField(blank=True)
@@ -117,6 +129,7 @@ class Message(models.Model):
                                      related_name="replies")
     is_deleted   = models.BooleanField(default=False)
     is_system    = models.BooleanField(default=False)
+    is_ai        = models.BooleanField(default=False, db_index=True)   # Phase 1: marks Dale messages
     created_at   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -181,7 +194,7 @@ class Sticker(models.Model):
         ordering = ["sort_order"]
 
 
-# ── NEW: Chat Request (for non-followers) ─────────────────────
+# ── Chat Request (for non-followers) ──────────────────────────
 
 class ChatRequest(models.Model):
     class Status(models.TextChoices):
@@ -208,7 +221,8 @@ class ChatRequest(models.Model):
         return f"{self.sender} → {self.receiver} [{self.status}]"
 
 
-# ── NEW: Saved Material ───────────────────────────────────────
+# ── Saved Material ───────────────────────────────────────────
+
 class SavedMaterial(models.Model):
     SOURCE_CHOICES = [
         ("chat",   "Chat"),
@@ -229,7 +243,7 @@ class SavedMaterial(models.Model):
     file_name   = models.CharField(max_length=200, blank=True)
     file_type   = models.CharField(max_length=50, blank=True)
 
-    # ── NEW: library organisation + quiz seeding ─────────────
+    # Library organisation + quiz seeding
     subject       = models.CharField(max_length=100, blank=True)
     source_type   = models.CharField(max_length=20, choices=SOURCE_CHOICES,
                                      default="chat", blank=True)
@@ -250,3 +264,53 @@ class SavedMaterial(models.Model):
             models.Index(fields=["user", "source_group"],
                          name="savedmat_user_src_idx"),
         ]
+
+
+# ── Chat Bubble Invitations (Phase 1) ────────────────────────
+
+class RoomInvite(models.Model):
+    """
+    Pending / accepted / declined invitation to join a chat bubble (a Room
+    with room_type=GROUP). Created by bubble_views.create_bubble (initial
+    member_ids) and bubble_views.invite_to_bubble. Resolved by accept_invite
+    and decline_invite.
+    """
+    class Status(models.TextChoices):
+        PENDING  = "pending",  "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room         = models.ForeignKey(Room, on_delete=models.CASCADE,
+                                     related_name="invites")
+    invitee      = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                     on_delete=models.CASCADE,
+                                     related_name="received_room_invites")
+    inviter      = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                     on_delete=models.SET_NULL,
+                                     null=True, blank=True,
+                                     related_name="sent_room_invites")
+    status       = models.CharField(max_length=10, choices=Status.choices,
+                                    default=Status.PENDING, db_index=True)
+    message      = models.CharField(max_length=200, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "chat_room_invites"
+        ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["invitee", "status"], name="invite_user_status_idx"),
+        ]
+        constraints = [
+            # Only one pending invite per (room, invitee). Re-inviting after a
+            # decline requires the previous invite's status to flip first.
+            models.UniqueConstraint(
+                fields=["room", "invitee"],
+                condition=models.Q(status="pending"),
+                name="unique_pending_invite_per_room_user",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.inviter} → {self.invitee} [{self.room.name}] ({self.status})"

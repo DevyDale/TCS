@@ -8,6 +8,19 @@ logger = logging.getLogger("apps.chat")
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    """
+    Per-room WebSocket consumer.
+
+    Each connected client joins one room group: `chat_<room_id>`. That
+    group drives the in-room UI (chat_room_screen.dart) — incoming
+    messages, typing, presence, reactions, edits, deletes, read receipts.
+
+    For chat-list realtime updates, this consumer ALSO fans the relevant
+    events (new_message, typing, recording) into a SEPARATE group named
+    `chatlist_<room_id>` that ChatListConsumer subscribes to. Keeping
+    the two group families distinct avoids "no handler" errors when an
+    event type isn't relevant to a given consumer.
+    """
 
     # ── Connect / Disconnect ──────────────────────────────────
 
@@ -19,6 +32,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.room_id    = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group = f"chat_{self.room_id}"
+        self.list_group = f"chatlist_{self.room_id}"
 
         if not await self._is_member():
             await self.close(code=4003)
@@ -54,10 +68,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except json.JSONDecodeError:
             return await self._err("Invalid JSON")
 
-        action = data.get("action", "")
+        # Accept either {"action": "..."} or {"type": "..."} for flexibility.
+        action = data.get("action") or data.get("type") or ""
         handler = {
             "message":        self._handle_message,
             "typing":         self._handle_typing,
+            "recording":      self._handle_recording,
             "read":           self._handle_read,
             "reaction":       self._handle_reaction,
             "delete_message": self._handle_delete,
@@ -90,8 +106,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if mentions:
             await self._set_mentions(msg["id"], mentions)
 
+        # ── In-room broadcast (drives chat_room_screen) ──
         await self.channel_layer.group_send(self.room_group,
                                             {"type": "chat.message", "payload": msg})
+
+        # ── Chat-list broadcast (drives chat_list_screen) ──
+        await self.channel_layer.group_send(self.list_group, {
+            "type":    "list.new_message",
+            "room_id": str(self.room_id),
+            "message": msg,
+        })
 
         # Push notification (fire-and-forget)
         try:
@@ -101,11 +125,44 @@ class ChatConsumer(AsyncWebsocketConsumer):
             pass
 
     async def _handle_typing(self, data):
+        is_typing = bool(data.get("is_typing", False))
+
+        # In-room — existing event consumed by chat_room_screen
         await self.channel_layer.group_send(self.room_group, {
             "type":         "user.typing",
             "user_id":      str(self.user.id),
             "display_name": self.user.display_name,
-            "is_typing":    bool(data.get("is_typing", False)),
+            "is_typing":    is_typing,
+        })
+
+        # Chat-list — drives the "typing…" preview in chat_list_screen.
+        # Note: user_id here is the string user_id (TCS convention) so the
+        # frontend can compare against the /auth/me/ payload.
+        await self.channel_layer.group_send(self.list_group, {
+            "type":      "list.typing",
+            "room_id":   str(self.room_id),
+            "user_id":   self.user.user_id,
+            "user_name": self.user.display_name,
+            "is_typing": is_typing,
+        })
+
+    async def _handle_recording(self, data):
+        is_recording = bool(data.get("is_recording", False))
+
+        # In-room (so the room screen could optionally show "X is recording")
+        await self.channel_layer.group_send(self.room_group, {
+            "type":         "user.recording",
+            "user_id":      str(self.user.id),
+            "display_name": self.user.display_name,
+            "is_recording": is_recording,
+        })
+
+        # Chat-list — drives the "recording audio…" preview line
+        await self.channel_layer.group_send(self.list_group, {
+            "type":         "list.recording",
+            "room_id":      str(self.room_id),
+            "user_id":      self.user.user_id,
+            "is_recording": is_recording,
         })
 
     async def _handle_read(self, data):
@@ -184,6 +241,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "is_typing":    event["is_typing"],
         }))
 
+    async def user_recording(self, event):
+        await self.send(text_data=json.dumps({
+            "event":        "recording",
+            "user_id":      event["user_id"],
+            "display_name": event["display_name"],
+            "is_recording": event["is_recording"],
+        }))
+
     async def user_presence(self, event):
         await self.send(text_data=json.dumps({
             "event":     "presence",
@@ -236,7 +301,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _set_online(self, online):
-        self.user.mark_online() if online else self.user.mark_offline()
+        if online and hasattr(self.user, "mark_online"):
+            self.user.mark_online()
+        elif not online and hasattr(self.user, "mark_offline"):
+            self.user.mark_offline()
 
     @database_sync_to_async
     def _save_message(self, msg_type, text, media_url, reply_to_id, sticker_id):
@@ -267,6 +335,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "reactions":    [],
                 "is_edited":    False,
                 "is_deleted":   False,
+                "is_ai":        False,    # user-sent messages are never AI
+                "is_system":    False,    # nor system
                 "created_at":   msg.created_at.isoformat(),
             }
         except Exception as e:
@@ -281,7 +351,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             msg   = Message.objects.get(id=message_id)
             users = U.objects.filter(id__in=mention_ids)
-            msg.mentions.set(users)
+            # `mentions` is an optional M2M — guard so this doesn't blow up
+            # on schemas that don't have it yet.
+            if hasattr(msg, "mentions"):
+                msg.mentions.set(users)
         except Exception:
             pass
 
@@ -321,11 +394,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         from .models import Message
         try:
             msg = Message.objects.get(id=message_id, sender=self.user)
-            msg.is_deleted   = True
-            msg.deleted_at   = timezone.now()
-            msg.text         = ""
-            msg.message_type = Message.MsgType.DELETED
-            msg.save(update_fields=["is_deleted", "deleted_at", "text", "message_type"])
+            msg.is_deleted = True
+            msg.text       = ""
+            msg.save(update_fields=["is_deleted", "text"])
             return True
         except Message.DoesNotExist:
             return False
@@ -338,10 +409,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 id=message_id, sender=self.user,
                 message_type=Message.MsgType.TEXT, is_deleted=False
             )
-            msg.text      = new_text
-            msg.is_edited = True
-            msg.edited_at = timezone.now()
-            msg.save(update_fields=["text", "is_edited", "edited_at"])
+            msg.text = new_text
+            msg.save(update_fields=["text"])
             return True
         except Message.DoesNotExist:
             return False
@@ -349,7 +418,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _get_history(self, before_id, limit):
         from .models import Message
-        qs = Message.objects.filter(room_id=self.room_id).select_related("sender", "sticker")
+        qs = Message.objects.filter(room_id=self.room_id).select_related("sender")
         if before_id:
             try:
                 pivot = Message.objects.get(id=before_id)
@@ -367,12 +436,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "text":         m.text,
                 "media_url":    m.media_url or None,
                 "file_name":    m.file_name or None,
-                "is_edited":    m.is_edited,
                 "is_deleted":   m.is_deleted,
+                "is_ai":        getattr(m, "is_ai", False),
+                "is_system":    m.is_system,
                 "created_at":   m.created_at.isoformat(),
             }
             for m in msgs
         ]
+
+    # ── Error helper ─────────────────────────────────────────
 
     async def _err(self, detail):
         await self.send(text_data=json.dumps({"event": "error", "detail": detail}))
