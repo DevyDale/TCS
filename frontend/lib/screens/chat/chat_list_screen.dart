@@ -324,10 +324,23 @@ class _ChatListScreenState extends State<ChatListScreen>
         child: Column(children: [
           _buildAppBar(),
           _buildTabBar(),
-          Expanded(child: TabBarView(controller: _tabCtrl, children: [
-            _buildChatsTab(),
-            _buildRequestsTab(),
-          ])),
+          Expanded(
+  child: Container(
+    margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.white, width: 3),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: TabBarView(
+      controller: _tabCtrl,
+      children: [
+        _buildChatsTab(),
+        _buildRequestsTab(),
+      ],
+    ),
+  ),
+),
         ]),
       ),
     );

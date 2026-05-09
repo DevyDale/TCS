@@ -16,8 +16,10 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/main.dart'; // for syncFcmTopics()
 import 'package:tcs_app/screens/about_application_screen.dart';
 import 'package:tcs_app/screens/about_developer_screen.dart';
+import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 import 'package:tcs_app/screens/privacy_policy_screen.dart';
 import 'package:tcs_app/screens/terms_of_service_screen.dart';
+import 'package:tcs_app/services/auth_service.dart';
 import 'app_localisations.dart';
 import 'app_settings.dart';
 
@@ -41,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool   _pushEnabled;
   late bool   _announcements;
   late bool   _groupActivity;
+  bool _loggingOut = false;
   late bool   _showOnline;
   late bool   _discoverable;
   bool        _langExpanded = false;
@@ -87,6 +90,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
         duration: const Duration(seconds: 2),
       ));
   }
+
+  Future<void> _confirmLogout() async {
+  HapticFeedback.lightImpact();
+  final confirmed = await showModalBottomSheet<bool>(
+    context: context,
+    backgroundColor: _card,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: _divC,
+                borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 22),
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+              color: _kG4.withOpacity(0.12), shape: BoxShape.circle),
+          child: const Icon(Icons.logout_rounded, color: _kG4, size: 30),
+        ),
+        const SizedBox(height: 18),
+        Text('Log out?', style: TextStyle(fontFamily: 'Alfa',
+            fontSize: 20, color: _text)),
+        const SizedBox(height: 10),
+        Text(
+          "You'll need to sign in again to access your account, "
+          "messages and notifications.",
+          style: TextStyle(fontFamily: 'Momo',
+              fontSize: 13.5, color: _sub, height: 1.55),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        Row(children: [
+          Expanded(child: GestureDetector(
+            onTap: () => Navigator.pop(ctx, false),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _divC)),
+              child: Center(child: Text('Cancel',
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    color: _text, fontSize: 14))),
+            ),
+          )),
+          const SizedBox(width: 12),
+          Expanded(child: GestureDetector(
+            onTap: () => Navigator.pop(ctx, true),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [_kG4, Color(0xFFD63B3B)]),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(
+                    color: _kG4.withOpacity(0.35),
+                    blurRadius: 12, offset: const Offset(0, 4))]),
+              child: const Center(child: Text('Log out',
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, fontSize: 14))),
+            ),
+          )),
+        ]),
+      ]),
+    ),
+  );
+
+  if (confirmed == true) await _performLogout();
+}
+
+Future<void> _performLogout() async {
+  if (_loggingOut) return;
+  setState(() => _loggingOut = true);
+
+  // Blocking progress overlay
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black54,
+    builder: (_) => Center(
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: _card, borderRadius: BorderRadius.circular(20)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(width: 36, height: 36,
+            child: CircularProgressIndicator(color: _kG4, strokeWidth: 2.6)),
+          const SizedBox(height: 16),
+          Text('Logging out…',
+            style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 14, color: _text)),
+        ]),
+      ),
+    ),
+  );
+
+  try {
+    // Unsubscribe this device from all FCM topics first so it stops
+    // receiving pushes meant for the user we're about to sign out.
+    await _s.setPush(false);
+    try { await syncFcmTopics(); } catch (_) {}
+
+    // Hit /accounts/logout/ to blacklist the refresh token + clear
+    // SharedPreferences (access, refresh, cached user JSON).
+    await AuthService().logout();
+  } catch (_) {
+    // Even on network failure AuthService.logout() still wipes local
+    // tokens via clearTokens(), so the session is gone either way.
+  }
+
+  if (!mounted) return;
+
+  // Wipe the entire nav stack — user cannot "back" into the app.
+  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+    (route) => false,
+  );
+}
 
   void _showInfoSheet(String title, String body) {
     showModalBottomSheet(
@@ -158,6 +283,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+
+              // ── ACCOUNT ───────────────────────────────────────
+const SizedBox(height: 20),
+_section('ACCOUNT'),
+_group([
+  GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: _loggingOut ? null : _confirmLogout,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(children: [
+        _iconBox(
+          const Icon(Icons.logout_rounded, color: _kG4, size: 20),
+          _kG4.withOpacity(0.12)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Log out',
+              style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, color: _kG4)),
+          Text('Sign out of this device',
+              style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 12, color: _sub)),
+        ])),
+        Icon(Icons.chevron_right_rounded, color: _kG4, size: 20),
+      ]),
+    ),
+  ),
+]),
 
               // ── LANGUAGE ──────────────────────────────────
               _section(l.settingsLanguage),

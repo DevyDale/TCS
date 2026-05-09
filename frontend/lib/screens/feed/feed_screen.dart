@@ -5,22 +5,40 @@
 //      overlay). 2. Fweets get their colored block. 3. Instagram-style
 //      card layout. 4. New _ago format ("5m ago" / "May 7" etc.).
 //
-// §7 — UI tweak (this revision):
+// §7 — UI tweak (previous revision):
 //   • The floating "Create Post" FAB has been REMOVED.
 //   • A new circular gradient button now lives in the header row, just
 //     beside the "Suggest" button. It plays a Lottie animation
 //     (assets/lottie/robot.lottie) and serves the same function the
-//     FAB used to (currently just HapticFeedback.mediumImpact() — wire
-//     it to your create-post route when ready).
-//   • Requires the `lottie` package (v3.0+ for .lottie / dotLottie
-//     support) and the asset declared in pubspec.yaml. See bottom of
-//     this file for the exact pubspec snippet you need.
+//     FAB used to.
+//
+// §8 — Scrolling overhaul (THIS revision):
+//   • The build() method has been restructured so the header (greeting,
+//     robot button, suggest, notifications, search row) is now a STATIC
+//     element pinned at the top. Only highlights + feed tabs + posts
+//     scroll underneath it — same feel as Instagram's home feed.
+//
+//     Old structure:
+//         RefreshIndicator → CustomScrollView (header was a sliver,
+//                                              so it scrolled away)
+//
+//     New structure:
+//         Column
+//           ├── _buildHeader()                    ← STATIC, pinned
+//           └── Expanded
+//                 └── RefreshIndicator
+//                       └── CustomScrollView      ← scrolls underneath
+//
+//   • The refresh button next to the search bar (which previously had
+//     an empty `// refresh logic` placeholder) is now fully wired:
+//     it triggers _loadFeed(refresh: true) + _loadHighlights() with
+//     a haptic tap and a quick spin animation for feedback.
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart';                      // ← NEW
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/notification_Screen.dart';
 import 'package:tcs_app/services/notification_Service.dart';
@@ -54,7 +72,7 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _api        = ApiService();
   final _scrollCtrl = ScrollController();
 
@@ -70,9 +88,18 @@ class _FeedScreenState extends State<FeedScreen>
   int  _carouselPage  = 0;
   Timer? _carouselTimer;
 
+  // Spin animation for the new in-header refresh button. Mounting it on
+  // _FeedScreenState (with TickerProviderStateMixin above) keeps the
+  // controller alive across rebuilds without leaking.
+  late final AnimationController _refreshSpinCtrl;
+
   @override
   void initState() {
     super.initState();
+    _refreshSpinCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _loadFeed();
     _loadHighlights();
     _scrollCtrl.addListener(_onScroll);
@@ -85,6 +112,7 @@ class _FeedScreenState extends State<FeedScreen>
     _carouselCtrl.dispose();
     deletedPostIds.removeListener(_onPostsDeleted);
     _scrollCtrl.dispose();
+    _refreshSpinCtrl.dispose();
     super.dispose();
   }
 
@@ -157,6 +185,27 @@ class _FeedScreenState extends State<FeedScreen>
       });
       _startCarouselTimer();
     } catch (_) {/* swallow — empty state covers it */}
+  }
+
+  // Single source of truth for refresh — used by both the pull-to-refresh
+  // gesture and the new in-header refresh button. Keeping it in one place
+  // means the two refresh entry points can never drift apart.
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _loadFeed(refresh: true),
+      _loadHighlights(),
+    ]);
+  }
+
+  // Header refresh button handler. Plays a single 360° spin while the
+  // network calls run, so the user gets immediate visual feedback even
+  // before posts repaint.
+  Future<void> _onHeaderRefreshTap() async {
+    HapticFeedback.lightImpact();
+    _refreshSpinCtrl
+      ..reset()
+      ..forward();
+    await _refreshAll();
   }
 
   Future<void> _toggleLike(int i) async {
@@ -239,8 +288,12 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   // ══════════════════════════════════════════════════════════
-  // BUILD
+  // BUILD — Instagram-style pinned header + scrolling feed
   // ══════════════════════════════════════════════════════════
+  //
+  // The header is no longer a sliver. It sits above an Expanded that
+  // owns the CustomScrollView, so when the user scrolls, only posts
+  // (+ highlights + tabs) move. The header is rock-solid at the top.
 
   @override
   Widget build(BuildContext context) {
@@ -249,69 +302,77 @@ class _FeedScreenState extends State<FeedScreen>
       backgroundColor: _kBg,
       // floatingActionButton intentionally removed — the create-post
       // entry now lives in the header row beside "Suggest".
-      body: RefreshIndicator(
-        color: _kViolet,
-        displacement: 100,
-        onRefresh: () async {
-          await Future.wait([
-            _loadFeed(refresh: true),
-            _loadHighlights(),
-          ]);
-        },
-        child: CustomScrollView(
-          controller: _scrollCtrl,
-          physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics()),
-          slivers: [
+      body: Column(
+        children: [
+          // ── PINNED HEADER ─────────────────────────────────
+          // Always visible. Does not participate in the scroll.
+          _buildHeader(topPad),
 
-            SliverToBoxAdapter(child: _buildHeader(topPad)),
-            SliverToBoxAdapter(child: _buildHighlightsSection()),
-            SliverToBoxAdapter(child: _buildFeedLabel()),
+          // ── SCROLLABLE FEED AREA ──────────────────────────
+          // Everything below the header (highlights, tabs, posts) lives
+          // inside this Expanded. The RefreshIndicator's displacement
+          // is reduced to 40 because the indicator now appears at the
+          // very top of the scroll surface (no header above it to clear).
+          Expanded(
+            child: RefreshIndicator(
+              color: _kViolet,
+              displacement: 40,
+              onRefresh: _refreshAll,
+              child: CustomScrollView(
+                controller: _scrollCtrl,
+                physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics()),
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHighlightsSection()),
+                  SliverToBoxAdapter(child: _buildFeedLabel()),
 
-            if (_feedLoading)
-              const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator(
-                      color: _kViolet)))
-            else if (_posts.isEmpty)
-              SliverFillRemaining(child: _buildEmptyState())
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    if (i == _posts.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(32),
+                  if (_feedLoading)
+                    const SliverFillRemaining(
                         child: Center(child: CircularProgressIndicator(
-                            color: _kViolet, strokeWidth: 2)));
-                    }
-                    return _AnimatedPostEntry(
-                      index: i,
-                      child: _PostCard(
-                        post:      _posts[i],
-                        index:     i,
-                        onLike:    () => _toggleLike(i),
-                        onComment: () => _showComments(_posts[i]),
-                        onShare:   () => _showShare(_posts[i]),
+                            color: _kViolet)))
+                  else if (_posts.isEmpty)
+                    SliverFillRemaining(child: _buildEmptyState())
+                  else
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          if (i == _posts.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Center(child: CircularProgressIndicator(
+                                  color: _kViolet, strokeWidth: 2)));
+                          }
+                          return _AnimatedPostEntry(
+                            index: i,
+                            child: _PostCard(
+                              post:      _posts[i],
+                              index:     i,
+                              onLike:    () => _toggleLike(i),
+                              onComment: () => _showComments(_posts[i]),
+                              onShare:   () => _showShare(_posts[i]),
+                            ),
+                          );
+                        },
+                        childCount: _posts.length + (_feedHasMore ? 1 : 0),
                       ),
-                    );
-                  },
-                  childCount: _posts.length + (_feedHasMore ? 1 : 0),
-                ),
-              ),
+                    ),
 
-            const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
-          ],
-        ),
+                  const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Header ────────────────────────────────────────────────
   // The header now hosts TWO action buttons on the right side:
-  //   1. The new robot-Lottie button (replaces the old FAB)
+  //   1. The robot-Lottie button (replaces the old FAB)
   //   2. The existing "Suggest" pill
-  // They sit in a Row so they share vertical alignment and stay
-  // tightly grouped against the right edge.
+  // Plus the notification bell. Below them sits the search row, which
+  // includes the now-functional refresh button on the left.
 
   Widget _buildHeader(double topPad) {
     return Container(
@@ -328,7 +389,7 @@ class _FeedScreenState extends State<FeedScreen>
                 fontFamily: 'Alfa', fontSize: 28, color: _kInk, height: 1.1)),
           ])),
 
-          // ── NEW: Robot Lottie button (replaces FAB) ────────
+          // ── Robot Lottie button (replaces FAB) ────────────
           // Same gradient + shadow language as the old FAB so the
           // "create post" affordance still reads as the primary
           // action; the Lottie inside gives it a playful identity.
@@ -351,7 +412,7 @@ class _FeedScreenState extends State<FeedScreen>
               ]))),
           const SizedBox(width: 8),
           // ── Notification bell with live unread badge ──────────
-       // ── Notification bell — Lottie when unread, static icon otherwise ──
+          // Lottie when unread, static icon otherwise.
           AnimatedBuilder(
             animation: NotificationService.instance,
             builder: (_, __) {
@@ -411,97 +472,106 @@ class _FeedScreenState extends State<FeedScreen>
               );
             },
           ),
-        ]),    
+        ]),
         const SizedBox(height: 16),
- Row(
-  children: [
-    // ── Small Refresh Button ─────────────────────────
-    GestureDetector(
-      onTap: () {
-        // refresh logic
-      },
-      child: Container(
-        padding: const EdgeInsets.all(1.5),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_kViolet, _kBlue],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: _kBg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.refresh_rounded,
-            size: 20,
-            color: _kViolet,
-          ),
-        ),
-      ),
-    ),
 
-    const SizedBox(width: 10),
-
-    // ── Search Bar With Gradient Border ──────────────
-    Expanded(
-      child: GestureDetector(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const SearchScreen(),
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_kViolet, _kBlue],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 13,
-            ),
-            decoration: BoxDecoration(
-              color: _kBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search_rounded,
-                  color: _kSlate.withOpacity(0.5),
-                  size: 19,
+        // ── Refresh button + Search row ──────────────────────
+        // The refresh button (left) is now fully functional: it spins
+        // 360° while the feed + highlights reload. Single source of
+        // truth is _refreshAll(), so pull-to-refresh and this button
+        // call exactly the same code path.
+        Row(
+          children: [
+            // ── Functional refresh button ──────────────────
+            GestureDetector(
+              onTap: _onHeaderRefreshTap,
+              child: Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_kViolet, _kBlue],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-
-                const SizedBox(width: 10),
-
-                Expanded(
-                  child: Text(
-                    'Search posts, people, clubs...',
-                    style: TextStyle(
-                      fontFamily: 'Momo',
-                      color: _kSlate.withOpacity(0.5),
-                      fontSize: 13,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: RotationTransition(
+                    turns: _refreshSpinCtrl,
+                    child: const Icon(
+                      Icons.refresh_rounded,
+                      size: 20,
+                      color: _kViolet,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+
+            const SizedBox(width: 10),
+
+            // ── Search bar with gradient border ───────────
+            Expanded(
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SearchScreen(),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(1.5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kViolet, _kBlue],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 13,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kBg,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search_rounded,
+                          color: _kSlate.withOpacity(0.5),
+                          size: 19,
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: Text(
+                            'Search posts, people, clubs...',
+                            style: TextStyle(
+                              fontFamily: 'Momo',
+                              color: _kSlate.withOpacity(0.5),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    ),
-  ],
-) ])  );
+      ]),
+    );
   }
 
   // ── Highlights (events + announcements) ───────────────────
@@ -687,22 +757,6 @@ class _FeedScreenState extends State<FeedScreen>
 // ─────────────────────────────────────────────────────────────
 // ROBOT LOTTIE BUTTON
 // ─────────────────────────────────────────────────────────────
-// Compact circular gradient button matched to the suggest pill's
-// height (~40px). The Lottie animation fills the inner area; we use
-// a small inset so the artwork doesn't kiss the rounded edge.
-//
-// Extracted into its own StatefulWidget so we can:
-//   • Hold a LottieController to pause/play (e.g. play on tap),
-//     in case you want it to react to interaction later.
-//   • Keep _FeedScreenState lean — it doesn't need to manage Lottie
-//     animation state.
-//
-// NOTE: Lottie.asset(...) for a `.lottie` (dotLottie) file requires
-// the `lottie` Flutter package at version ≥ 3.0.0.
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// ROBOT LOTTIE BUTTON
-// ─────────────────────────────────────────────────────────────
 // Stateless on purpose. Lottie.asset() auto-creates its own
 // controller and loops the animation by default — we don't need
 // to manage it ourselves. Anything we add (custom controller,
@@ -741,7 +795,7 @@ class _RobotLottieButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Lottie.asset(
             'assets/images/robot.json',
-            
+
             // No controller, no onLoaded, no manual playback —
             // Lottie auto-plays and loops by default.
             errorBuilder: (context, error, stack) {
@@ -759,6 +813,7 @@ class _RobotLottieButton extends StatelessWidget {
     );
   }
 }
+
 // ─────────────────────────────────────────────────────────────
 // STAGGERED ENTRY ANIMATION
 // ─────────────────────────────────────────────────────────────

@@ -271,16 +271,24 @@ class _GroupsStudyHubScreenState
           _buildHeader(),
           _buildQuickActions(),
           _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabCtrl,
-              children: [
-                _buildGroupsView(),
-                _buildBuddiesView(),
-                _buildActivityView(),
-              ],
-            ),
-          ),
+         Expanded(
+  child: Container(
+    margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.white, width: 3),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: TabBarView(
+      controller: _tabCtrl,
+      children: [
+        _buildGroupsView(),
+        _buildBuddiesView(),
+        _buildActivityView(),
+      ],
+    ),
+  ),
+),
         ]),
       ),
     );
@@ -351,11 +359,7 @@ Widget _buildHeader() {
       const SizedBox(width: 8),
 
       // ── Settings → navigates to SettingsScreen ──────────
-      GestureDetector(
-        onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => const SettingsScreen())),
-        child: _hdrBtn(Icons.settings_rounded)),
+     
     ]),
   );
 }
