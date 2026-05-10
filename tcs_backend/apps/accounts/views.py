@@ -4,6 +4,7 @@ from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from .role_perms import is_cross_role, visible_user_qs, STUDENT_ROLES, STAFF_ROLES
 
 from .serializers import (
     IDLoginSerializer, PasswordLoginSerializer, RegisterSerializer,
@@ -142,7 +143,6 @@ class UserDetailView(generics.RetrieveAPIView):
 
 
 # ── Suggested users ───────────────────────────────────────────────
-
 class SuggestedUsersView(generics.ListAPIView):
     serializer_class = UserMiniSerializer
 
@@ -151,24 +151,14 @@ class SuggestedUsersView(generics.ListAPIView):
         following_ids = me.following.values_list("id", flat=True)
         limit         = int(self.request.query_params.get("limit", 20))
 
-        return (
+        qs = (
             User.objects
             .exclude(id=me.id)
             .exclude(id__in=following_ids)
-            .annotate(follower_count=Count("followers"))
-            .order_by("-follower_count")[:limit]
         )
-
-    def list(self, request, *args, **kwargs):
-        qs   = self.get_queryset()
-        data = self.get_serializer(qs, many=True, context={"request": request}).data
-
-        for item in data:
-            item["is_following"] = False
-
-        return Response(data)
-
-
+        qs = visible_user_qs(me, qs)  # ← NEW LINE
+        qs = qs.annotate(follower_count=Count("followers")).order_by("-follower_count")[:limit]
+        return qs
 # ── Media uploads ────────────────────────────────────────────────
 
 @api_view(["POST"])
@@ -223,7 +213,6 @@ def upload_arcade_avatar(request):
 
 
 # ── Follow ────────────────────────────────────────────────────────
-
 @api_view(["POST"])
 def follow_toggle(request, user_id):
     try:
@@ -233,6 +222,13 @@ def follow_toggle(request, user_id):
 
     if target == request.user:
         return Response({"error": "Cannot follow yourself."}, status=400)
+
+    # Cross-role block: students and staff cannot follow each other.
+    if is_cross_role(request.user, target):
+        return Response(
+            {"error": "Students and staff can't follow each other."},
+            status=403,
+        )
 
     if target.followers.filter(pk=request.user.pk).exists():
         target.followers.remove(request.user)
@@ -245,10 +241,7 @@ def follow_toggle(request, user_id):
         "action": action,
         "followers_count": target.followers.count()
     })
-
-
 # ── Search ────────────────────────────────────────────────────────
-
 @api_view(["GET"])
 def search_users(request):
     q = request.query_params.get("q", "").strip()
@@ -256,20 +249,21 @@ def search_users(request):
     if len(q) < 2:
         return Response({"results": []})
 
-    users = User.objects.filter(
+    base = User.objects.filter(
         Q(name__icontains=q) |
         Q(preferred_name__icontains=q) |
         Q(username__icontains=q) |
         Q(user_id__icontains=q)
-    ).exclude(pk=request.user.pk)[:20]
+    ).exclude(pk=request.user.pk)
+
+    # Hide the opposite role group from students/staff.
+    base = visible_user_qs(request.user, base)
 
     return Response({
         "results": UserMiniSerializer(
-            users, many=True, context={"request": request}
+            base[:20], many=True, context={"request": request}
         ).data
     })
-
-
 @api_view(["POST"])
 def update_fcm_token(request):
     token = request.data.get("fcm_token", "")

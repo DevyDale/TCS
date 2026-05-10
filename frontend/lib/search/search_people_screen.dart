@@ -8,6 +8,13 @@
 // All / Students / Staff segmentation, since the backend's search view
 // returns all roles unfiltered.
 //
+// Cross-role separation (post-staff-role-restoration):
+//   • Students cannot see staff in search results.
+//   • Staff cannot see students in search results.
+//   • The backend `search_users` view also enforces this — these
+//     client-side guards are belt-and-braces so the UI stays honest
+//     even on older app builds.
+//
 // Tapping a result opens UserProfileScreen (Phase 3).
 
 import 'dart:async';
@@ -31,6 +38,15 @@ const _kRoleAll      = 'all';
 const _kRoleStudent  = 'student';
 const _kRoleStaff    = 'staff';
 
+/// Returns 'student', 'staff', or 'other' for a role string.
+/// Used to enforce cross-role separation between students and staff.
+String _groupOf(String role) {
+  final r = role.toLowerCase();
+  if (r == 'student') return 'student';
+  if (r == 'teaching_staff' || r == 'non_teaching_staff') return 'staff';
+  return 'other';
+}
+
 class SearchPeopleScreen extends StatefulWidget {
   const SearchPeopleScreen({super.key});
 
@@ -48,11 +64,39 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
   String _lastQuery = '';
   List<Map<String, dynamic>> _all = [];
 
+  /// Current viewer's role group: 'student' | 'staff' | 'other'.
+  /// Drives which filter chips are visible and whether opposite-role
+  /// users are filtered out of results.
+  String _myGroup = 'other';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyGroup();
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMyGroup() async {
+    final me = await ApiService.instance.cachedUser;
+    if (!mounted) return;
+    final role = (me?['role'] as String?) ?? '';
+    final group = _groupOf(role);
+    setState(() {
+      _myGroup = group;
+      // If the current filter chip is one we're about to hide, reset
+      // it to "All" so the UI stays in a valid state.
+      if (group == 'student' && _roleFilter == _kRoleStaff) {
+        _roleFilter = _kRoleAll;
+      } else if (group == 'staff' && _roleFilter == _kRoleStudent) {
+        _roleFilter = _kRoleAll;
+      }
+    });
   }
 
   void _onChanged(String q) {
@@ -98,8 +142,20 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_roleFilter == _kRoleAll) return _all;
-    return _all.where((u) {
+    Iterable<Map<String, dynamic>> base = _all;
+
+    // Hard cross-role gate. Students don't see staff, staff don't see
+    // students. Parents/visitors/admins see everyone.
+    if (_myGroup == 'student') {
+      base = base.where(
+          (u) => _groupOf(u['role'] as String? ?? '') != 'staff');
+    } else if (_myGroup == 'staff') {
+      base = base.where(
+          (u) => _groupOf(u['role'] as String? ?? '') != 'student');
+    }
+
+    if (_roleFilter == _kRoleAll) return base.toList();
+    return base.where((u) {
       final r = (u['role'] as String? ?? '').toLowerCase();
       if (_roleFilter == _kRoleStudent) return r == 'student';
       // staff = teaching_staff or non_teaching_staff
@@ -232,17 +288,25 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
   }
 
   Widget _buildFilterRow() {
+    // Hide the chip the viewer isn't allowed to filter by.
+    final showStudents = _myGroup != 'staff';   // staff can't filter to "Students"
+    final showStaff    = _myGroup != 'student'; // students can't filter to "Staff"
+
     return SizedBox(
       height: 52,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
         children: [
-          _filterChip('All',      _kRoleAll,     Icons.groups_rounded,         _kG2),
-          const SizedBox(width: 8),
-          _filterChip('Students', _kRoleStudent, Icons.school_rounded,         _kG1),
-          const SizedBox(width: 8),
-          _filterChip('Staff',    _kRoleStaff,   Icons.work_outline_rounded,   _kG3),
+          _filterChip('All', _kRoleAll, Icons.groups_rounded, _kG2),
+          if (showStudents) ...[
+            const SizedBox(width: 8),
+            _filterChip('Students', _kRoleStudent, Icons.school_rounded, _kG1),
+          ],
+          if (showStaff) ...[
+            const SizedBox(width: 8),
+            _filterChip('Staff', _kRoleStaff, Icons.work_outline_rounded, _kG3),
+          ],
         ],
       ),
     );

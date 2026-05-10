@@ -14,6 +14,7 @@ from django.conf import settings as django_settings
 from .models import Room, RoomMember, Message, StickerPack, Sticker, ChatRequest, SavedMaterial
 from apps.groups.models import Group         # ← used to auto-tag saved materials
 from apps.media.validators import validate_file
+from apps.accounts.role_perms import is_cross_role, visible_user_qs
 
 User = get_user_model()
 
@@ -258,6 +259,14 @@ class RoomListCreateView(generics.GenericAPIView):
                 other = User.objects.get(user_id=member_ids[0])
             except User.DoesNotExist:
                 return Response({"error": "User not found."}, status=404)
+
+            # Cross-role block: students and staff cannot DM each other.
+            if is_cross_role(request.user, other):
+                return Response(
+                    {"error": "Students and staff can't message each other."},
+                    status=403,
+                )
+
             room, _ = Room.get_or_create_direct(request.user, other)
             return Response(RoomSerializer(room, context={"request": request}).data)
 
@@ -289,7 +298,6 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
         room.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
 @api_view(["POST"])
 def start_dm(request):
     """POST /api/chat/dm/start/ — { user_id: "..." } Opens a DM directly."""
@@ -298,10 +306,46 @@ def start_dm(request):
         other = User.objects.get(user_id=uid)
     except User.DoesNotExist:
         return Response({"error": "User not found."}, status=404)
+
+    if is_cross_role(request.user, other):
+        return Response(
+            {"error": "Students and staff can't message each other."},
+            status=403,
+        )
+
     room, _ = Room.get_or_create_direct(request.user, other)
     return Response(RoomSerializer(room, context={"request": request}).data)
 
 
+@api_view(["POST"])
+def send_chat_request(request):
+    """POST /api/chat/requests/send/ — { user_id, message? }"""
+    uid = request.data.get("user_id", "")
+    msg = request.data.get("message", "")
+    try:
+        receiver = User.objects.get(user_id=uid)
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=404)
+    if receiver == request.user:
+        return Response({"error": "Cannot send to yourself."}, status=400)
+
+    if is_cross_role(request.user, receiver):
+        return Response(
+            {"error": "Students and staff can't message each other."},
+            status=403,
+        )
+
+    req, created = ChatRequest.objects.get_or_create(
+        sender=request.user, receiver=receiver,
+        defaults={"message": msg}
+    )
+    if not created and req.status == "declined":
+        req.status  = "pending"
+        req.message = msg
+        req.save(update_fields=["status", "message"])
+
+    return Response({"success": True, "request_id": str(req.id)},
+                    status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 @api_view(["GET"])
 def search_chats(request):
     """GET /api/chat/dm/search/?q=... — search users (in rooms or globally)."""

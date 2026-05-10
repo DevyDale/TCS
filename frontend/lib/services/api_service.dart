@@ -7,6 +7,22 @@
 // (fullName, preferredName, role, userId) so the splash and dashboard
 // can read them without parsing JSON.
 //
+// STICKY-SESSION FIX
+// ──────────────────
+// _tryRefresh() and initialize() MUST NEVER call _Tokens.clear() —
+// under ANY circumstance. The session is sticky: tokens stay in
+// SharedPreferences from login until the moment the user explicitly
+// taps Logout. Whatever the backend says when we try to refresh —
+// 200, 401, 500, timeout, network blackout — the session stays put.
+//
+// Refresh succeeds → update access token, return true.
+// Refresh fails for ANY reason → return false. NOTHING ELSE.
+//
+// The ONLY function that wipes the session is logout(), which is
+// only invoked when the user explicitly taps the logout button.
+// This guarantees the splash screen always finds a valid session
+// after login and routes the user straight to the dashboard.
+//
 // Bug fixes: replaced '\$page' / '\$id' literal escapes (which sent
 // the literal text "$page" / "$id" to the server) with proper
 // interpolation in getMyPosts / getMyFweets / getFavorites / deletePost.
@@ -116,6 +132,10 @@ class _Tokens {
 
   /// Wipe every session-related key. Driven by SessionKeys.all so we
   /// can never forget to clear one when a new key is introduced.
+  ///
+  /// THIS IS THE ONLY DESTRUCTIVE CALL IN THE ENTIRE FILE.
+  /// Invoked exclusively from ApiService.logout(). DO NOT call from
+  /// _tryRefresh, initialize, or anywhere else.
   static Future<void> clear() async {
     final p = await SharedPreferences.getInstance();
     for (final k in SessionKeys.all) {
@@ -135,13 +155,22 @@ class ApiService {
 
   final _client = http.Client();
 
-  /// Call this on app launch (from the splash) BEFORE deciding whether
-  /// to route the user to the dashboard. If we have an access token,
-  /// try to refresh it proactively so the first dashboard API call
-  /// hits a fresh token instead of a stale one. If refresh fails, the
-  /// session is wiped so the splash falls through to RoleSelection.
+  /// Best-effort proactive refresh. Call this on app launch (from the
+  /// splash) so the first dashboard API call hits a fresh access
+  /// token instead of a stale one.
+  ///
+  /// STICKY-SESSION FIX: this method CANNOT wipe the session. If the
+  /// refresh fails for any reason (401, 500, timeout, network out),
+  /// the session is left untouched. The splash screen routes to the
+  /// dashboard regardless of the result of this call.
   Future<void> initialize() async {
-    if (await _Tokens.has()) await _tryRefresh();
+    if (!await _Tokens.has()) return;
+    try {
+      await _tryRefresh().timeout(const Duration(seconds: 8));
+    } catch (_) {
+      // Refresh attempt timed out or threw — that's fine. Session
+      // stays put; individual API calls handle their own auth.
+    }
   }
 
   Future<bool> get isLoggedIn              => _Tokens.has();
@@ -193,37 +222,41 @@ class ApiService {
 
   // ── Token refresh ─────────────────────────────────────────
   // URL: /api/accounts/token/refresh/
-Future<bool> _tryRefresh() async {
-  final r = await _Tokens.refresh();
-  if (r == null) return false;
+  //
+  // STICKY-SESSION FIX: this method NEVER wipes the session. Period.
+  //
+  //   200 → update the access token + return true
+  //   any non-200 → return false (session preserved)
+  //   exception (network/timeout) → return false (session preserved)
+  //
+  // The session can ONLY be wiped via explicit logout(). If the
+  // refresh token is genuinely dead, individual API calls will start
+  // returning 401 and bubble up as ApiException to the calling screen
+  // — but the user remains "logged in" from the splash's perspective
+  // and won't be force-routed back to RoleSelection on cold start.
+  Future<bool> _tryRefresh() async {
+    final r = await _Tokens.refresh();
+    if (r == null || r.isEmpty) return false;
+    try {
+      final res = await _client.post(
+        Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': r}),
+      ).timeout(const Duration(seconds: 8));
 
-  try {
-    final res = await _client.post(
-      Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'refresh': r}),
-    ).timeout(const Duration(seconds: 8));
-
-    if (res.statusCode == 200) {
-      final d = jsonDecode(res.body) as Map<String, dynamic>;
-      await _Tokens.save(d['access'] as String, r);
-      return true;
+      if (res.statusCode == 200) {
+        final d = jsonDecode(res.body) as Map<String, dynamic>;
+        await _Tokens.save(d['access'] as String, r);
+        return true;
+      }
+      // Any non-200 response — including 401 — does NOT wipe the
+      // session. We just return false and let the caller decide.
+    } catch (_) {
+      // Network error / timeout / DNS — session stays put.
     }
-
-    // Server is reachable AND tells us the refresh token is dead —
-    // only THEN wipe the session and force a real re-login.
-    if (res.statusCode == 401 || res.statusCode == 400) {
-      await _Tokens.clear();
-    }
-    // Any other status (500, 502, 503, etc.): server hiccup, keep session.
-    return false;
-  } catch (_) {
-    // Network error / timeout / DNS failure / backend not running.
-    // DO NOT wipe the session — user is just offline or backend is
-    // booting. The next API call will retry the refresh anyway.
     return false;
   }
-}
+
   Future<dynamic> _req(String method, String path,
       {Map<String, dynamic>? body,
        Map<String, String>?  query,
@@ -232,6 +265,9 @@ Future<bool> _tryRefresh() async {
         .replace(queryParameters: query);
     var res = await _raw(method, uri, body: body, auth: auth);
     if (res.statusCode == 401 && auth) {
+      // Try a single refresh + retry. If refresh fails, the original
+      // 401 surfaces as an ApiException; the calling screen handles
+      // it. Session is NOT wiped.
       if (await _tryRefresh()) {
         res = await _raw(method, uri, body: body, auth: auth);
       }
@@ -346,6 +382,8 @@ Future<bool> _tryRefresh() async {
   }
 
   /// POST /api/accounts/logout/
+  /// THE ONLY PLACE _Tokens.clear() IS CALLED. Invoked when the user
+  /// explicitly taps the logout button.
   Future<void> logout() async {
     final refresh = await _Tokens.refresh();
     if (refresh != null) {

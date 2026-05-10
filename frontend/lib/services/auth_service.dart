@@ -2,6 +2,26 @@
 // KEY FIX: verify URLs changed from /api/auth/ to /api/accounts/
 // because TCS/urls.py maps: path("accounts/", include("apps.accounts.urls"))
 // so verify_student and verify_staff live at /api/accounts/student/verify/
+//
+// STICKY-SESSION FIX
+// ──────────────────
+// refreshAccessToken() and initialize() MUST NEVER clear the user's
+// session — under ANY circumstances. The session is sticky: tokens
+// stay in SharedPreferences from the moment the user logs in until
+// the moment they explicitly tap Logout. Whatever the backend says
+// when we try to refresh — 200, 401, 500, timeout, network blackout
+// — the session stays put.
+//
+// If the refresh succeeds: we update the access token and move on.
+// If the refresh fails for ANY reason: the access token stays as it
+// was; individual API calls will get a 401 and bubble it up to the
+// calling screen as an error. The user is still "logged in" from
+// the app's perspective and the splash will route them to the
+// dashboard on every cold start.
+//
+// The ONLY function in this entire file that wipes the session is
+// logout(), which is only called when the user explicitly taps the
+// logout button.
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -114,11 +134,17 @@ class AuthService {
   }
 
   // ── Initialize (call in main before runApp) ─────────────────
+  // STICKY-SESSION FIX: best-effort only. Wraps in timeout +
+  // try/catch so a hung backend never stalls startup, AND so a
+  // failed refresh can never escape and disturb the session.
   Future<void> initialize() async {
     final p     = await SharedPreferences.getInstance();
     final token = p.getString(_Keys.access_token);
-    if (token != null && token.isNotEmpty) {
-      await refreshAccessToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await refreshAccessToken().timeout(const Duration(seconds: 8));
+    } catch (_) {
+      // Refresh failed — that's fine. Session stays put.
     }
   }
 
@@ -191,27 +217,41 @@ class AuthService {
   }
 
   // ── Refresh token ───────────────────────────────────────────
+  // STICKY-SESSION FIX:
+  //  • If refresh succeeds (200) → update the access token, return true.
+  //  • If refresh fails for ANY reason (401, 500, timeout, network
+  //    blackout, anything) → DO NOTHING DESTRUCTIVE. Return false.
+  //
+  // We do NOT clear tokens here under any circumstance. The user
+  // remains logged in. Individual API calls will fail with 401 and
+  // each calling screen can handle that error in its own way (show
+  // a snackbar, retry, etc.) without booting the user out.
+  //
+  // The ONLY way the session is cleared is via explicit logout().
   Future<bool> refreshAccessToken() async {
     final p       = await SharedPreferences.getInstance();
     final refresh = p.getString(_Keys.refresh_token);
-    if (refresh == null) return false;
+    if (refresh == null || refresh.isEmpty) return false;
     try {
       final res = await _client.post(
         Uri.parse('${ApiConfig.api}/accounts/token/refresh/'),
         headers: _json,
         body: jsonEncode({'refresh': refresh}),
-      );
+      ).timeout(const Duration(seconds: 8));
+
       if (res.statusCode == 200) {
         final d = jsonDecode(res.body) as Map<String, dynamic>;
         await p.setString(_Keys.access_token, d['access'] as String);
         return true;
       }
-    } catch (_) {}
-    await clearTokens();
+      // Any non-200 response (including 401) → keep the session as-is.
+    } catch (_) {
+      // Network error / timeout / DNS — keep the session as-is.
+    }
     return false;
   }
 
- Future<void> logout() async {
+  Future<void> logout() async {
     final p       = await SharedPreferences.getInstance();
     final refresh = p.getString(_Keys.refresh_token);
     final access  = p.getString(_Keys.access_token);
@@ -231,7 +271,9 @@ class AuthService {
     // so the service stops cleanly without trying to reconnect with stale auth.
     await NotificationService.instance.disposeAll();
     await clearTokens();
-  }  // ── Helpers ─────────────────────────────────────────────────
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────
   Future<bool> get isLoggedIn async {
     final p = await SharedPreferences.getInstance();
     final t = p.getString(_Keys.access_token);
@@ -246,6 +288,8 @@ class AuthService {
     return raw != null ? jsonDecode(raw) as Map<String, dynamic> : null;
   }
 
+  // The ONLY destructive call in this file. Called by logout() above.
+  // Do NOT call from anywhere else.
   Future<void> clearTokens() async {
     final p = await SharedPreferences.getInstance();
     await p.remove(_Keys.access_token);

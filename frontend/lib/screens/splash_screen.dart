@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
 import '../utils/responsive_helper.dart';
@@ -79,31 +80,68 @@ class _SplashScreenState extends State<SplashScreen>
     _checkAuthAndNavigate();
   }
 
-  // ── SECTION 1 FIX ────────────────────────────────────────
-  // Refresh the token BEFORE deciding where to route. Access tokens
-  // expire after 60 minutes; if the user comes back the next day the
-  // old token is dead and the dashboard would render with broken
-  // API calls. ApiService.initialize() refreshes it (or wipes the
-  // session if the refresh token is also dead). Then we just check
-  // whether we still have a valid token and navigate accordingly.
+  // ────────────────────────────────────────────────────────────
+  //  STICKY SESSION RULE
+  // ────────────────────────────────────────────────────────────
+  // The user STAYS logged in until they explicitly tap Logout.
+  // No network call, no refresh check, no backend response —
+  // NOTHING — can send the user back to RoleSelection from this
+  // splash. The ONLY thing that matters is whether session data
+  // exists in SharedPreferences.
+  //
+  // If a refresh token is present locally → DASHBOARD.
+  // If not                                → RoleSelection.
+  //
+  // The token-refresh attempt happens AFTER the navigation
+  // decision is locked in, fire-and-forget, in the background.
+  // Whatever the backend returns (200, 401, 500, timeout, blocked
+  // network, the apocalypse) cannot affect this navigation.
+  // ────────────────────────────────────────────────────────────
   Future<void> _checkAuthAndNavigate() async {
-    await ApiService.instance.initialize();
+    final prefs = await SharedPreferences.getInstance();
 
-    final prefs       = await SharedPreferences.getInstance();
-    final token       = prefs.getString(SessionKeys.accessToken);
-    final fullName    = prefs.getString(SessionKeys.fullName)      ?? '';
-    final preferredName = prefs.getString(SessionKeys.preferredName) ?? '';
-    final role        = prefs.getString(SessionKeys.role)          ?? '';
+    // Either token's presence is enough — they're saved together
+    // at login. We accept either to be maximally lenient.
+    final refreshToken = prefs.getString(SessionKeys.refreshToken) ?? '';
+    final accessToken  = prefs.getString(SessionKeys.accessToken)  ?? '';
+    final hasSession   = refreshToken.isNotEmpty || accessToken.isNotEmpty;
 
     if (!mounted) return;
 
-    final dest = (token != null && token.isNotEmpty && fullName.isNotEmpty)
-        ? DashboardScreen(
-            fullName:      fullName,
-            preferredName: preferredName,
-            role:          role,
-          )
-        : const RoleSelectionScreen();
+    Widget dest;
+    if (!hasSession) {
+      dest = const RoleSelectionScreen();
+    } else {
+      // Pull cached identity. If the direct keys are blank for any
+      // reason, recover from the full user JSON.
+      var fullName      = prefs.getString(SessionKeys.fullName)      ?? '';
+      var preferredName = prefs.getString(SessionKeys.preferredName) ?? '';
+      var role          = prefs.getString(SessionKeys.role)          ?? '';
+
+      if (fullName.isEmpty) {
+        final raw = prefs.getString(SessionKeys.userJson);
+        if (raw != null && raw.isNotEmpty) {
+          try {
+            final u = jsonDecode(raw) as Map<String, dynamic>;
+            fullName      = (u['name']           ?? '').toString();
+            preferredName = (u['preferred_name'] ?? '').toString();
+            role          = (u['role']           ?? '').toString();
+          } catch (_) {/* corrupt JSON — ignore */}
+        }
+      }
+
+      dest = DashboardScreen(
+        fullName:      fullName,
+        preferredName: preferredName,
+        role:          role,
+      );
+
+      // Fire-and-forget background refresh. Result is discarded —
+      // it can only succeed (updating the access_token) or fail
+      // silently. It CANNOT wipe the session, and it CANNOT change
+      // where this navigation goes.
+      ApiService.instance.initialize().catchError((_) {});
+    }
 
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       pageBuilder:        (_, anim, __) => dest,

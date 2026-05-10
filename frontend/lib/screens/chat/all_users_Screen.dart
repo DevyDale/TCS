@@ -1,4 +1,15 @@
 // lib/screens/feed/all_users_screen.dart
+//
+// "All Members" directory screen.
+//
+// Cross-role separation (post-staff-role-restoration):
+//   • Students see only Students (and parents/visitors/admins).
+//   • Staff see only Staff (and parents/visitors/admins).
+//   • Tabs are dynamically reduced to the ones the viewer is allowed
+//     to use, so a student never sees a "Staff" tab and vice versa.
+//   • Belt-and-braces: even if the API returns the wrong group, the
+//     viewer-side filter still drops them.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +24,14 @@ const _kBg     = Color(0xFFF4F5F9);
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
 
+/// Returns 'student', 'staff', or 'other' for a role string.
+String _groupOf(String role) {
+  final r = role.toLowerCase();
+  if (r == 'student') return 'student';
+  if (r == 'teaching_staff' || r == 'non_teaching_staff') return 'staff';
+  return 'other';
+}
+
 class AllUsersScreen extends StatefulWidget {
   const AllUsersScreen({super.key});
   @override State<AllUsersScreen> createState() => _AllUsersScreenState();
@@ -22,33 +41,93 @@ class _AllUsersScreenState extends State<AllUsersScreen>
     with SingleTickerProviderStateMixin {
   final _api        = ApiService();
   final _searchCtrl = TextEditingController();
-  late final TabController _tabCtrl;
+
+  // NOTE: not `final` — we may need to recreate this once we know
+  // the viewer's role group (a student sees 2 tabs, not 3).
+  late TabController _tabCtrl;
 
   List<Map<String, dynamic>> _all      = [];
   List<Map<String, dynamic>> _filtered = [];
   bool _loading  = true;
   String _filter = 'all'; // 'all' | 'student' | 'staff'
 
+  /// Current viewer's role group — drives which tabs render.
+  String _myGroup = 'other';
+
+  /// Tab keys + labels the viewer is allowed to use. Default to the
+  /// full set; trimmed once `_loadMyGroup()` resolves.
+  List<String> _tabKeys   = const ['all', 'student', 'staff'];
+  List<String> _tabLabels = const ['All', 'Students', 'Staff'];
+
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
-    _tabCtrl.addListener(() {
-      if (!_tabCtrl.indexIsChanging) {
-        setState(() {
-          _filter = ['all', 'student', 'staff'][_tabCtrl.index];
-          _applyFilter();
-        });
-      }
+    _tabCtrl = TabController(length: _tabKeys.length, vsync: this);
+    _tabCtrl.addListener(_onTabChange);
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadMyGroup();
+    await _loadUsers();
+  }
+
+  void _onTabChange() {
+    if (_tabCtrl.indexIsChanging) return;
+    final idx = _tabCtrl.index;
+    if (idx < 0 || idx >= _tabKeys.length) return;
+    setState(() {
+      _filter = _tabKeys[idx];
+      _applyFilter();
     });
-    _loadUsers();
   }
 
   @override
   void dispose() {
+    _tabCtrl.removeListener(_onTabChange);
     _tabCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMyGroup() async {
+    final me = await ApiService.instance.cachedUser;
+    if (!mounted) return;
+    final role  = (me?['role'] as String?) ?? '';
+    final group = _groupOf(role);
+
+    // Restrict tabs based on group:
+    //   student → All + Students only
+    //   staff   → All + Staff only
+    //   other   → All + Students + Staff
+    List<String> newKeys;
+    List<String> newLabels;
+    if (group == 'student') {
+      newKeys   = const ['all', 'student'];
+      newLabels = const ['All', 'Students'];
+    } else if (group == 'staff') {
+      newKeys   = const ['all', 'staff'];
+      newLabels = const ['All', 'Staff'];
+    } else {
+      newKeys   = const ['all', 'student', 'staff'];
+      newLabels = const ['All', 'Students', 'Staff'];
+    }
+
+    // Only swap controllers if the length changed — avoids needlessly
+    // disposing the existing one.
+    if (newKeys.length != _tabKeys.length) {
+      _tabCtrl.removeListener(_onTabChange);
+      _tabCtrl.dispose();
+      _tabCtrl = TabController(length: newKeys.length, vsync: this);
+      _tabCtrl.addListener(_onTabChange);
+    }
+
+    setState(() {
+      _myGroup   = group;
+      _tabKeys   = newKeys;
+      _tabLabels = newLabels;
+      _filter    = 'all';
+    });
   }
 
   Future<void> _loadUsers() async {
@@ -78,9 +157,18 @@ class _AllUsersScreenState extends State<AllUsersScreen>
         }
       }
 
+      // Apply cross-role filter at the source so all counts (header,
+      // tab labels, "shown" pill) stay consistent.
+      final visible = all.where((u) {
+        final theirGroup = _groupOf(u['role'] as String? ?? '');
+        if (_myGroup == 'student' && theirGroup == 'staff')   return false;
+        if (_myGroup == 'staff'   && theirGroup == 'student') return false;
+        return true;
+      }).toList();
+
       setState(() {
-        _all      = all;
-        _filtered = all;
+        _all      = visible;
+        _filtered = visible;
         _loading  = false;
       });
     } catch (_) {
@@ -92,12 +180,22 @@ class _AllUsersScreenState extends State<AllUsersScreen>
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _filtered = _all.where((u) {
-        final name = (u['name'] ?? u['display_name'] ?? '').toString().toLowerCase();
+        final name = (u['name'] ?? u['display_name'] ?? '')
+            .toString().toLowerCase();
         final role = (u['role'] ?? '').toString().toLowerCase();
+        final theirGroup = _groupOf(role);
+
+        // Defensive cross-role guard (in case _all wasn't pre-filtered
+        // for some reason — e.g. someone added a path that bypasses
+        // _loadUsers).
+        if (_myGroup == 'student' && theirGroup == 'staff')   return false;
+        if (_myGroup == 'staff'   && theirGroup == 'student') return false;
+
         final matchesSearch = q.isEmpty || name.contains(q);
         final matchesTab = _filter == 'all' ||
             (_filter == 'student' && role == 'student') ||
-            (_filter == 'staff' && (role.contains('staff') || role.contains('teaching')));
+            (_filter == 'staff' &&
+                (role.contains('staff') || role.contains('teaching')));
         return matchesSearch && matchesTab;
       }).toList();
     });
@@ -231,7 +329,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
 
                 const SizedBox(height: 12),
 
-                // Tab bar
+                // Tab bar — dynamic based on viewer's role group
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.12),
@@ -254,9 +352,10 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                     unselectedLabelStyle: const TextStyle(
                         fontFamily: 'Arch', fontSize: 12),
                     tabs: [
-                      Tab(text: 'All  (${_all.length})'),
-                      Tab(text: 'Students'),
-                      Tab(text: 'Staff'),
+                      for (int i = 0; i < _tabLabels.length; i++)
+                        Tab(text: i == 0
+                            ? '${_tabLabels[i]}  (${_all.length})'
+                            : _tabLabels[i]),
                     ],
                   ),
                 ),

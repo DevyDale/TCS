@@ -16,6 +16,16 @@
 // filters the search response client-side to only show those rows in
 // the Clubs mode. Other study groups are searched via the dedicated
 // Study Hub search screen, not here.
+//
+// Cross-role separation (post-staff-role-restoration):
+//   • In PEOPLE mode, students can't see staff and vice versa.
+//     The "Students" filter chip is hidden from staff users; the
+//     "Staff" chip is hidden from students.
+//   • Posts, Clubs, and Events stay open across roles — clubs are
+//     an explicit exception, and filtering posts/events by role
+//     would hide legitimate cross-role content (announcements,
+//     campus-wide events, club posts, etc.).
+//   • The backend `search_users` view also enforces this for People.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -27,6 +37,14 @@ const _kG2 = Color(0xFF8E54E9);  // purple
 const _kG3 = Color(0xFFF7971E);  // amber
 const _kG4 = Color(0xFFFF5858);  // coral
 const _kInk = Color(0xFF1A1A2E);
+
+/// Returns 'student', 'staff', or 'other' for a role string.
+String _groupOf(String role) {
+  final r = role.toLowerCase();
+  if (r == 'student') return 'student';
+  if (r == 'teaching_staff' || r == 'non_teaching_staff') return 'staff';
+  return 'other';
+}
 
 
 // ─── Mode definitions ───────────────────────────────────────
@@ -75,11 +93,16 @@ class _SearchScreenState extends State<SearchScreen> {
   bool   _loading   = false;
   String _lastQuery = '';
 
+  /// Current viewer's role group: 'student' | 'staff' | 'other'.
+  /// Drives cross-role filtering in People mode.
+  String _myGroup = 'other';
+
   // ─── Lifecycle ─────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
+    _loadMyGroup();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusScope.of(context).requestFocus(FocusNode());
     });
@@ -90,6 +113,23 @@ class _SearchScreenState extends State<SearchScreen> {
     _debounce?.cancel();
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMyGroup() async {
+    final me = await ApiService.instance.cachedUser;
+    if (!mounted) return;
+    final role  = (me?['role'] as String?) ?? '';
+    final group = _groupOf(role);
+    setState(() {
+      _myGroup = group;
+      // If the People filter is currently set to a value the viewer
+      // isn't allowed to use, reset it.
+      if (group == 'student' && _peopleRole == 'staff') {
+        _peopleRole = 'all';
+      } else if (group == 'staff' && _peopleRole == 'student') {
+        _peopleRole = 'all';
+      }
+    });
   }
 
   // ─── Search ────────────────────────────────────────────
@@ -189,8 +229,18 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   List<Map<String, dynamic>> _filterPeople(List<Map<String, dynamic>> src) {
-    if (_peopleRole == 'all') return src;
-    return src.where((u) {
+    // Cross-role gate first: students never see staff and vice versa.
+    Iterable<Map<String, dynamic>> base = src;
+    if (_myGroup == 'student') {
+      base = base.where(
+          (u) => _groupOf(u['role']?.toString() ?? '') != 'staff');
+    } else if (_myGroup == 'staff') {
+      base = base.where(
+          (u) => _groupOf(u['role']?.toString() ?? '') != 'student');
+    }
+
+    if (_peopleRole == 'all') return base.toList();
+    return base.where((u) {
       final r = (u['role']?.toString() ?? '').toLowerCase();
       if (_peopleRole == 'student') return r.contains('student');
       if (_peopleRole == 'staff')   return r.contains('staff') || r.contains('teach');
@@ -406,8 +456,17 @@ class _SearchScreenState extends State<SearchScreen> {
         onSet    = (v) => setState(() => _postsDate = v);
         break;
       case 'people':
-        chips    = const [('all','Everyone'), ('student','Students'),
-                          ('staff','Staff')];
+        // Cross-role gate: hide the chip the viewer isn't allowed
+        // to filter to. Students don't see "Staff", staff don't see
+        // "Students".
+        if (_myGroup == 'student') {
+          chips = const [('all','Everyone'), ('student','Students')];
+        } else if (_myGroup == 'staff') {
+          chips = const [('all','Everyone'), ('staff','Staff')];
+        } else {
+          chips = const [('all','Everyone'), ('student','Students'),
+                         ('staff','Staff')];
+        }
         selected = _peopleRole;
         onSet    = (v) => setState(() => _peopleRole = v);
         break;

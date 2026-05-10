@@ -1,23 +1,24 @@
 // lib/screens/dashboard/dashboard_screen.dart
 //
-// Nav bar redesign — floating pill matching the supplied reference.
-//
-// Visual structure:
-//   • Pill-shaped bar (22px radius), white surface, _kBorder outline,
-//     soft drop shadow. Floats with 16px horizontal margin and 10px
-//     bottom margin so the device edge shows through.
-//   • 5 slots: Home · Groups · [Arcade centre] · Chat · Profile.
-//     Icons only (per the reference image) — l10n strings still flow
-//     through as Tooltip semantic labels for accessibility.
-//   • Active slot: soft _kCardLo pill behind the icon + ink colour.
-//   • Centre Arcade button: 56x56 rounded square (16px radius),
-//     rotating SweepGradient through the arcade palette, white 3px
-//     ring so it pops on the pale bar, dual shadow underneath. Raised
-//     ~14px above the bar surface; tapping launches the Arcade modal
-//     (existing behaviour preserved).
-//
-// Welcome banner — kept as-is. Same SECTION 2 controllers, animation
-// curves, and gradient. Only swap is the colour aliases below.
+// CHANGE LOG (this revision):
+//   • Nav-bar dimensions are no longer hardcoded. Every value (height,
+//     slot row height, arcade button size, arcade bottom offset, top
+//     radius, slot icon size, active-slot pill size, pill radius) now
+//     reads from the existing R helpers in responsive_helper.dart, so
+//     the bar adapts as the screen-class changes (phone → tablet →
+//     desktop). Phones vary 320–430px wide and tablets/laptops are
+//     even bigger; this stops the bar from looking cramped on small
+//     phones and tiny on iPad.
+//   • The geometric invariant for the raised arcade button is
+//     preserved at every tier:
+//         barH − arcadeBottom − arcadeSize == 0
+//     …so the button's top edge always sits flush with the bar top.
+//   • _NavSlot now takes iconSize / pillSize / pillRadius so it scales
+//     in lockstep with the rest of the bar.
+//   • responsive_helper.dart was NOT modified — this file pulls from
+//     existing R getters only (btnH, sm, radiusLg, iconMd, radiusSm,
+//     radiusMd).
+//   • Welcome banner, animations, and routing logic are untouched.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,7 @@ import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/ai_assistant_fab.dart';
+import '../../utils/responsive_helper.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
 const _kBlue   = Color(0xFF6DD5FA);
@@ -211,9 +213,10 @@ class _DashboardScreenState extends State<DashboardScreen>
           if (_welcomeVisible) _buildWelcomeBanner(context),
         ],
       ),
+      // Body still draws behind the bar so transparent scrims and gradients
+      // can show through near the bar's rounded top edge.
       extendBody: true,
       backgroundColor: Colors.transparent,
-      
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
@@ -326,72 +329,121 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ── Floating pill nav bar ─────────────────────────────────
+  // ── Flush-bottom nav bar (responsive via R helpers) ───────
+  //
+  // Every dimension below derives from R(context) so the bar scales
+  // automatically when the device class changes. Phone values are the
+  // smallest; tablet and desktop tiers grow proportionally.
+  //
+  //   barH         = r.btnH + r.sm   →  64 / 72 / 80   (phone/tablet/desktop)
+  //   slotsH       = r.btnH          →  52 / 56 / 60
+  //   arcadeSize   = r.btnH          →  52 / 56 / 60
+  //   arcadeBot    = r.sm            →  12 / 16 / 20
+  //   topRadius    = r.radiusLg      →  20 / 24 / 28
+  //   slotIcon     = r.iconMd        →  22 / 26 / 28
+  //   slotPill     = slotsH − 8      →  44 / 48 / 52
+  //   pillRadius   = r.radiusSm      →  12 / 14 / 14
+  //   arcadeRadius = r.radiusMd      →  16 / 18 / 18
+  //
+  // Geometric invariant at every tier:
+  //   barH − arcadeBot − arcadeSize == 0
+  // → arcade button top edge sits flush with bar top edge.
 
   Widget _buildBottomNav(BuildContext context) {
     final l = AppL10n.of(context);
+    final r = R(context);
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+    // Resolve once per build so every child reads the same numbers.
+    final double barH         = r.btnH + r.sm;
+    final double slotsH       = r.btnH;
+    final double arcadeSize   = r.btnH;
+    final double arcadeBot    = r.sm;
+    final double topRadius    = r.radiusLg;
+    final double slotIcon     = r.iconMd;
+    final double slotPill     = slotsH - 8;
+    final double pillRadius   = r.radiusSm;
+    final double arcadeRadius = r.radiusMd;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        // Round only the top corners — bottom is flat against the screen.
+        borderRadius: BorderRadius.only(
+          topLeft:  Radius.circular(topRadius),
+          topRight: Radius.circular(topRadius),
+        ),
+        // Single soft shadow casting UPWARD onto the body for separation.
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 22,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        // We only care about the bottom inset here — the top of the bar
+        // sits inside the body, no system status bar to worry about.
+        top: false,
         child: SizedBox(
-          height: 76,
+          height: barH,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.bottomCenter,
             children: [
-              // The pill bar itself
+              // ── Slots row ────────────────────────────────────
               Positioned(
                 left: 0, right: 0, bottom: 0,
-                child: Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: _kCard,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: _kBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                height: slotsH,
+                child: Row(children: [
+                  _NavSlot(
+                    icon: Icons.home_rounded,
+                    label: l.navFeed,
+                    selected: _navIndex == 0,
+                    onTap: () => _onTabTap(0),
+                    iconSize: slotIcon,
+                    pillSize: slotPill,
+                    pillRadius: pillRadius,
                   ),
-                  child: Row(children: [
-                    _NavSlot(
-                      icon: Icons.home_rounded,
-                      label: l.navFeed,
-                      selected: _navIndex == 0,
-                      onTap: () => _onTabTap(0),
-                    ),
-                    _NavSlot(
-                      icon: Icons.groups_rounded,
-                      label: l.navGroups,
-                      selected: _navIndex == 1,
-                      onTap: () => _onTabTap(1),
-                    ),
-                    // Spacer slot beneath the raised centre button
-                    const Expanded(child: SizedBox.shrink()),
-                    _NavSlot(
-                      icon: Icons.chat_bubble_rounded,
-                      label: l.navChat,
-                      selected: _navIndex == 3,
-                      onTap: () => _onTabTap(3),
-                    ),
-                    _NavSlot(
-                      icon: Icons.person_rounded,
-                      label: l.navProfile,
-                      selected: _navIndex == 4,
-                      onTap: () => _onTabTap(4),
-                    ),
-                  ]),
-                ),
+                  _NavSlot(
+                    icon: Icons.groups_rounded,
+                    label: l.navGroups,
+                    selected: _navIndex == 1,
+                    onTap: () => _onTabTap(1),
+                    iconSize: slotIcon,
+                    pillSize: slotPill,
+                    pillRadius: pillRadius,
+                  ),
+                  // Spacer beneath the centre arcade button.
+                  const Expanded(child: SizedBox.shrink()),
+                  _NavSlot(
+                    icon: Icons.chat_bubble_rounded,
+                    label: l.navChat,
+                    selected: _navIndex == 3,
+                    onTap: () => _onTabTap(3),
+                    iconSize: slotIcon,
+                    pillSize: slotPill,
+                    pillRadius: pillRadius,
+                  ),
+                  _NavSlot(
+                    icon: Icons.person_rounded,
+                    label: l.navProfile,
+                    selected: _navIndex == 4,
+                    onTap: () => _onTabTap(4),
+                    iconSize: slotIcon,
+                    pillSize: slotPill,
+                    pillRadius: pillRadius,
+                  ),
+                ]),
               ),
 
-              // Raised centre Arcade button
+              // ── Centre Arcade button ─────────────────────────
+              // Square equal to slotsH, raised by arcadeBot. Because
+              // barH = slotsH + arcadeBot, the button's TOP touches the
+              // bar's TOP — same lifted-focal vibe as before, just
+              // scaling automatically with screen size.
               Positioned(
-                bottom: 18,
+                bottom: arcadeBot,
                 child: GestureDetector(
                   onTap: () => _onTabTap(2),
                   child: Tooltip(
@@ -399,14 +451,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: AnimatedBuilder(
                       animation: _shimmerCtrl,
                       builder: (_, child) => Container(
-                        width: 56, height: 56,
+                        width: arcadeSize, height: arcadeSize,
                         decoration: BoxDecoration(
                           gradient: SweepGradient(
-                            colors: const [_kBlue, _kPurple, _kAmber, _kCoral, _kBlue],
+                            colors: const [
+                              _kBlue, _kPurple, _kAmber, _kCoral, _kBlue,
+                            ],
                             startAngle: _shimmerCtrl.value * 6.28,
                             endAngle:   _shimmerCtrl.value * 6.28 + 6.28,
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(arcadeRadius),
+                          // White ring (matches bar surface) so the button
+                          // pops cleanly out of the pale background.
                           border: Border.all(color: _kCard, width: 3),
                           boxShadow: [
                             BoxShadow(
@@ -422,10 +478,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                         child: child,
                       ),
-                      child: const Icon(
+                      // Icon scales with the slot icons so the centre
+                      // button stays in proportion across screen sizes.
+                      child: Icon(
                         Icons.sports_esports_rounded,
                         color: Colors.white,
-                        size: 26,
+                        size: slotIcon + 4, // a touch larger than slot icons
                       ),
                     ),
                   ),
@@ -440,6 +498,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 }
 
 // ── Single nav slot (regular icon, non-centre) ───────────────
+//
+// Now takes iconSize / pillSize / pillRadius from the parent, which
+// resolves them via R(context). Kept stateless and parameter-driven
+// so the responsive logic stays in one place (the parent build).
 
 class _NavSlot extends StatelessWidget {
   final IconData icon;
@@ -447,11 +509,19 @@ class _NavSlot extends StatelessWidget {
   final bool     selected;
   final VoidCallback onTap;
 
+  // Responsive measurements — passed in by parent.
+  final double iconSize;
+  final double pillSize;
+  final double pillRadius;
+
   const _NavSlot({
     required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
+    required this.iconSize,
+    required this.pillSize,
+    required this.pillRadius,
   });
 
   @override
@@ -467,14 +537,14 @@ class _NavSlot extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
-                width: 44, height: 44,
+                width: pillSize, height: pillSize,
                 decoration: BoxDecoration(
                   color: selected ? _kCardLo : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(pillRadius),
                 ),
                 child: Icon(
                   icon,
-                  size: 22,
+                  size: iconSize,
                   color: selected ? _kInk : _kSlate2,
                 ),
               ),

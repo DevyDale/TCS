@@ -17,6 +17,14 @@
 //  - Posts/fweets visibility is enforced server-side; we just render
 //    whatever /api/posts/?user_id=… returns.
 //
+// Cross-role separation (post-staff-role-restoration):
+//   • If the viewer is a student and the target is staff (or vice
+//     versa), the Follow and Message buttons are replaced with a
+//     read-only "Profile view only" pill.
+//   • Backend is the source of truth — it rejects follow_toggle and
+//     send_chat_request with 403 for cross-role pairs. This UI guard
+//     just keeps the buttons honest.
+//
 // If the viewer somehow lands on their OWN user_id (e.g. from
 // tapping their avatar in a comment thread), we hide Follow/Message
 // and just show a "this is your profile" pill.
@@ -35,6 +43,14 @@ const _kG3  = Color(0xFFF7971E);
 const _kG4  = Color(0xFFFF5858);
 const _kInk = Color(0xFF1A1A2E);
 const _kBg  = Color(0xFFF2F4F8);
+
+/// Returns 'student', 'staff', or 'other' for a role string.
+String _groupOf(String role) {
+  final r = role.toLowerCase();
+  if (r == 'student') return 'student';
+  if (r == 'teaching_staff' || r == 'non_teaching_staff') return 'staff';
+  return 'other';
+}
 
 class OtherUserProfileScreen extends StatefulWidget {
   /// Backend user_id (the human-readable string ID), e.g. "S2024001".
@@ -74,6 +90,10 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
 
   String? _myUserId;
 
+  /// Current viewer's role — used to compute `_isCrossRole`.
+  /// Loaded once in `_loadMe()`.
+  String _myRole = '';
+
   static const _kCoverH  = 220.0;
   static const _kAvatarR = 52.0;
 
@@ -89,7 +109,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
         : null;
     _isFollowing = (widget.initialData?['is_following'] as bool?) ?? false;
 
-    _loadMyUserId();
+    _loadMe();
     _fetchUser();
     _fetchContent();
   }
@@ -102,10 +122,16 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
 
   // ── Data ──────────────────────────────────────────────────
 
-  Future<void> _loadMyUserId() async {
+  /// Load the current viewer's identity (user_id + role). Both are
+  /// needed: user_id to spot self-views, role to gate cross-role
+  /// actions like Follow / Message.
+  Future<void> _loadMe() async {
     final me = await ApiService.instance.cachedUser;
     if (!mounted || me == null) return;
-    setState(() => _myUserId = me['user_id'] as String?);
+    setState(() {
+      _myUserId = me['user_id'] as String?;
+      _myRole   = (me['role']   as String?) ?? '';
+    });
   }
 
   Future<void> _fetchUser() async {
@@ -279,6 +305,17 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
   bool get _isMe =>
       _myUserId != null && _myUserId!.isNotEmpty &&
       _myUserId == widget.userId;
+
+  /// True when the viewer and the target are on opposite sides of
+  /// the student / staff divide. While this is true, Follow and
+  /// Message are hidden.
+  bool get _isCrossRole {
+    if (_user == null || _myRole.isEmpty) return false;
+    final mine   = _groupOf(_myRole);
+    final theirs = _groupOf((_user!['role'] as String?) ?? '');
+    return (mine == 'student' && theirs == 'staff') ||
+           (mine == 'staff'   && theirs == 'student');
+  }
 
   bool get _canSeeBio {
     if (_user == null) return false;
@@ -599,6 +636,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
   // ── Action row: Follow + Message + Share ─────────────────
 
   Widget _buildActionRow() {
+    // Self-view: "this is your profile" pill.
     if (_isMe) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
@@ -624,6 +662,44 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
       );
     }
 
+    // Cross-role: hide Follow + Message, show a read-only pill.
+    // Backend also blocks these actions with 403 — this is the UI
+    // half of the same gate.
+    if (_isCrossRole) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        child: Row(children: [
+          Expanded(child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.grey.shade200, width: 1.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 6),
+                Text(
+                  'Profile view only',
+                  style: TextStyle(
+                    fontFamily: 'Momo', fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          )),
+          const SizedBox(width: 10),
+          _ShareIconButton(onTap: _openShareSheet),
+        ]),
+      );
+    }
+
+    // Same-role (or one side is parent/visitor/admin): full actions.
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
       child: Row(children: [
