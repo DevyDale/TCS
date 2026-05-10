@@ -44,7 +44,7 @@ LOCAL_APPS = [
     "apps.arcade",
     "apps.events",
     "apps.notifications",
-    "apps.media",
+    # "apps.media",
     "apps.feedback",
     "apps.clubs",
     "apps.quiz",

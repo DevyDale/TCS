@@ -71,4 +71,4 @@ if SENTRY_DSN:
         dsn=SENTRY_DSN,
         integrations=[DjangoIntegration()],
         traces_sample_rate=0.2,
-    )
+    )SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

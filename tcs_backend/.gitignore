@@ -14,7 +14,7 @@ build/
 *.log
 db.sqlite3
 staticfiles/
-media/
+/media/
 
 # Env
 .env
