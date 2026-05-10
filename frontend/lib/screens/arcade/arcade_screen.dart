@@ -1,27 +1,12 @@
 // lib/screens/arcade/arcade_screen.dart
 // ignore_for_file: unused_local_variable
 //
-// Arcade — final iteration.
+// Arcade — preset-avatar edition.
 //
-// Changes vs. previous version:
-//   1. Replaced animated_segmented_tab_control with a custom tab bar.
-//      That package's internal listener fired after dispose (common
-//      during hot reload + persistent headers), throwing the
-//      AnimationController.stop() exception spam. The custom one
-//      uses TabController.animation directly and has no lifecycle
-//      issues. Also fully theme-aware.
-//   2. Refresh button now resets loading flags BEFORE re-fetching, so
-//      the user sees skeletons reload — visible feedback that the
-//      tap registered.
-//   3. Light/Dark theme toggle in the app bar. Theme distributed via
-//      a private InheritedWidget (_ThemeScope), persisted to
-//      SharedPreferences under "arcade_dark_mode". Loads on init so
-//      coming back to the screen restores the chosen mode.
-//   4. Avatar circle is now a separate tappable that opens a
-//      bottom-sheet picker showing 12 predefined avatars (emoji +
-//      gradient pair). Pick one; saved to SharedPreferences under
-//      "arcade_avatar_id". The rest of the identity card (tag/level)
-//      still opens the PlayerTagScreen for tag editing.
+// Avatar system uses the shared kAvatars list (100 presets) from
+// data/avators.dart, rendered via AvatarView.preset(). The local 12-avatar
+// system has been removed entirely. _avatarId is now int? (kAvatars index)
+// instead of String.
 
 import 'dart:math' as math;
 
@@ -29,6 +14,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/avator/avator_view.dart';
+import 'package:tcs_app/data/avators.dart';
 
 import '../../services/api_service.dart';
 
@@ -57,12 +44,8 @@ import 'sent_invites_screen.dart';
 import 'transfer_token_screen.dart';
 
 // ═════════════════════════════════════════════════════════════
-// THEME — light + dark, distributed by _ThemeScope
+// THEME
 // ═════════════════════════════════════════════════════════════
-//
-// Accent colours (blue/purple/amber/coral) and the sweep palette
-// stay constant across both modes — they read fine on either
-// background. Surfaces, borders, and text inks flip.
 
 class _T {
   final Color bg1, bg2, bg3;
@@ -123,7 +106,7 @@ class _ThemeScope extends InheritedWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// ACCENTS — constant across themes
+// ACCENTS
 // ═════════════════════════════════════════════════════════════
 
 const _kBlue     = Color(0xFF6DD5FA);
@@ -139,50 +122,16 @@ const _gradColors = <Color>[
 ];
 
 // ═════════════════════════════════════════════════════════════
-// AVATARS — predefined, single-select. Persisted by ID.
-// ═════════════════════════════════════════════════════════════
-//
-// Each avatar = an emoji on a gradient circle. To swap with image
-// assets later: add an `assetPath` field and render Image.asset
-// inside _renderAvatar() instead of Text.
-
-class _Avatar {
-  final String id;
-  final String emoji;
-  final Color  a;
-  final Color  b;
-  const _Avatar(this.id, this.emoji, this.a, this.b);
-}
-
-const _avatars = <_Avatar>[
-  _Avatar('a1',  '🎮', Color(0xFF7C3AED), Color(0xFF6DD5FA)),
-  _Avatar('a2',  '🚀', Color(0xFFF59E0B), Color(0xFFFF4F6E)),
-  _Avatar('a3',  '🎯', Color(0xFF22C55E), Color(0xFF0F766E)),
-  _Avatar('a4',  '⚡', Color(0xFFFACC15), Color(0xFFF97316)),
-  _Avatar('a5',  '🔥', Color(0xFFEF4444), Color(0xFFF97316)),
-  _Avatar('a6',  '💎', Color(0xFF06B6D4), Color(0xFF3B82F6)),
-  _Avatar('a7',  '👑', Color(0xFFEAB308), Color(0xFFCA8A04)),
-  _Avatar('a8',  '🌙', Color(0xFF6366F1), Color(0xFF8B5CF6)),
-  _Avatar('a9',  '🦊', Color(0xFFF97316), Color(0xFFDC2626)),
-  _Avatar('a10', '🐉', Color(0xFF16A34A), Color(0xFF0F766E)),
-  _Avatar('a11', '🌟', Color(0xFFFBBF24), Color(0xFFF59E0B)),
-  _Avatar('a12', '🎲', Color(0xFFEC4899), Color(0xFFBE185D)),
-];
-
-_Avatar _avatarById(String? id) =>
-    _avatars.firstWhere((a) => a.id == id, orElse: () => _avatars.first);
-
-// ═════════════════════════════════════════════════════════════
 // GAME REGISTRY
 // ═════════════════════════════════════════════════════════════
 
 final _playableGames = {
-  'quiz-battle':    (BuildContext ctx) => const QuizBattleGame(),
-  'spirit-racers':  (BuildContext ctx) => const SpiritRacersGame(),
-  'ninja-tag':      (BuildContext ctx) => const NinjaTagGame(),
-  'sushi-rush':     (BuildContext ctx) => const SushiRushGame(),
-  'battle-bots':    (BuildContext ctx) => const BattleBotsGame(),
-  'pool-royale':    (BuildContext ctx) => const PoolRoyaleGame(),
+  'quiz-battle':     (BuildContext ctx) => const QuizBattleGame(),
+  'spirit-racers':   (BuildContext ctx) => const SpiritRacersGame(),
+  'ninja-tag':       (BuildContext ctx) => const NinjaTagGame(),
+  'sushi-rush':      (BuildContext ctx) => const SushiRushGame(),
+  'battle-bots':     (BuildContext ctx) => const BattleBotsGame(),
+  'pool-royale':     (BuildContext ctx) => const PoolRoyaleGame(),
   'snake':           (BuildContext ctx) => const SnakeGame(),
   'memory-match':    (BuildContext ctx) => const MemoryMatchGame(),
   'number-guesser':  (BuildContext ctx) => const NumberGuesserGame(),
@@ -215,7 +164,7 @@ List<Color> _gradientFor(String cat) =>
     [const Color(0xFF6DD5FA), const Color(0xFF8E54E9)];
 
 const _kPrefDark   = 'arcade_dark_mode';
-const _kPrefAvatar = 'arcade_avatar_id';
+const _kPrefAvatar = 'arcade_avatar_id_v2'; // bumped: now int (kAvatars index)
 
 // ═════════════════════════════════════════════════════════════
 // SCREEN
@@ -254,8 +203,8 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   bool _loadingHub = false;
 
   // Theme + avatar (persisted)
-  bool   _isDark   = false;
-  String _avatarId = 'a1';
+  bool _isDark   = false;
+  int? _avatarId;
 
   @override
   void initState() {
@@ -289,7 +238,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       if (!mounted) return;
       setState(() {
         _isDark   = prefs.getBool(_kPrefDark) ?? false;
-        _avatarId = prefs.getString(_kPrefAvatar) ?? _avatars.first.id;
+        _avatarId = prefs.getInt(_kPrefAvatar);
       });
     } catch (_) {/* defaults are fine */}
   }
@@ -303,11 +252,11 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     } catch (_) {}
   }
 
-  Future<void> _saveAvatar(String id) async {
+  Future<void> _saveAvatar(int id) async {
     setState(() => _avatarId = id);
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kPrefAvatar, id);
+      await prefs.setInt(_kPrefAvatar, id);
     } catch (_) {}
   }
 
@@ -321,8 +270,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _loadPendingRequests(),
       ]);
 
-  /// Refresh: visibly reset loading flags so the user gets
-  /// skeleton feedback that the tap registered, then refetch.
   void _refreshAll() {
     HapticFeedback.lightImpact();
     setState(() {
@@ -469,17 +416,14 @@ class _ArcadeScreenState extends State<ArcadeScreen>
 
   Future<void> _pickAvatar() async {
     HapticFeedback.lightImpact();
-    final chosen = await showModalBottomSheet<String>(
+    final newId = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _ThemeScope(
-        theme: _isDark ? _T.dark : _T.light,
-        child: _AvatarPickerSheet(currentId: _avatarId),
-      ),
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AvatarPickerSheet(currentId: _avatarId),
     );
-    if (chosen != null && chosen != _avatarId) {
-      await _saveAvatar(chosen);
+    if (newId != null && newId != _avatarId) {
+      await _saveAvatar(newId);
     }
   }
 
@@ -677,7 +621,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               child: const Text('ARCADE',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
                       letterSpacing: 3, color: Colors.white)))),
-            // Theme toggle (light ↔ dark, persisted)
             _circleIconButton(
               t: t,
               icon: t.isDark
@@ -723,7 +666,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     final tokens   = _stats['tokens']    as int?    ?? 0;
     final progress = (xp % 500) / 500.0;
     final xpToNext = 500 - (xp % 500);
-    final avatar   = _avatarById(_avatarId);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
@@ -736,13 +678,30 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           ? const _IdentitySkeleton()
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                // Avatar — its own tappable: opens the avatar picker.
+                // Avatar — opens preset picker on tap
                 GestureDetector(
                   onTap: _pickAvatar,
-                  child: _AvatarCircle(avatar: avatar, size: 52),
+                  child: _avatarId != null
+                      ? AvatarView.preset(_avatarId!, size: 52)
+                      : Container(
+                          width: 52, height: 52,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [_kPurple, _kBlue],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [BoxShadow(
+                                color: _kPurple.withOpacity(0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3))],
+                          ),
+                          child: const Icon(Icons.add_rounded,
+                              color: Colors.white, size: 24),
+                        ),
                 ),
                 const SizedBox(width: 14),
-                // Tag/level — opens player tag screen.
                 Expanded(child: GestureDetector(
                   onTap: _promptPlayerTag,
                   behavior: HitTestBehavior.opaque,
@@ -763,15 +722,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                           decoration: BoxDecoration(
                             color: _kPurple.withOpacity(0.10),
                             borderRadius: BorderRadius.circular(6)),
-                          child: const Text('LV.',
-                              style: TextStyle(fontSize: 0)),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _kPurple.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(6)),
                           child: Text('LV.$level',
                               style: const TextStyle(fontSize: 10,
                                   fontWeight: FontWeight.w900,
@@ -786,7 +736,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                       ]),
                     ]),
                 )),
-                // Tokens chip
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 8),
@@ -927,11 +876,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     );
   }
 
-  // ── Custom tab bar (no external package) ──────────────────
-  //
-  // Sliding indicator is driven by _tabCtrl.animation.value, which
-  // smoothly interpolates from 0..3 as the user taps tabs. No
-  // listener-after-dispose hazards.
+  // ── Tab bar ──────────────────────────────────────────────
 
   Widget _buildTabBar(_T t) {
     const labels = ['Games', 'Ranks', 'Clubs', 'Stats'];
@@ -952,7 +897,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
             return LayoutBuilder(builder: (_, c) {
               final segW = c.maxWidth / 4;
               return Stack(children: [
-                // Sliding indicator
                 Positioned(
                   left: pos * segW,
                   top: 0, bottom: 0, width: segW,
@@ -963,7 +907,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                     ),
                   ),
                 ),
-                // Labels with smooth color transition
                 Row(children: [
                   for (int i = 0; i < 4; i++)
                     Expanded(child: GestureDetector(
@@ -1104,7 +1047,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
         if (_topGamers.isNotEmpty) ...[
           _sectionLabel(t, 'Top Players'),
           const SizedBox(height: 12),
@@ -1123,7 +1065,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               ))),
           const SizedBox(height: 22),
         ],
-
         _sectionLabel(t, 'Global XP rankings'),
         const SizedBox(height: 14),
         if (_leaderboard.isEmpty)
@@ -1216,7 +1157,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
         if (_gamingClubs.isNotEmpty) ...[
           Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
               child: _sectionLabel(t, 'Gaming clubs')),
@@ -1233,7 +1173,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
             )),
           const SizedBox(height: 22),
         ],
-
         Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
           child: Row(children: [
             _sectionLabel(t, 'My clubs'),
@@ -1260,7 +1199,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               ),
             )),
         const SizedBox(height: 22),
-
         if (_trendingClubs.isNotEmpty) ...[
           Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
               child: _sectionLabel(t, 'Trending')),
@@ -1273,7 +1211,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                     )).toList())),
           const SizedBox(height: 22),
         ],
-
         Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(children: [
             Expanded(child: GestureDetector(
@@ -1311,9 +1248,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   ])),
             )),
           ])),
-
         const SizedBox(height: 24),
-
         Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
           child: Row(children: [
             Icon(Icons.dynamic_feed_rounded, color: t.ink, size: 16),
@@ -1324,11 +1259,9 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               SizedBox(width: 14, height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2, color: t.ink)),
           ])),
-
         if (!_loadingHub && _hubItems.isEmpty)
           Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
             child: _emptyHubCard(t)),
-
         if (!_loadingHub && _hubItems.isNotEmpty)
           Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(children: _hubItems
@@ -1342,7 +1275,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                         },
                       ),
                     )).toList())),
-
         if (_loadingHub && _hubItems.isEmpty)
           Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(children: List.generate(3, (_) => Padding(
@@ -1350,7 +1282,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               child: ShimmerLoader(
                   height: 64, borderRadius: BorderRadius.circular(14)),
             )))),
-
         const SizedBox(height: 8),
       ]),
     );
@@ -1431,7 +1362,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     final recent     = (_stats['recent']      as List? ?? []).cast<Map<String, dynamic>>();
     final bestScores = (_stats['best_scores'] as List? ?? []).cast<Map<String, dynamic>>();
     final clubCount  = _myClubs.length;
-    final avatar     = _avatarById(_avatarId);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
@@ -1459,7 +1389,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           _StatCard(label: 'Total XP', value: '$xp',
               icon: Icons.bolt_rounded, accent: _kPurple),
         ]),
-
         if (bestScores.isNotEmpty) ...[
           const SizedBox(height: 22),
           _sectionLabel(t, 'Best scores'),
@@ -1489,7 +1418,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               ]));
           }),
         ],
-
         if (recent.isNotEmpty) ...[
           const SizedBox(height: 22),
           _sectionLabel(t, 'Recent games'),
@@ -1542,9 +1470,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
 }
 
 // ═════════════════════════════════════════════════════════════
-// Sticky tab bar delegate (uses builder so it picks up theme
-// changes via context, while shouldRebuild only fires on actual
-// state changes — preventing the AnimationController spam).
+// Sticky tab bar delegate
 // ═════════════════════════════════════════════════════════════
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
@@ -1611,33 +1537,6 @@ class _IdentitySkeleton extends StatelessWidget {
     ShimmerLoader(width: 100, height: 10,
         borderRadius: BorderRadius.circular(4)),
   ]);
-}
-
-// ═════════════════════════════════════════════════════════════
-// Avatar circle
-// ═════════════════════════════════════════════════════════════
-
-class _AvatarCircle extends StatelessWidget {
-  final _Avatar avatar;
-  final double  size;
-  const _AvatarCircle({required this.avatar, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: [avatar.a, avatar.b],
-            begin: Alignment.topLeft, end: Alignment.bottomRight),
-        boxShadow: [BoxShadow(
-            color: avatar.a.withOpacity(0.25), blurRadius: 10,
-            offset: const Offset(0, 3))],
-      ),
-      child: Center(child: Text(avatar.emoji,
-          style: TextStyle(fontSize: size * 0.5))),
-    );
-  }
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -2379,19 +2278,20 @@ class _HubItemRow extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// Avatar picker bottom sheet
+// Avatar picker bottom sheet — uses kAvatars (100 presets)
 // ═════════════════════════════════════════════════════════════
 
 class _AvatarPickerSheet extends StatefulWidget {
-  final String currentId;
-  const _AvatarPickerSheet({required this.currentId});
+  final int? currentId;
+  const _AvatarPickerSheet({this.currentId});
 
   @override
   State<_AvatarPickerSheet> createState() => _AvatarPickerSheetState();
 }
 
 class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
-  late String _selected;
+  int?   _selected;
+  String _category = 'all';
 
   @override
   void initState() {
@@ -2399,96 +2299,194 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
     _selected = widget.currentId;
   }
 
+  List<AvatarDef> get _filtered {
+    if (_category == 'all') return kAvatars;
+    return kAvatars.where((a) => a.category == _category).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = _ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: t.bg1,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20,
-          MediaQuery.of(context).padding.bottom + 20),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        // Drag handle
-        Container(width: 40, height: 4,
-          decoration: BoxDecoration(
-            color: t.border,
-            borderRadius: BorderRadius.circular(2)),
-        ),
-        const SizedBox(height: 18),
-        Text('Choose your avatar',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900,
-              color: t.ink, letterSpacing: -0.4)),
-        const SizedBox(height: 4),
-        Text('Pick one — you can change it any time',
-          style: TextStyle(fontSize: 12, color: t.slate)),
-        const SizedBox(height: 22),
+    final t        = _ThemeScope.of(context);
+    final mq       = MediaQuery.of(context);
+    final maxH     = mq.size.height * 0.85;
+    final cats     = kAvatarCategoryLabels.keys.toList();
+    final filtered = _filtered;
 
-        GridView.count(
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 14, crossAxisSpacing: 14,
-          children: _avatars.map((a) {
-            final isSelected = a.id == _selected;
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                setState(() => _selected = a.id);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOut,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? t.ink : Colors.transparent,
-                    width: 3),
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: Container(
+        decoration: BoxDecoration(
+          color: t.bg1,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Column(children: [
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: t.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                child: _AvatarCircle(avatar: a, size: 56),
+                const SizedBox(height: 18),
+                Text(
+                  'Choose your avatar',
+                  style: TextStyle(
+                    fontSize: 19, fontWeight: FontWeight.w900,
+                    color: t.ink, letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pick one — you can change it any time',
+                  style: TextStyle(fontSize: 12, color: t.slate),
+                ),
+                const SizedBox(height: 16),
+              ]),
+            ),
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: cats.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final c      = cats[i];
+                  final active = c == _category;
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _category = c);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: active ? t.ink : t.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: active ? Colors.transparent : t.border,
+                        ),
+                      ),
+                      child: Text(
+                        kAvatarCategoryLabels[c] ?? c,
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800,
+                          color: active
+                              ? (t.isDark ? t.bg1 : Colors.white)
+                              : t.ink,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          }).toList(),
+            ),
+            const SizedBox(height: 14),
+            Flexible(
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 14,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final a          = filtered[i];
+                  final isSelected = a.id == _selected;
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() => _selected = a.id);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOut,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? t.ink : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                      child: AvatarView.preset(a.id, size: 56),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                20, 16, 20, mq.padding.bottom + 16,
+              ),
+              child: Row(children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: t.card,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: t.border),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800,
+                          color: t.ink, letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: GestureDetector(
+                    onTap: _selected == null
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            Navigator.of(context).pop(_selected);
+                          },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _selected == null ? t.border : t.ink,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _selected == null
+                            ? 'Pick one above'
+                            : 'Use this avatar',
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800,
+                          color: _selected == null
+                              ? t.slate
+                              : (t.isDark ? t.bg1 : Colors.white),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ],
         ),
-
-        const SizedBox(height: 22),
-        Row(children: [
-          Expanded(child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: t.card,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: t.border)),
-              alignment: Alignment.center,
-              child: Text('Cancel', style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w800,
-                  color: t.ink, letterSpacing: -0.2)),
-            ),
-          )),
-          const SizedBox(width: 12),
-          Expanded(flex: 2, child: GestureDetector(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              Navigator.of(context).pop(_selected);
-            },
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: t.ink,
-                borderRadius: BorderRadius.circular(14)),
-              alignment: Alignment.center,
-              child: Text('Use this avatar', style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w800,
-                  color: t.isDark ? t.bg1 : Colors.white,
-                  letterSpacing: -0.2)),
-            ),
-          )),
-        ]),
-      ]),
+      ),
     );
   }
 }

@@ -37,6 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id        = models.CharField(max_length=50, unique=True, db_index=True)
+    
     role           = models.CharField(max_length=25, choices=Role.choices)
     name           = models.CharField(max_length=150)
     preferred_name = models.CharField(max_length=80, blank=True)
@@ -55,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # blank=True / null=True means no image is fine (default state).
     # django_cleanup will delete the old Cloudinary asset automatically
     # whenever these fields are overwritten or the user is deleted.
+    avatar_id = models.IntegerField(null=True, blank=True)
     avatar = CloudinaryField(
         "avatar",
         folder="tcs_studenthub/avatars",

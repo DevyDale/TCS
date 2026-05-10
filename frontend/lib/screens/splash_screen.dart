@@ -4,11 +4,11 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-import '../../services/api_service.dart';
-import '../../utils/responsive_helper.dart';
-import '../auth/role_selection_screen.dart';
-import '../auth/session_keys.dart';
-import 'dashboard_screen.dart';
+import '../services/api_service.dart';
+import '../utils/responsive_helper.dart';
+import 'auth/role_selection_screen.dart';
+import 'auth/session_keys.dart';
+import 'dashboard/dashboard_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);

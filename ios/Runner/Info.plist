@@ -26,6 +26,58 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- ───────────────────────────────────────────────────────── -->
+	<!-- App Transport Security: allow plain HTTP to localhost so   -->
+	<!-- the iOS Simulator can hit the Django dev server.           -->
+	<!-- ⚠️ Remove NSAllowsArbitraryLoads before App Store submit.  -->
+	<!-- ───────────────────────────────────────────────────────── -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+			<key>127.0.0.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- ───────────────────────────────────────────────────────── -->
+	<!-- Permission usage descriptions. Android declared these in   -->
+	<!-- AndroidManifest.xml; iOS requires matching strings or the  -->
+	<!-- app will crash when image_picker / record / etc. fires.    -->
+	<!-- ───────────────────────────────────────────────────────── -->
+	<key>NSCameraUsageDescription</key>
+	<string>TCS needs camera access so you can capture photos and videos for posts, your profile, and chat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TCS needs microphone access for voice messages and video recording.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TCS needs photo library access so you can attach images and videos to posts and your profile.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>TCS needs permission to save images and videos to your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TCS uses your location to tag posts and find nearby campus events.</string>
+
+	<!-- ───────────────────────────────────────────────────────── -->
+	<!-- Background modes — required for Firebase Cloud Messaging   -->
+	<!-- (push notifications) and for receiving notifications while -->
+	<!-- the app is in the background.                              -->
+	<!-- ───────────────────────────────────────────────────────── -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

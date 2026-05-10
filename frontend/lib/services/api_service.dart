@@ -44,11 +44,11 @@ import '../screens/auth/session_keys.dart';
 // ─────────────────────────────────────────────────────────────
 
 class ApiConfig {
-  // Android emulator → host machine
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  // iOS simulator / same Mac → routes to host's localhost
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
-  // iOS simulator / same Mac
-  // static const String baseUrl = 'http://127.0.0.1:8000';
+  // Android emulator → uncomment when running on Android
+  // static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Physical device on same WiFi — replace with your Mac IP
   // Run: ipconfig getifaddr en0
@@ -192,7 +192,7 @@ class ApiService {
   }
 
   // ── Token refresh ─────────────────────────────────────────
-  // URL: /api/accounts/token/refresh/  ← FIXED (was /api/auth/)
+  // URL: /api/accounts/token/refresh/
 Future<bool> _tryRefresh() async {
   final r = await _Tokens.refresh();
   if (r == null) return false;
@@ -380,14 +380,9 @@ Future<bool> _tryRefresh() async {
 
   // ── Phase 3 — privacy toggles ────────────────────────────
 
-  /// Set or clear interests visibility on my profile.
-  /// Convenience wrapper around updateProfile.
   Future<dynamic> setInterestsVisibility(String visibility) =>
       updateProfile({'interests_visibility': visibility});
 
-  /// Set bio public/private on my profile.
-  /// Reads & merges the existing privacy_settings dict so we don't
-  /// clobber other privacy keys that may live there.
   Future<dynamic> setBioPublic(bool isPublic) async {
     final me = await getMyProfile() as Map<String, dynamic>;
     final prefs = Map<String, dynamic>.from(
@@ -409,19 +404,8 @@ Future<bool> _tryRefresh() async {
         'page': '$page',
       });
 
-  /// GET /api/feelings/ — backend-driven Feeling list.
-  /// Returns active feelings sorted by sort_order, each with
-  /// slug / label / emoji / category / sort_order.
-  /// Both the create-post and create-fweet screens drive their
-  /// feeling picker tiles from this endpoint instead of a
-  /// hardcoded list — admins control the list from Django admin.
   Future<dynamic> getFeelings() => get('/feelings/');
 
-  /// Create a new post or fweet.
-  ///
-  /// `feeling` is the SLUG of a Feeling row (e.g. 'happy'), not the
-  /// display label. The backend resolves it against the Feeling model
-  /// added in §4. Pass null or empty to skip.
   Future<dynamic> createPost({
     required String content,
     String  postType        = 'post',
@@ -429,7 +413,7 @@ Future<bool> _tryRefresh() async {
     String  location        = '',
     String  backgroundColor = '',
     String? feeling,
-    String? clubId,                          // Phase 6
+    String? clubId,
   }) => post('/posts/', body: {
     'content':          content,
     'post_type':        postType,
@@ -442,22 +426,15 @@ Future<bool> _tryRefresh() async {
 
   Future<dynamic> getPost(String id)    => get('/posts/$id/');
 
-  /// Profile: my regular posts
-  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyPosts({int page = 1}) =>
       get('/posts/mine/', query: {'post_type': 'post', 'page': '$page'});
 
-  /// Profile: my fweets
-  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getMyFweets({int page = 1}) =>
       get('/posts/mine/', query: {'post_type': 'fweet', 'page': '$page'});
 
-  /// Profile: bookmarked/favorited posts
-  /// FIX: was sending the literal string "$page" because of '\$page' escape.
   Future<dynamic> getFavorites({int page = 1}) =>
       get('/posts/bookmarks/', query: {'page': '$page'});
 
-  /// FIX: was hitting "/posts/$id/" literally because of '\$id' escape.
   Future<dynamic> deletePost(String id) => delete('/posts/$id/');
   Future<dynamic> updatePost(String id, Map<String, dynamic> data) =>
       patch('/posts/$id/', body: data);
@@ -476,12 +453,7 @@ Future<bool> _tryRefresh() async {
         'text': text,
         if (parentId != null) 'parent_id': parentId,
       });
-  /// Upload an image or video to a post. Routes through the existing
-  /// uploadFile() helper so auth, error decoding, and MIME formatting
-  /// stay consistent with every other multipart upload.
-  ///
-  /// `mediaType` must be 'image' or 'video' — the backend uses it to
-  /// route the asset through the right Cloudinary resource bucket.
+
   Future<dynamic> uploadPostMedia(
     String postId,
     File   file, {
@@ -544,9 +516,6 @@ Future<bool> _tryRefresh() async {
   Future<dynamic> getSavedMaterials()       => get('/chat/saved/');
   Future<dynamic> deleteSavedMaterial(String id) => delete('/chat/saved/$id/');
 
-  // ── NEW — retag a saved-material entry (title / subject / source / group).
-  //   Pass `groupId: ''` (empty string) to detach an existing group link.
-  //   Backend route: PATCH /api/chat/saved/<id>/  → views.update_saved_material
   Future<dynamic> updateSavedMaterial({
     required String id,
     String? title,
@@ -566,14 +535,7 @@ Future<bool> _tryRefresh() async {
   // ══════════════════════════════════════════════════════════
   // CHAT BUBBLES (Phase 3B)
   // ══════════════════════════════════════════════════════════
-  //
-  // A "bubble" is a Room with room_type=group plus the new is_public,
-  // about, and ai_enabled fields. The creator becomes admin + member;
-  // everyone else gets a pending RoomInvite they must accept.
 
-  /// POST /api/chat/bubbles/
-  /// Returns the new room object. memberIds become PENDING invites
-  /// (they don't auto-join — they accept or decline).
   Future<dynamic> createBubble({
     required String       name,
     String                about     = '',
@@ -587,20 +549,13 @@ Future<bool> _tryRefresh() async {
         'member_ids': memberIds,
       });
 
-  /// GET /api/chat/bubbles/discover/?q=
-  /// Public bubbles only, excluding ones the user is already in.
   Future<dynamic> discoverBubbles({String q = ''}) =>
       get('/chat/bubbles/discover/',
           query: {if (q.isNotEmpty) 'q': q});
 
-  /// POST /api/chat/bubbles/<id>/join/
-  /// Public bubbles only — for private bubbles you need an invite.
   Future<dynamic> joinBubble(String roomId) =>
       post('/chat/bubbles/$roomId/join/');
 
-  /// POST /api/chat/bubbles/<id>/invite/
-  /// Member of the bubble invites others. Each id in userIds gets a
-  /// pending RoomInvite they can accept or decline.
   Future<dynamic> inviteToBubble({
     required String       roomId,
     required List<String> userIds,
@@ -611,22 +566,16 @@ Future<bool> _tryRefresh() async {
         if (message.isNotEmpty) 'message': message,
       });
 
-  /// GET /api/chat/invites/  — pending bubble invites for the current user.
   Future<dynamic> getMyBubbleInvites() => get('/chat/invites/');
 
-  /// POST /api/chat/invites/<id>/accept/
-  /// Joins the bubble + posts a system message announcing the join +
-  /// notifies the inviter (in their DM with Dale). Returns the room.
   Future<dynamic> acceptBubbleInvite(String inviteId) =>
       post('/chat/invites/$inviteId/accept/');
 
-  /// POST /api/chat/invites/<id>/decline/
-  /// Marks the invite declined and notifies the inviter.
   Future<dynamic> declineBubbleInvite(String inviteId) =>
       post('/chat/invites/$inviteId/decline/');
 
   // ══════════════════════════════════════════════════════════
-  // GROUPS  (study groups — separate from CLUBS)
+  // GROUPS
   // ══════════════════════════════════════════════════════════
 
   Future<dynamic> getGroups({String filter = 'all', String q = ''}) =>
@@ -636,10 +585,6 @@ Future<bool> _tryRefresh() async {
   Future<dynamic> leaveGroup(String id)        => delete('/groups/$id/leave/');
   Future<dynamic> getGroupMaterials(String id) => get('/groups/$id/materials/');
 
-  // ── NEW — save a group's uploaded material into the user's
-  //   personal SavedMaterial library, with subject + source group
-  //   auto-tagged. The result is immediately quizzable.
-  //   Backend route: POST /api/groups/<gid>/materials/<mid>/save/
   Future<dynamic> saveGroupMaterialToLibrary({
     required String groupId,
     required String materialId,
@@ -655,41 +600,14 @@ Future<bool> _tryRefresh() async {
       put('/groups/buddies/me/', body: data);
 
   // ══════════════════════════════════════════════════════════
-  // QUIZ  — NEW: AI-generated quizzes from saved materials
+  // QUIZ
   // ══════════════════════════════════════════════════════════
-  //
-  // Backend lives at apps.quiz / /api/quiz/. The flow is:
-  //   1. User picks a material in their library and tap "Quiz me".
-  //   2. Frontend calls generateQuiz(materialId: ...).
-  //   3. Backend pulls the file from Cloudinary, extracts text from
-  //      the PDF/DOCX, asks OpenAI for questions, persists a
-  //      GeneratedQuiz row, returns it ready to play.
-  //   4. Frontend shows quiz_play_screen → submitQuizAttempt on done.
-  //   5. Server-side grading is authoritative — the client cannot
-  //      fake a score.
-  //
-  // Daily rate limit: 20 generations per user per rolling 24h window
-  // (enforced server-side; throws ApiException with 429 if exceeded).
-  // ──────────────────────────────────────────────────────────
 
-  /// GET /api/quiz/?subject=... — list my generated quizzes.
-  /// Each row includes question_count, attempt_count, and last_score
-  /// for the saved-quizzes browser.
   Future<dynamic> getMyQuizzes({String? subject}) =>
       get('/quiz/', query: {
         if (subject != null && subject.isNotEmpty) 'subject': subject,
       });
 
-  /// POST /api/quiz/generate/  — AI-generate a quiz from a saved material.
-  ///
-  /// Only the `materialId` is strictly required; everything else has
-  /// sensible defaults. The backend does the file-download + text
-  /// extraction + LLM round-trip, so this single call usually takes
-  /// a few seconds on a typical PDF.
-  ///
-  /// `numQuestions` is clamped server-side to 3–25.
-  /// `difficulty` is one of: 'easy' | 'medium' | 'hard' | 'mixed'.
-  /// `questionTypes` is any subset of: 'mcq' | 'true_false' | 'short'.
   Future<dynamic> generateQuiz({
     required String      materialId,
     String?              subject,
@@ -705,22 +623,9 @@ Future<bool> _tryRefresh() async {
         'question_types': questionTypes,
       });
 
-  /// GET /api/quiz/<id>/play/ — questions WITHOUT correct answers.
-  /// Used by quiz_play_screen when the quiz wasn't preloaded by the
-  /// generator (e.g. retaking an old quiz from the saved-quizzes list).
   Future<dynamic> getQuizForPlay(String quizId) =>
       get('/quiz/$quizId/play/');
 
-  /// POST /api/quiz/<id>/submit/ — finalise the attempt.
-  ///
-  /// `answers` keys are question ids (e.g. 'q1'); values are:
-  ///   • String 'A'..'D'        for mcq
-  ///   • bool                    for true_false
-  ///   • String free-form text   for short
-  ///
-  /// Response includes the QuizAttempt row, a per-question breakdown
-  /// (with the correct answer + explanation revealed), and the full
-  /// questions list for the results screen review section.
   Future<dynamic> submitQuizAttempt({
     required String              quizId,
     required Map<String, dynamic> answers,
@@ -731,24 +636,17 @@ Future<bool> _tryRefresh() async {
         'duration_seconds':  durationSeconds,
       });
 
-  /// GET /api/quiz/<id>/  — full quiz including correct answers.
-  /// Use AFTER an attempt has been submitted; for the play flow,
-  /// prefer getQuizForPlay().
   Future<dynamic> getQuizDetail(String quizId) =>
       get('/quiz/$quizId/');
 
-  /// DELETE /api/quiz/<id>/ — permanently delete a quiz and all its
-  /// attempts. Backend enforces ownership.
   Future<dynamic> deleteQuiz(String quizId) =>
       delete('/quiz/$quizId/');
 
-  /// GET /api/quiz/<id>/attempts/ — full attempt history for one quiz,
-  /// newest first. Useful for showing improvement over retakes.
   Future<dynamic> getQuizAttempts(String quizId) =>
       get('/quiz/$quizId/attempts/');
 
   // ══════════════════════════════════════════════════════════
-  // EVENTS  (Phase 2)
+  // EVENTS
   // ══════════════════════════════════════════════════════════
 
   Future<dynamic> getEvents({String? category, String? search, int page = 1}) =>
@@ -760,16 +658,11 @@ Future<bool> _tryRefresh() async {
 
   Future<dynamic> getEvent(String id) => get('/events/$id/');
 
-  /// Phase 2 spec 9.4 — three-state RSVP.
-  /// Pass null to clear an existing RSVP (sends {"status": "clear"}).
-  /// Otherwise pass one of: kRsvpGoing, kRsvpInterested, kRsvpNotGoing.
   Future<dynamic> setRsvp(String eventId, String? status) =>
       post('/events/$eventId/rsvp/', body: {
         'status': status ?? 'clear',
       });
 
-  /// Legacy binary toggle — kept for any old call sites that haven't
-  /// been migrated yet. Prefer setRsvp(...).
   @Deprecated('Use setRsvp(eventId, status). Will be removed.')
   Future<dynamic> rsvpToggle(String id) =>
       post('/events/$id/rsvp/toggle/');
@@ -779,7 +672,6 @@ Future<bool> _tryRefresh() async {
   Future<dynamic> createEvent(Map<String, dynamic> data) =>
       post('/events/', body: data);
 
-  /// Phase 2 spec 10.2 — upload an event poster (Cloudinary).
   Future<dynamic> uploadEventPoster(
     String eventId, {
     required String filePath,
@@ -788,8 +680,6 @@ Future<bool> _tryRefresh() async {
       uploadFile('/events/$eventId/poster/',
           filePath: filePath, field: 'poster', mimeType: mimeType);
 
-  /// Phase 2 spec 10.3 — unified events + announcements carousel.
-  /// Returns a Map with `results` (list) and `count`.
   Future<dynamic> getCampusHighlights({int limit = 10}) =>
       get('/events/highlights/', query: {'limit': '$limit'});
 
@@ -797,25 +687,15 @@ Future<bool> _tryRefresh() async {
   // PHASE 3 — chat helpers for share-profile + other-user actions
   // ══════════════════════════════════════════════════════════
 
-  /// Recent chats for the share-profile bottom sheet.
-  /// Returns up to `limit` recent rooms. The widget falls back to
-  /// getChatRooms() automatically if this endpoint isn't deployed yet.
   Future<dynamic> getRecentChats({int limit = 5}) =>
       get('/chat/recent/', query: {'limit': '$limit'});
 
-  /// Send a chat request from the other-user-profile screen's
-  /// "Message" button. Backend creates a ChatRequest the receiver
-  /// can accept or decline.
   Future<dynamic> sendChatRequest(String targetUserId, {String message = ''}) =>
       post('/chat/requests/send/', body: {
         'user_id': targetUserId,
         if (message.isNotEmpty) 'message': message,
       });
 
-  /// Share a profile to a chat room as a regular text message.
-  /// Embeds the user_id as `[profile:USER_ID]` so a future chat
-  /// polish pass can render it as a rich profile card. For now it
-  /// just shows up as text with a recognisable token.
   Future<dynamic> shareProfileToRoom({
     required String roomId,
     required String targetUserId,
@@ -826,16 +706,9 @@ Future<bool> _tryRefresh() async {
   }
 
   // ══════════════════════════════════════════════════════════
-  // CLUBS  (Phase 5 — separate from study GROUPS above)
+  // CLUBS
   // ══════════════════════════════════════════════════════════
-  //
-  // Backend lives at apps.clubs / /api/clubs/. The clubs app is a
-  // distinct module from apps.groups (study groups). Clubs are
-  // campus-wide communities with verification, roles, approval-gated
-  // joining, and admin controls.
-  // ──────────────────────────────────────────────────────────
 
-  /// GET /api/clubs/?filter=all|mine|pending|admin&q=&category=&page=
   Future<dynamic> getClubs({
     String  filter   = 'all',
     String? q,
@@ -849,69 +722,42 @@ Future<bool> _tryRefresh() async {
         'page': '$page',
       });
 
-  /// GET /api/clubs/<id>/
   Future<dynamic> getClub(String id) => get('/clubs/$id/');
 
-  /// POST /api/clubs/  (creator becomes PRESIDENT)
   Future<dynamic> createClub(Map<String, dynamic> data) =>
       post('/clubs/', body: data);
 
-  /// PATCH /api/clubs/<id>/  (admin only — Executive or President)
   Future<dynamic> updateClub(String id, Map<String, dynamic> data) =>
       patch('/clubs/$id/', body: data);
 
-  /// DELETE /api/clubs/<id>/  (president only — soft dissolve)
   Future<dynamic> dissolveClub(String id) => delete('/clubs/$id/');
 
-  /// POST /api/clubs/<id>/join/
-  /// Returns { status, role, is_member, is_pending, is_admin }.
-  /// If the club has requires_approval=true, status comes back
-  /// 'pending' and the user enters the admin's review queue.
   Future<dynamic> joinClub(String id) => post('/clubs/$id/join/');
 
-  /// DELETE /api/clubs/<id>/leave/
-  /// Backend rejects this for the current president — they have to
-  /// transfer presidency first to prevent orphan clubs.
   Future<dynamic> leaveClub(String id) => delete('/clubs/$id/leave/');
 
-  /// GET /api/clubs/<id>/members/?status=active|pending
-  /// Default 'active'. Use 'pending' to show approval queue (admin).
   Future<dynamic> getClubMembers(String id, {String status = 'active'}) =>
       get('/clubs/$id/members/', query: {'status': status});
 
-  /// POST /api/clubs/<id>/members/<user_id>/approve/   (admin only)
   Future<dynamic> approveClubMember(String clubId, String userId) =>
       post('/clubs/$clubId/members/$userId/approve/');
 
-  /// POST /api/clubs/<id>/members/<user_id>/reject/    (admin only)
   Future<dynamic> rejectClubMember(String clubId, String userId) =>
       post('/clubs/$clubId/members/$userId/reject/');
 
-  /// DELETE /api/clubs/<id>/members/<user_id>/         (admin only)
-  /// Cannot remove the president — backend enforces this.
   Future<dynamic> removeClubMember(String clubId, String userId) =>
       delete('/clubs/$clubId/members/$userId/');
 
-/// GET /api/clubs/<id>/feed/
-  /// Returns { posts: [...], events: [...] } for the club's internal
-  /// Feed tab and the arcade's Club Activity Hub.
   Future<dynamic> getClubFeed(String clubId) =>
       get('/clubs/$clubId/feed/');
 
-  /// GET /api/posts/?club_id=<id>
-  /// Convenience wrapper to list posts scoped to a single club.
   Future<dynamic> getClubPosts(String clubId, {int page = 1}) =>
       get('/posts/', query: {'club_id': clubId, 'page': '$page'});
-  /// PATCH /api/clubs/<id>/members/<user_id>/role/     (admin only)
-  /// body: {"role": "member" | "executive" | "president"}
-  /// Promoting to 'president' is allowed only if the caller is the
-  /// current president; the existing president gets demoted to
-  /// executive in the same atomic transaction.
+
   Future<dynamic> changeClubMemberRole(
           String clubId, String userId, String role) =>
       patch('/clubs/$clubId/members/$userId/role/', body: {'role': role});
 
-  /// POST /api/clubs/<id>/cover/   (admin only)
   Future<dynamic> uploadClubCover(
     String id, {
     required String filePath,
@@ -920,7 +766,6 @@ Future<bool> _tryRefresh() async {
       uploadFile('/clubs/$id/cover/',
           filePath: filePath, field: 'cover', mimeType: mimeType);
 
-  /// POST /api/clubs/<id>/logo/    (admin only)
   Future<dynamic> uploadClubLogo(
     String id, {
     required String filePath,
@@ -930,32 +775,8 @@ Future<bool> _tryRefresh() async {
           filePath: filePath, field: 'logo', mimeType: mimeType);
 
   // ══════════════════════════════════════════════════════════
-  // ARCADE  — token economy + multiplayer + spectator overhaul
+  // ARCADE
   // ══════════════════════════════════════════════════════════
-  //
-  // Backend is in apps.arcade. The new flow is built around three
-  // primitives:
-  //
-  //   1. TokenLedger     — every wallet write is audited
-  //   2. GameInvite      — parent invite (1 sender → 1..4 recipients)
-  //   3. GameSession     — actual match, with pot + winner + pot payout
-  //
-  // Legacy methods that no longer have a backend route (updateSession,
-  // checkAutoQuit) are marked @Deprecated and left in so old screens
-  // still compile. Migrate call sites to submitMatchResult /
-  // forfeitSession when you touch them.
-  //
-  // The wager/economic flow:
-  //
-  //   • Sender creates an invite → wager is escrowed immediately.
-  //   • Each recipient who accepts pays their own wager (escrowed too).
-  //   • When all participants finish, server picks the highest score
-  //     and pays the entire pot to the winner. Tie → all wagers refund.
-  //   • Decline / cancel / expire → sender's escrow is refunded.
-  //
-  // ──────────────────────────────────────────────────────────
-
-  // ── Catalog & stats ────────────────────────────────────────
 
   Future<dynamic> getGames()        => get('/arcade/games/');
   Future<dynamic> getPlayerStats()  => get('/arcade/stats/');
@@ -965,24 +786,14 @@ Future<bool> _tryRefresh() async {
         'limit': '$limit',
       });
 
-  // ── Wallet ─────────────────────────────────────────────────
-
-  /// Current balance + level/xp/gamer_tag.
   Future<dynamic> getTokenWallet() => get('/arcade/tokens/');
 
-  /// Full wallet ledger (every credit + debit row, newest first).
   Future<dynamic> getTokenHistory({int limit = 50}) =>
       get('/arcade/tokens/history/', query: {'limit': '$limit'});
 
-  /// Peer-to-peer transfer history (both sent and received).
-  /// Each row has a `direction` field of 'in' | 'out'.
   Future<dynamic> getTransferHistory({int limit = 50}) =>
       get('/arcade/tokens/transfers/', query: {'limit': '$limit'});
 
-  /// Send tokens to another user. Server-side caps:
-  ///   • Max 200 per transfer
-  ///   • Max 500 outbound per day
-  ///   • Cannot send to yourself
   Future<dynamic> sendTokens({
     required String recipientUserId,
     required int    amount,
@@ -992,8 +803,6 @@ Future<bool> _tryRefresh() async {
     'amount':            amount,
     'note':              note,
   });
-
-  // ── Solo score ─────────────────────────────────────────────
 
   Future<dynamic> submitScore({
     required String game,
@@ -1005,8 +814,6 @@ Future<bool> _tryRefresh() async {
     'bonus_tokens': bonusTokens,
   });
 
-  // ── Gamer tag & search ─────────────────────────────────────
-
   Future<dynamic> getGamerTag()           => get('/arcade/gamer-tag/');
   Future<dynamic> setGamerTag(String tag) =>
       patch('/arcade/gamer-tag/', body: {'gamer_tag': tag});
@@ -1014,38 +821,19 @@ Future<bool> _tryRefresh() async {
       uploadFile('/arcade/gamer-tag/avatar/',
           filePath: file.path, field: 'avatar', mimeType: 'image/jpeg');
 
-  /// Typeahead search for the challenge-recipient picker. Searches
-  /// gamer_tag, preferred_name, and name (prefix match). Excludes
-  /// the current user and users with no gamer_tag set.
   Future<dynamic> searchGamers({required String query, int limit = 10}) =>
       get('/arcade/gamer-tag/search/', query: {
         'q':     query,
         'limit': '$limit',
       });
 
-  // ── Invites & requests (multiplayer) ───────────────────────
-
-  /// Pending challenges I've received (incoming inbox).
   Future<dynamic> getGameRequests() => get('/arcade/game-requests/');
 
-  /// Invites I've sent. Optional [status] narrows the list — common
-  /// values: 'pending', 'started', 'completed', 'expired', 'cancelled'.
   Future<dynamic> getMySentInvites({String? status}) =>
       get('/arcade/game-invites/sent/', query: {
         if (status != null) 'status': status,
       });
 
-  /// Create a challenge to 1..4 recipients. Sender's wager is
-  /// escrowed immediately; each accepting recipient pays the same
-  /// wager on accept. Winner takes the whole pot.
-  ///
-  /// For 1-on-1 first-come games (quiz battle, tic-tac-toe), pass a
-  /// single id in [recipientUserIds] — the first to accept locks
-  /// the match and the rest are auto-declined and refunded.
-  ///
-  /// For royale games (pool royale, spirit racers, battle bots,
-  /// ninja tag), pass up to 4 ids — everyone who accepts joins the
-  /// same lobby.
   Future<dynamic> createChallenge({
     required String       gameSlug,
     required List<String> recipientUserIds,
@@ -1056,14 +844,9 @@ Future<bool> _tryRefresh() async {
     'wager':               wager,
   });
 
-  /// Cancel a pending invite. Auto-declines all recipients and
-  /// refunds the sender's escrowed wager.
   Future<dynamic> cancelInvite(String inviteId) =>
       post('/arcade/game-invites/$inviteId/cancel/', body: {});
 
-  /// Legacy single-recipient form. Still works because the backend
-  /// accepts both `receiver_id` (legacy) and `recipient_user_ids`
-  /// (new). Prefer createChallenge for new code.
   Future<dynamic> sendChallenge({
     required String receiverId,
     required String gameSlug,
@@ -1080,48 +863,25 @@ Future<bool> _tryRefresh() async {
   Future<dynamic> declineChallenge(String requestId) =>
       post('/arcade/game-requests/$requestId/decline/', body: {});
 
-  // ── Sessions ───────────────────────────────────────────────
-
-  /// Currently-active matches (anyone can spectate).
   Future<dynamic> getLiveSessions() => get('/arcade/sessions/live/');
 
-  /// Session detail. NOTE — URL changed from /game-sessions/<id>/
-  /// to /sessions/<id>/. Method signature is unchanged so existing
-  /// call sites keep working.
   Future<dynamic> getSession(String id) => get('/arcade/sessions/$id/');
 
-  /// Both players signal "ready" → flips waiting → active.
   Future<dynamic> startSession(String id) =>
       post('/arcade/sessions/$id/start/', body: {});
 
-  /// A player reports their final score for this match. Once every
-  /// non-forfeited participant has reported, the server settles the
-  /// pot and the response includes the payout summary.
   Future<dynamic> submitMatchResult({
     required String sessionId,
     required int    score,
   }) => post('/arcade/sessions/$sessionId/result/',
             body: {'score': score});
 
-  /// Player forfeits the match. Other player(s) win automatically.
   Future<dynamic> forfeitSession(String id) =>
       post('/arcade/sessions/$id/forfeit/', body: {});
 
-  /// Recent chat/cheer messages for a match. Realtime delivery is
-  /// via the MatchWsService WebSocket; this is just the REST
-  /// fallback used when joining as a spectator to backfill the
-  /// scrolling overlay.
   Future<dynamic> getMatchMessages(String sessionId, {int limit = 30}) =>
       get('/arcade/sessions/$sessionId/messages/',
           query: {'limit': '$limit'});
-
-  // ── Legacy (deprecated) ────────────────────────────────────
-  //
-  // The old `updateSession` endpoint used a single PATCH with an
-  // `action` field to do score updates / quits. The new flow splits
-  // that into submitMatchResult + forfeitSession. These wrappers
-  // route to the new endpoints so old call sites keep working —
-  // migrate when you touch the screens that use them.
 
   @Deprecated('Use submitMatchResult / forfeitSession instead.')
   Future<dynamic> updateSession(String id,
@@ -1132,7 +892,6 @@ Future<bool> _tryRefresh() async {
     if (action == 'quit' || action == 'forfeit') {
       return forfeitSession(id);
     }
-    // Unknown actions: noop, return current session state.
     return getSession(id);
   }
 
@@ -1161,11 +920,6 @@ Future<bool> _tryRefresh() async {
   // FEEDBACK / SUGGESTION BOX
   // ══════════════════════════════════════════════════════════
 
-  /// GET /api/feedback/categories/ — backend-driven picker tiles.
-  /// Returns a list of active categories sorted by sort_order, each
-  /// with id/key/label/emoji/gradient_from/gradient_to/sort_order.
-  /// The frontend renders the picker entirely from this data so
-  /// admins can add/remove/reorder categories without a code change.
   Future<dynamic> getSuggestionCategories() =>
       get('/feedback/categories/');
 

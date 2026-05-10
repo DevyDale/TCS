@@ -10,11 +10,11 @@ import 'package:tcs_app/services/notification_Service.dart';
 
 // ─── Config ───────────────────────────────────────────────────
 class ApiConfig {
-  // Android Emulator → use 10.0.2.2 (routes to Mac's localhost)
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  // iOS Simulator or Mac browser → 127.0.0.1 routes to the host's localhost
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
-  // iOS Simulator or Mac browser → use 127.0.0.1
-  // static const String baseUrl = 'http://127.0.0.1:8000';
+  // Android Emulator → uncomment when running on Android
+  // static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Physical device on same WiFi → run `ipconfig getifaddr en0`
   // static const String baseUrl = 'http://192.168.x.x:8000';
@@ -123,7 +123,7 @@ class AuthService {
   }
 
   // ── Verify student ──────────────────────────────────────────
-  // URL: POST /api/accounts/student/verify/   ← FIXED (was /api/auth/)
+  // URL: POST /api/accounts/student/verify/
   Future<Map<String, dynamic>> verifyStudent({
     required String studentId,
     required String dateOfBirth,
@@ -144,7 +144,7 @@ class AuthService {
   }
 
   // ── Verify staff ────────────────────────────────────────────
-  // URL: POST /api/accounts/staff/verify/     ← FIXED (was /api/auth/)
+  // URL: POST /api/accounts/staff/verify/
   Future<Map<String, dynamic>> verifyStaff({
     required String staffId,
     required String dateOfBirth,

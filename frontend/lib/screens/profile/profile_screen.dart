@@ -1548,9 +1548,12 @@ class _PostsTab extends StatelessWidget {
         buttonLabel: 'Create First Post', color: _kPurple, onTap: onCreate);
     }
     return RefreshIndicator(
-      color: _kInk, onRefresh: onRefresh,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+  color: _kInk, onRefresh: onRefresh,
+  child: ListView.builder(
+    padding: EdgeInsets.fromLTRB(
+      16, 16, 16,
+      16 + MediaQuery.of(context).padding.bottom + 90,
+    ),
         physics: const ClampingScrollPhysics(),
         itemCount: posts.length,
         itemBuilder: (_, i) {
@@ -1704,9 +1707,12 @@ class _FweetsTab extends StatelessWidget {
         buttonLabel: 'Create First Fweet', color: _kCoral, onTap: onCreate);
     }
     return RefreshIndicator(
-      color: _kInk, onRefresh: onRefresh,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+  color: _kInk, onRefresh: onRefresh,
+  child: ListView.builder(
+    padding: EdgeInsets.fromLTRB(
+      16, 16, 16,
+      16 + MediaQuery.of(context).padding.bottom + 90,
+    ),
         physics: const ClampingScrollPhysics(),
         itemCount: fweets.length,
         itemBuilder: (_, i) {
@@ -1777,10 +1783,12 @@ class _FavoritesTab extends StatelessWidget {
         sub: 'Posts you bookmark from the feed appear here', color: _kPurple);
     }
     return RefreshIndicator(
-      color: _kInk, onRefresh: onRefresh,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        physics: const ClampingScrollPhysics(),
+  color: _kInk, onRefresh: onRefresh,
+  child: ListView.builder(
+    padding: EdgeInsets.fromLTRB(
+      16, 16, 16,
+      16 + MediaQuery.of(context).padding.bottom + 90,
+    ),
         itemCount: favorites.length,
         itemBuilder: (_, i) {
           final p       = favorites[i];
@@ -1866,8 +1874,12 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
   Widget build(BuildContext context) =>
     AnimatedBuilder(animation: _a, builder: (_, __) {
       final o = 0.04 + _a.value * 0.06;
-      return ListView(padding: const EdgeInsets.all(16), children: [
-        _sh(o, 200), const SizedBox(height: 16),
+return ListView(
+  padding: EdgeInsets.fromLTRB(
+    16, 16, 16,
+    16 + MediaQuery.of(context).padding.bottom + 90,
+  ),
+  children: [        _sh(o, 200), const SizedBox(height: 16),
         _sh(o, 120), const SizedBox(height: 16),
         _sh(o, 160),
       ]);
@@ -1896,44 +1908,127 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
 // ═════════════════════════════════════════════════════════════
 // EMPTY STATE
 // ═════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════
+// EMPTY STATE  (responsive — scrolls when tab area is short)
+// ═════════════════════════════════════════════════════════════
 
 class _EmptyTab extends StatelessWidget {
-  final IconData icon; final String label; final String sub;
-  final String? buttonLabel; final Color color; final VoidCallback? onTap;
-  const _EmptyTab({required this.icon, required this.label, required this.sub,
-      required this.color, this.buttonLabel, this.onTap});
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(padding: const EdgeInsets.all(40),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 72, height: 72,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.10), shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.25), width: 1.5)),
-          child: Icon(icon, size: 30, color: color.withOpacity(0.7))),
-        const SizedBox(height: 18),
-        Text(label, style: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w900,
-            color: _kInk, letterSpacing: -0.3)),
-        const SizedBox(height: 6),
-        Text(sub, textAlign: TextAlign.center, style: const TextStyle(
-            fontSize: 12, color: _kSlate)),
-        if (buttonLabel != null && onTap != null) ...[
-          const SizedBox(height: 22),
-          GestureDetector(onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
-              decoration: BoxDecoration(
-                color: _kInk,
-                borderRadius: BorderRadius.circular(14)),
-              child: Text(buttonLabel!, style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white, fontSize: 13)))),
-        ],
-      ])));
-}
+  final IconData icon;
+  final String   label;
+  final String   sub;
+  final String?  buttonLabel;
+  final Color    color;
+  final VoidCallback? onTap;
 
-// ═════════════════════════════════════════════════════════════
+  const _EmptyTab({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.color,
+    this.buttonLabel,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Scale the icon bubble down on cramped layouts so the whole
+        // empty state still fits without overflowing.
+        final cramped  = constraints.maxHeight < 240;
+        final iconSize = cramped ? 56.0 : 72.0;
+        final iconInner = cramped ? 24.0 : 30.0;
+
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+              minWidth:  constraints.maxWidth,
+            ),
+            child: IntrinsicHeight(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+  32, 16, 32,
+  16 + MediaQuery.of(context).padding.bottom + 90,
+),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: iconSize,
+                        height: iconSize,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.10),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: color.withOpacity(0.25),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          icon,
+                          size: iconInner,
+                          color: color.withOpacity(0.7),
+                        ),
+                      ),
+                      SizedBox(height: cramped ? 12 : 18),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: _kInk,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        sub,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: _kSlate,
+                        ),
+                      ),
+                      if (buttonLabel != null && onTap != null) ...[
+                        SizedBox(height: cramped ? 14 : 22),
+                        GestureDetector(
+                          onTap: onTap,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 26,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _kInk,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              buttonLabel!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 // BIO ROW
 // ═════════════════════════════════════════════════════════════
 

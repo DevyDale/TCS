@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'dart:io' show Platform; // ← FIX: needed for Platform.isIOS check
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -6,11 +7,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:tcs_app/screens/splash_screen.dart';
 
 import 'package:tcs_app/services/auth_service.dart';
 import 'package:tcs_app/services/notification_Service.dart';
 
-import 'screens/dashboard/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_localisations.dart';
 import 'services/app_settings.dart';
@@ -112,18 +113,42 @@ AndroidNotificationChannel _pickChannel(RemoteMessage msg) {
 Future<void> syncFcmTopics() async {
   final s = AppSettings();
   final fcm = FirebaseMessaging.instance;
-  if (s.pushEnabled) {
-    await fcm.subscribeToTopic('all_users');
-    s.announcements
-        ? await fcm.subscribeToTopic('announcements')
-        : await fcm.unsubscribeFromTopic('announcements');
-    s.groupActivity
-        ? await fcm.subscribeToTopic('group_activity')
-        : await fcm.unsubscribeFromTopic('group_activity');
-  } else {
-    await fcm.unsubscribeFromTopic('all_users');
-    await fcm.unsubscribeFromTopic('announcements');
-    await fcm.unsubscribeFromTopic('group_activity');
+
+  // ← FIX: On iOS, subscribeToTopic requires an APNS token. The iOS Simulator
+  // never gets one (Apple limitation), and even on real devices it can take a
+  // moment after launch. Skip topic sync gracefully if APNS isn't ready.
+  if (Platform.isIOS) {
+    try {
+      final apnsToken = await fcm.getAPNSToken();
+      if (apnsToken == null) {
+        debugPrint(
+            '[FCM] No APNS token yet (likely simulator) — skipping topic sync');
+        return;
+      }
+    } catch (e) {
+      debugPrint('[FCM] APNS check failed: $e — skipping topic sync');
+      return;
+    }
+  }
+
+  // ← FIX: Wrap the actual subscribe/unsubscribe calls so a transient
+  // network or token issue can't crash the app.
+  try {
+    if (s.pushEnabled) {
+      await fcm.subscribeToTopic('all_users');
+      s.announcements
+          ? await fcm.subscribeToTopic('announcements')
+          : await fcm.unsubscribeFromTopic('announcements');
+      s.groupActivity
+          ? await fcm.subscribeToTopic('group_activity')
+          : await fcm.unsubscribeFromTopic('group_activity');
+    } else {
+      await fcm.unsubscribeFromTopic('all_users');
+      await fcm.unsubscribeFromTopic('announcements');
+      await fcm.unsubscribeFromTopic('group_activity');
+    }
+  } catch (e) {
+    debugPrint('[FCM] Topic sync failed: $e');
   }
 }
 
@@ -153,8 +178,13 @@ Future<void> main() async {
   await ApiService().initialize();
   await AppSettings().load();
 
-  // FCM topics depend on saved prefs, so init AFTER AppSettings.load()
-  await _initFcm();
+  // ← FIX: FCM init must NEVER kill the app. On iOS simulator it can throw
+  // because APNS tokens aren't issued. Catch and log so runApp() still runs.
+  try {
+    await _initFcm();
+  } catch (e, st) {
+    debugPrint('[FCM] init failed (continuing without push): $e\n$st');
+  }
 
   final hasSession = await AuthService.instance.isLoggedIn;
   if (hasSession) {
