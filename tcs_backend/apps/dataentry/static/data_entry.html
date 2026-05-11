@@ -705,6 +705,10 @@
                 <label class="c4">Date of Commencement</label>
                 <input type="date" id="commencement">
               </div>
+              <div class="field">
+                <label class="c4">Date of Finishing</label>
+                <input type="date" id="finishingDate">
+              </div>
             </div>
           </div>
 
@@ -855,9 +859,10 @@
         const dob = document.getElementById('dob').value;
         const ct  = document.getElementById('courseType').value;
         const com = document.getElementById('commencement').value;
-        if (!fn || !sid || !dob || !ct || !com) { showToast('Please fill in all required fields.', false); return; }
+        const fin = document.getElementById('finishingDate').value;
+        if (!fn || !sid || !dob || !ct || !com || !fin) { showToast('Please fill in all required fields.', false); return; }
         url = '/api/dataentry/student/';
-        payload = { full_name: fn, preferred_name: pn || fn.split(' ')[0], student_id: sid, date_of_birth: dob, course_type: ct, date_of_commencement: com };
+        payload = { full_name: fn, preferred_name: pn || fn.split(' ')[0], student_id: sid, date_of_birth: dob, course_type: ct, date_of_commencement: com, date_of_finishing: fin };
       } else {
         const st  = document.getElementById('staffType').value;
         const sid = document.getElementById('staffId').value.trim();
