@@ -1,6 +1,7 @@
 # apps/groups/models.py
 import uuid
 from django.db import models
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
 from django.conf import settings
 from django.utils import timezone
 
@@ -152,7 +153,7 @@ class GroupMaterial(models.Model):
     group       = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="materials")
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title       = models.CharField(max_length=200)
-    file        = models.FileField(upload_to="group_materials/%Y/%m/")
+    file        = models.FileField(upload_to="group_materials/%Y/%m/", storage=RawMediaCloudinaryStorage())
     file_name   = models.CharField(max_length=200, blank=True)
     file_type   = models.CharField(max_length=50, blank=True)
     file_size   = models.PositiveIntegerField(null=True, blank=True)

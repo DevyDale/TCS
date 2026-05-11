@@ -23,6 +23,15 @@
 // This guarantees the splash screen always finds a valid session
 // after login and routes the user straight to the dashboard.
 //
+// RESUME-REFRESH HOOK
+// ───────────────────
+// A new public method refreshAccessToken() exposes the existing
+// private _tryRefresh() to the root widget. _TCSAppState calls it on
+// AppLifecycleState.resumed when the saved JWT's exp claim is within
+// 5 minutes, so the dashboard and downstream clients (Dale AI SSE,
+// arcade WebViews, WebSockets) all see a fresh token when the user
+// brings the app back to the foreground.
+//
 // Bug fixes: replaced '\$page' / '\$id' literal escapes (which sent
 // the literal text "$page" / "$id" to the server) with proper
 // interpolation in getMyPosts / getMyFweets / getFavorites / deletePost.
@@ -177,6 +186,15 @@ class ApiService {
   Future<void> clearTokens()               => _Tokens.clear();
   Future<String?> get accessToken          => _Tokens.access();
   Future<Map<String, dynamic>?> get cachedUser => _Tokens.user();
+
+  /// Public hook for proactive token refresh.
+  ///
+  /// Invoked by `_TCSAppState.didChangeAppLifecycleState` whenever
+  /// the app comes back to the foreground AND the saved JWT's `exp`
+  /// claim is expired or within 5 minutes of expiring. Returns true
+  /// on success, false on any failure (per the sticky-session
+  /// contract, the session is left untouched either way).
+  Future<bool> refreshAccessToken() => _tryRefresh();
 
   // ── Headers ───────────────────────────────────────────────
 

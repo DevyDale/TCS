@@ -81,7 +81,7 @@ class GroupMaterialSerializer(serializers.ModelSerializer):
     # ── from model property — frontend uses this to show "Quiz me" ──
     is_quizable      = serializers.ReadOnlyField()
     # ── group context — handy when listing materials cross-group ────
-    group_id         = serializers.CharField(source="group_id", read_only=True)
+    group_id         = serializers.CharField(read_only=True)
     group_name       = serializers.CharField(source="group.name", read_only=True)
 
     class Meta:
