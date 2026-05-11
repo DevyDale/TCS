@@ -106,6 +106,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    is_available_study  = models.BooleanField(default=False)
+    study_subjects      = models.CharField(max_length=200, blank=True, default="")
     is_online   = models.BooleanField(default=False)
     last_seen   = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
