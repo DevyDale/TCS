@@ -1,3 +1,4 @@
+from apps.accounts.role_filter import filter_users_by_role, can_follow
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from rest_framework import generics, status, permissions

@@ -59,6 +59,8 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
 
   String _filter   = _kFilterDiscover;
   String _category = _kCatAll;
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   bool   _loading  = true;
   bool   _refreshing = false;
   List<Map<String, dynamic>> _results = [];
@@ -166,6 +168,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
         child: Column(children: [
           _buildHeader(),
           _buildFilterRow(),
+          _buildSearchBar(),
           _buildCategoryRow(),
           const SizedBox(height: 4),
           Expanded(child: _buildBody()),
@@ -295,6 +298,40 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
     );
   }
 
+
+  // ── Search bar ───────────────────────────────────────────
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+              blurRadius: 8, offset: const Offset(0, 3))]),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (q) => setState(() => _searchQuery = q.trim().toLowerCase()),
+          style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+          decoration: InputDecoration(
+            hintText: 'Search clubs by name or tagline...',
+            hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
+                color: _kSlate.withOpacity(0.5)),
+            prefixIcon: const Icon(Icons.search_rounded, color: _kIndigo),
+            suffixIcon: _searchCtrl.text.isNotEmpty
+                ? GestureDetector(
+                    onTap: () { _searchCtrl.clear();
+                        setState(() => _searchQuery = ''); },
+                    child: Icon(Icons.close_rounded, color: Colors.grey.shade400))
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Category filter row ───────────────────────────────────
 
   Widget _buildCategoryRow() {
@@ -342,6 +379,15 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
 
   // ── Body ──────────────────────────────────────────────────
 
+  List<Map<String, dynamic>> get _filteredResults {
+    if (_searchQuery.isEmpty) return _results;
+    return _results.where((c) {
+      final name = (c['name'] as String? ?? '').toLowerCase();
+      final tag  = (c['tagline'] as String? ?? '').toLowerCase();
+      return name.contains(_searchQuery) || tag.contains(_searchQuery);
+    }).toList();
+  }
+
   Widget _buildBody() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: _kIndigo));
@@ -356,9 +402,9 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
       onRefresh: _onRefresh,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        itemCount: _results.length,
+        itemCount: _filteredResults.length,
         itemBuilder: (_, i) =>
-            _ClubCard(club: _results[i], onTap: () => _openClub(_results[i])),
+            _ClubCard(club: _filteredResults[i], onTap: () => _openClub(_filteredResults[i])),
       ),
     );
   }

@@ -26,7 +26,7 @@ final FlutterLocalNotificationsPlugin localNotifications =
 
 const AndroidNotificationChannel _channelAll = AndroidNotificationChannel(
   'tcs_all', 'All Notifications',
-  description: 'Default channel for TCS StudentHub',
+  description: 'Default channel for TCS',
   importance: Importance.high,
 );
 const AndroidNotificationChannel _channelAnn = AndroidNotificationChannel(

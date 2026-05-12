@@ -181,6 +181,7 @@ class GroupDetailView(generics.RetrieveUpdateDestroyAPIView):
         group.is_active      = False
         group.dissolved_at   = timezone.now()
         group.dissolve_reason = reason
+        group._dissolved_by = request.user
         group.save(update_fields=["is_active", "dissolved_at", "dissolve_reason"])
         return Response({"success": True, "message": "Group dissolved."})
 

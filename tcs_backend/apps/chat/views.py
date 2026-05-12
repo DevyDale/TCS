@@ -2,6 +2,7 @@ import json
 import re
 import urllib.request
 import urllib.parse
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -117,21 +118,39 @@ class RoomSerializer(serializers.ModelSerializer):
 
 
 class ChatRequestSerializer(serializers.ModelSerializer):
-    sender_name   = serializers.CharField(source="sender.display_name", read_only=True)
-    sender_avatar = serializers.SerializerMethodField()
-    sender_role   = serializers.CharField(source="sender.role", read_only=True)
-    sender_user_id = serializers.CharField(source="sender.user_id", read_only=True)
+    sender_name      = serializers.CharField(source="sender.display_name", read_only=True)
+    sender_avatar    = serializers.SerializerMethodField()
+    sender_role      = serializers.CharField(source="sender.role", read_only=True)
+    sender_user_id   = serializers.CharField(source="sender.user_id", read_only=True)
+    receiver_name    = serializers.CharField(source="receiver.display_name", read_only=True)
+    receiver_avatar  = serializers.SerializerMethodField()
+    receiver_role    = serializers.CharField(source="receiver.role", read_only=True)
+    receiver_user_id = serializers.CharField(source="receiver.user_id", read_only=True)
+    is_sender        = serializers.SerializerMethodField()
 
     class Meta:
         model  = ChatRequest
-        fields = ["id", "sender_user_id", "sender_name", "sender_avatar",
-                  "sender_role", "message", "status", "created_at"]
+        fields = ["id",
+                  "sender_user_id", "sender_name", "sender_avatar", "sender_role",
+                  "receiver_user_id", "receiver_name", "receiver_avatar", "receiver_role",
+                  "is_sender",
+                  "message", "status", "created_at"]
 
     def get_sender_avatar(self, obj):
         req = self.context.get("request")
         if obj.sender.avatar:
             return req.build_absolute_uri(obj.sender.avatar.url) if req else obj.sender.avatar.url
         return None
+
+    def get_receiver_avatar(self, obj):
+        req = self.context.get("request")
+        if obj.receiver.avatar:
+            return req.build_absolute_uri(obj.receiver.avatar.url) if req else obj.receiver.avatar.url
+        return None
+
+    def get_is_sender(self, obj):
+        req = self.context.get("request")
+        return bool(req and obj.sender_id == req.user.id)
 
 
 class SavedMaterialSerializer(serializers.ModelSerializer):
@@ -382,6 +401,74 @@ def search_chats(request):
     return Response({"results": results})
 
 
+
+
+
+# ── Online + Connected user lists (chat search tabs) ──────────
+
+@api_view(["GET"])
+def online_users(request):
+    """GET /api/chat/users/online/ — users active in the last 5 minutes."""
+    cutoff = timezone.now() - timedelta(minutes=5)
+
+    users = User.objects.filter(
+        is_active=True,
+        last_seen__gte=cutoff,
+    ).exclude(id=request.user.id).order_by("-last_seen")[:50]
+
+    following_ids = set(request.user.following.values_list("id", flat=True))
+    followers_ids = set(request.user.followers.values_list("id", flat=True))
+
+    results = []
+    for u in users:
+        is_connected = u.id in following_ids or u.id in followers_ids
+        room = Room.objects.filter(
+            members=request.user, room_type="direct"
+        ).filter(members=u).first()
+        results.append({
+            "user_id":      u.user_id,
+            "name":         u.display_name,
+            "role":         u.role,
+            "avatar_url":   request.build_absolute_uri(u.avatar.url) if u.avatar else None,
+            "is_online":    u.is_online,
+            "is_connected": is_connected,
+            "room_id":      str(room.id) if room else None,
+        })
+    return Response({"results": results})
+
+
+@api_view(["GET"])
+def connected_users(request):
+    """GET /api/chat/users/connected/ — your follow connections (followers + following)."""
+    following_ids = set(request.user.following.values_list("id", flat=True))
+    followers_ids = set(request.user.followers.values_list("id", flat=True))
+    connection_ids = following_ids | followers_ids
+
+    if not connection_ids:
+        return Response({"results": []})
+
+    users = User.objects.filter(
+        is_active=True,
+        id__in=connection_ids,
+    ).order_by("-is_online", "-last_seen", "name")[:100]
+
+    results = []
+    for u in users:
+        room = Room.objects.filter(
+            members=request.user, room_type="direct"
+        ).filter(members=u).first()
+        results.append({
+            "user_id":      u.user_id,
+            "name":         u.display_name,
+            "role":         u.role,
+            "avatar_url":   request.build_absolute_uri(u.avatar.url) if u.avatar else None,
+            "is_online":    u.is_online,
+            "is_connected": True,
+            "room_id":      str(room.id) if room else None,
+        })
+    return Response({"results": results})
+
+
 @api_view(["GET"])
 def message_history(request, room_id):
     if not RoomMember.objects.filter(room_id=room_id, user=request.user).exists():
@@ -433,9 +520,17 @@ def mark_room_read(request, room_id):
 
 @api_view(["GET"])
 def chat_requests_list(request):
-    """GET /api/chat/requests/ — all pending requests received."""
+    """GET /api/chat/requests/ — pending requests RECEIVED by the user (incoming)."""
     reqs = ChatRequest.objects.filter(receiver=request.user, status="pending")\
-                              .select_related("sender")
+                              .select_related("sender", "receiver")
+    return Response(ChatRequestSerializer(reqs, many=True, context={"request": request}).data)
+
+
+@api_view(["GET"])
+def sent_chat_requests_list(request):
+    """GET /api/chat/requests/sent/ — pending requests SENT by the user (outgoing)."""
+    reqs = ChatRequest.objects.filter(sender=request.user, status="pending")\
+                              .select_related("sender", "receiver")
     return Response(ChatRequestSerializer(reqs, many=True, context={"request": request}).data)
 
 

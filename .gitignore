@@ -117,3 +117,8 @@ node_modules/
 frontend/android/key.properties
 *.keystore
 *.jks
+
+# Sed/patcher backup files
+*.bak
+*.bak.*
+.fixbak/

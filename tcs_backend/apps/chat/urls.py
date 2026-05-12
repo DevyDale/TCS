@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import ai_analyze as ai_analyze_mod
 
 urlpatterns = [
     # Rooms
@@ -13,6 +14,8 @@ urlpatterns = [
     path("dm/start/",                             views.start_dm,                      name="start-dm"),
     path("dm/search/",                            views.search_chats,                  name="chat-search"),
 
+    path("users/online/",                        views.online_users,                  name="chat-users-online"),
+    path("users/connected/",                     views.connected_users,               name="chat-users-connected"),
     # Media
     path("upload/",                               views.upload_chat_media,             name="chat-upload"),
 
@@ -23,6 +26,7 @@ urlpatterns = [
 
     # Chat requests
     path("requests/",                             views.chat_requests_list,            name="chat-requests"),
+    path("requests/sent/",                        views.sent_chat_requests_list,       name="chat-requests-sent"),
     path("requests/send/",                        views.send_chat_request,             name="chat-request-send"),
     path("requests/<uuid:req_id>/accept/",        views.accept_chat_request,           name="chat-request-accept"),
     path("requests/<uuid:req_id>/decline/",       views.decline_chat_request,          name="chat-request-decline"),
@@ -36,4 +40,5 @@ urlpatterns = [
     path("saved/save/",                           views.save_material,                 name="save-material"),
     path("saved/<uuid:material_id>/",             views.update_saved_material,         name="update-saved"),
     path("saved/<uuid:material_id>/delete/",      views.delete_saved_material,         name="delete-saved"),
+    path("rooms/<uuid:room_id>/ai-analyze/", ai_analyze_mod.ai_analyze_room, name="chat-ai-analyze"),
 ]

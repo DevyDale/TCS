@@ -41,6 +41,7 @@ LOCAL_APPS = [
     "apps.posts",
     "apps.chat",
     "apps.groups",
+    "apps.activity",
     "apps.arcade",
     "apps.events",
     "apps.notifications",
@@ -60,6 +61,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.UpdateLastSeenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

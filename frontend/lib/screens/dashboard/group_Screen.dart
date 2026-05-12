@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -132,14 +133,77 @@ class _GroupScreenState extends State<GroupScreen>
     }
   }
 
-  Future<void> _uploadMaterial() async {
-    final picked = await _picker.pickMultiImage();
-    if (picked.isEmpty) return;
-    final file = File(picked.first.path);
+  Future<void> _shareLink() async {
+    final ctrl = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Share a Link'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com',
+            labelText: 'URL',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+              child: const Text('Share')),
+        ],
+      ),
+    );
+    if (url == null || url.isEmpty) return;
     try {
-      final title = picked.first.name;
-      // Upload via multipart
-      final result = await _api.uploadPostMedia(_groupId, file);
+      await _api.post('/groups/$_groupId/materials/', body: {
+        'title': url,
+        'file_type': 'link',
+        'external_url': url,
+      });
+      _loadMaterials();
+      _snack('Link shared');
+    } catch (e) {
+      _snack('Could not share link: $e');
+    }
+  }
+
+  Future<void> _uploadMaterial() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      allowMultiple: false,
+      withData: false,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final pf = picked.files.first;
+    if (pf.path == null) {
+      _snack('Could not read file path');
+      return;
+    }
+    final file = File(pf.path!);
+    try {
+      // Derive mime from extension (Cloudinary RawMedia accepts anything)
+      final ext = (pf.extension ?? '').toLowerCase();
+      String mime = 'application/octet-stream';
+      if (ext == 'pdf')                           mime = 'application/pdf';
+      else if (ext == 'doc' || ext == 'docx')     mime = 'application/msword';
+      else if (ext == 'xls' || ext == 'xlsx')     mime = 'application/vnd.ms-excel';
+      else if (ext == 'ppt' || ext == 'pptx')     mime = 'application/vnd.ms-powerpoint';
+      else if (ext == 'txt')                      mime = 'text/plain';
+      else if (ext == 'mp4' || ext == 'mov' || ext == 'webm') mime = 'video/$ext';
+      else if (ext == 'mp3' || ext == 'wav' || ext == 'm4a')  mime = 'audio/$ext';
+      else if (ext == 'jpg' || ext == 'jpeg')     mime = 'image/jpeg';
+      else if (ext == 'png' || ext == 'gif' || ext == 'webp') mime = 'image/$ext';
+
+      final result = await _api.uploadFile(
+        '/groups/$_groupId/materials/',
+        filePath:    file.path,
+        field:       'file',
+        mimeType:    mime,
+        extraFields: {'title': pf.name},
+      );
       if (result != null) {
         _loadMaterials();
         _snack('Material uploaded ✓');
@@ -250,17 +314,37 @@ class _GroupScreenState extends State<GroupScreen>
 
     if (reason == null || reason.isEmpty || !mounted) return;
 
+    // Show loading dialog while dissolving
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const CircularProgressIndicator(color: _kG4),
+              const SizedBox(height: 16),
+              Text('Dissolving group...',
+                style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 13, color: Colors.grey.shade700)),
+            ]),
+          ),
+        ),
+      );
+    }
     try {
-      // FIX 4: delete() has no body param — use patch() to set is_active=false
-      // The backend GroupDetailView.destroy() reads request.data["reason"]
-      // We workaround by calling PATCH then DELETE separately, or use a
-      // dedicated dissolve approach via PATCH:
       await _api.patch('/groups/$_groupId/', body: {
         'dissolve_reason': reason,
         'is_active':       false,
       });
-      if (mounted) Navigator.pop(context, 'dissolved');
+      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // close loading
+      if (mounted) Navigator.pop(context, 'dissolved');              // close group screen
     } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // close loading
       _snack('Failed: $e');
     }
   }
@@ -721,30 +805,61 @@ class _GroupScreenState extends State<GroupScreen>
     return Column(children: [
       Padding(
         padding: const EdgeInsets.all(16),
-        child: GestureDetector(
-          onTap: _uploadMaterial,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            decoration: BoxDecoration(
-              gradient:
-                  const LinearGradient(colors: [_indigo, _deep]),
-              borderRadius: BorderRadius.circular(14)),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.upload_file_rounded,
-                    color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('Upload Material',
-                    style: TextStyle(
-                        fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 14)),
-              ],
+        child: Row(children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: _uploadMaterial,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  gradient:
+                      const LinearGradient(colors: [_indigo, _deep]),
+                  borderRadius: BorderRadius.circular(14)),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.upload_file_rounded,
+                        color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text('Upload',
+                        style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 14)),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: GestureDetector(
+              onTap: _shareLink,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: _indigo, width: 1.5),
+                  borderRadius: BorderRadius.circular(14)),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.link_rounded,
+                        color: _indigo, size: 20),
+                    SizedBox(width: 8),
+                    Text('Share Link',
+                        style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            color: _indigo,
+                            fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ]),
       ),
 
       Expanded(

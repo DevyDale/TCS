@@ -55,15 +55,15 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
                   color: Colors.white, size: 52),
             )),
             const SizedBox(height: 18),
-            Center(child: Text('TCS StudentHub',
+            Center(child: Text('TCS',
                 style: TextStyle(fontFamily: 'Alfa', fontSize: 24, color: _text))),
             const SizedBox(height: 4),
             Center(child: Text('Version 5.0',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: _sub))),
             const SizedBox(height: 28),
             _card2([
-              _h('What is TCS StudentHub?'),
-              _p('TCS StudentHub is the official student companion app for '
+              _h('What is TCS?'),
+              _p('TCS is the official student companion app for '
                 'Taylors College Sydney. It brings together everything '
                 'you need to stay connected with the college and your '
                 'peers — campus announcements, study groups, peer chat, '

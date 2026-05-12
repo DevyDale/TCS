@@ -46,7 +46,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _sub)),
             const SizedBox(height: 16),
             _h('1. Who We Are'),
-            _p('TCS StudentHub is operated by Taylors College Sydney. We are '
+            _p('TCS is operated by Taylors College Sydney. We are '
               'the data controller for any personal information collected '
               'through the App. This Policy explains what we collect, why, '
               'and your rights under the Australian Privacy Principles.'),

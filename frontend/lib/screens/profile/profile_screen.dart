@@ -206,6 +206,35 @@ class _ProfileScreenState extends State<ProfileScreen>
           _interestsSeeded = true;
         }
 
+        // Re-hydrate _bioData on every fetch so navigating away and back
+        // does not wipe the displayed bio. Always overwrite from backend,
+        // since the backend is the source of truth after a save.
+        final hasBio = d['bio'] != null || d['quote'] != null ||
+            d['pronouns'] != null || d['country'] != null ||
+            d['year'] != null || d['school'] != null ||
+            d['study_style'] != null;
+        if (hasBio) {
+          _bioData = BioData(
+            bio:        d['bio']         as String?,
+            quote:      d['quote']       as String?,
+            pronouns:   d['pronouns']    as String?,
+            country:    d['country']     as String?,
+            year:       d['year']        as String?,
+            school:     d['school']      as String?,
+            studyStyle: d['study_style'] as String?,
+            availableForStudy: d['is_available_study'] as bool? ?? false,
+          );
+        }
+
+        // Always rehydrate interests after the first seed so a server-side
+        // save (via InterestsPage) survives a screen pop+push.
+        if (_interestsSeeded) {
+          final saved = (d['interests'] as List?)?.cast<String>();
+          if (saved != null) {
+            _interests..clear()..addAll(saved);
+          }
+        }
+
         final av = d['avatar_url'] as String?;
         final cv = d['cover_url']  as String?;
         if (av != null && av.isNotEmpty && _avatarFile == null) _avatarUrl = av;
@@ -236,24 +265,42 @@ class _ProfileScreenState extends State<ProfileScreen>
     final id = _posts[i]['id']?.toString() ?? '';
     if (id.isEmpty) return;
     if (!await _confirmDelete(context, 'post')) return;
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (_) => Center(
+        child: CircularProgressIndicator(color: _kPurple)),
+    );
     try {
       await _api.deletePost(id);
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
       setState(() => _posts.removeAt(i));
       notifyPostDeleted(id);
       _snack('Post deleted');
-    } catch (_) { _snack('Failed to delete', error: true); }
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      _snack('Could not delete: $e', error: true);
+    }
   }
 
   Future<void> _deleteFweet(int i) async {
     final id = _fweets[i]['id']?.toString() ?? '';
     if (id.isEmpty) return;
     if (!await _confirmDelete(context, 'fweet')) return;
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (_) => Center(
+        child: CircularProgressIndicator(color: _kPurple)),
+    );
     try {
       await _api.deletePost(id);
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
       setState(() => _fweets.removeAt(i));
       notifyPostDeleted(id);
       _snack('Fweet deleted');
-    } catch (_) { _snack('Failed to delete', error: true); }
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      _snack('Could not delete: $e', error: true);
+    }
   }
 
   Future<bool> _confirmDelete(BuildContext ctx, String type) async =>
@@ -1113,7 +1160,7 @@ Future<void> _shareMyProfile() async {
           child: IntrinsicHeight(child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _StatCell(value: _posts.length, label: 'Posts'),
+              _StatCell(value: _posts.length + _fweets.length, label: 'Posts'),
               _divider(),
               _StatCell(value: _followers, label: 'Followers'),
               _divider(),
@@ -1547,7 +1594,8 @@ class _PostsTab extends StatelessWidget {
         sub: 'Share something with the campus',
         buttonLabel: 'Create First Post', color: _kPurple, onTap: onCreate);
     }
-    return RefreshIndicator(
+    return Stack(children: [
+      RefreshIndicator(
   color: _kInk, onRefresh: onRefresh,
   child: ListView.builder(
     padding: EdgeInsets.fromLTRB(
@@ -1567,13 +1615,116 @@ class _PostsTab extends StatelessWidget {
             onDelete: () => onDelete(i));
         },
       ),
-    );
+    ),
+      Positioned(
+        bottom: 20, right: 20,
+        child: GestureDetector(
+          onTap: onCreate,
+          child: Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_kPurple, _kBlue],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(
+                color: _kPurple.withOpacity(0.4),
+                blurRadius: 12, offset: const Offset(0, 4))]),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ),
+    ]);
   }
 }
 
 // ═════════════════════════════════════════════════════════════
 // PROFILE POST CARD
 // ═════════════════════════════════════════════════════════════
+
+
+// ═════════════════════════════════════════════════════════════
+// STATS BOTTOM SHEET — tap a post/fweet stats row to open
+// ═════════════════════════════════════════════════════════════
+
+int _statInt(Map m, List<String> keys) {
+  for (final k in keys) {
+    final v = m[k];
+    if (v is int) return v;
+    if (v is String) { final p = int.tryParse(v); if (p != null) return p; }
+  }
+  return 0;
+}
+
+void showPostStatsSheet(BuildContext context, Map<String, dynamic> post) {
+  final likes    = _statInt(post, ['like_count','likes_count']);
+  final comments = _statInt(post, ['comment_count','comments_count']);
+  final favs     = _statInt(post, ['favorite_count','favorites_count','bookmark_count']);
+  _showStatsSheet(context, likes, comments, favs, 'Post stats');
+}
+
+void showFweetStatsSheet(BuildContext context, Map<String, dynamic> fweet) {
+  final likes    = _statInt(fweet, ['like_count','likes_count']);
+  final comments = _statInt(fweet, ['comment_count','comments_count']);
+  final favs     = _statInt(fweet, ['favorite_count','favorites_count','bookmark_count']);
+  _showStatsSheet(context, likes, comments, favs, 'Fweet stats');
+}
+
+void _showStatsSheet(BuildContext context, int likes, int comments, int favs, String title) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + MediaQuery.of(ctx).padding.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 36, height: 4,
+            decoration: BoxDecoration(color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(fontSize: 18,
+            fontWeight: FontWeight.w800, fontFamily: 'Alfa')),
+          const SizedBox(height: 18),
+          _StatTile(icon: Icons.favorite_rounded,
+            label: 'Likes', count: likes, color: const Color(0xFFFF4F6E)),
+          const SizedBox(height: 10),
+          _StatTile(icon: Icons.mode_comment_rounded,
+            label: 'Comments', count: comments, color: const Color(0xFF6DD5FA)),
+          const SizedBox(height: 10),
+          _StatTile(icon: Icons.bookmark_rounded,
+            label: 'Favourites', count: favs, color: const Color(0xFFF59E0B)),
+        ],
+      ),
+    ),
+  );
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon; final String label; final int count; final Color color;
+  const _StatTile({required this.icon, required this.label,
+    required this.count, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 12),
+        Expanded(child: Text(label, style: const TextStyle(
+          fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Momo'))),
+        Text('$count', style: TextStyle(fontSize: 22,
+          fontWeight: FontWeight.w800, color: color, fontFamily: 'Alfa')),
+      ]),
+    );
+  }
+}
 
 class _ProfilePostCard extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -1678,10 +1829,88 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
                   fontSize: 12, color: _kSlate)),
             ]),
           ],
+          const SizedBox(height: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => showPostStatsSheet(context, widget.post),
+            child: _PostStatsRow(post: widget.post)),
         ])),
       ]),
     );
   }
+}
+
+class _PostStatsRow extends StatelessWidget {
+  final Map<String, dynamic> post;
+  const _PostStatsRow({required this.post});
+
+  int _n(String k) {
+    final v = post[k];
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final likes = _n('like_count') + _n('likes_count');
+    final comments = _n('comment_count') + _n('comments_count');
+    final favs = _n('favorite_count') + _n('favorites_count') + _n('bookmark_count');
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(children: [
+        _statChip(Icons.favorite_rounded, likes, _kCoral),
+        const SizedBox(width: 14),
+        _statChip(Icons.mode_comment_rounded, comments, _kBlue),
+        const SizedBox(width: 14),
+        _statChip(Icons.bookmark_rounded, favs, _kPurple),
+      ]),
+    );
+  }
+
+  Widget _statChip(IconData icon, int count, Color color) =>
+    Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 14, color: color),
+      const SizedBox(width: 4),
+      Text('$count', style: TextStyle(
+          fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+    ]);
+}
+
+class _FweetStatsRow extends StatelessWidget {
+  final Map<String, dynamic> fweet;
+  final bool onColored;
+  const _FweetStatsRow({required this.fweet, required this.onColored});
+
+  int _n(String k) {
+    final v = fweet[k];
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final likes = _n('like_count') + _n('likes_count');
+    final comments = _n('comment_count') + _n('comments_count');
+    final favs = _n('favorite_count') + _n('favorites_count') + _n('bookmark_count');
+    final c = onColored ? Colors.white : _kInkSoft;
+    return Row(children: [
+      _stat(Icons.favorite_rounded, likes, c),
+      const SizedBox(width: 14),
+      _stat(Icons.mode_comment_rounded, comments, c),
+      const SizedBox(width: 14),
+      _stat(Icons.bookmark_rounded, favs, c),
+    ]);
+  }
+
+  Widget _stat(IconData icon, int count, Color color) =>
+    Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 13, color: color.withOpacity(0.85)),
+      const SizedBox(width: 4),
+      Text('$count', style: TextStyle(
+          fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+    ]);
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -1706,7 +1935,8 @@ class _FweetsTab extends StatelessWidget {
         sub: 'Quick thoughts and campus updates',
         buttonLabel: 'Create First Fweet', color: _kCoral, onTap: onCreate);
     }
-    return RefreshIndicator(
+    return Stack(children: [
+      RefreshIndicator(
   color: _kInk, onRefresh: onRefresh,
   child: ListView.builder(
     padding: EdgeInsets.fromLTRB(
@@ -1752,14 +1982,44 @@ class _FweetsTab extends StatelessWidget {
                           color: bg != null ? Colors.white70 : _kCoral)),
                   ])),
                 Padding(padding: const EdgeInsets.all(16),
-                  child: Text(content, style: TextStyle(
-                      fontSize: 15, height: 1.5,
-                      color: bg != null ? Colors.white : _kInk))),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(content, style: TextStyle(
+                          fontSize: 15, height: 1.5,
+                          color: bg != null ? Colors.white : _kInk)),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => showFweetStatsSheet(context, f),
+                        child: _FweetStatsRow(fweet: f, onColored: bg != null)),
+                    ],
+                  ),
+                ),
               ])),
           );
         },
       ),
-    );
+    ),
+      Positioned(
+        bottom: 20, right: 20,
+        child: GestureDetector(
+          onTap: onCreate,
+          child: Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_kCoral, Color(0xFFFF8A65)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(
+                color: _kCoral.withOpacity(0.4),
+                blurRadius: 12, offset: const Offset(0, 4))]),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ),
+    ]);
   }
 }
 

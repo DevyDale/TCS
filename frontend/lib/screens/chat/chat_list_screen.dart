@@ -52,6 +52,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   List<Map<String, dynamic>> _chats          = [];
   List<Map<String, dynamic>> _requests       = [];   // 1-on-1 chat requests
   List<Map<String, dynamic>> _bubbleInvites  = [];   // pending bubble invites
+  List<Map<String, dynamic>> _outgoingRequests = []; // 1-on-1 outgoing chat requests
   bool _loadingChats    = true;
   bool _loadingRequests = true;
 
@@ -62,7 +63,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   String? _meUserId;
 
-  int get _totalRequests => _requests.length + _bubbleInvites.length;
+  int get _totalRequests => _requests.length + _outgoingRequests.length + _bubbleInvites.length;
 
   @override
   void initState() {
@@ -123,6 +124,15 @@ class _ChatListScreenState extends State<ChatListScreen>
       _bubbleInvites   = invites;
       _loadingRequests = false;
     });
+
+    // Outgoing chat requests (pending, sent by me)
+    try {
+      final sent = await _api.get('/chat/requests/sent/');
+      if (mounted && sent is List) {
+        setState(() => _outgoingRequests =
+            sent.cast<Map<String, dynamic>>().toList());
+      }
+    } catch (_) {/* ignore — endpoint is opportunistic */}
   }
 
   /// WhatsApp-style sort: most recent activity first.
@@ -718,7 +728,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   Widget _buildRequestsTab() {
     if (_loadingRequests) return const Center(child: CircularProgressIndicator(color: _kG2));
-    if (_requests.isEmpty && _bubbleInvites.isEmpty) {
+    if (_requests.isEmpty && _outgoingRequests.isEmpty && _bubbleInvites.isEmpty) {
       return RefreshIndicator(
         color: _kG2, onRefresh: _loadRequestsAndInvites,
         child: ListView(
@@ -758,6 +768,64 @@ class _ChatListScreenState extends State<ChatListScreen>
             const SizedBox(height: 8),
             for (var i = 0; i < _requests.length; i++)
               _buildChatRequestCard(_requests[i], i),
+          ],
+
+          if (_outgoingRequests.isNotEmpty) ...[
+            _sectionHeader('Sent requests', _outgoingRequests.length),
+            for (var i = 0; i < _outgoingRequests.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: (((_outgoingRequests[i]['receiver_avatar'] as String?) ?? '').isNotEmpty)
+                          ? NetworkImage(_outgoingRequests[i]['receiver_avatar'] as String)
+                          : null,
+                      child: (((_outgoingRequests[i]['receiver_avatar'] as String?) ?? '').isEmpty)
+                          ? Text(
+                              ((_outgoingRequests[i]['receiver_name'] as String? ?? '?').isNotEmpty
+                                  ? (_outgoingRequests[i]['receiver_name'] as String)[0].toUpperCase()
+                                  : '?'),
+                              style: const TextStyle(fontFamily: 'Alfa', fontSize: 18))
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _outgoingRequests[i]['receiver_name'] as String? ?? 'Unknown',
+                          style: const TextStyle(fontFamily: 'Alfa', fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text('Awaiting response',
+                          style: TextStyle(
+                            fontFamily: 'Momo', fontSize: 12,
+                            color: Colors.grey.shade600)),
+                      ],
+                    )),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3CD),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text('Pending',
+                        style: TextStyle(
+                          fontFamily: 'Momo', fontSize: 11,
+                          color: Color(0xFF856404),
+                          fontWeight: FontWeight.w700)),
+                    ),
+                  ]),
+                ),
+              ),
           ],
         ],
       ),

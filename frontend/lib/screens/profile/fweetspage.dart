@@ -283,11 +283,16 @@ class _CreateFweetPageState extends State<CreateFweetPage>
             child: Icon(Icons.close_rounded,
                 color: onBg.withOpacity(0.7), size: 20)),
         ),
-        const SizedBox(width: 12),
-        Text('Create Fweet',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: onBg)),
+const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            'Create Fweet',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: onBg),
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+          ),
+        ),
         const Spacer(),
-
         // Character ring
         SizedBox(width: 34, height: 34,
           child: Stack(alignment: Alignment.center, children: [

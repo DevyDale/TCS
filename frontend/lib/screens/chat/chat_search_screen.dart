@@ -79,6 +79,12 @@ class _ChatSearchScreenState extends State<ChatSearchScreen>
   final _ctrl = TextEditingController();
   Timer? _debounce;
 
+  // Empty-search filter caches (loaded on demand)
+  List<Map<String, dynamic>> _onlineUsers    = [];
+  List<Map<String, dynamic>> _connectedUsers = [];
+  bool _loadingOnline    = false;
+  bool _loadingConnected = false;
+
   late final AnimationController _shimmerCtrl;
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
@@ -213,21 +219,71 @@ class _ChatSearchScreenState extends State<ChatSearchScreen>
 
   // ── Filter logic ──────────────────────────────────────────
 
+  Future<void> _loadOnlineUsers() async {
+    if (_loadingOnline) return;
+    setState(() => _loadingOnline = true);
+    try {
+      final res = await _api.get('/chat/users/online/');
+      if (!mounted) return;
+      final list = (res is Map ? res['results'] as List? : res as List?) ?? const [];
+      setState(() {
+        _onlineUsers = list.cast<Map<String, dynamic>>().toList();
+        _loadingOnline = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingOnline = false);
+    }
+  }
+
+  Future<void> _loadConnectedUsers() async {
+    if (_loadingConnected) return;
+    setState(() => _loadingConnected = true);
+    try {
+      final res = await _api.get('/chat/users/connected/');
+      if (!mounted) return;
+      final list = (res is Map ? res['results'] as List? : res as List?) ?? const [];
+      setState(() {
+        _connectedUsers = list.cast<Map<String, dynamic>>().toList();
+        _loadingConnected = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingConnected = false);
+    }
+  }
+
   List<Map<String, dynamic>> get _visibleResults {
-    if (_filter == _Filter.all) return _results;
-    return _results.where((u) {
-      final online  = u['is_online']    as bool? ?? false;
-      final hasRoom = u['room_id'] != null;
-      final isConn  = u['is_connected'] as bool? ?? false;
-      switch (_filter) {
-        case _Filter.online:
-          return online;
-        case _Filter.connected:
-          return hasRoom || isConn;
-        case _Filter.all:
-          return true;
-      }
-    }).toList();
+    final hasQuery = _ctrl.text.trim().isNotEmpty;
+
+    // Search active → filter the search results client-side (legacy path).
+    if (hasQuery) {
+      if (_filter == _Filter.all) return _results;
+      return _results.where((u) {
+        final online  = u['is_online']    as bool? ?? false;
+        final hasRoom = u['room_id'] != null;
+        final isConn  = u['is_connected'] as bool? ?? false;
+        switch (_filter) {
+          case _Filter.online:    return online;
+          case _Filter.connected: return hasRoom || isConn;
+          case _Filter.all:       return true;
+        }
+      }).toList();
+    }
+
+    // No search query → pills fetch their own data on demand.
+    switch (_filter) {
+      case _Filter.online:
+        if (_onlineUsers.isEmpty && !_loadingOnline) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadOnlineUsers());
+        }
+        return _onlineUsers;
+      case _Filter.connected:
+        if (_connectedUsers.isEmpty && !_loadingConnected) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadConnectedUsers());
+        }
+        return _connectedUsers;
+      case _Filter.all:
+        return _results;
+    }
   }
 
   // ══════════════════════════════════════════════════════════

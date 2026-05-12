@@ -479,7 +479,7 @@ _group([
               _section(l.settingsAbout),
               _group([
                 _info(Icons.info_outline_rounded, l.settingsVersion,
-                    'TCS StudentHub v5.0', _kG2),
+                    'TCS 5.0', _kG2),
                 _divLine(),
                 _info(Icons.school_rounded, l.settingsInstitution,
                     'Taylors College, Sydney', const Color(0xFF3F51B5)),

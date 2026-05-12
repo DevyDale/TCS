@@ -31,7 +31,5 @@ websocket_urlpatterns = [
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AllowedHostsOriginValidator(
-        JWTAuthMiddlewareStack(URLRouter(websocket_urlpatterns))
-    ),
+    "websocket": JWTAuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
 })

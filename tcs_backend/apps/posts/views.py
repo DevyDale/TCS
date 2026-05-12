@@ -1,3 +1,4 @@
+from apps.accounts.role_filter import filter_posts_by_role, cross_role_post_404
 """
 apps/posts/views.py
 """
@@ -122,6 +123,7 @@ class PostListCreateView(generics.ListCreateAPIView):
             # Feed tab. Visibility filter above already restricts to
             # public; club admins can broaden this in a later phase.
             qs = qs.filter(club_id=club_id)
+        qs = filter_posts_by_role(qs, self.request.user)
         return qs.order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
@@ -152,6 +154,9 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = (Post.objects
                     .select_related("author")
                     .prefetch_related("media_files", "hashtags"))
+
+    def get_queryset(self):
+        return filter_posts_by_role(super().get_queryset(), self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -213,6 +218,7 @@ def search_posts(request):
                 .prefetch_related("media_files", "hashtags")
                 .exclude(is_flagged=True)
                 .filter(Q(visibility="public") | Q(author=me)))
+    base = filter_posts_by_role(base, me)
 
     if field == "caption":
         qs = base.filter(content__icontains=q)
@@ -253,6 +259,7 @@ class FeedView(generics.ListAPIView):
                     .select_related("author", "club")
                     .prefetch_related("media_files", "hashtags")
                     .exclude(is_flagged=True))
+        base = filter_posts_by_role(base, me)
 
         if feed_type == "announcements":
             return base.filter(post_type="announcement").order_by("-created_at")
@@ -420,7 +427,7 @@ def upload_post_media(request):
 def like_toggle(request, pk):
     """POST /api/posts/<pk>/like/"""
     try:
-        post = Post.objects.get(pk=pk)
+        post = filter_posts_by_role(Post.objects, request.user).get(pk=pk)
     except Post.DoesNotExist:
         return Response({"error": "Not found."}, status=404)
 
@@ -445,7 +452,7 @@ def like_toggle(request, pk):
 def bookmark_toggle(request, pk):
     """POST /api/posts/<pk>/bookmark/"""
     try:
-        post = Post.objects.get(pk=pk)
+        post = filter_posts_by_role(Post.objects, request.user).get(pk=pk)
     except Post.DoesNotExist:
         return Response({"error": "Not found."}, status=404)
 
@@ -467,7 +474,7 @@ def bookmark_toggle(request, pk):
 def share_post(request, pk):
     """POST /api/posts/<pk>/share/  body: {user_ids: [...]}"""
     try:
-        post = Post.objects.get(pk=pk)
+        post = filter_posts_by_role(Post.objects, request.user).get(pk=pk)
     except Post.DoesNotExist:
         return Response({"error": "Not found."}, status=404)
 
@@ -484,7 +491,7 @@ def share_post(request, pk):
 def flag_post(request, pk):
     """POST /api/posts/<pk>/flag/  body: {reason: '...'}"""
     try:
-        post = Post.objects.get(pk=pk)
+        post = filter_posts_by_role(Post.objects, request.user).get(pk=pk)
     except Post.DoesNotExist:
         return Response({"error": "Not found."}, status=404)
 
@@ -521,7 +528,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
                        .order_by("-created_at"))
 
     def perform_create(self, serializer):
-        post = Post.objects.get(pk=self.kwargs["pk"])
+        post = filter_posts_by_role(Post.objects, self.request.user).get(pk=self.kwargs["pk"])
         serializer.save(author=self.request.user, post=post)
         post.comments_count += 1
         post.save(update_fields=["comments_count"])

@@ -46,7 +46,7 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _sub)),
             const SizedBox(height: 16),
             _h('1. Acceptance of Terms'),
-            _p('By creating an account or using the TCS StudentHub mobile '
+            _p('By creating an account or using the TCS mobile '
               'application ("the App"), you agree to be bound by these Terms '
               'of Service. The App is provided by Taylors College Sydney for '
               'the exclusive use of its currently enrolled students, staff, '
@@ -63,7 +63,7 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
               'intellectual property of others. You will not impersonate '
               'staff, other students, or any third party.'),
             _h('4. Academic Integrity'),
-            _p('TCS StudentHub is a learning community. Posting completed '
+            _p('TCS is a learning community. Posting completed '
               'assessment answers, soliciting contract cheating, or sharing '
               'exam content violates Taylors College Sydney\'s Academic '
               'Integrity Policy and may result in disciplinary action by '

@@ -6,6 +6,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 api_v1 = [
     path("accounts/",      include("apps.accounts.urls")),
+    path("activity/",    include("apps.activity.urls")),
     path("users/",         include("apps.accounts.user_urls")),
     path("dataentry/",     include("apps.dataentry.urls")),
     path("posts/",         include("apps.posts.urls")),
@@ -15,9 +16,10 @@ api_v1 = [
     path("groups/",        include("apps.groups.urls")),
     path("events/",        include("apps.events.urls")),
     path("arcade/",        include("apps.arcade.urls")),
+    path("clubs/",         include("apps.clubs.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("feedback/",      include("apps.feedback.urls")),
-    path("media/",         include("apps.media.urls")),
+    # path("media/",         include("apps.media.urls")),  # TODO: apps.media not in INSTALLED_APPS
     path("ai/",            include("apps.ai.urls")),       # ← ADD THIS LINE
     path("schema/",        SpectacularAPIView.as_view(),                        name="schema"),
     path("docs/",          SpectacularSwaggerView.as_view(url_name="schema"),   name="swagger-ui"),

@@ -41,6 +41,7 @@ class ChatRoomScreen extends StatefulWidget {
   final String roomName;
   final String userName;
   final String roomType; // 'direct' | 'study_buddy' | 'group'
+  final String? description;
 
   const ChatRoomScreen({
     super.key,
@@ -48,6 +49,7 @@ class ChatRoomScreen extends StatefulWidget {
     required this.roomName,
     required this.userName,
     this.roomType = 'direct',
+    this.description,
   });
 
   @override
@@ -64,6 +66,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   List<Map<String, dynamic>> _messages = [];
   bool _loading  = true;
   bool _sending  = false;
+  bool _analyzing = false;
   bool _isTyping = false;
 
   // ── Dale state ──
@@ -445,14 +448,51 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     ]),
   );
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    Icon(Icons.chat_bubble_outline_rounded, size: 72, color: Colors.purple.shade200),
-    const SizedBox(height: 20),
-    const Text('No messages yet', style: TextStyle(fontSize: 22,
-        fontWeight: FontWeight.bold, fontFamily: 'Alfa')),
-    const SizedBox(height: 8),
-    Text('Say hello!', style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontFamily: 'Momo')),
-  ]));
+  Widget _buildEmptyState() => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 92, height: 92,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: _isStudyBuddy
+                  ? [Colors.orange.shade300, Colors.amber.shade400]
+                  : [Colors.deepPurple.shade300, Colors.purple.shade400]),
+              boxShadow: [BoxShadow(
+                color: Colors.deepPurple.withOpacity(0.18),
+                blurRadius: 20, offset: const Offset(0, 8))]),
+            child: Icon(
+              _isStudyBuddy
+                ? Icons.menu_book_rounded
+                : Icons.celebration_rounded,
+              color: Colors.white, size: 42),
+          ),
+          const SizedBox(height: 22),
+          Text('Welcome to ' + widget.roomName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22,
+                fontWeight: FontWeight.bold, fontFamily: 'Alfa')),
+          const SizedBox(height: 10),
+          Text(
+            (widget.description != null && widget.description!.isNotEmpty)
+              ? widget.description!
+              : (_isStudyBuddy
+                ? 'Start your study session here — share notes, ask questions, work through problems together.'
+                : 'This is the beginning of the conversation. Introduce yourself, share materials, or just say hello.'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+              fontFamily: 'Momo',
+              height: 1.55)),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildMessages() {
     return ListView.builder(
@@ -676,6 +716,30 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 color: Colors.purple.shade600, size: 22),
           ),
         ),
+        if (widget.roomType == 'group') ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _analyzing ? null : _summonDale,
+            child: Container(
+              width: 42, height: 42,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6DD5FA), Color(0xFF7C3AED)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: _analyzing
+                  ? const Padding(
+                      padding: EdgeInsets.all(11),
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.auto_awesome_rounded,
+                      color: Colors.white, size: 22),
+            ),
+          ),
+        ],
         const SizedBox(width: 8),
         Expanded(
           child: Container(
@@ -724,6 +788,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
       ])),
     );
+  }
+
+  Future<void> _summonDale() async {
+    if (_analyzing) return;
+    setState(() => _analyzing = true);
+    try {
+      await _api.analyzeWithDale(widget.roomId);
+    } catch (_) {
+      if (mounted) _showSnack("Dale couldn't respond right now.");
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
+    }
   }
 
   String _fmt(String iso) {

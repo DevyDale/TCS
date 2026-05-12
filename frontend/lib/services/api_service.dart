@@ -226,9 +226,15 @@ class ApiService {
     }
   }
 
-  dynamic _decode(http.Response res) {
-    final body = jsonDecode(utf8.decode(res.bodyBytes));
-    if (res.statusCode >= 200 && res.statusCode < 300) return body;
+ dynamic _decode(http.Response res) {
+    // 204 No Content (and other empty-body successes) — return null cleanly
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      if (res.bodyBytes.isEmpty || res.statusCode == 204) return null;
+      return jsonDecode(utf8.decode(res.bodyBytes));
+    }
+    final body = res.bodyBytes.isEmpty
+        ? null
+        : jsonDecode(utf8.decode(res.bodyBytes));
     String msg = 'Request failed (${res.statusCode})';
     if (body is Map) {
       msg = (body['detail'] ?? body['error'] ??
@@ -598,9 +604,9 @@ class ApiService {
     bool                  isPublic  = false,
     List<String>          memberIds = const [],
   }) =>
-      post('/chat/bubbles/', body: {
+      post('/chat/rooms/', body: {
         'name':       name,
-        'about':      about,
+        'description':      about,
         'is_public':  isPublic,
         'member_ids': memberIds,
       });
@@ -640,6 +646,12 @@ class ApiService {
   Future<dynamic> joinGroup(String id)         => post('/groups/$id/join/');
   Future<dynamic> leaveGroup(String id)        => delete('/groups/$id/leave/');
   Future<dynamic> getGroupMaterials(String id) => get('/groups/$id/materials/');
+
+  /// Dissolve a study group. Backend should:
+  ///   - copy all materials to caller's saved-materials library
+  ///   - delete the group + its messages
+  ///   - emit an activity record "Dissolved by <admin> on <date>"
+  Future<dynamic> dissolveGroup(String id) => delete('/groups/$id/dissolve/');
 
   Future<dynamic> saveGroupMaterialToLibrary({
     required String groupId,
@@ -745,6 +757,14 @@ class ApiService {
 
   Future<dynamic> getRecentChats({int limit = 5}) =>
       get('/chat/recent/', query: {'limit': '$limit'});
+
+  Future<dynamic> getChatRequests()       => get('/chat/requests/');
+  Future<dynamic> getSentChatRequests()   => get('/chat/requests/sent/');
+  Future<dynamic> getOnlineUsers()        => get('/chat/users/online/');
+  Future<dynamic> getConnectedUsers()     => get('/chat/users/connected/');
+
+  Future<dynamic> analyzeWithDale(String roomId) =>
+      post('/chat/rooms/$roomId/ai-analyze/', body: const {});
 
   Future<dynamic> sendChatRequest(String targetUserId, {String message = ''}) =>
       post('/chat/requests/send/', body: {

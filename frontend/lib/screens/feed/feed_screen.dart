@@ -385,7 +385,7 @@ class _FeedScreenState extends State<FeedScreen>
             children: [
             Text(_greeting, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
-            const Text('StudentHub', style: TextStyle(
+            const Text('TCS', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 28, color: _kInk, height: 1.1)),
           ])),
 
@@ -874,6 +874,7 @@ class _PostCardState extends State<_PostCard>
   bool _expanded   = false;
   bool _bookmarked = false;
   int  _mediaPage  = 0;
+  final _api       = ApiService();
 
   @override
   void initState() {
@@ -894,9 +895,22 @@ class _PostCardState extends State<_PostCard>
         duration: const Duration(milliseconds: 200), curve: Curves.elasticOut);
   }
 
-  void _handleBookmark() {
+  Future<void> _handleBookmark() async {
     HapticFeedback.lightImpact();
-    setState(() => _bookmarked = !_bookmarked);
+    final newVal = !_bookmarked;
+    setState(() => _bookmarked = newVal);
+    try {
+      final pid = widget.post['id']?.toString() ?? '';
+      if (pid.isNotEmpty) {
+        if (newVal) {
+          await _api.post('/posts/' + pid + '/favorite/');
+        } else {
+          await _api.delete('/posts/' + pid + '/favorite/');
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _bookmarked = !newVal);
+    }
   }
 
   static List<Color> _roleGrad(String role) {
