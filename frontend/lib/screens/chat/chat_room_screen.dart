@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
@@ -70,6 +71,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _isTyping = false;
 
   // ── Dale state ──
+  String? _avatarUrl;          // Bubble avatar from room metadata
   bool _aiEnabled  = false;   // true if Dale is currently in the room
   bool _aiBusy     = false;   // true while a Dale-related API call is in flight
 
@@ -144,7 +146,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     try {
       final res = await _api.get('/chat/rooms/${widget.roomId}/');
       if (!mounted || res is! Map) return;
-      setState(() => _aiEnabled = res['ai_enabled'] as bool? ?? false);
+      setState(() {
+        _aiEnabled = res['ai_enabled'] as bool? ?? false;
+        _avatarUrl = res['avatar_url'] as String?;
+      });
     } catch (_) { /* silent */ }
   }
 
@@ -387,7 +392,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context)),
-          const SizedBox(width: 4),
+          _buildRoomAvatar(),
+          const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.roomName, style: const TextStyle(color: Colors.white,
                 fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Arch')),
@@ -425,14 +431,74 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             const SizedBox(width: 8),
           ],
 
-          // ── Dale AI button ─────────────────────────────
-          DaleAppBarButton(
-            active:       _aiEnabled,
-            busy:         _aiBusy,
-            onTap:        _handleDaleTap,
-            onLongPress:  _aiEnabled ? _disableDale : null,
+          // ── Dale AI Lottie button ──────────────────────
+          GestureDetector(
+            onTap: _handleDaleTap,
+            onLongPress: _aiEnabled ? _disableDale : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _aiEnabled ? Colors.white.withOpacity(0.25)
+                                  : Colors.white.withOpacity(0.10),
+                border: Border.all(
+                  color: _aiEnabled ? Colors.white : Colors.white.withOpacity(0.45),
+                  width: 1.4),
+                boxShadow: _aiEnabled
+                    ? [BoxShadow(color: Colors.white.withOpacity(0.4),
+                          blurRadius: 14, spreadRadius: 1)]
+                    : [],
+              ),
+              child: _aiBusy
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Lottie.asset(
+                        'assets/lottie/dale.json',
+                        fit: BoxFit.contain,
+                        repeat: true,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white, size: 22),
+                      ),
+                    ),
+            ),
           ),
         ]),
+      ),
+    );
+  }
+
+  Widget _buildRoomAvatar() {
+    final hasUrl  = _avatarUrl != null && _avatarUrl!.isNotEmpty;
+    final initial = widget.roomName.isNotEmpty
+        ? widget.roomName[0].toUpperCase() : '?';
+    final isBubble = widget.roomType == 'group';
+    return Container(
+      width: 38, height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: hasUrl ? null : const LinearGradient(
+            colors: [Color(0xFFF7971E), Color(0xFFFF5858)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight),
+        image: hasUrl
+            ? DecorationImage(image: NetworkImage(_avatarUrl!), fit: BoxFit.cover)
+            : null,
+        border: Border.all(color: Colors.white.withOpacity(0.85), width: 2),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15),
+            blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: hasUrl ? null : Center(
+        child: isBubble
+            ? const Icon(Icons.bubble_chart_rounded,
+                color: Colors.white, size: 18)
+            : Text(initial, style: const TextStyle(
+                color: Colors.white, fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }
@@ -716,30 +782,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 color: Colors.purple.shade600, size: 22),
           ),
         ),
-        if (widget.roomType == 'group') ...[
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _analyzing ? null : _summonDale,
-            child: Container(
-              width: 42, height: 42,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Color(0xFF6DD5FA), Color(0xFF7C3AED)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: _analyzing
-                  ? const Padding(
-                      padding: EdgeInsets.all(11),
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white, size: 22),
-            ),
-          ),
-        ],
+
         const SizedBox(width: 8),
         Expanded(
           child: Container(
