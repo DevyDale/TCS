@@ -649,7 +649,7 @@ class _DateField extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              formatted ?? 'DD / MM / YYYY',
+              formatted ?? 'MM / DD / YYYY',
               style: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 15,

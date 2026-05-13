@@ -105,7 +105,15 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
     try {
       final res = await _api.searchUsers(q);
       if (!mounted || _qCtrl.text.trim() != q) return;
-      final list = (res is List) ? res.cast<Map<String, dynamic>>() : <Map<String, dynamic>>[];
+      // Backend returns {"results": [...]} ; tolerate bare list too.
+      final List<Map<String, dynamic>> list;
+      if (res is Map && res['results'] is List) {
+        list = (res['results'] as List).cast<Map<String, dynamic>>();
+      } else if (res is List) {
+        list = res.cast<Map<String, dynamic>>();
+      } else {
+        list = <Map<String, dynamic>>[];
+      }
       setState(() {
         _results   = list;
         _searching = false;

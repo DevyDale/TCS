@@ -12,8 +12,11 @@
 //   • is_public=true allows discoverability via /chat/bubbles/discover/
 //     and lets anyone join without an invite.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/widgets/add_members_bottom_sheet.dart';
 
 import '../../services/api_service.dart';
@@ -40,6 +43,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
   final _aboutCtrl    = TextEditingController();
   bool  _isPublic     = false;
   bool  _saving       = false;
+  File? _avatarFile;
 
   /// Selected members (each entry: { user_id, name, avatar_url, role, ... })
   List<Map<String, dynamic>> _members = [];
@@ -60,6 +64,19 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
       title: 'Add Members',
     );
     if (picked != null) setState(() => _members = picked);
+  }
+
+  Future<void> _pickAvatar() async {
+    HapticFeedback.selectionClick();
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      imageQuality: 85,
+    );
+    if (picked != null && mounted) {
+      setState(() => _avatarFile = File(picked.path));
+    }
   }
 
   void _removeMember(String userId) {
@@ -167,19 +184,49 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Hero icon
-        Center(child: Container(
-          width: 80, height: 80,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [_kG3, _kG4],
-                begin: Alignment.topLeft, end: Alignment.bottomRight),
-            shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: _kG4.withOpacity(0.35),
-                blurRadius: 18, offset: const Offset(0, 6))],
-          ),
-          child: const Icon(Icons.bubble_chart_rounded,
-              color: Colors.white, size: 38),
+        // Hero avatar — tap to pick a picture for this bubble
+        Center(child: GestureDetector(
+          onTap: _pickAvatar,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 90, height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: _avatarFile == null
+                    ? const LinearGradient(
+                        colors: [_kG3, _kG4],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight)
+                    : null,
+                image: _avatarFile != null
+                    ? DecorationImage(
+                        image: FileImage(_avatarFile!), fit: BoxFit.cover)
+                    : null,
+                boxShadow: [BoxShadow(color: _kG4.withOpacity(0.35),
+                    blurRadius: 18, offset: const Offset(0, 6))],
+              ),
+              child: _avatarFile == null
+                  ? const Icon(Icons.bubble_chart_rounded,
+                      color: Colors.white, size: 38)
+                  : null,
+            ),
+            Positioned(
+              bottom: -2, right: -2,
+              child: Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white, shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFF7F8FA), width: 3),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08),
+                      blurRadius: 4, offset: const Offset(0, 2))],
+                ),
+                child: Icon(
+                  _avatarFile == null
+                      ? Icons.add_a_photo_rounded
+                      : Icons.edit_rounded,
+                  color: _kG2, size: 15),
+              ),
+            ),
+          ]),
         )),
         const SizedBox(height: 8),
         const Center(child: Text(
@@ -216,17 +263,13 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Privacy toggle
-        _label('Privacy'),
-        const SizedBox(height: 6),
-        _privacyCard(),
-        const SizedBox(height: 22),
-
-        // Members
+        // Participants (placed right after About; min 3 total: you + 2 invited)
         Row(children: [
           Expanded(child: _label(_members.isEmpty
-              ? 'Add members'
-              : 'Members (${_members.length})')),
+              ? 'Add Participants (at least 2)'
+              : _members.length < 2
+                  ? 'Participants (${_members.length} / 2 needed)'
+                  : 'Participants (${_members.length})')),
           GestureDetector(
             onTap: _pickMembers,
             child: Container(
@@ -246,6 +289,12 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
         ]),
         const SizedBox(height: 8),
         _buildMembersBlock(),
+        const SizedBox(height: 22),
+
+        // Privacy toggle
+        _label('Privacy'),
+        const SizedBox(height: 6),
+        _privacyCard(),
       ]),
     );
   }

@@ -580,6 +580,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         ));
         _loadChats();
       },
+      onLongPress: () => _showChatTileMenu(c),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -1015,6 +1016,132 @@ class _ChatListScreenState extends State<ChatListScreen>
         ]),
       ]),
     );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // Long-press delete (chat tile menu)
+  // ══════════════════════════════════════════════════════════
+
+  void _showChatTileMenu(Map<String, dynamic> c) {
+    HapticFeedback.mediumImpact();
+    final isGroup = c['room_type'] == 'group';
+    final name = isGroup
+        ? (c['name'] as String? ?? 'Chat')
+        : ((c['other_user'] as Map?)?['name'] as String? ?? 'Chat');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(name,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Arch',
+                  fontSize: 16, fontWeight: FontWeight.bold, color: _kInk,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: _kG4),
+              title: const Text('Delete chat',
+                style: TextStyle(
+                  fontFamily: 'Momo', fontSize: 14, color: _kG4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteChat(c);
+              },
+            ),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteChat(Map<String, dynamic> c) async {
+    final isGroup = c['room_type'] == 'group';
+    final name = isGroup
+        ? (c['name'] as String? ?? 'this chat')
+        : ((c['other_user'] as Map?)?['name'] as String? ?? 'this chat');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Delete chat?',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
+        ),
+        content: Text(
+          isGroup
+              ? 'You\'ll leave "$name" and won\'t receive messages from this bubble anymore.'
+              : 'Your conversation with $name will be removed from your chats. This can\'t be undone.',
+          style: TextStyle(
+            fontFamily: 'Momo', fontSize: 13,
+            color: Colors.grey.shade700, height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+              style: TextStyle(
+                fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              )),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete',
+              style: TextStyle(
+                fontFamily: 'Arch', fontWeight: FontWeight.bold, color: _kG4,
+              )),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) await _deleteChat(c);
+  }
+
+  Future<void> _deleteChat(Map<String, dynamic> c) async {
+    final roomId = c['id'] as String? ?? '';
+    if (roomId.isEmpty) return;
+
+    final idx = _chats.indexWhere((x) => x['id'] == roomId);
+    if (idx == -1) return;
+    final removed = _chats[idx];
+    setState(() => _chats.removeAt(idx));
+
+    try {
+      await _api.delete('/chat/rooms/$roomId/');
+      _snack('Chat deleted');
+    } catch (e) {
+      setState(() => _chats.insert(idx, removed));
+      _snack('Couldn\'t delete: $e');
+    }
   }
 
   // ══════════════════════════════════════════════════════════
