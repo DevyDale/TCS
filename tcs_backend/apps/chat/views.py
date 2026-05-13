@@ -289,6 +289,13 @@ class RoomListCreateView(generics.GenericAPIView):
             room, _ = Room.get_or_create_direct(request.user, other)
             return Response(RoomSerializer(room, context={"request": request}).data)
 
+        # ── Bubble (group) minimum: creator + at least 2 invited = 3 total ──
+        if len(member_ids) < 2:
+            return Response(
+                {"error": "A chat bubble needs at least 3 participants (you + 2 others)."},
+                status=400,
+            )
+
         # Group room
         members = list(User.objects.filter(user_id__in=member_ids))
         room    = Room.objects.create(room_type="group", name=name,
