@@ -101,26 +101,26 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
       setState(() { _results = []; _lastQuery = ''; _searching = false; });
       return;
     }
-    setState(() => _searching = true);
+    setState(() { _searching = true; _lastError = null; });
     try {
-      final res = await _api.searchUsers(q);
+      // Mirrors the working chat_search_screen.dart approach — same endpoint,
+      // same parsing. /users/search/ was returning data but the wrapper was
+      // shaped differently; /chat/dm/search/ is the proven path.
+      final res = await _api.get('/chat/dm/search/', query: {'q': q})
+          as Map<String, dynamic>;
       if (!mounted || _qCtrl.text.trim() != q) return;
-      // Backend returns {"results": [...]} ; tolerate bare list too.
-      final List<Map<String, dynamic>> list;
-      if (res is Map && res['results'] is List) {
-        list = (res['results'] as List).cast<Map<String, dynamic>>();
-      } else if (res is List) {
-        list = res.cast<Map<String, dynamic>>();
-      } else {
-        list = <Map<String, dynamic>>[];
-      }
       setState(() {
-        _results   = list;
+        _results = (res['results'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
         _searching = false;
         _lastQuery = q;
       });
-    } catch (_) {
-      if (mounted) setState(() => _searching = false);
+    } catch (e) {
+      if (mounted) setState(() {
+        _searching = false;
+        _lastError = e.toString();
+        _results   = [];
+      });
     }
   }
 
