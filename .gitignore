@@ -122,3 +122,9 @@ frontend/android/key.properties
 *.bak
 *.bak.*
 .fixbak/
+
+# Patch-script backups — never commit these
+**/*.dart.bak.*
+**/*.plist.bak.*
+**/pubspec.yaml.bak*
+**/Info.plist.bak.*
