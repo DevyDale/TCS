@@ -48,6 +48,10 @@ class _GroupsStudyHubScreenState
   bool _loadingBuddies  = true;
   bool _loadingActivity = true;
 
+  // Group IDs currently animating out after a dissolve.
+  // Drives the vanish animation in _DismissibleGroupTile.
+  final Set<String> _deletingIds = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -102,15 +106,32 @@ class _GroupsStudyHubScreenState
   Future<void> _loadActivity() async {
     setState(() => _loadingActivity = true);
     try {
-      // Activity = recent public announcements + new group notifications
-      final data = await _api.getFeed(type: 'announcements') as Map<String, dynamic>;
+      // Records-book feed: events from /activity/ — joined a group,
+      // material shared, group dissolved, expirations, etc.
+      final data = await _api.get('/activity/',
+          query: {'limit': '50'}) as Map<String, dynamic>;
+      if (!mounted) return;
       setState(() {
         _activities      = ((data['results'] as List?) ?? [])
             .cast<Map<String, dynamic>>();
         _loadingActivity = false;
       });
     } catch (_) {
-      setState(() => _loadingActivity = false);
+      // Graceful fallback if /activity/ isn't wired up yet — keep
+      // showing announcements so the tab never sits empty.
+      try {
+        final fb = await _api.getFeed(type: 'announcements')
+            as Map<String, dynamic>;
+        if (!mounted) return;
+        setState(() {
+          _activities      = ((fb['results'] as List?) ?? [])
+              .cast<Map<String, dynamic>>();
+          _loadingActivity = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _loadingActivity = false);
+      }
     }
   }
 
@@ -121,6 +142,47 @@ class _GroupsStudyHubScreenState
           .cast<Map<String, dynamic>>();
     }
     return [];
+  }
+
+  // ── Open a group I'm a member of ──────────────────────────
+  // If GroupScreen returns 'dissolved', play the vanish animation,
+  // record an activity entry, then drop the group from my list.
+  Future<void> _openMyGroup(Map<String, dynamic> group) async {
+    final gid  = group['id']?.toString() ?? '';
+    final name = group['name'] as String? ?? 'Group';
+
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => GroupScreen(group: group)),
+    );
+    if (!mounted) return;
+
+    if (result == 'dissolved') {
+      // 1. Trigger the vanish animation on this tile.
+      setState(() => _deletingIds.add(gid));
+
+      // 2. Fire-and-forget activity record. Silent if the backend
+      //    endpoint isn't wired up yet — the animation still runs.
+      _api.post('/activity/', body: {
+        'event_type':  'group_dissolved',
+        'target_type': 'group',
+        'target_id':   gid,
+        'target_name': name,
+      }).catchError((_) {});
+
+      // 3. After the animation completes, remove the entry for real
+      //    and refresh the activity tab so the new record appears.
+      await Future.delayed(const Duration(milliseconds: 420));
+      if (!mounted) return;
+      setState(() {
+        _myGroups.removeWhere((x) => x['id']?.toString() == gid);
+        _deletingIds.remove(gid);
+      });
+      _loadActivity();
+      _snack('"$name" dissolved');
+    } else {
+      // Normal return — just refresh in case anything else changed.
+      _loadGroups();
+    }
   }
 
   // ── Availability toggle ───────────────────────────────────
@@ -479,15 +541,16 @@ Widget _buildHeader() {
           if (_myGroups.isNotEmpty) ...[
             _sectionHeader('My Groups', _myGroups.length),
             const SizedBox(height: 10),
-            ..._myGroups.map((g) => _GroupCard(
-              group: g,
-              onTap: () async {
-                await Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) => GroupScreen(group: g)));
-                _loadGroups();
-              },
-            )),
+            ..._myGroups.map((g) {
+              final gid = g['id']?.toString() ?? '';
+              return _DismissibleGroupTile(
+                isDismissing: _deletingIds.contains(gid),
+                child: _GroupCard(
+                  group: g,
+                  onTap: () => _openMyGroup(g),
+                ),
+              );
+            }),
           ] else ...[
             _emptyGroups(),
           ],
@@ -620,7 +683,7 @@ Widget _buildHeader() {
                           fontSize: 17, color: Color(0xFF1A1A2E))),
                   const SizedBox(height: 6),
                   Text(
-                    'Activity shows when new public groups are created',
+                    'Group events appear here — joins, materials shared,\ndissolutions, and expirations.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 13, color: Colors.grey.shade400)),
@@ -949,27 +1012,76 @@ class _BuddyCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ACTIVITY CARD — backend-driven (announcements / group events)
+// ACTIVITY CARD — records-book entries:
+//   group_joined, group_left, material_shared, group_dissolved,
+//   group_expiring, group_expired, plus generic announcements.
+//
+// Reads either the new /activity/ event shape OR the old announcement
+// post shape — same widget renders both during the transition.
 // ─────────────────────────────────────────────────────────────
 
 class _ActivityCard extends StatelessWidget {
   final Map<String, dynamic> activity;
   const _ActivityCard({required this.activity});
 
+  ({IconData icon, Color color, String verb}) _styleFor(String type) {
+    switch (type) {
+      case 'group_joined':
+        return (icon: Icons.group_add_rounded,
+                color: Colors.green.shade600,
+                verb:  'joined');
+      case 'group_left':
+      case 'group_removed':
+        return (icon: Icons.person_remove_rounded,
+                color: _kG3,
+                verb:  'left');
+      case 'material_shared':
+        return (icon: Icons.upload_file_rounded,
+                color: _indigo,
+                verb:  'shared material in');
+      case 'group_dissolved':
+        return (icon: Icons.delete_forever_rounded,
+                color: _kG4,
+                verb:  'dissolved');
+      case 'group_expiring':
+        return (icon: Icons.timer_outlined,
+                color: Colors.amber.shade700,
+                verb:  'expiring soon —');
+      case 'group_expired':
+        return (icon: Icons.history_toggle_off_rounded,
+                color: Colors.grey.shade600,
+                verb:  'expired —');
+      default:
+        return (icon: Icons.campaign_rounded,
+                color: _indigo,
+                verb:  '');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Activity can be an announcement post or a system notification
-    final postType   = activity['post_type'] as String? ?? 'announcement';
-    final content    = activity['content']   as String? ?? '';
-    final authorName = activity['author_name'] as String? ?? 'Campus';
-    final timeAgo    = _ago(activity['created_at'] as String? ?? '');
+    // Accept both the new activity-entry shape and the old
+    // announcement-post shape so nothing breaks during rollout.
+    final type      = (activity['event_type']
+                    ?? activity['kind']
+                    ?? activity['post_type']
+                    ?? '').toString();
+    final groupName = (activity['group_name']
+                    ?? activity['target_name']
+                    ?? '').toString();
+    final actorName = (activity['actor_name']
+                    ?? activity['author_name']
+                    ?? 'You').toString();
+    final body      = (activity['message']
+                    ?? activity['content']
+                    ?? '').toString();
+    final timeAgo   = _ago(activity['created_at'] as String? ?? '');
 
-    // Pick icon + color based on type
-    final isGroup = postType == 'group_created';
-    final color   = isGroup ? _kG2 : _indigo;
-    final icon    = isGroup
-        ? Icons.group_add_rounded
-        : Icons.campaign_rounded;
+    final s = _styleFor(type);
+
+    final headline = groupName.isNotEmpty
+        ? '$actorName ${s.verb} "$groupName"'.trim()
+        : actorName;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -985,27 +1097,32 @@ class _ActivityCard extends StatelessWidget {
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: s.color.withOpacity(0.10),
               borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color, size: 22)),
+            child: Icon(s.icon, color: s.color, size: 22)),
           const SizedBox(width: 14),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Expanded(child: Text(authorName,
-                    style: const TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14, color: Color(0xFF1A1A2E)))),
+                Expanded(child: Text(headline,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14, color: Color(0xFF1A1A2E)))),
+                const SizedBox(width: 6),
                 Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11, color: Colors.grey.shade400)),
               ]),
-              const SizedBox(height: 4),
-              Text(content, maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 13, color: Colors.grey.shade600,
-                      height: 1.4)),
+              if (body.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(body, maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 13, color: Colors.grey.shade600,
+                        height: 1.4)),
+              ],
             ])),
         ]),
     );
@@ -1023,6 +1140,7 @@ class _ActivityCard extends StatelessWidget {
     } catch (_) { return ''; }
   }
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // QUICK ACTION BUTTON — unchanged from original design
@@ -1056,6 +1174,36 @@ class _QAction extends StatelessWidget {
                 fontSize: 10, fontWeight: FontWeight.w600,
                 color: Colors.white, height: 1.2)),
       ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DISMISSIBLE GROUP TILE — vanish animation wrapper
+// Fades and collapses the tile to zero height over ~400ms.
+// ─────────────────────────────────────────────────────────────
+
+class _DismissibleGroupTile extends StatelessWidget {
+  final bool   isDismissing;
+  final Widget child;
+
+  const _DismissibleGroupTile({
+    required this.isDismissing,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeInOutCubic,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 260),
+        opacity: isDismissing ? 0.0 : 1.0,
+        child: isDismissing
+            ? const SizedBox(width: double.infinity, height: 0)
+            : child,
+      ),
     );
   }
 }

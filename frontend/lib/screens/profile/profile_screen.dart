@@ -73,6 +73,8 @@ const _gradColors = <Color>[
 final deletedPostIds = ValueNotifier<Set<String>>({});
 void notifyPostDeleted(String id) =>
     deletedPostIds.value = {...deletedPostIds.value, id};
+/// Reset cross-screen UI state. Call this on logout.
+void resetGlobalProfileState() => deletedPostIds.value = {};
 
 // ─────────────────────────────────────────────────────────────
 
@@ -122,8 +124,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool    _avatarUploading = false;
   bool    _coverUploading  = false;
 
-  static const _kAvatarUrl = 'profile_avatar_cloudinary_url';
-  static const _kCoverUrl  = 'profile_cover_cloudinary_url';
+  // ── user-scoped SharedPreferences keys ──
+  // Suffixed with the current user_id so two accounts on the
+  // same device never read each other's avatar/cover URLs.
+  static const _kAvatarUrlPrefix = 'profile_avatar_url_';
+  static const _kCoverUrlPrefix  = 'profile_cover_url_';
   static const _kCoverH    = 180.0;
   static const _kAvatarR   = 52.0;
 
@@ -245,19 +250,32 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ── Persist / restore URLs ────────────────────────────────
 
+  Future<String?> _ownUserId() async =>
+      (await SharedPreferences.getInstance()).getString('userId');
+
   Future<void> _loadSavedUrls() async {
+    final uid = await _ownUserId();
+    if (uid == null || uid.isEmpty) return;
     final p  = await SharedPreferences.getInstance();
-    final av = p.getString(_kAvatarUrl);
-    final cv = p.getString(_kCoverUrl);
+    final av = p.getString('$_kAvatarUrlPrefix$uid');
+    final cv = p.getString('$_kCoverUrlPrefix$uid');
     if (av != null && av.isNotEmpty) setState(() => _avatarUrl = av);
     if (cv != null && cv.isNotEmpty) setState(() => _coverUrl  = cv);
   }
 
-  Future<void> _saveAvatarUrl(String url) async =>
-      (await SharedPreferences.getInstance()).setString(_kAvatarUrl, url);
+  Future<void> _saveAvatarUrl(String url) async {
+    final uid = await _ownUserId();
+    if (uid == null || uid.isEmpty) return;
+    (await SharedPreferences.getInstance())
+        .setString('$_kAvatarUrlPrefix$uid', url);
+  }
 
-  Future<void> _saveCoverUrl(String url) async =>
-      (await SharedPreferences.getInstance()).setString(_kCoverUrl, url);
+  Future<void> _saveCoverUrl(String url) async {
+    final uid = await _ownUserId();
+    if (uid == null || uid.isEmpty) return;
+    (await SharedPreferences.getInstance())
+        .setString('$_kCoverUrlPrefix$uid', url);
+  }
 
   // ── Delete (unchanged) ────────────────────────────────────
 

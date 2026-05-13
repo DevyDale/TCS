@@ -270,7 +270,9 @@ class ApiService {
 
       if (res.statusCode == 200) {
         final d = jsonDecode(res.body) as Map<String, dynamic>;
-        await _Tokens.save(d['access'] as String, r);
+        final newAccess  = d['access'] as String;
+        final newRefresh = (d['refresh'] as String?) ?? r;
+        await _Tokens.save(newAccess, newRefresh);
         return true;
       }
       // Any non-200 response — including 401 — does NOT wipe the
@@ -400,6 +402,10 @@ class ApiService {
       'date_of_birth': dateOfBirth,
       'role':          role,
     }, auth: false) as Map<String, dynamic>;
+    // Defence-in-depth: wipe any prior user's cached data before
+    // saving the new session, in case the previous user closed the
+    // app without logging out.
+    await _Tokens.clear();
     await _Tokens.save(d['access'] as String, d['refresh'] as String);
     await _Tokens.saveUser(d['user'] as Map<String, dynamic>);
     return d;

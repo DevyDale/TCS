@@ -251,42 +251,63 @@ Future<void> _pickAvatar() async {
 
                 SizedBox(height: r.xl),
 
-                // Input Field
+                // Input Field — explicit dark fill + high-contrast text so
+                // the typed gamer tag never clashes with the surrounding card.
                 Container(
                   decoration: BoxDecoration(
-                    color: kDarkCard,
+                    color: const Color(0xFF1A1A2E),
                     borderRadius: BorderRadius.circular(r.radiusLg),
                     border: Border.all(
                         color: _error != null
                             ? kNeonRed.withOpacity(0.5)
-                            : Colors.white.withOpacity(0.08)),
+                            : Colors.white.withOpacity(0.12)),
                   ),
-                  child: TextField(
-                    controller: _ctrl,
-                    autofocus: true,
-                    maxLength: 20,
-                    enableSuggestions: false,
-                    style: TextStyle(
-                        fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold,
-                        fontSize: r.body + 3,
-                        color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Enter your gamer tag...',
-                      hintStyle: TextStyle(
-                          fontFamily: 'Arch',
-                          fontSize: r.body + 1,
-                          color: Colors.white.withOpacity(0.25)),
-                      counterStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.3),
-                          fontFamily: 'Momo'),
-                      border: InputBorder.none,
-                      contentPadding: r.inputPad,
-                      prefixText: '# ',
-                      prefixStyle: TextStyle(
-                          fontFamily: 'Momo',
-                          fontSize: r.body + 1,
-                          color: grad.first),
+                  child: Theme(
+                    // Force the text-selection handle/highlight to use the
+                    // accent grad so it doesn't fall back to the system blue.
+                    data: Theme.of(context).copyWith(
+                      textSelectionTheme: TextSelectionThemeData(
+                        cursorColor:        grad.first,
+                        selectionColor:     grad.first.withOpacity(0.35),
+                        selectionHandleColor: grad.first,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _ctrl,
+                      autofocus: true,
+                      maxLength: 20,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      cursorColor: grad.first,
+                      cursorWidth: 2,
+                      keyboardAppearance: Brightness.dark,
+                      style: TextStyle(
+                        fontFamily:   'Arch',
+                        fontWeight:   FontWeight.bold,
+                        fontSize:     r.body + 3,
+                        color:        Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                      decoration: InputDecoration(
+                        filled: false,
+                        hintText: 'Enter your gamer tag...',
+                        hintStyle: TextStyle(
+                            fontFamily: 'Arch',
+                            fontSize:   r.body + 1,
+                            color:      Colors.white.withOpacity(0.30)),
+                        counterStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.35),
+                            fontFamily: 'Momo'),
+                        border:        InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: r.inputPad,
+                        prefixText: '# ',
+                        prefixStyle: TextStyle(
+                            fontFamily: 'Momo',
+                            fontSize:   r.body + 1,
+                            color:      grad.first),
+                      ),
                     ),
                   ),
                 ),

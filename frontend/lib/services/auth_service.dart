@@ -242,6 +242,10 @@ class AuthService {
       if (res.statusCode == 200) {
         final d = jsonDecode(res.body) as Map<String, dynamic>;
         await p.setString(_Keys.access_token, d['access'] as String);
+        final newRefresh = d['refresh'] as String?;
+        if (newRefresh != null && newRefresh.isNotEmpty) {
+          await p.setString(_Keys.refresh_token, newRefresh);
+        }
         return true;
       }
       // Any non-200 response (including 401) → keep the session as-is.
@@ -290,14 +294,36 @@ class AuthService {
 
   // The ONLY destructive call in this file. Called by logout() above.
   // Do NOT call from anywhere else.
+  static const _globalKeys = <String>[
+    'language',
+    'dark_mode',
+    'push_notifs',
+    'announcements',
+    'group_activity',
+    'show_online',
+    'discoverable',
+  ];
+
+  /// Wipe ALL SharedPreferences except device-level global preferences.
+  /// Same defence as ApiService — any user-specific cached data is
+  /// nuked on logout, no matter which screen wrote it.
   Future<void> clearTokens() async {
     final p = await SharedPreferences.getInstance();
-    await p.remove(_Keys.access_token);
-    await p.remove(_Keys.refresh_token);
-    await p.remove(_Keys.fullName);
-    await p.remove(_Keys.preferredName);
-    await p.remove(_Keys.role);
-    await p.remove(_Keys.userId);
-    await p.remove(_Keys.userJson);
+
+    final globals = <String, Object>{};
+    for (final k in _globalKeys) {
+      final v = p.get(k);
+      if (v != null) globals[k] = v;
+    }
+
+    await p.clear();
+
+    for (final e in globals.entries) {
+      final v = e.value;
+      if (v is String) await p.setString(e.key, v);
+      else if (v is bool)   await p.setBool(e.key, v);
+      else if (v is int)    await p.setInt(e.key, v);
+      else if (v is double) await p.setDouble(e.key, v);
+    }
   }
 }

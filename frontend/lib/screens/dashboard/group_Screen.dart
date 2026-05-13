@@ -459,7 +459,7 @@ class _GroupScreenState extends State<GroupScreen>
         ),
         if (_isAdmin)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+            icon: const Icon(Icons.more_vert_rounded, color: Color.fromARGB(255, 197, 136, 136)),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
             onSelected: (v) {

@@ -1,38 +1,8 @@
 // lib/screens/feed/feed_screen.dart
 //
-// §6 fixes (unchanged):
-//   1. Media renders inline (CachedNetworkImage / video thumb with play
-//      overlay). 2. Fweets get their colored block. 3. Instagram-style
-//      card layout. 4. New _ago format ("5m ago" / "May 7" etc.).
-//
-// §7 — UI tweak (previous revision):
-//   • The floating "Create Post" FAB has been REMOVED.
-//   • A new circular gradient button now lives in the header row, just
-//     beside the "Suggest" button. It plays a Lottie animation
-//     (assets/lottie/robot.lottie) and serves the same function the
-//     FAB used to.
-//
-// §8 — Scrolling overhaul (THIS revision):
-//   • The build() method has been restructured so the header (greeting,
-//     robot button, suggest, notifications, search row) is now a STATIC
-//     element pinned at the top. Only highlights + feed tabs + posts
-//     scroll underneath it — same feel as Instagram's home feed.
-//
-//     Old structure:
-//         RefreshIndicator → CustomScrollView (header was a sliver,
-//                                              so it scrolled away)
-//
-//     New structure:
-//         Column
-//           ├── _buildHeader()                    ← STATIC, pinned
-//           └── Expanded
-//                 └── RefreshIndicator
-//                       └── CustomScrollView      ← scrolls underneath
-//
-//   • The refresh button next to the search bar (which previously had
-//     an empty `// refresh logic` placeholder) is now fully wired:
-//     it triggers _loadFeed(refresh: true) + _loadHighlights() with
-//     a haptic tap and a quick spin animation for feedback.
+// FIX: _PostCardState now owns its own ApiService instance (_api), and
+// _handleBookmark is async so it can await the favorite/unfavorite
+// POST/DELETE calls.
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -83,14 +53,11 @@ class _FeedScreenState extends State<FeedScreen>
   bool _feedHasMore  = true;
   bool _fetchingMore = false;
   int  _feedPage     = 1;
-  int  _feedTab      = 0; // 0=All 1=Following 2=Trending 3=Clubs
+  int  _feedTab      = 0;
   final _carouselCtrl = PageController(viewportFraction: 0.92);
   int  _carouselPage  = 0;
   Timer? _carouselTimer;
 
-  // Spin animation for the new in-header refresh button. Mounting it on
-  // _FeedScreenState (with TickerProviderStateMixin above) keeps the
-  // controller alive across rebuilds without leaking.
   late final AnimationController _refreshSpinCtrl;
 
   @override
@@ -184,12 +151,9 @@ class _FeedScreenState extends State<FeedScreen>
             .cast<Map<String, dynamic>>();
       });
       _startCarouselTimer();
-    } catch (_) {/* swallow — empty state covers it */}
+    } catch (_) {}
   }
 
-  // Single source of truth for refresh — used by both the pull-to-refresh
-  // gesture and the new in-header refresh button. Keeping it in one place
-  // means the two refresh entry points can never drift apart.
   Future<void> _refreshAll() async {
     await Future.wait([
       _loadFeed(refresh: true),
@@ -197,9 +161,6 @@ class _FeedScreenState extends State<FeedScreen>
     ]);
   }
 
-  // Header refresh button handler. Plays a single 360° spin while the
-  // network calls run, so the user gets immediate visual feedback even
-  // before posts repaint.
   Future<void> _onHeaderRefreshTap() async {
     HapticFeedback.lightImpact();
     _refreshSpinCtrl
@@ -269,16 +230,12 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  // Action that the (now-removed) FAB used to perform. Kept as its
-  // own method so the new header button (and any future entry point)
-  // calls a single, named handler. Wire it up to your create-post
-  // route here when you're ready.
   void _onCreatePostTap() {
-  HapticFeedback.mediumImpact();
-  Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const AiHubScreen()),
-  );
-}
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AiHubScreen()),
+    );
+  }
 
   String get _greeting {
     final h = DateTime.now().hour;
@@ -287,32 +244,14 @@ class _FeedScreenState extends State<FeedScreen>
     return '👋Good evening';
   }
 
-  // ══════════════════════════════════════════════════════════
-  // BUILD — Instagram-style pinned header + scrolling feed
-  // ══════════════════════════════════════════════════════════
-  //
-  // The header is no longer a sliver. It sits above an Expanded that
-  // owns the CustomScrollView, so when the user scrolls, only posts
-  // (+ highlights + tabs) move. The header is rock-solid at the top.
-
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: _kBg,
-      // floatingActionButton intentionally removed — the create-post
-      // entry now lives in the header row beside "Suggest".
       body: Column(
         children: [
-          // ── PINNED HEADER ─────────────────────────────────
-          // Always visible. Does not participate in the scroll.
           _buildHeader(topPad),
-
-          // ── SCROLLABLE FEED AREA ──────────────────────────
-          // Everything below the header (highlights, tabs, posts) lives
-          // inside this Expanded. The RefreshIndicator's displacement
-          // is reduced to 40 because the indicator now appears at the
-          // very top of the scroll surface (no header above it to clear).
           Expanded(
             child: RefreshIndicator(
               color: _kViolet,
@@ -367,13 +306,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // ── Header ────────────────────────────────────────────────
-  // The header now hosts TWO action buttons on the right side:
-  //   1. The robot-Lottie button (replaces the old FAB)
-  //   2. The existing "Suggest" pill
-  // Plus the notification bell. Below them sits the search row, which
-  // includes the now-functional refresh button on the left.
-
   Widget _buildHeader(double topPad) {
     return Container(
       color: _kCard,
@@ -389,10 +321,6 @@ class _FeedScreenState extends State<FeedScreen>
                 fontFamily: 'Alfa', fontSize: 28, color: _kInk, height: 1.1)),
           ])),
 
-          // ── Robot Lottie button (replaces FAB) ────────────
-          // Same gradient + shadow language as the old FAB so the
-          // "create post" affordance still reads as the primary
-          // action; the Lottie inside gives it a playful identity.
           _RobotLottieButton(onTap: _onCreatePostTap),
 
           const SizedBox(width: 8),
@@ -411,78 +339,95 @@ class _FeedScreenState extends State<FeedScreen>
                     fontWeight: FontWeight.bold, color: _kViolet, fontSize: 12)),
               ]))),
           const SizedBox(width: 8),
-          // ── Notification bell with live unread badge ──────────
-          // Lottie when unread, static icon otherwise.
-          AnimatedBuilder(
-            animation: NotificationService.instance,
-            builder: (_, __) {
-              final n = NotificationService.instance.unreadCount;
-              final hasUnread = n > 0;
-              return GestureDetector(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen())),
-                child: Stack(clipBehavior: Clip.none, children: [
-                  Container(
-                    // Lottie needs slightly less inner padding so the bell
-                    // sits at the same visual size as the static icon.
-                    padding: EdgeInsets.all(hasUnread ? 6 : 10),
-                    decoration: BoxDecoration(
-                      color: _kViolet.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _kViolet.withOpacity(0.15))),
-                    child: hasUnread
-                        ? SizedBox(
-                            width: 26, height: 26,
-                            child: Lottie.asset(
-                              'assets/lottie/bell.json',
-                              repeat: true,
-                              fit: BoxFit.contain,
-                              // Tint the animation to match the violet accent.
-                              // Comment this delegate out if your bell.json
-                              // already has the colour you want.
-                              delegates: LottieDelegates(values: [
-                                ValueDelegate.color(
-                                  const ['**'],
-                                  value: _kViolet,
-                                ),
-                              ]),
+   AnimatedBuilder(
+  animation: NotificationService.instance,
+  builder: (_, __) {
+    final n         = NotificationService.instance.unreadCount;
+    final hasUnread = n > 0;
+    final badgeText = n > 99 ? '99+' : '$n';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => const NotificationsScreen())),
+      child: SizedBox(
+        width: 40, height: 40,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // ── Bell capsule ──
+            Container(
+              width: 40, height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _kViolet.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _kViolet.withOpacity(0.15)),
+              ),
+              child: ClipRect(
+                child: SizedBox(
+                  width: 22, height: 22,
+                  child: hasUnread
+                      ? Lottie.asset(
+                          'assets/images/bell.json',
+                          repeat: true,
+                          fit: BoxFit.contain,
+                          delegates: LottieDelegates(values: [
+                            ValueDelegate.color(
+                              const ['**'],
+                              value: const Color(0xFFFFB300), // ← golden bell
                             ),
-                          )
-                        : Icon(Icons.notifications_outlined,
-                            color: _kViolet, size: 18),
+                          ]),
+                        )
+                      : const Icon(
+                          Icons.notifications_outlined,
+                          color: _kViolet,
+                          size: 18,
+                        ),
+                ),
+              ),
+            ),
+
+            // ── Unread badge ──
+            if (hasUnread)
+              Positioned(
+                top: 1, right: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5858),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white, width: 1.5),
                   ),
-                  if (hasUnread) Positioned(
-                    right: -4, top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 2),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF5858),
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                      child: Text(n > 99 ? '99+' : '$n',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white,
-                            fontSize: 10, fontWeight: FontWeight.bold,
-                            fontFamily: 'Arch')),
+                  constraints: const BoxConstraints(
+                      minWidth: 14, minHeight: 14),
+                  child: Text(
+                    badgeText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Arch',
+                      height: 1.0,
                     ),
                   ),
-                ]),
-              );
-            },
-          ),
-        ]),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  },
+),
+  ]),
+     
+     
         const SizedBox(height: 16),
 
-        // ── Refresh button + Search row ──────────────────────
-        // The refresh button (left) is now fully functional: it spins
-        // 360° while the feed + highlights reload. Single source of
-        // truth is _refreshAll(), so pull-to-refresh and this button
-        // call exactly the same code path.
         Row(
           children: [
-            // ── Functional refresh button ──────────────────
             GestureDetector(
               onTap: _onHeaderRefreshTap,
               child: Container(
@@ -515,7 +460,6 @@ class _FeedScreenState extends State<FeedScreen>
 
             const SizedBox(width: 10),
 
-            // ── Search bar with gradient border ───────────
             Expanded(
               child: GestureDetector(
                 onTap: () => Navigator.of(context).push(
@@ -573,8 +517,6 @@ class _FeedScreenState extends State<FeedScreen>
       ]),
     );
   }
-
-  // ── Highlights (events + announcements) ───────────────────
 
   Widget _buildHighlightsSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -657,8 +599,6 @@ class _FeedScreenState extends State<FeedScreen>
         ])),
     );
   }
-
-  // ── Feed label + tabs ─────────────────────────────────────
 
   Widget _buildFeedLabel() {
     const tabs = ['All', 'Following', 'Trending', 'Clubs'];
@@ -750,17 +690,11 @@ class _FeedScreenState extends State<FeedScreen>
       ]),
     ));
   }
-
-  // _buildFAB() removed — the action lives in _RobotLottieButton now.
 }
 
 // ─────────────────────────────────────────────────────────────
 // ROBOT LOTTIE BUTTON
 // ─────────────────────────────────────────────────────────────
-// Stateless on purpose. Lottie.asset() auto-creates its own
-// controller and loops the animation by default — we don't need
-// to manage it ourselves. Anything we add (custom controller,
-// manual forward/repeat/reset) just creates more failure modes.
 
 class _RobotLottieButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -795,11 +729,7 @@ class _RobotLottieButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Lottie.asset(
             'assets/images/robot.json',
-
-            // No controller, no onLoaded, no manual playback —
-            // Lottie auto-plays and loops by default.
             errorBuilder: (context, error, stack) {
-              // Surface the real reason if it ever fails to load.
               debugPrint('🤖 Lottie failed: $error');
               return const Icon(
                 Icons.smart_toy_rounded,
@@ -869,12 +799,14 @@ class _PostCard extends StatefulWidget {
 
 class _PostCardState extends State<_PostCard>
     with SingleTickerProviderStateMixin {
+  // ── FIX #1: own ApiService instance ──
+  final _api = ApiService();
+
   late final AnimationController _heartCtrl;
   late final Animation<double>   _heartScale;
   bool _expanded   = false;
   bool _bookmarked = false;
   int  _mediaPage  = 0;
-  final _api       = ApiService();
 
   @override
   void initState() {
@@ -895,6 +827,7 @@ class _PostCardState extends State<_PostCard>
         duration: const Duration(milliseconds: 200), curve: Curves.elasticOut);
   }
 
+  // ── FIX #2: async signature so body can use `await` ──
   Future<void> _handleBookmark() async {
     HapticFeedback.lightImpact();
     final newVal = !_bookmarked;
@@ -903,12 +836,12 @@ class _PostCardState extends State<_PostCard>
       final pid = widget.post['id']?.toString() ?? '';
       if (pid.isNotEmpty) {
         if (newVal) {
-          await _api.post('/posts/' + pid + '/favorite/');
+          await _api.post('/posts/$pid/favorite/');
         } else {
-          await _api.delete('/posts/' + pid + '/favorite/');
+          await _api.delete('/posts/$pid/favorite/');
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _bookmarked = !newVal);
     }
   }
@@ -1728,30 +1661,3 @@ class _ShareSheetState extends State<_ShareSheet> {
     ),
   );
 }
-
-// ─────────────────────────────────────────────────────────────
-// SETUP CHECKLIST — do these or the new button won't render:
-// ─────────────────────────────────────────────────────────────
-//
-// 1. Add the lottie package to pubspec.yaml under dependencies:
-//
-//      dependencies:
-//        lottie: ^3.1.2     # 3.0+ required for .lottie / dotLottie
-//
-// 2. Drop your robot.lottie file at:
-//
-//      assets/lottie/robot.lottie
-//
-// 3. Register the asset in pubspec.yaml under flutter:
-//
-//      flutter:
-//        assets:
-//          - assets/lottie/robot.lottie
-//
-//    (Or just `- assets/lottie/` to grab everything in that folder.)
-//
-// 4. Run `flutter pub get` and hot-restart (NOT just hot-reload —
-//    new assets need a full restart).
-//
-// If the file is missing or fails to decode, the button falls back
-// to a white edit icon so the affordance is never invisible.
