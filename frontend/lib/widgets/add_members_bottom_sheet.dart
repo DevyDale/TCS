@@ -70,6 +70,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
   List<Map<String, dynamic>> _results = [];
   bool   _searching = false;
   String _lastQuery = '';
+  String? _lastError;
 
   @override
   void initState() {
@@ -290,6 +291,13 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
       );
     }
     if (_results.isEmpty) {
+      if (_lastError != null) {
+        return _emptyHint(
+          icon: Icons.error_outline_rounded,
+          title: 'Search failed',
+          body: _lastError!,
+        );
+      }
       return _emptyHint(
         icon: Icons.person_off_rounded,
         title: 'No matches',
