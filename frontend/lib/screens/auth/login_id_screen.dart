@@ -193,7 +193,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         );
       }
     } on AuthException catch (e) {
-      _showSnack(e.message, isError: true);
+      _showSnack('False Credentials', isError: true);
     } catch (e) {
       _showSnack('Something went wrong. Try again.', isError: true);
     } finally {
@@ -649,7 +649,7 @@ class _DateField extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              formatted ?? 'Select your date of birth',
+              formatted ?? 'DD / MM / YYYY',
               style: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 15,
