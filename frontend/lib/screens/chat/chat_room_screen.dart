@@ -22,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:tcs_app/widgets/dale_appbar_button.dart';
@@ -264,6 +265,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _onStickerSelected(Map<String, dynamic> sticker) async {
+    // Local sticker added from gallery: upload + send as image.
+    if (sticker['is_local'] == true) {
+      final path = sticker['file_path'] as String?;
+      if (path != null) await _sendLocalImage(path);
+      return;
+    }
     final id  = sticker['id'] as int?;
     final url = sticker['image_url'] as String? ?? '';
     if (id == null) return;
@@ -284,6 +291,60 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     HapticFeedback.lightImpact();
 
     try { _chatWs.sendSticker(id); } catch (_) {}
+  }
+
+
+  Future<void> _sendLocalImage(String filePath) async {
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMsg = {
+      'id':           tempId,
+      'sender_name':  widget.userName,
+      'message_type': 'image',
+      'media_url':    '',
+      'local_path':   filePath,
+      'created_at':   DateTime.now().toIso8601String(),
+      'is_me':        true,
+      '_uploading':   true,
+    };
+    setState(() => _messages.add(tempMsg));
+    _scrollToBottom();
+    HapticFeedback.lightImpact();
+
+    try {
+      final ext = filePath.split('.').last.toLowerCase();
+      final mime = (ext == 'png') ? 'image/png'
+                 : (ext == 'gif') ? 'image/gif'
+                 : 'image/jpeg';
+      final res = await _api.uploadChatMedia(
+        roomId:   widget.roomId,
+        file:     File(filePath),
+        mimeType: mime,
+      ) as Map<String, dynamic>;
+
+      final mediaUrl  = (res['media_url'] ?? res['url']) as String? ?? '';
+      final messageId = res['message_id'] ?? res['id'] ?? tempId;
+
+      if (!mounted) return;
+      setState(() {
+        final idx = _messages.indexWhere((m) => m['id'] == tempId);
+        if (idx != -1) {
+          _messages[idx] = {
+            ..._messages[idx],
+            'id':         messageId,
+            'media_url':  mediaUrl,
+            '_uploading': false,
+          };
+        }
+      });
+
+      try {
+        _chatWs.sendMedia(messageType: 'image', mediaUrl: mediaUrl);
+      } catch (_) {}
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _messages.removeWhere((m) => m['id'] == tempId));
+      _showSnack("Couldn't send sticker. Try again.");
+    }
   }
 
   // ── Send: voice note ─────────────────────────────────────
@@ -736,7 +797,36 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
 
     if (type == 'image') {
-      return const Icon(Icons.image_rounded, size: 40, color: Colors.white70);
+      if (msg['_uploading'] == true) {
+        return SizedBox(
+          width: 200, height: 200,
+          child: Center(
+            child: SizedBox(
+              width: 28, height: 28,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: isMe ? Colors.white : Colors.deepPurple.shade400),
+            ),
+          ),
+        );
+      }
+      final url = msg['media_url'] as String? ?? '';
+      if (url.isEmpty) {
+        return const Icon(Icons.broken_image_rounded,
+            size: 40, color: Colors.white70);
+      }
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          width: 220,
+          placeholder: (_, __) => Container(
+              width: 220, height: 220, color: Colors.grey.shade200),
+          errorWidget: (_, __, ___) => const Icon(
+              Icons.broken_image_rounded, color: Color(0xFFB0B3BD)),
+        ),
+      );
     }
 
     return Row(children: [

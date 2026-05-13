@@ -245,6 +245,21 @@ class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: () {
+        if (_recording) return;
+        HapticFeedback.selectionClick();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text(
+            'Hold the mic to record a voice note',
+            style: TextStyle(fontFamily: 'Momo'),
+          ),
+          duration: const Duration(milliseconds: 1600),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ));
+      },
       onLongPressStart: (details) {
         _pressStart = details.globalPosition;
         _start();
