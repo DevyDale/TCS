@@ -58,6 +58,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -869,9 +870,60 @@ class ApiService {
       });
 
   Future<dynamic> getClub(String id) => get('/clubs/$id/');
+  /// POST /api/clubs/ — supports logo & cover during creation
+  Future<dynamic> createClub(
+    Map<String, dynamic> data, {
+    XFile? logo,
+    XFile? cover,
+  }) async {
+    final String path = '/clubs/';
 
-  Future<dynamic> createClub(Map<String, dynamic> data) =>
-      post('/clubs/', body: data);
+    // Simple JSON post if no images
+    if (logo == null && cover == null) {
+      return post(path, body: data);
+    }
+
+    // Multipart request with files
+    final token = await _Tokens.access();
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConfig.api}$path'),
+    );
+
+    req.headers.addAll({
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    });
+
+    // Add all text fields
+    data.forEach((key, value) {
+      if (value != null) {
+        req.fields[key] = value.toString();
+      }
+    });
+
+    // Add logo
+    if (logo != null) {
+      req.files.add(await http.MultipartFile.fromPath(
+        'logo',
+        logo.path,
+        contentType: MediaType('image', 'jpeg'),
+      ));
+    }
+
+    // Add cover
+    if (cover != null) {
+      req.files.add(await http.MultipartFile.fromPath(
+        'cover',
+        cover.path,
+        contentType: MediaType('image', 'jpeg'),
+      ));
+    }
+
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    return _decode(res);
+  }
 
   Future<dynamic> updateClub(String id, Map<String, dynamic> data) =>
       patch('/clubs/$id/', body: data);

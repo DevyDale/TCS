@@ -8,6 +8,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import '../../services/api_service.dart';
 
@@ -44,6 +46,12 @@ class _CreateClubPageState extends State<CreateClubPage> {
   final _api  = ApiService();
   final _form = GlobalKey<FormState>();
 
+  final _picker = ImagePicker();
+
+  // Image files
+  XFile? _logoFile;
+  XFile? _coverFile;
+
   final _name        = TextEditingController();
   final _tagline     = TextEditingController();
   final _description = TextEditingController();
@@ -63,34 +71,53 @@ class _CreateClubPageState extends State<CreateClubPage> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
+
     HapticFeedback.lightImpact();
     setState(() => _busy = true);
+
     try {
       final res = await _api.createClub({
-        'name':              _name.text.trim(),
-        'tagline':           _tagline.text.trim(),
-        'description':       _description.text.trim(),
-        'category':          _category,
-        'is_public':         _isPublic,
+        'name': _name.text.trim(),
+        'tagline': _tagline.text.trim(),
+        'description': _description.text.trim(),
+        'category': _category,
+        'is_public': _isPublic,
         'requires_approval': _requiresApproval,
-      }) as Map<String, dynamic>;
+      }, logo: _logoFile, cover: _coverFile) as Map<String, dynamic>;
+
       if (!mounted) return;
       Navigator.pop(context, res);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(e.toString(),
-            style: const TextStyle(
-                fontFamily: 'Momo', color: Colors.white)),
+            style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
         backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         margin: const EdgeInsets.all(16),
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _pickLogo() async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (file != null) setState(() => _logoFile = file);
+  }
+
+  Future<void> _pickCover() async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1200,
+    );
+    if (file != null) setState(() => _coverFile = file);
   }
 
   @override
@@ -106,6 +133,74 @@ class _CreateClubPageState extends State<CreateClubPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                 children: [
+                  // === Club Logo & Cover Photo ===
+                  Row(
+                    children: [
+                      // Logo
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _pickLogo,
+                          child: Column(
+                            children: [
+                              const Text('Club Logo', 
+                                style: TextStyle(fontFamily: 'Arch', fontSize: 12.5, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: _kG2.withOpacity(0.4), width: 3),
+                                  image: _logoFile != null 
+                                      ? DecorationImage(image: FileImage(File(_logoFile!.path)), fit: BoxFit.cover)
+                                      : null,
+                                ),
+                                child: _logoFile == null
+                                    ? const Icon(Icons.camera_alt_rounded, size: 34, color: _kG2)
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 20),
+
+                      // Cover Photo
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _pickCover,
+                          child: Column(
+                            children: [
+                              const Text('Cover Photo', 
+                                style: TextStyle(fontFamily: 'Arch', fontSize: 12.5, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Container(
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: _kG2.withOpacity(0.4), width: 3),
+                                  image: _coverFile != null 
+                                      ? DecorationImage(image: FileImage(File(_coverFile!.path)), fit: BoxFit.cover)
+                                      : null,
+                                ),
+                                child: _coverFile == null
+                                    ? const Center(
+                                        child: Icon(Icons.photo_library_rounded, size: 34, color: _kG2),
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 28),
+
                   _label('Club Name *'),
                   _textField(
                     controller: _name,

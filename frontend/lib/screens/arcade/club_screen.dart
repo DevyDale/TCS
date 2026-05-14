@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import '../../services/api_service.dart';
 import '../profile/user_screen_profile.dart';
@@ -50,6 +52,41 @@ class _ClubScreenState extends State<ClubScreen>
     with SingleTickerProviderStateMixin {
   final _api = ApiService();
   late final TabController _tabCtrl;
+  final _picker = ImagePicker();
+
+  Future<void> _pickLogo() async {
+    if (!_isAdmin) return;
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+
+    try {
+      await _api.uploadClubLogo(_clubId, filePath: file.path);
+      _snack('Logo updated successfully!');
+      await _refreshClub();
+    } catch (e) {
+      _snack('Failed to update logo', error: true);
+    }
+  }
+
+  Future<void> _pickCover() async {
+    if (!_isAdmin) return;
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (file == null) return;
+
+    try {
+      await _api.uploadClubCover(_clubId, filePath: file.path);
+      _snack('Cover photo updated!');
+      await _refreshClub();
+    } catch (e) {
+      _snack('Failed to update cover', error: true);
+    }
+  }
 
   // Local mutable copy so we can do optimistic updates.
   late Map<String, dynamic> _club;
@@ -507,50 +544,12 @@ class _ClubScreenState extends State<ClubScreen>
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 0,
       pinned: true,
       stretch: true,
       backgroundColor: _kIndigo,
-      leading: Padding(
-        padding: const EdgeInsets.all(8),
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.30),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.arrow_back_rounded,
-                color: Colors.white, size: 20),
-          ),
-        ),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [StretchMode.zoomBackground],
-        background: Stack(fit: StackFit.expand, children: [
-          if (_coverUrl != null && _coverUrl!.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: _coverUrl!,
-              fit: BoxFit.cover,
-              errorWidget: (_, __, ___) => _coverGradient(),
-              placeholder:  (_, __)     => _coverGradient(),
-            )
-          else
-            _coverGradient(),
-          // Bottom dark overlay for readability
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end:   Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.55),
-                ],
-              ),
-            ),
-          ),
-        ]),
+      flexibleSpace: Container(
+        color: _kBg,
       ),
     );
   }
@@ -568,135 +567,198 @@ class _ClubScreenState extends State<ClubScreen>
   // ── Header info: logo + name + tagline + meta + action ────
 
   Widget _buildHeaderInfo() {
-    return Container(
-      color: Colors.white,
-      child: Column(children: [
-        // Overlap row: logo positioned slightly above the white card.
-        Transform.translate(
-          offset: const Offset(0, -28),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildLogo(),
-                const Spacer(),
-                if (_isAdmin)
-                  _buildAdminBadge(),
-              ],
-            ),
-          ),
-        ),
-
-        // Pull body up to compensate for logo overlap.
-        Transform.translate(
-          offset: const Offset(0, -18),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name + verification tick
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Flexible(
-                    child: Text(
-                      _name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Alfa',
-                        fontSize: 22,
-                        color: _kInk,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        children: [
+          // Header with gradient border and embedded back button
+          Stack(
+            children: [
+              // Gradient border outer container
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(2), // border thickness
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_kG1, _kG2],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
-                    ),
+                    ],
                   ),
-                  if (_isVerified) ...[
-                    const SizedBox(width: 6),
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: Icon(Icons.verified_rounded,
-                          color: _kVerified, size: 18),
-                    ),
-                  ],
-                  if (!_isPublic) ...[
-                    const SizedBox(width: 6),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Icon(Icons.lock_rounded,
-                          size: 14, color: Colors.grey.shade500),
-                    ),
-                  ],
-                ]),
+                  child: Column(
+                    children: [
+                      _buildLogo(),
+                      const SizedBox(height: 16),
+                      Text(
+                        _name,
+                        style: const TextStyle(
+                          fontFamily: 'Alfa',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _kInk,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (_tagline.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            _tagline,
+                            style: const TextStyle(
+                              fontFamily: 'Momo',
+                              fontSize: 14,
+                              color: _kSlate,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
 
-                if (_tagline.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _tagline,
-                    style: const TextStyle(
-                      fontFamily: 'Momo',
-                      fontSize: 13,
-                      color: _kSlate,
-                      height: 1.4,
+              // Back button inside container
+              Positioned(
+                top: 10,
+                left: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: 18,
+                      color: _kInk,
                     ),
                   ),
-                ],
-
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 6, children: [
-                  _metaChip(
-                    icon:  Icons.people_alt_rounded,
-                    label: '$_memberCount '
-                        'member${_memberCount == 1 ? "" : "s"}',
-                    color: _kIndigo,
-                  ),
-                  _metaChip(
-                    icon:  Icons.category_rounded,
-                    label: _titleCase(_category),
-                    color: _kG2,
-                  ),
-                  if (_requiresApproval && !_isMember)
-                    _metaChip(
-                      icon:  Icons.shield_rounded,
-                      label: 'Approval required',
-                      color: _kG3,
-                    ),
-                ]),
-
-                const SizedBox(height: 16),
-                _buildActionButton(),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ]),
+
+          const SizedBox(height: 20),
+
+          // Meta Chips + Action Button
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              _metaChip(
+                icon: Icons.people_alt_rounded,
+                label: '$_memberCount members',
+                color: _kIndigo,
+              ),
+              _metaChip(
+                icon: Icons.category_rounded,
+                label: _titleCase(_category),
+                color: _kG2,
+              ),
+              if (_requiresApproval && !_isMember)
+                _metaChip(
+                  icon: Icons.shield_rounded,
+                  label: 'Approval Required',
+                  color: _kG3,
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+          _buildActionButton(),
+        ],
+      ),
     );
   }
 
   Widget _buildLogo() {
     final initial = _name.isNotEmpty ? _name[0].toUpperCase() : 'C';
-    return Container(
-      width: 78, height: 78,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.20),
-            blurRadius: 14, offset: const Offset(0, 4),
+
+    return GestureDetector(
+      onTap: _isAdmin ? _pickLogo : null,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Main Logo Container
+          Container(
+            width: 110,
+            height: 110,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 6),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: _logoUrl != null && _logoUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: _logoUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _logoFallback(initial),
+                      placeholder: (_, __) => _logoFallback(initial),
+                    )
+                  : _logoFallback(initial),
+            ),
           ),
+
+          // Camera Icon for Admins
+          if (_isAdmin)
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.camera_alt_rounded,
+                  size: 18,
+                  color: _kG2,
+                ),
+              ),
+            ),
         ],
-        border: Border.all(color: Colors.white, width: 3),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(17),
-        child: _logoUrl != null && _logoUrl!.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: _logoUrl!,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _logoFallback(initial),
-                placeholder:  (_, __)     => _logoFallback(initial),
-              )
-            : _logoFallback(initial),
       ),
     );
   }

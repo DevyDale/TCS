@@ -135,25 +135,70 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+  Widget _empty() => Center(
+  child: Container(
+    margin: const EdgeInsets.symmetric(horizontal: 32),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [_kViolet, _kBlue],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Container(
+      margin: const EdgeInsets.all(3), // ← Controls border thickness
+      decoration: BoxDecoration(
+        color: _kCard, // White inner background
+        borderRadius: BorderRadius.circular(17),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Bell Icon
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              color: _kViolet.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🔔', style: TextStyle(fontSize: 38)),
+            ),
+          ),
 
-  Widget _empty() => ListView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    children: [
-      const SizedBox(height: 100),
-      Center(child: Column(children: [
-        Container(width: 72, height: 72,
-          decoration: BoxDecoration(color: _kViolet.withOpacity(0.06),
-            shape: BoxShape.circle),
-          child: const Center(child: Text('🔔', style: TextStyle(fontSize: 34)))),
-        const SizedBox(height: 18),
-        const Text("You're all caught up",
-          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
-        const SizedBox(height: 6),
-        Text('Game requests, chats, highlights and more will show here',
-          style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: _kSlate)),
-      ])),
-    ],
-  );
+          const SizedBox(height: 28),
+
+          const Text(
+            "You're all caught up",
+            style: TextStyle(
+              fontFamily: 'Alfa',
+              fontSize: 19,
+              color: _kInk,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 10),
+
+          const Text(
+            'Game requests, chats, highlights and more will show here',
+            style: TextStyle(
+              fontFamily: 'Momo',
+              fontSize: 13.5,
+              color: _kSlate,
+              height: 1.45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  ),
+);
 }
 
 // ── Tile ──────────────────────────────────────────────────────
