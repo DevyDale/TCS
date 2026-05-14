@@ -44,7 +44,7 @@ import 'createpostspage.dart';
 import 'fweetspage.dart';
 import 'interests.dart';
 import 'media_item_view.dart';
-import '../highlights/highlight_story_viewer.dart';
+import '../../highlight_story_viewer.dart';
 import '../../widgets/privacy_toggle_sheet.dart';
 import 'share_profile_screen.dart';
 
