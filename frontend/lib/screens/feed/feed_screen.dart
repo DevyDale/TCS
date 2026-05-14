@@ -19,6 +19,7 @@ import '../dashboard/event_details.dart';
 import '../dashboard/highlight_card.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
 import '../dashboard/suggestion_box_screen.dart';
+import '../dashboard/full_screen_video_player.dart';
 
 
 // ── Palette ───────────────────────────────────────────────────
@@ -316,9 +317,9 @@ class _FeedScreenState extends State<FeedScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
             Text(_greeting, style: TextStyle(
-                fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
-            const Text('TCS', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 28, color: _kInk, height: 1.1)),
+                fontFamily: 'Momo', fontSize: 15, color: _kSlate)),
+            const Text('TCS StudentHub', style: TextStyle(
+                fontFamily: 'Alfa', fontSize: 20, color: _kInk, height: 1.1)),
           ])),
 
           _RobotLottieButton(onTap: _onCreatePostTap),
@@ -1158,7 +1159,15 @@ class _PostCardState extends State<_PostCard>
 
     if (isVideo) {
       final imageUrl = thumb.isNotEmpty ? thumb : url;
-      return Container(
+      return GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.of(context).push(MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => FullscreenVideoPlayer(url: url),
+          ));
+        },
+        child: Container(
         color: Colors.black,
         child: Stack(fit: StackFit.expand, children: [
           CachedNetworkImage(
@@ -1195,6 +1204,7 @@ class _PostCardState extends State<_PostCard>
                     color: Colors.white, fontSize: 10)),
               ]))),
         ]),
+      ),
       );
     }
 
