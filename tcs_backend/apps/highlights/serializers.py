@@ -8,11 +8,7 @@ from .models import Highlight, HighlightItem
 
 
 def _cover_url(highlight):
-    """
-    Cover thumbnail for a highlight: the explicit cover if set, else the
-    first item's still. Always 400x400 fill so the profile circle and
-    feed card crop consistently.
-    """
+    """Explicit cover if set, else the first item's still. 400x400 fill."""
     if highlight.cover:
         return _cl(highlight.cover, width=400, height=400, crop="fill",
                    fetch_format="auto", quality="auto", secure=True)
@@ -28,18 +24,28 @@ def _cover_url(highlight):
 
 class HighlightItemSerializer(serializers.ModelSerializer):
     """
-    Mirrors PostMediaSerializer - one item as
-        {id, url, thumbnail_url, media_type, order, duration}
-    Images: url is an 800px auto-WebP hero, thumbnail_url is null.
-    Videos: url is the streamable mp4/webm, thumbnail_url is a
-    Cloudinary poster frame.
+    One story item, shaped for HighlightStory.fromJson:
+        {id, url, thumbnail_url, media_type, order, duration,
+         caption, author_name, author_avatar, created_at}
+
+    author_* come from the parent highlight's owner. When nested under
+    HighlightSerializer the owner is supplied via context (_owner) so
+    there's no per-item query; standalone (the upload response) it
+    falls back to obj.highlight.owner.
     """
     url           = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
+    author_name   = serializers.SerializerMethodField()
+    author_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model  = HighlightItem
-        fields = ["id", "url", "thumbnail_url", "media_type", "order", "duration"]
+        fields = ["id", "url", "thumbnail_url", "media_type", "order",
+                  "duration", "caption", "author_name", "author_avatar",
+                  "created_at"]
+
+    def _owner(self, obj):
+        return self.context.get("_owner") or obj.highlight.owner
 
     def get_url(self, obj):
         if obj.media_type == "video":
@@ -54,12 +60,17 @@ class HighlightItemSerializer(serializers.ModelSerializer):
         return _cl_video_thumb(obj.file, width=800, crop="limit",
                                quality="auto", secure=True)
 
+    def get_author_name(self, obj):
+        return self._owner(obj).display_name
+
+    def get_author_avatar(self, obj):
+        return _cl(self._owner(obj).avatar, width=200, height=200,
+                   crop="fill", gravity="face", fetch_format="auto",
+                   quality="auto", secure=True)
+
 
 class HighlightSerializer(serializers.ModelSerializer):
-    """
-    Full highlight + ordered items - the shape the story viewer
-    (HighlightStory.fromJson) consumes from GET /highlights/<id>/.
-    """
+    """Full highlight + ordered items - consumed by HighlightStory.fromJson."""
     owner_name   = serializers.CharField(source="owner.display_name", read_only=True)
     owner_avatar = serializers.SerializerMethodField()
     cover_url    = serializers.SerializerMethodField()
@@ -75,6 +86,12 @@ class HighlightSerializer(serializers.ModelSerializer):
                             "cover_url", "item_count", "items",
                             "created_at", "updated_at"]
 
+    def to_representation(self, instance):
+        # Hand the owner down to the nested item serializer so it
+        # doesn't issue a query per item for author_name/author_avatar.
+        self.context["_owner"] = instance.owner
+        return super().to_representation(instance)
+
     def get_owner_avatar(self, obj):
         return _cl(obj.owner.avatar, width=200, height=200, crop="fill",
                    gravity="face", fetch_format="auto", quality="auto",
@@ -88,10 +105,7 @@ class HighlightSerializer(serializers.ModelSerializer):
 
 
 class HighlightCompactSerializer(serializers.ModelSerializer):
-    """
-    Lightweight form for the profile highlights row - no full items
-    list, just enough to render the circle + title + count.
-    """
+    """Lightweight form for the profile highlights row."""
     cover_url  = serializers.SerializerMethodField()
     item_count = serializers.SerializerMethodField()
 
@@ -108,7 +122,7 @@ class HighlightCompactSerializer(serializers.ModelSerializer):
 
 
 class CreateHighlightSerializer(serializers.ModelSerializer):
-    """Create/rename flow - client POSTs {title}; items uploaded after."""
+    """Create / rename / archive flow."""
     class Meta:
         model  = Highlight
         fields = ["title", "is_archived"]

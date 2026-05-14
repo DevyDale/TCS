@@ -5,7 +5,8 @@ from .models import Highlight, HighlightItem
 class HighlightItemInline(admin.TabularInline):
     model           = HighlightItem
     extra           = 0
-    fields          = ("order", "media_type", "duration", "file", "created_at")
+    fields          = ("order", "media_type", "duration", "caption",
+                        "file", "created_at")
     readonly_fields = ("created_at",)
 
 

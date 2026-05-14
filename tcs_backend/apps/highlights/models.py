@@ -16,7 +16,7 @@ class Highlight(models.Model):
     title = models.CharField(max_length=80, blank=True)
 
     # Optional explicit cover. When blank, the serializer falls back to
-    # the first item's still so the profile row always has a thumbnail.
+    # the first item's still so the profile circle always has an image.
     cover = CloudinaryField(
         "image",
         folder="tcs_studenthub/highlights",
@@ -40,10 +40,10 @@ class Highlight(models.Model):
 
 class HighlightItem(models.Model):
     """
-    One Cloudinary asset inside a Highlight. Mirrors PostMedia exactly:
-    same CloudinaryField config, same media_type choices, same `order`
-    sequencing. `duration` is the per-item display time (seconds) the
-    story viewer uses for auto-advance.
+    One Cloudinary asset inside a Highlight. Mirrors PostMedia: same
+    CloudinaryField config, same media_type choices, same `order`
+    sequencing. `duration` is the per-item display time (seconds);
+    `caption` is the optional overlay text the story viewer renders.
     """
     class MediaType(models.TextChoices):
         IMAGE = "image", "Image"
@@ -53,9 +53,6 @@ class HighlightItem(models.Model):
     highlight = models.ForeignKey(Highlight, on_delete=models.CASCADE,
                                   related_name="items")
 
-    # Declared as image resource type, same as PostMedia. Videos are
-    # uploaded via cloudinary.uploader.upload(resource_type="video")
-    # in the view and only their public_id is stored here.
     file = CloudinaryField(
         "image",
         folder="tcs_studenthub/highlights",
@@ -67,6 +64,7 @@ class HighlightItem(models.Model):
                                   default=MediaType.IMAGE)
     order      = models.PositiveSmallIntegerField(default=0)
     duration   = models.PositiveSmallIntegerField(default=5)
+    caption    = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
