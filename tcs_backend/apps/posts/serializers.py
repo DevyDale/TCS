@@ -42,7 +42,6 @@ def _cl_video_thumb(field_value, **opts):
     try:
         return cloudinary.CloudinaryVideo(str(field_value)).build_url(
             format       = "jpg",
-            start_offset = "auto",
             **opts,
         )
     except Exception:
