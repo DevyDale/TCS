@@ -1629,36 +1629,25 @@ class _PostsTab extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset + 96),
           physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics()),
-          itemCount: isEmpty ? 2 : posts.length + 1,
+          itemCount: isEmpty ? 1 : posts.length,
           itemBuilder: (_, i) {
-            // Item 0 is always the persistent composer — never disappears.
-            if (i == 0) {
-              return _ComposerCard(
-                userName:   userName,
-                avatarUrl:  avatarUrl,
-                hint:       "What's on your mind?",
-                actionIcon: Icons.edit_rounded,
-                accent:     _kPurple,
-                onTap:      onCreate,
-              );
-            }
             if (isEmpty) {
               return const _InlineEmptyState(
                 icon:  Icons.article_outlined,
                 label: 'No posts yet',
-                sub:   'Tap the box above to share your first post '
+                sub:   'Tap the + button to share your first post '
                        'with the campus.',
                 color: _kPurple,
               );
             }
-            final p     = posts[i - 1];
+            final p     = posts[i];
             final media = (p['media'] as List? ?? [])
                 .cast<Map<String, dynamic>>();
             return _ProfilePostCard(
               post:     p,
               media:    media,
               content:  p['content'] as String? ?? '',
-              onDelete: () => onDelete(i - 1),
+              onDelete: () => onDelete(i),
             );
           },
         ),
@@ -1999,28 +1988,18 @@ class _FweetsTab extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset + 96),
           physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics()),
-          itemCount: isEmpty ? 2 : fweets.length + 1,
+          itemCount: isEmpty ? 1 : fweets.length,
           itemBuilder: (_, i) {
-            if (i == 0) {
-              return _ComposerCard(
-                userName:   userName,
-                avatarUrl:  avatarUrl,
-                hint:       'Share a quick fweet...',
-                actionIcon: Icons.bolt_rounded,
-                accent:     _kCoral,
-                onTap:      onCreate,
-              );
-            }
             if (isEmpty) {
               return const _InlineEmptyState(
                 icon:  Icons.chat_bubble_outline_rounded,
                 label: 'No fweets yet',
                 sub:   'Fweets are quick thoughts and campus updates. '
-                       'Tap the box above to post one.',
+                       'Tap the + button to post one.',
                 color: _kCoral,
               );
             }
-            final f       = fweets[i - 1];
+            final f       = fweets[i];
             final content = f['content']          as String? ?? '';
             final bgHex   = f['background_color'] as String? ?? '';
             Color? bg;
@@ -2051,7 +2030,7 @@ class _FweetsTab extends StatelessWidget {
                           color: bg != null ? Colors.white : _kCoral,
                           letterSpacing: 0.3)),
                       const Spacer(),
-                      GestureDetector(onTap: () => onDelete(i - 1),
+                      GestureDetector(onTap: () => onDelete(i),
                         child: Icon(Icons.delete_outline_rounded, size: 18,
                             color: bg != null ? Colors.white70 : _kCoral)),
                     ])),
@@ -2391,102 +2370,6 @@ class _BioRow extends StatelessWidget {
     ]));
 }
 
-
-// ═════════════════════════════════════════════════════════════
-// COMPOSER CARD — persistent "what's on your mind" row.
-// Facebook-style; pinned to the top of the Posts & Fweets tabs so
-// the create affordance can never disappear, empty state or not.
-// ═════════════════════════════════════════════════════════════
-
-class _ComposerCard extends StatelessWidget {
-  final String   userName;
-  final String?  avatarUrl;
-  final String   hint;
-  final IconData actionIcon;
-  final Color    accent;
-  final VoidCallback onTap;
-  const _ComposerCard({
-    required this.userName,
-    required this.avatarUrl,
-    required this.hint,
-    required this.actionIcon,
-    required this.accent,
-    required this.onTap,
-  });
-
-  Widget _initialAvatar(String initial) => Center(
-    child: Text(initial, style: const TextStyle(
-        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)));
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kBorder),
-          boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10, offset: const Offset(0, 3))],
-        ),
-        child: Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [_kBlue, _kPurple]),
-            ),
-            child: ClipOval(
-              child: (avatarUrl != null && avatarUrl!.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: avatarUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => _initialAvatar(initial),
-                      errorWidget: (_, __, ___) => _initialAvatar(initial),
-                    )
-                  : _initialAvatar(initial),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: _kCardLo,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: _kBorder),
-              ),
-              child: Text(hint, style: const TextStyle(
-                  fontSize: 13, color: _kSlate2,
-                  fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accent, accent.withOpacity(0.65)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(13),
-              boxShadow: [BoxShadow(
-                color: accent.withOpacity(0.35),
-                blurRadius: 8, offset: const Offset(0, 3))],
-            ),
-            child: Icon(actionIcon, color: Colors.white, size: 19),
-          ),
-        ]),
-      ),
-    );
-  }
-}
 
 // ═════════════════════════════════════════════════════════════
 // INLINE EMPTY STATE — sits under the composer when a tab is empty.
