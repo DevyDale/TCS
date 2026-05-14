@@ -73,17 +73,19 @@ const Color _kBg  = Color(0xFFF7F8FA);
 
 // ─── Default quick-picks ─────────────────────────────────────
 const List<String> kDefaultCampusPicks = [
-  "Taylor's Lakeside Campus",
-  "Taylor's Library",
-  "D Mall — Taylor's",
-  "Taylor's Sports Arena",
-  "Sunway Pyramid",
-  "SS15 Square",
-  "Subang Jaya",
+  "Taylors College Sydney",
+  "University of Sydney",
+  "UTS",
+  "Central Station",
+  "Green Square",
+  "Darling Harbour",
+  "Sydney CBD",
 ];
 
-/// ~5 km bounding box around Taylor's Lakeside.  west,north,east,south
-const String _kSubangViewbox = '101.554,3.116,101.654,3.016';
+/// Bounding box around Taylors College Sydney (965 Bourke St, Waterloo) —
+/// covers the CBD, University of Sydney, UTS and the inner suburbs. Soft
+/// ranking bias only; worldwide search still works. west,north,east,south
+const String _kSydneyViewbox = '151.150,-33.840,151.260,-33.960';
 
 
 // ═════════════════════════════════════════════════════════════
@@ -254,8 +256,11 @@ class _LocationPickerState extends State<LocationPicker> {
         'format':          'json',
         'addressdetails':  '1',
         'limit':           '8',
-        'countrycodes':    'my',
-        'viewbox':         widget.viewbox ?? _kSubangViewbox,
+        // No countrycodes filter — search is worldwide so students can
+        // tag a place from anywhere they travel. The viewbox below only
+        // *biases* ranking toward Sydney (bounded=0); it never excludes
+        // far-away results.
+        'viewbox':         widget.viewbox ?? _kSydneyViewbox,
         'bounded':         '0',
         'accept-language': 'en',
       });

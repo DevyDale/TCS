@@ -37,6 +37,11 @@ const _kG2     = Color(0xFF7C3AED);
 const _kG3     = Color(0xFFF59E0B);
 const _kG4     = Color(0xFFFF4F6E);
 
+/// Picks black or white text for maximum contrast against [bg], so the
+/// fweet text never clashes with the chosen background colour.
+Color _fweetTextColor(Color bg) =>
+    bg.computeLuminance() > 0.179 ? const Color(0xFF1A1A2E) : Colors.white;
+
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
   @override State<FeedScreen> createState() => _FeedScreenState();
@@ -1262,8 +1267,8 @@ class _PostCardState extends State<_PostCard>
                 overflow: _expanded
                     ? TextOverflow.visible
                     : TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'Momo',
-                    fontSize: 18, color: Colors.white,
+                style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 18, color: _fweetTextColor(bgColor),
                     fontWeight: FontWeight.bold, height: 1.4)),
             ),
           ),

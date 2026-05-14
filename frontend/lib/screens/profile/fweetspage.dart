@@ -28,6 +28,11 @@ const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
 
+/// Picks black or white text for maximum contrast against [bg], so the
+/// fweet text never clashes with the chosen background colour.
+Color _fweetTextColor(Color bg) =>
+    bg.computeLuminance() > 0.179 ? const Color(0xFF1A1A2E) : Colors.white;
+
 
 // ─── Backend feeling model ───────────────────────────────────
 class _Feeling {
@@ -122,7 +127,8 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   bool  get _hasBg       => _selectedBg != null;
   bool  get _hasLocation => _locationCtrl.text.trim().isNotEmpty;
   bool  get _hasFeeling  => _feelingSlug != null && _feelingSlug!.isNotEmpty;
-  Color get _textColor   => _hasBg ? Colors.white : const Color(0xFF1A1A2E);
+  Color get _textColor   =>
+      _hasBg ? _fweetTextColor(_selectedBg!) : const Color(0xFF1A1A2E);
 
   Color get _counterColor {
     if (_remaining < 0)  return _kG4;
@@ -378,7 +384,37 @@ const SizedBox(width: 12),
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: _hasBg
-          ? _textField(centered: true)
+          // Coloured "fweet card" — a live preview of how the post will
+          // look in the feed. The card fill is the chosen colour; the
+          // text uses a contrasting colour so it never clashes.
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 220),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 28),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _selectedBg!,
+                      _selectedBg!.withOpacity(0.78),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.35), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 18, offset: const Offset(0, 8)),
+                  ],
+                ),
+                child: Center(child: _textField(centered: true)),
+              ),
+            )
           : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(width: 44, height: 44,
                 decoration: const BoxDecoration(
@@ -399,7 +435,7 @@ const SizedBox(width: 12),
     return TextField(
       controller:        _ctrl,
       maxLines:          null,
-      minLines:          centered ? 7 : 5,
+      minLines:          centered ? 3 : 5,
       maxLength:         _maxChars,
       textAlign:         centered ? TextAlign.center : TextAlign.start,
       enableSuggestions: false,
@@ -413,7 +449,9 @@ const SizedBox(width: 12),
       decoration: InputDecoration(
         hintText: 'Share a quick thought with the campus...',
         hintStyle: TextStyle(fontFamily: 'Momo',
-          color:      _hasBg ? Colors.white38 : Colors.grey.shade300,
+          color:      _hasBg
+              ? _textColor.withOpacity(0.55)
+              : Colors.grey.shade300,
           fontSize:   centered ? 20 : 16,
           fontWeight: centered ? FontWeight.bold : FontWeight.normal,
         ),
