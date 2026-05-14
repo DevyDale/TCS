@@ -988,10 +988,12 @@ Future<void> _shareMyProfile() async {
             children: [
               _PostsTab(posts: _posts, loading: _postsLoading,
                   onCreate: _openCreatePost, onDelete: _deletePost,
-                  onRefresh: _fetchPosts),
+                  onRefresh: _fetchPosts,
+                  userName: widget.fullName, avatarUrl: _avatarUrl),
               _FweetsTab(fweets: _fweets, loading: _fweetsLoading,
                   onCreate: _openCreateFweet, onDelete: _deleteFweet,
-                  onRefresh: _fetchFweets),
+                  onRefresh: _fetchFweets,
+                  userName: widget.fullName, avatarUrl: _avatarUrl),
               _FavoritesTab(favorites: _favorites, loading: _favoritesLoading,
                   onRefresh: _fetchFavorites),
             ],
@@ -1600,42 +1602,71 @@ class _PostsTab extends StatelessWidget {
   final VoidCallback onCreate;
   final Future<void> Function(int) onDelete;
   final Future<void> Function() onRefresh;
-  const _PostsTab({required this.posts, required this.loading,
-      required this.onCreate, required this.onDelete, required this.onRefresh});
+  final String userName;
+  final String? avatarUrl;
+  const _PostsTab({
+    required this.posts,
+    required this.loading,
+    required this.onCreate,
+    required this.onDelete,
+    required this.onRefresh,
+    required this.userName,
+    required this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (loading) return const _TabLoadingShimmer();
-    if (posts.isEmpty) {
-      return _EmptyTab(
-        icon: Icons.article_outlined, label: 'No Posts Yet',
-        sub: 'Share something with the campus',
-        buttonLabel: 'Create First Post', color: _kPurple, onTap: onCreate);
-    }
+
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final isEmpty = posts.isEmpty;
+
     return Stack(children: [
       RefreshIndicator(
-  color: _kInk, onRefresh: onRefresh,
-  child: ListView.builder(
-    padding: EdgeInsets.fromLTRB(
-      16, 16, 16,
-      16 + MediaQuery.of(context).padding.bottom + 90,
-    ),
-        physics: const ClampingScrollPhysics(),
-        itemCount: posts.length,
-        itemBuilder: (_, i) {
-          final p = posts[i];
-          final media = (p['media'] as List? ?? [])
-              .cast<Map<String, dynamic>>();
-          return _ProfilePostCard(
-            post:     p,
-            media:    media,
-            content:  p['content'] as String? ?? '',
-            onDelete: () => onDelete(i));
-        },
+        color: _kInk,
+        onRefresh: onRefresh,
+        child: ListView.builder(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset + 96),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics()),
+          itemCount: isEmpty ? 2 : posts.length + 1,
+          itemBuilder: (_, i) {
+            // Item 0 is always the persistent composer — never disappears.
+            if (i == 0) {
+              return _ComposerCard(
+                userName:   userName,
+                avatarUrl:  avatarUrl,
+                hint:       "What's on your mind?",
+                actionIcon: Icons.edit_rounded,
+                accent:     _kPurple,
+                onTap:      onCreate,
+              );
+            }
+            if (isEmpty) {
+              return const _InlineEmptyState(
+                icon:  Icons.article_outlined,
+                label: 'No posts yet',
+                sub:   'Tap the box above to share your first post '
+                       'with the campus.',
+                color: _kPurple,
+              );
+            }
+            final p     = posts[i - 1];
+            final media = (p['media'] as List? ?? [])
+                .cast<Map<String, dynamic>>();
+            return _ProfilePostCard(
+              post:     p,
+              media:    media,
+              content:  p['content'] as String? ?? '',
+              onDelete: () => onDelete(i - 1),
+            );
+          },
+        ),
       ),
-    ),
+      // Always-reachable FAB, lifted clear of the app's bottom nav bar.
       Positioned(
-        bottom: 20, right: 20,
+        bottom: 20 + bottomInset + 80,
+        right: 20,
         child: GestureDetector(
           onTap: onCreate,
           child: Container(
@@ -1647,7 +1678,7 @@ class _PostsTab extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(
                 color: _kPurple.withOpacity(0.4),
-                blurRadius: 12, offset: const Offset(0, 4))]),
+                blurRadius: 14, offset: const Offset(0, 5))]),
             child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
           ),
         ),
@@ -1941,86 +1972,113 @@ class _FweetsTab extends StatelessWidget {
   final VoidCallback onCreate;
   final Future<void> Function(int) onDelete;
   final Future<void> Function() onRefresh;
-  const _FweetsTab({required this.fweets, required this.loading,
-      required this.onCreate, required this.onDelete, required this.onRefresh});
+  final String userName;
+  final String? avatarUrl;
+  const _FweetsTab({
+    required this.fweets,
+    required this.loading,
+    required this.onCreate,
+    required this.onDelete,
+    required this.onRefresh,
+    required this.userName,
+    required this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (loading) return const _TabLoadingShimmer();
-    if (fweets.isEmpty) {
-      return _EmptyTab(
-        icon: Icons.chat_bubble_outline_rounded, label: 'No Fweets Yet',
-        sub: 'Quick thoughts and campus updates',
-        buttonLabel: 'Create First Fweet', color: _kCoral, onTap: onCreate);
-    }
+
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final isEmpty = fweets.isEmpty;
+
     return Stack(children: [
       RefreshIndicator(
-  color: _kInk, onRefresh: onRefresh,
-  child: ListView.builder(
-    padding: EdgeInsets.fromLTRB(
-      16, 16, 16,
-      16 + MediaQuery.of(context).padding.bottom + 90,
-    ),
-        physics: const ClampingScrollPhysics(),
-        itemCount: fweets.length,
-        itemBuilder: (_, i) {
-          final f       = fweets[i];
-          final content = f['content']          as String? ?? '';
-          final bgHex   = f['background_color'] as String? ?? '';
-          Color? bg;
-          try {
-            if (bgHex.isNotEmpty) {
-              bg = Color(int.parse(
-                  'FF${bgHex.replaceAll('#', '')}', radix: 16));
+        color: _kInk,
+        onRefresh: onRefresh,
+        child: ListView.builder(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset + 96),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics()),
+          itemCount: isEmpty ? 2 : fweets.length + 1,
+          itemBuilder: (_, i) {
+            if (i == 0) {
+              return _ComposerCard(
+                userName:   userName,
+                avatarUrl:  avatarUrl,
+                hint:       'Share a quick fweet...',
+                actionIcon: Icons.bolt_rounded,
+                accent:     _kCoral,
+                onTap:      onCreate,
+              );
             }
-          } catch (_) {}
-          return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: bg ?? _kCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: bg != null
-                  ? Colors.white.withOpacity(0.15) : _kBorder)),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(17),
-              child: Column(children: [
-                Container(
-                  color: bg != null
-                      ? Colors.black.withOpacity(0.10) : _kCardLo,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  child: Row(children: [
-                    Text('⚡ Fweet', style: TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 11,
-                        color: bg != null ? Colors.white : _kCoral,
-                        letterSpacing: 0.3)),
-                    const Spacer(),
-                    GestureDetector(onTap: () => onDelete(i),
-                      child: Icon(Icons.delete_outline_rounded, size: 18,
-                          color: bg != null ? Colors.white70 : _kCoral)),
-                  ])),
-                Padding(padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(content, style: TextStyle(
-                          fontSize: 15, height: 1.5,
-                          color: bg != null ? Colors.white : _kInk)),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => showFweetStatsSheet(context, f),
-                        child: _FweetStatsRow(fweet: f, onColored: bg != null)),
-                    ],
+            if (isEmpty) {
+              return const _InlineEmptyState(
+                icon:  Icons.chat_bubble_outline_rounded,
+                label: 'No fweets yet',
+                sub:   'Fweets are quick thoughts and campus updates. '
+                       'Tap the box above to post one.',
+                color: _kCoral,
+              );
+            }
+            final f       = fweets[i - 1];
+            final content = f['content']          as String? ?? '';
+            final bgHex   = f['background_color'] as String? ?? '';
+            Color? bg;
+            try {
+              if (bgHex.isNotEmpty) {
+                bg = Color(int.parse(
+                    'FF${bgHex.replaceAll('#', '')}', radix: 16));
+              }
+            } catch (_) {}
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: bg ?? _kCard,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: bg != null
+                    ? Colors.white.withOpacity(0.15) : _kBorder)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: Column(children: [
+                  Container(
+                    color: bg != null
+                        ? Colors.black.withOpacity(0.10) : _kCardLo,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    child: Row(children: [
+                      Text('⚡ Fweet', style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 11,
+                          color: bg != null ? Colors.white : _kCoral,
+                          letterSpacing: 0.3)),
+                      const Spacer(),
+                      GestureDetector(onTap: () => onDelete(i - 1),
+                        child: Icon(Icons.delete_outline_rounded, size: 18,
+                            color: bg != null ? Colors.white70 : _kCoral)),
+                    ])),
+                  Padding(padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(content, style: TextStyle(
+                            fontSize: 15, height: 1.5,
+                            color: bg != null ? Colors.white : _kInk)),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => showFweetStatsSheet(context, f),
+                          child: _FweetStatsRow(
+                              fweet: f, onColored: bg != null)),
+                      ],
+                    ),
                   ),
-                ),
-              ])),
-          );
-        },
+                ])),
+            );
+          },
+        ),
       ),
-    ),
       Positioned(
-        bottom: 20, right: 20,
+        bottom: 20 + bottomInset + 80,
+        right: 20,
         child: GestureDetector(
           onTap: onCreate,
           child: Container(
@@ -2032,7 +2090,7 @@ class _FweetsTab extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(
                 color: _kCoral.withOpacity(0.4),
-                blurRadius: 12, offset: const Offset(0, 4))]),
+                blurRadius: 14, offset: const Offset(0, 5))]),
             child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
           ),
         ),
@@ -2331,4 +2389,147 @@ class _BioRow extends StatelessWidget {
         Text(value, style: const TextStyle(fontSize: 14, color: _kInk)),
       ])),
     ]));
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// COMPOSER CARD — persistent "what's on your mind" row.
+// Facebook-style; pinned to the top of the Posts & Fweets tabs so
+// the create affordance can never disappear, empty state or not.
+// ═════════════════════════════════════════════════════════════
+
+class _ComposerCard extends StatelessWidget {
+  final String   userName;
+  final String?  avatarUrl;
+  final String   hint;
+  final IconData actionIcon;
+  final Color    accent;
+  final VoidCallback onTap;
+  const _ComposerCard({
+    required this.userName,
+    required this.avatarUrl,
+    required this.hint,
+    required this.actionIcon,
+    required this.accent,
+    required this.onTap,
+  });
+
+  Widget _initialAvatar(String initial) => Center(
+    child: Text(initial, style: const TextStyle(
+        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)));
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kBorder),
+          boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10, offset: const Offset(0, 3))],
+        ),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [_kBlue, _kPurple]),
+            ),
+            child: ClipOval(
+              child: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                  ? CachedNetworkImage(
+                      imageUrl: avatarUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => _initialAvatar(initial),
+                      errorWidget: (_, __, ___) => _initialAvatar(initial),
+                    )
+                  : _initialAvatar(initial),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: _kCardLo,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: _kBorder),
+              ),
+              child: Text(hint, style: const TextStyle(
+                  fontSize: 13, color: _kSlate2,
+                  fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent, accent.withOpacity(0.65)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(13),
+              boxShadow: [BoxShadow(
+                color: accent.withOpacity(0.35),
+                blurRadius: 8, offset: const Offset(0, 3))],
+            ),
+            child: Icon(actionIcon, color: Colors.white, size: 19),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// INLINE EMPTY STATE — sits under the composer when a tab is empty.
+// ═════════════════════════════════════════════════════════════
+
+class _InlineEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   sub;
+  final Color    color;
+  const _InlineEmptyState({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 36),
+      child: Column(children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.10),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withOpacity(0.25), width: 1.5),
+          ),
+          child: Icon(icon, size: 30, color: color.withOpacity(0.7)),
+        ),
+        const SizedBox(height: 16),
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w900,
+            color: _kInk, letterSpacing: -0.3)),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(sub, textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 12.5, color: _kSlate, height: 1.55)),
+        ),
+      ]),
+    );
+  }
 }
