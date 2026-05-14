@@ -553,6 +553,70 @@ class ApiService {
   }
 
   // ══════════════════════════════════════════════════════════
+  // HIGHLIGHTS  (Instagram-style profile story highlights)
+  // ══════════════════════════════════════════════════════════
+  //
+  // Django routes still to build:
+  //   GET    /api/highlights/mine/                  my highlights
+  //   GET    /api/highlights/<id>/                  one highlight + items
+  //   GET    /api/users/<user_id>/highlights/       another user's
+  //   POST   /api/highlights/                       create {title}
+  //   POST   /api/highlights/upload/                multipart:
+  //          highlight_id, file, media_type, is_cover
+  //   DELETE /api/highlights/<id>/                  delete highlight
+  //   DELETE /api/highlights/<id>/items/<item_id>/  delete one item
+  //
+  // Each highlight's `items` should serialize with at least `url` and
+  // `media_type` — that's what HighlightStory.fromJson reads.
+
+  Future<dynamic> getMyHighlights() => get('/highlights/mine/');
+
+  Future<dynamic> getHighlight(String id) => get('/highlights/$id/');
+
+  Future<dynamic> getUserHighlights(String userId) =>
+      get('/users/$userId/highlights/');
+
+  Future<dynamic> createHighlight({required String title}) =>
+      post('/highlights/', body: {'title': title});
+
+  Future<dynamic> uploadHighlightMedia(
+    String highlightId,
+    File   file, {
+    String mediaType = 'image',
+    bool   isCover   = false,
+  }) {
+    final ext = file.path.split('.').last.toLowerCase();
+    final mime = mediaType == 'video'
+        ? switch (ext) {
+            'mov'  => 'video/quicktime',
+            'webm' => 'video/webm',
+            _      => 'video/mp4',
+          }
+        : switch (ext) {
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            'gif'  => 'image/gif',
+            _      => 'image/jpeg',
+          };
+    return uploadFile(
+      '/highlights/upload/',
+      filePath:    file.path,
+      field:       'file',
+      mimeType:    mime,
+      extraFields: {
+        'highlight_id': highlightId,
+        'media_type':   mediaType,
+        'is_cover':     isCover ? 'true' : 'false',
+      },
+    );
+  }
+
+  Future<dynamic> deleteHighlight(String id) => delete('/highlights/$id/');
+
+  Future<dynamic> deleteHighlightItem(String highlightId, String itemId) =>
+      delete('/highlights/$highlightId/items/$itemId/');
+
+  // ══════════════════════════════════════════════════════════
   // CHAT
   // ══════════════════════════════════════════════════════════
 

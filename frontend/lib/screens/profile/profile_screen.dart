@@ -39,10 +39,12 @@ import 'package:tcs_app/services/settings_Screen.dart';
 import '../../models/biodata.dart';
 import '../../services/api_service.dart';
 import 'bio.dart';
+import 'create_highlight_page.dart';
 import 'createpostspage.dart';
 import 'fweetspage.dart';
 import 'interests.dart';
 import 'media_item_view.dart';
+import '../highlights/highlight_story_viewer.dart';
 import '../../widgets/privacy_toggle_sheet.dart';
 import 'share_profile_screen.dart';
 
@@ -101,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   List<Map<String, dynamic>> _posts     = [];
   List<Map<String, dynamic>> _fweets    = [];
   List<Map<String, dynamic>> _favorites = [];
+  List<Map<String, dynamic>> _highlights = [];
   final List<String>         _interests = [];
 
   int  _followers = 0;
@@ -108,6 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _postsLoading     = true;
   bool _fweetsLoading    = true;
   bool _favoritesLoading = true;
+  bool _highlightsLoading = true;
 
   String? _myUserId;
 
@@ -143,6 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _fetchPosts();
     _fetchFweets();
     _fetchFavorites();
+    _fetchHighlights();
     _fetchStats();
   }
 
@@ -186,6 +191,22 @@ class _ProfileScreenState extends State<ProfileScreen>
         _favoritesLoading = false;
       });
     } catch (_) { setState(() => _favoritesLoading = false); }
+  }
+
+  Future<void> _fetchHighlights() async {
+    setState(() => _highlightsLoading = true);
+    try {
+      final d = await _api.getMyHighlights();
+      final list = d is List
+          ? d
+          : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
+      setState(() {
+        _highlights        = list.cast<Map<String, dynamic>>();
+        _highlightsLoading = false;
+      });
+    } catch (_) {
+      setState(() => _highlightsLoading = false);
+    }
   }
 
   Future<void> _fetchStats() async {
@@ -427,6 +448,47 @@ class _ProfileScreenState extends State<ProfileScreen>
     final r = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const CreateFweetPage()));
     if (r != null && r.isNotEmpty) _fetchFweets();
+  }
+
+  Future<void> _openCreateHighlight() async {
+    HapticFeedback.lightImpact();
+    final created = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreateHighlightPage()));
+    if (created == true) _fetchHighlights();
+  }
+
+  Future<void> _openHighlight(int index) async {
+    HapticFeedback.lightImpact();
+    if (index < 0 || index >= _highlights.length) return;
+    final h = _highlights[index];
+
+    // The list endpoint may omit each highlight's items. If they're
+    // not inline, fetch the full highlight before opening the viewer.
+    var rawItems = (h['items'] as List?) ?? const [];
+    if (rawItems.isEmpty) {
+      try {
+        final full = await _api.getHighlight(h['id']?.toString() ?? '')
+            as Map<String, dynamic>;
+        rawItems = (full['items'] as List?) ?? const [];
+      } catch (_) {
+        _snack('Could not load this highlight', error: true);
+        return;
+      }
+    }
+    if (rawItems.isEmpty) {
+      _snack('This highlight has no stories yet');
+      return;
+    }
+
+    final stories = rawItems
+        .cast<Map<String, dynamic>>()
+        .map((it) => HighlightStory.fromJson(it))
+        .toList();
+
+    if (!mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => HighlightStoryViewer(stories: stories),
+    ));
   }
 Future<void> _shareMyProfile() async {
   HapticFeedback.lightImpact();
@@ -974,6 +1036,7 @@ Future<void> _shareMyProfile() async {
             if (_bioData != null && !_bioData!.isEmpty)
               SliverToBoxAdapter(child: _buildBioCard()),
             SliverToBoxAdapter(child: _buildInterestsStrip()),
+            SliverToBoxAdapter(child: _buildHighlightsRow()),
             SliverPersistentHeader(
               pinned: true,
               delegate: _StickyTabBarDelegate(
@@ -1434,6 +1497,109 @@ Future<void> _shareMyProfile() async {
   }
 
   // ── Custom segmented tab bar (matching arcade) ────────────
+
+  // ── Highlights row (Instagram-style story circles) ────────
+
+  Widget _buildHighlightsRow() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Text('Highlights', style: TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 12,
+              color: _kInk, letterSpacing: 0.5)),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 96,
+          child: _highlightsLoading
+              ? const Center(child: SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(
+                      color: _kPurple, strokeWidth: 2)))
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _highlights.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                  itemBuilder: (_, i) {
+                    if (i == 0) return _buildAddHighlightCircle();
+                    return _buildHighlightCircle(_highlights[i - 1], i - 1);
+                  },
+                ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildAddHighlightCircle() {
+    return GestureDetector(
+      onTap: _openCreateHighlight,
+      child: SizedBox(
+        width: 66,
+        child: Column(children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              color: _kCardLo,
+              shape: BoxShape.circle,
+              border: Border.all(color: _kBorder, width: 1.5)),
+            child: const Icon(Icons.add_rounded, color: _kSlate2, size: 26),
+          ),
+          const SizedBox(height: 6),
+          const Text('New', maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w700, color: _kSlate)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildHighlightCircle(Map<String, dynamic> h, int index) {
+    final title = (h['title'] as String? ?? 'Highlight').trim();
+    final cover = (h['cover_url'] as String? ?? '').trim();
+    return GestureDetector(
+      onTap: () => _openHighlight(index),
+      child: SizedBox(
+        width: 66,
+        child: Column(children: [
+          Container(
+            width: 64, height: 64,
+            padding: const EdgeInsets.all(2.5),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_kBlue, _kPurple, _kCoral],
+                begin: Alignment.topLeft, end: Alignment.bottomRight)),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                  color: _kBg1, shape: BoxShape.circle),
+              child: ClipOval(
+                child: cover.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: cover, fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: _kCardLo),
+                        errorWidget: (_, __, ___) => Container(
+                          color: _kCardLo,
+                          child: const Icon(Icons.auto_awesome_rounded,
+                              color: _kSlate2, size: 22)))
+                    : Container(
+                        color: _kCardLo,
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: _kSlate2, size: 22)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w700, color: _kInk)),
+        ]),
+      ),
+    );
+  }
 
   Widget _buildTabBar() {
     const labels = ['Posts', 'Fweets', 'Favorites'];
