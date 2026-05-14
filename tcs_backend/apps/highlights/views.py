@@ -1,34 +1,29 @@
 """
 apps/highlights/views.py
 
-Story-style profile highlights. Structurally mirrors apps/posts:
-  Highlight              <-> Post
-  HighlightItem          <-> PostMedia
-  upload_highlight_media <-> upload_post_media
-
-The Cloudinary upload path is identical to posts. Validation reuses
-apps.posts.views._validate_upload so the size/MIME rules stay in one
-place.
+Story-style profile highlights. Structurally mirrors apps/posts.
+Per-item likes and comments mirror the posts Like/Comment endpoints,
+scoped to a HighlightItem.
 """
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.exceptions import NotFound
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 import cloudinary.uploader
 
 from apps.posts.views import _validate_upload
-from .models import Highlight, HighlightItem
+from .models import (
+    Highlight, HighlightItem, HighlightItemLike, HighlightItemComment,
+)
 from .serializers import (
     HighlightSerializer, HighlightCompactSerializer,
     CreateHighlightSerializer, HighlightItemSerializer,
+    HighlightItemCommentSerializer,
 )
 
 MAX_ITEMS_PER_HIGHLIGHT = 20
 
-
-# ─────────────────────────────────────────────────────────────
-# LIST + CREATE
-# ─────────────────────────────────────────────────────────────
 
 class HighlightListCreateView(generics.ListCreateAPIView):
     """
@@ -66,9 +61,29 @@ class HighlightListCreateView(generics.ListCreateAPIView):
         return Response(out.data, status=status.HTTP_201_CREATED)
 
 
-# ─────────────────────────────────────────────────────────────
-# MY HIGHLIGHTS  (explicit, mirrors /posts/mine/)
-# ─────────────────────────────────────────────────────────────
+class HighlightsFeedView(generics.ListAPIView):
+    """
+    GET /api/highlights/feed/
+
+    Every user's highlights, newest first - powers the Highlights row
+    on the campus feed. Only non-archived highlights that have at least
+    one story item are returned.
+    """
+    serializer_class   = HighlightCompactSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        return (Highlight.objects
+                         .select_related("owner")
+                         .prefetch_related("items")
+                         .filter(is_archived=False)
+                         .exclude(items__isnull=True)
+                         .distinct()
+                         .order_by("-created_at"))
+
 
 class MyHighlightsView(generics.ListAPIView):
     """GET /api/highlights/mine/"""
@@ -86,10 +101,6 @@ class MyHighlightsView(generics.ListAPIView):
                          .order_by("-created_at"))
 
 
-# ─────────────────────────────────────────────────────────────
-# ANOTHER USER'S HIGHLIGHTS  (wired from accounts/user_urls.py)
-# ─────────────────────────────────────────────────────────────
-
 class UserHighlightsView(generics.ListAPIView):
     """GET /api/users/<user_id>/highlights/"""
     serializer_class   = HighlightCompactSerializer
@@ -106,10 +117,6 @@ class UserHighlightsView(generics.ListAPIView):
                                  is_archived=False)
                          .order_by("-created_at"))
 
-
-# ─────────────────────────────────────────────────────────────
-# DETAIL
-# ─────────────────────────────────────────────────────────────
 
 class HighlightDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -138,24 +145,12 @@ class HighlightDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ─────────────────────────────────────────────────────────────
-# MEDIA UPLOAD  - mirrors upload_post_media, plus is_cover routing
-# ─────────────────────────────────────────────────────────────
-
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
 def upload_highlight_media(request):
     """
     POST /api/highlights/upload/
-    Multipart fields:
-        highlight_id - UUID of the existing highlight (also accepts `highlight`)
-        file         - image or video file
-        media_type   - 'image' (default) or 'video'
-        is_cover     - 'true' routes the file to Highlight.cover instead
-                       of appending it as a story item
-        duration     - optional per-item seconds for the story viewer
-        caption      - optional per-item overlay text
-
+    Fields: highlight_id, file, media_type, is_cover, duration, caption.
     Same validation + Cloudinary path as upload_post_media.
     """
     highlight_id = (request.data.get("highlight_id")
@@ -180,14 +175,12 @@ def upload_highlight_media(request):
     if not ok:
         return Response({"error": err}, status=400)
 
-    # ── Cover upload: set Highlight.cover, do NOT create a story item ──
     if is_cover:
         highlight.cover = file
         highlight.save()
         out = HighlightSerializer(highlight, context={"request": request})
         return Response(out.data, status=status.HTTP_200_OK)
 
-    # ── Story item ────────────────────────────────────────────
     current_count = highlight.items.count()
     if current_count >= MAX_ITEMS_PER_HIGHLIGHT:
         return Response(
@@ -212,13 +205,10 @@ def upload_highlight_media(request):
             highlight=highlight, file=file, media_type="image",
             order=current_count, duration=duration, caption=caption)
 
-    return Response(HighlightItemSerializer(item).data,
-                    status=status.HTTP_201_CREATED)
+    return Response(
+        HighlightItemSerializer(item, context={"request": request}).data,
+        status=status.HTTP_201_CREATED)
 
-
-# ─────────────────────────────────────────────────────────────
-# DELETE A SINGLE ITEM  (nested under the highlight, per the client)
-# ─────────────────────────────────────────────────────────────
 
 @api_view(["DELETE"])
 @permission_classes([permissions.IsAuthenticated])
@@ -233,3 +223,51 @@ def delete_highlight_item(request, highlight_id, pk):
         return Response({"error": "Not allowed."}, status=403)
     item.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def toggle_item_like(request, item_id):
+    """
+    POST /api/highlights/items/<item_id>/like/
+    Toggles the user's like on one story item. Returns {liked, like_count}.
+    """
+    try:
+        item = HighlightItem.objects.get(pk=item_id)
+    except HighlightItem.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    like, created = HighlightItemLike.objects.get_or_create(
+        item=item, user=request.user)
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+
+    return Response({"liked": liked, "like_count": item.likes.count()})
+
+
+class HighlightItemCommentsView(generics.ListCreateAPIView):
+    """
+    GET  /api/highlights/items/<item_id>/comments/   - oldest-first
+    POST /api/highlights/items/<item_id>/comments/   - body: {text}
+    """
+    serializer_class   = HighlightItemCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def get_queryset(self):
+        return (HighlightItemComment.objects
+                                    .select_related("author")
+                                    .filter(item_id=self.kwargs["item_id"])
+                                    .order_by("created_at"))
+
+    def perform_create(self, serializer):
+        try:
+            item = HighlightItem.objects.get(pk=self.kwargs["item_id"])
+        except HighlightItem.DoesNotExist:
+            raise NotFound("Highlight item not found.")
+        serializer.save(author=self.request.user, item=item)

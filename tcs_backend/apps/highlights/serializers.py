@@ -4,7 +4,7 @@ from rest_framework import serializers
 # byte-identically to post media URLs.
 from apps.posts.serializers import _cl, _cl_video, _cl_video_thumb
 
-from .models import Highlight, HighlightItem
+from .models import Highlight, HighlightItem, HighlightItemComment
 
 
 def _cover_url(highlight):
@@ -22,27 +22,47 @@ def _cover_url(highlight):
                fetch_format="auto", quality="auto", secure=True)
 
 
+class HighlightItemCommentSerializer(serializers.ModelSerializer):
+    """
+    One comment on a story item - shaped for the story viewer's comment
+    sheet. `text` is the only writable field; the view supplies author
+    and item on create.
+    """
+    author_name   = serializers.CharField(source="author.display_name",
+                                           read_only=True)
+    author_avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = HighlightItemComment
+        fields = ["id", "author_name", "author_avatar", "text", "created_at"]
+        read_only_fields = ["id", "author_name", "author_avatar", "created_at"]
+
+    def get_author_avatar(self, obj):
+        return _cl(obj.author.avatar, width=200, height=200, crop="fill",
+                   gravity="face", fetch_format="auto", quality="auto",
+                   secure=True)
+
+
 class HighlightItemSerializer(serializers.ModelSerializer):
     """
     One story item, shaped for HighlightStory.fromJson:
         {id, url, thumbnail_url, media_type, order, duration,
-         caption, author_name, author_avatar, created_at}
-
-    author_* come from the parent highlight's owner. When nested under
-    HighlightSerializer the owner is supplied via context (_owner) so
-    there's no per-item query; standalone (the upload response) it
-    falls back to obj.highlight.owner.
+         caption, author_name, author_avatar,
+         like_count, comment_count, is_liked, created_at}
     """
     url           = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
     author_name   = serializers.SerializerMethodField()
     author_avatar = serializers.SerializerMethodField()
+    like_count    = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    is_liked      = serializers.SerializerMethodField()
 
     class Meta:
         model  = HighlightItem
         fields = ["id", "url", "thumbnail_url", "media_type", "order",
                   "duration", "caption", "author_name", "author_avatar",
-                  "created_at"]
+                  "like_count", "comment_count", "is_liked", "created_at"]
 
     def _owner(self, obj):
         return self.context.get("_owner") or obj.highlight.owner
@@ -68,6 +88,18 @@ class HighlightItemSerializer(serializers.ModelSerializer):
                    crop="fill", gravity="face", fetch_format="auto",
                    quality="auto", secure=True)
 
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_is_liked(self, obj):
+        req = self.context.get("request")
+        if req and req.user.is_authenticated:
+            return obj.likes.filter(user=req.user).exists()
+        return False
+
 
 class HighlightSerializer(serializers.ModelSerializer):
     """Full highlight + ordered items - consumed by HighlightStory.fromJson."""
@@ -87,8 +119,6 @@ class HighlightSerializer(serializers.ModelSerializer):
                             "created_at", "updated_at"]
 
     def to_representation(self, instance):
-        # Hand the owner down to the nested item serializer so it
-        # doesn't issue a query per item for author_name/author_avatar.
         self.context["_owner"] = instance.owner
         return super().to_representation(instance)
 
@@ -105,13 +135,22 @@ class HighlightSerializer(serializers.ModelSerializer):
 
 
 class HighlightCompactSerializer(serializers.ModelSerializer):
-    """Lightweight form for the profile highlights row."""
+    """
+    Lightweight form for the profile highlights row AND the campus
+    feed's Highlights row. owner_name / owner_id let the feed label
+    each circle with whose highlight it is.
+    """
+    owner_name = serializers.CharField(source="owner.display_name",
+                                        read_only=True)
+    owner_id   = serializers.CharField(source="owner.user_id",
+                                        read_only=True)
     cover_url  = serializers.SerializerMethodField()
     item_count = serializers.SerializerMethodField()
 
     class Meta:
         model  = Highlight
-        fields = ["id", "title", "cover_url", "item_count", "created_at"]
+        fields = ["id", "title", "owner_name", "owner_id",
+                  "cover_url", "item_count", "created_at"]
         read_only_fields = fields
 
     def get_item_count(self, obj):

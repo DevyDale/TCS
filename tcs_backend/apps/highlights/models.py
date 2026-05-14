@@ -73,3 +73,43 @@ class HighlightItem(models.Model):
 
     def __str__(self):
         return f"Item {self.order} of highlight {self.highlight_id}"
+
+
+# -------------------------------------------------------------
+# PER-ITEM LIKES + COMMENTS  (story-slide level engagement)
+# Mirrors apps/posts Like + Comment, scoped to a HighlightItem.
+# -------------------------------------------------------------
+
+class HighlightItemLike(models.Model):
+    """A like on a single HighlightItem (story slide). Mirrors posts.Like."""
+    item       = models.ForeignKey(HighlightItem, on_delete=models.CASCADE,
+                                   related_name="likes")
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = "highlight_item_likes"
+        unique_together = [("item", "user")]
+
+    def __str__(self):
+        return f"Like on item {self.item_id} by {self.user_id}"
+
+
+class HighlightItemComment(models.Model):
+    """A comment on a single HighlightItem (story slide). Mirrors posts.Comment."""
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4,
+                                  editable=False)
+    item       = models.ForeignKey(HighlightItem, on_delete=models.CASCADE,
+                                   related_name="comments")
+    author     = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   on_delete=models.CASCADE)
+    text       = models.TextField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "highlight_item_comments"
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment on item {self.item_id} by {self.author_id}"
