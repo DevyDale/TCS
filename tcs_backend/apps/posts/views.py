@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view, parser_classes, permission_class
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+import cloudinary.uploader
 
 from .models import (
     Feeling, Hashtag, Post, PostMedia, Like, Comment, Bookmark, PostFlag,
@@ -401,14 +402,16 @@ def upload_post_media(request):
             {"error": f"A post can have at most {MAX_IMAGES_PER_POST} media files."},
             status=400)
 
-    # ── Upload to Cloudinary via CloudinaryField ───────────────
-    resource_type = "video" if media_type == "video" else "image"
-    media = PostMedia.objects.create(
-        post          = post,
-        file          = file,           # CloudinaryField handles the upload
-        media_type    = resource_type,
-        order         = current_count,
-    )
+    # ── Upload to Cloudinary ───────────────────────────────────
+    if media_type == "video":
+        upload_result = cloudinary.uploader.upload(
+            file, resource_type="video", folder="tcs_studenthub/posts")
+        media = PostMedia.objects.create(
+            post=post, file=upload_result["public_id"],
+            media_type="video", order=current_count)
+    else:
+        media = PostMedia.objects.create(
+            post=post, file=file, media_type="image", order=current_count)
 
     return Response(PostMediaSerializer(media).data, status=status.HTTP_201_CREATED)
 
