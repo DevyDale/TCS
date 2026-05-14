@@ -39,6 +39,7 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.dataentry",
     "apps.posts",
+    "apps.highlights",
     "apps.chat",
     "apps.groups",
     "apps.activity",
