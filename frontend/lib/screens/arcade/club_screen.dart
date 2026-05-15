@@ -122,7 +122,15 @@ class _ClubScreenState extends State<ClubScreen> {
 
   bool   get _isMember  => _membership['is_member']  == true;
   bool   get _isPending => _membership['is_pending'] == true;
-  bool   get _isAdmin   => _membership['is_admin']   == true;
+  bool get _isAdmin {
+    final raw = _club['membership'];
+    final m = raw is Map ? raw : const <String, dynamic>{};
+    if (m['is_admin']   == true) return true;
+    if (m['is_creator'] == true) return true;
+    final role = (m['role'] as String?)?.toLowerCase() ?? '';
+    return role == 'president' || role == 'executive' ||
+        role == 'admin' || role == 'creator' || role == 'owner';
+  }
   String get _myRole    => _membership['role'] as String? ?? '';
 
   bool get _canCreateEvent =>
@@ -461,7 +469,7 @@ class _ClubScreenState extends State<ClubScreen> {
             _buildMembersCard(),
             const SizedBox(height: 16),
             _buildApprovalsCard(),
-            if (_isAdmin && _requiresApproval && _pendingMembers.isNotEmpty)
+            if (_isAdmin && _pendingMembers.isNotEmpty)
               const SizedBox(height: 16),
             _buildPostsCard(),
             const SizedBox(height: 16),
@@ -1616,7 +1624,7 @@ class _ClubScreenState extends State<ClubScreen> {
   // ── Approvals card (admin + requires_approval + pending > 0) ─────
 
   Widget _buildApprovalsCard() {
-    if (!_isAdmin || !_requiresApproval || _pendingMembers.isEmpty) {
+    if (!_isAdmin || _pendingMembers.isEmpty) {
       return const SizedBox.shrink();
     }
     return Padding(
