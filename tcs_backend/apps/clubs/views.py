@@ -771,3 +771,100 @@ def create_club_event(request, pk):
         'club_id': str(club.id),
         'success': True,
     })
+
+
+
+# ───────────────────────────────────────────────────────────────
+# CLUB EVENTS FEED  — powers the mobile feed's "Events" tab
+# ───────────────────────────────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def club_events_feed(request):
+    """Paginated list of upcoming events that belong to a club.
+    Defensive: resolves the Event model and its datetime / poster
+    fields by introspection so it works regardless of schema naming.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.core.paginator import Paginator
+    from django.apps import apps as _dj_apps
+
+    Event = None
+    for _label in ('events', 'event'):
+        try: Event = _dj_apps.get_model(_label, 'Event'); break
+        except Exception: pass
+    if Event is None:
+        for _m in _dj_apps.get_models():
+            if _m.__name__ == 'Event':
+                Event = _m; break
+    if Event is None:
+        return Response({'results': [], 'next': None, 'count': 0})
+
+    field_names = {f.name for f in Event._meta.get_fields() if hasattr(f, 'name')}
+
+    qs = Event.objects.all()
+    if 'club' in field_names:
+        qs = qs.filter(club__isnull=False)
+
+    cutoff = timezone.now() - timedelta(days=7)
+    _sf = next((n for n in ('start_time', 'start_datetime', 'starts_at')
+                if n in field_names), None)
+    if _sf:
+        qs = qs.filter(**{f'{_sf}__gte': cutoff}).order_by(_sf)
+    elif 'created_at' in field_names:
+        qs = qs.order_by('-created_at')
+
+    try: page_num = max(1, int(request.GET.get('page', 1)))
+    except Exception: page_num = 1
+    paginator = Paginator(qs, 20)
+    try:
+        page = paginator.page(page_num)
+    except Exception:
+        return Response({'results': [], 'next': None, 'count': paginator.count})
+
+    results = []
+    for e in page.object_list:
+        item = {'id': str(e.pk)}
+        for k in ('title', 'description', 'location'):
+            v = getattr(e, k, None)
+            if v is not None: item[k] = v
+
+        for src_name, out_name in [
+            ('start_time', 'start_time'), ('start_datetime', 'start_time'),
+            ('starts_at', 'start_time'),
+            ('end_time', 'end_time'), ('end_datetime', 'end_time'),
+            ('ends_at', 'end_time'),
+        ]:
+            if out_name in item: continue
+            v = getattr(e, src_name, None)
+            if v is not None:
+                try: item[out_name] = v.isoformat()
+                except Exception: item[out_name] = str(v)
+
+        for fn in ('poster', 'poster_image', 'image', 'cover'):
+            v = getattr(e, fn, None)
+            if v:
+                try: item['poster_url'] = v.url if hasattr(v, 'url') else str(v)
+                except Exception: item['poster_url'] = str(v)
+                break
+        item.setdefault('poster_url', '')
+
+        club = getattr(e, 'club', None)
+        if club:
+            item['club_id'] = str(club.pk)
+            item['club_name'] = getattr(club, 'name', '') or ''
+            for lf in ('logo', 'logo_image', 'image'):
+                lv = getattr(club, lf, None)
+                if lv:
+                    try: item['club_logo'] = lv.url if hasattr(lv, 'url') else str(lv)
+                    except Exception: item['club_logo'] = str(lv)
+                    break
+            item.setdefault('club_logo', '')
+
+        results.append(item)
+
+    return Response({
+        'results': results,
+        'next': (page_num + 1) if page.has_next() else None,
+        'count': paginator.count,
+    })

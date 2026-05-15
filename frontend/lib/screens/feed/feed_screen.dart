@@ -75,6 +75,7 @@ class _FeedScreenState extends State<FeedScreen>
   final _scrollCtrl = ScrollController();
 
   List<Map<String, dynamic>> _posts      = [];
+  List<Map<String, dynamic>> _events     = [];
   // Story highlights (Instagram-style circles)
   List<Map<String, dynamic>> _storyHighlights = [];
   bool _storyHighlightsLoading = true;
@@ -135,6 +136,30 @@ class _FeedScreenState extends State<FeedScreen>
         _feedLoading = true;
       });
     }
+
+    // EVENTS TAB (index 2): load club events instead of feed posts.
+    if (_feedTab == 2) {
+      try {
+        final d = await _api.get('/clubs/events-feed/?page=$_feedPage')
+            as Map<String, dynamic>;
+        final results = (d['results'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
+        if (!mounted) return;
+        setState(() {
+          if (refresh || _feedPage == 1) {
+            _events = results;
+          } else {
+            _events.addAll(results);
+          }
+          _feedHasMore = d['next'] != null;
+          _feedLoading = false;
+        });
+      } catch (_) {
+        if (mounted) setState(() => _feedLoading = false);
+      }
+      return;
+    }
+
     final types = ['home', 'following', 'trending', 'club_posts'];
     final type  = types[_feedTab];
     try {
@@ -312,6 +337,26 @@ class _FeedScreenState extends State<FeedScreen>
                     const SliverFillRemaining(
                         child: Center(child: CircularProgressIndicator(
                             color: _kViolet)))
+                  else if (_feedTab == 2 && _events.isEmpty)
+                    SliverFillRemaining(child: _buildEmptyEventsState())
+                  else if (_feedTab == 2)
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          if (i == _events.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Center(child: CircularProgressIndicator(
+                                  color: _kViolet, strokeWidth: 2)));
+                          }
+                          return _AnimatedPostEntry(
+                            index: i,
+                            child: _EventCard(event: _events[i]),
+                          );
+                        },
+                        childCount: _events.length + (_feedHasMore ? 1 : 0),
+                      ),
+                    )
                   else if (_posts.isEmpty)
                     SliverFillRemaining(child: _buildEmptyState())
                   else
@@ -701,6 +746,7 @@ class _FeedScreenState extends State<FeedScreen>
                   _feedPage    = 1;
                   _feedHasMore = true;
                   _posts       = [];
+                  _events      = [];
                   _feedLoading = true;
                 });
                 _loadFeed();
@@ -1732,4 +1778,141 @@ class _ShareSheetState extends State<_ShareSheet> {
       ]),
     ),
   );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// EVENT CARD (Events tab)
+// ─────────────────────────────────────────────────────────────
+
+class _EventCard extends StatelessWidget {
+  final Map<String, dynamic> event;
+  const _EventCard({required this.event});
+
+  static String _formatWhen(String iso) {
+    if (iso.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+      final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+      final mer  = dt.hour >= 12 ? 'PM' : 'AM';
+      final mm   = dt.minute.toString().padLeft(2, '0');
+      return '${months[dt.month - 1]} ${dt.day} · $hour:$mm $mer';
+    } catch (_) { return ''; }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title    = (event['title']       as String? ?? '').trim();
+    final poster   = (event['poster_url']  as String? ?? '').trim();
+    final club     = (event['club_name']   as String? ?? '').trim();
+    final clubLogo = (event['club_logo']   as String? ?? '').trim();
+    final location = (event['location']    as String? ?? '').trim();
+    final desc     = (event['description'] as String? ?? '').trim();
+    final when     = _formatWhen((event['start_time'] as String? ?? '').trim());
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06),
+              blurRadius: 20, offset: const Offset(0, 6)),
+          BoxShadow(color: Colors.black.withOpacity(0.03),
+              blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: poster.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: poster,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(color: Colors.grey.shade100),
+                    errorWidget: (_, __, ___) => Container(
+                      color: _kViolet.withOpacity(0.08),
+                      child: const Center(
+                        child: Icon(Icons.event_rounded, color: _kViolet, size: 64)),
+                    ),
+                  )
+                : Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [_kViolet.withOpacity(0.12), _kBlue.withOpacity(0.08)],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.event_rounded, color: _kViolet, size: 64)),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (club.isNotEmpty)
+                Row(children: [
+                  if (clubLogo.isNotEmpty) ...[
+                    ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: clubLogo,
+                        width: 22, height: 22, fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
+                            width: 22, height: 22,
+                            color: _kViolet.withOpacity(0.1)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(child: Text(club.toUpperCase(),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold, fontSize: 10,
+                          color: _kViolet, letterSpacing: 1.5))),
+                ]),
+              if (club.isNotEmpty) const SizedBox(height: 6),
+              if (title.isNotEmpty)
+                Text(title,
+                    style: const TextStyle(fontFamily: 'Alfa',
+                        fontSize: 18, color: _kInk, height: 1.2)),
+              if (when.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Row(children: [
+                  const Icon(Icons.schedule_rounded, size: 14, color: _kViolet),
+                  const SizedBox(width: 6),
+                  Text(when,
+                      style: const TextStyle(fontFamily: 'Momo',
+                          fontSize: 12, color: _kInk,
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ],
+              if (location.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Icon(Icons.location_on_rounded, size: 14, color: _kCoral),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(location,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontFamily: 'Momo',
+                          fontSize: 12, color: _kSlate,
+                          fontWeight: FontWeight.w600))),
+                ]),
+              ],
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(desc,
+                    maxLines: 3, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 13,
+                        color: _kInk.withOpacity(0.75), height: 1.5)),
+              ],
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
 }
