@@ -3,7 +3,7 @@ from django.urls import path
 from . import views as v
 
 urlpatterns = [
-    path('events-feed/', views.club_events_feed, name='club-events-feed'),
+    path('events-feed/', v.club_events_feed,     name='club-events-feed'),
     # List + create
     path("",                v.ClubListCreateView.as_view(), name="club-list"),
 
