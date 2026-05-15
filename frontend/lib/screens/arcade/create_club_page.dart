@@ -83,7 +83,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
         'category': _category,
         'is_public': _isPublic,
         'requires_approval': _requiresApproval,
-      }, logo: _logoFile, cover: _coverFile) as Map<String, dynamic>;
+      }, logoPath: _logoFile?.path, coverPath: _coverFile?.path) as Map<String, dynamic>;
 
       if (!mounted) return;
       Navigator.pop(context, res);

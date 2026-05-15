@@ -52,6 +52,10 @@
 // CHAT BUBBLES (Phase 3B): createBubble / discoverBubbles / joinBubble
 // / inviteToBubble / getMyBubbleInvites / acceptBubbleInvite /
 // declineBubbleInvite live in the CHAT section of ApiService.
+//
+// CLUB EVENT CREATION (new): generateEventPoster (Flux AI),
+// createClubEvent (POST /clubs/<id>/events/), and inviteToClub
+// (POST /clubs/<id>/invites/) for the redesigned club screen.
 
 import 'dart:async';
 import 'dart:convert';
@@ -822,6 +826,22 @@ class ApiService {
   Future<dynamic> getCampusHighlights({int limit = 10}) =>
       get('/events/highlights/', query: {'limit': '$limit'});
 
+  /// POST /api/events/generate-poster/
+  /// Calls the backend Flux AI poster generator. The Django view
+  /// should: (1) verify the caller is president or executive of the
+  /// given club, (2) call Flux with the prompt, (3) upload the result
+  /// to Cloudinary, (4) return {"poster_url": "..."}.
+  Future<dynamic> generateEventPoster({
+    required String prompt,
+    required String title,
+    required String clubId,
+  }) =>
+      post('/events/generate-poster/', body: {
+        'prompt':  prompt,
+        'title':   title,
+        'club_id': clubId,
+      });
+
   // ══════════════════════════════════════════════════════════
   // PHASE 3 — chat helpers for share-profile + other-user actions
   // ══════════════════════════════════════════════════════════
@@ -870,60 +890,35 @@ class ApiService {
       });
 
   Future<dynamic> getClub(String id) => get('/clubs/$id/');
-  /// POST /api/clubs/ — supports logo & cover during creation
+  /// POST /api/clubs/  (creator becomes PRESIDENT)
+  ///
+  /// If [logoPath] / [coverPath] are provided, they are uploaded via the
+  /// admin-only image endpoints right after creation.
   Future<dynamic> createClub(
     Map<String, dynamic> data, {
-    XFile? logo,
-    XFile? cover,
+    String? logoPath,
+    String? coverPath,
   }) async {
-    final String path = '/clubs/';
+    final created = await post('/clubs/', body: data) as Map<String, dynamic>;
+    final id = created['id']?.toString();
+    if (id == null || id.isEmpty) return created;
 
-    // Simple JSON post if no images
-    if (logo == null && cover == null) {
-      return post(path, body: data);
+    Map<String, dynamic> latest = created;
+    if (logoPath != null && logoPath.isNotEmpty) {
+      try {
+        latest = await uploadClubLogo(id, filePath: logoPath)
+            as Map<String, dynamic>;
+      } catch (_) {/* logo failed, club still exists */}
     }
-
-    // Multipart request with files
-    final token = await _Tokens.access();
-    final req = http.MultipartRequest(
-      'POST',
-      Uri.parse('${ApiConfig.api}$path'),
-    );
-
-    req.headers.addAll({
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    });
-
-    // Add all text fields
-    data.forEach((key, value) {
-      if (value != null) {
-        req.fields[key] = value.toString();
-      }
-    });
-
-    // Add logo
-    if (logo != null) {
-      req.files.add(await http.MultipartFile.fromPath(
-        'logo',
-        logo.path,
-        contentType: MediaType('image', 'jpeg'),
-      ));
+    if (coverPath != null && coverPath.isNotEmpty) {
+      try {
+        latest = await uploadClubCover(id, filePath: coverPath)
+            as Map<String, dynamic>;
+      } catch (_) {/* cover failed, club still exists */}
     }
-
-    // Add cover
-    if (cover != null) {
-      req.files.add(await http.MultipartFile.fromPath(
-        'cover',
-        cover.path,
-        contentType: MediaType('image', 'jpeg'),
-      ));
-    }
-
-    final streamed = await req.send();
-    final res = await http.Response.fromStream(streamed);
-    return _decode(res);
+    return latest;
   }
+
 
   Future<dynamic> updateClub(String id, Map<String, dynamic> data) =>
       patch('/clubs/$id/', body: data);
@@ -971,6 +966,40 @@ class ApiService {
   }) =>
       uploadFile('/clubs/$id/logo/',
           filePath: filePath, field: 'logo', mimeType: mimeType);
+
+  /// POST /api/clubs/<id>/events/
+  /// Creates a club-scoped event. Backend permission: caller must be
+  /// president or executive of the given club. The poster_url field
+  /// is the Cloudinary URL returned by generateEventPoster, if used.
+  Future<dynamic> createClubEvent({
+    required String clubId,
+    required String title,
+    String? description,
+    String? location,
+    required String startTime,
+    String? endTime,
+    String? posterUrl,
+  }) =>
+      post('/clubs/$clubId/events/', body: {
+        'title': title,
+        if (description != null && description.isNotEmpty)
+          'description': description,
+        if (location != null && location.isNotEmpty) 'location': location,
+        'start_time': startTime,
+        if (endTime != null) 'end_time': endTime,
+        if (posterUrl != null && posterUrl.isNotEmpty)
+          'poster_url': posterUrl,
+      });
+
+  /// POST /api/clubs/<id>/invites/
+  /// Send club invites to a list of user IDs. Backend permission:
+  /// caller must be president of the given club. Creates ClubInvite
+  /// rows + dispatches in-app notifications.
+  Future<dynamic> inviteToClub({
+    required String clubId,
+    required List<String> userIds,
+  }) =>
+      post('/clubs/$clubId/invites/', body: {'user_ids': userIds});
 
   // ══════════════════════════════════════════════════════════
   // ARCADE
