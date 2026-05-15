@@ -1854,6 +1854,125 @@ class _ClubScreenState extends State<ClubScreen> {
       _snack('$sent invite${sent == 1 ? '' : 's'} sent ✓');
     }
   }
+
+
+  // ─── PHASE 3: Admin inline editing ──────────────────────────
+  final ImagePicker _adminPicker = ImagePicker();
+
+  Future<void> _adminReplaceLogo() async {
+    if (!_isAdmin) return;
+    final x = await _adminPicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024, maxHeight: 1024, imageQuality: 88,
+    );
+    if (x == null) return;
+    try {
+      final r = await _api.uploadClubLogo(_clubId, filePath: x.path) as Map<String, dynamic>;
+      if (mounted) {
+        setState(() => _logoUrl = r['logo_url'] as String?);
+        _snack('Logo updated.');
+      }
+    } catch (e) { _snack('Could not update logo.', error: true); }
+  }
+
+  Future<void> _adminReplaceCover() async {
+    if (!_isAdmin) return;
+    final x = await _adminPicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920, maxHeight: 1080, imageQuality: 88,
+    );
+    if (x == null) return;
+    try {
+      final r = await _api.uploadClubCover(_clubId, filePath: x.path) as Map<String, dynamic>;
+      if (mounted) {
+        setState(() => _coverUrl = r['cover_url'] as String?);
+        _snack('Cover updated.');
+      }
+    } catch (e) { _snack('Could not update cover.', error: true); }
+  }
+
+  Future<void> _adminEditAbout() async {
+    if (!_isAdmin) return;
+    final descCtrl = TextEditingController(text: _description);
+    final missCtrl = TextEditingController(text: _mission);
+    final ruleCtrl = TextEditingController(text: _rules);
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20, right: 20, top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Edit About', style: TextStyle(fontFamily: 'Alfa', fontSize: 20)),
+          const SizedBox(height: 16),
+          TextField(controller: descCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: missCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Mission', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: ruleCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Rules', border: OutlineInputBorder())),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel'))),
+            const SizedBox(width: 12),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save'))),
+          ]),
+        ]),
+      ),
+    );
+    if (saved != true) return;
+    try {
+      final r = await _api.updateClub(_clubId, {
+        'description': descCtrl.text.trim(),
+        'mission': missCtrl.text.trim(),
+        'rules': ruleCtrl.text.trim(),
+      }) as Map<String, dynamic>;
+      if (mounted) setState(() {
+        _description = (r['description'] ?? '') as String;
+        _mission = (r['mission'] ?? '') as String;
+        _rules = (r['rules'] ?? '') as String;
+      });
+      _snack('About updated.');
+    } catch (e) { _snack('Could not update about.', error: true); }
+  }
+
+  Widget _buildAdminEditBar() {
+    if (!_isAdmin) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: _kIndigo.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kIndigo.withOpacity(0.20)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.shield_rounded, size: 16, color: _kIndigo),
+        const SizedBox(width: 8),
+        const Text('Admin tools', style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 12, color: _kIndigo)),
+        const Spacer(),
+        _adminIconBtn(Icons.image_outlined, 'Cover', _adminReplaceCover),
+        _adminIconBtn(Icons.account_circle_outlined, 'Logo', _adminReplaceLogo),
+        _adminIconBtn(Icons.edit_note_rounded, 'About', _adminEditAbout),
+      ]),
+    );
+  }
+
+  Widget _adminIconBtn(IconData icon, String tip, VoidCallback onTap) => IconButton(
+    icon: Icon(icon, color: _kIndigo, size: 20),
+    tooltip: tip,
+    onPressed: onTap,
+    visualDensity: VisualDensity.compact,
+  );
+
+  // ─── PHASE 8: Visitor restrictions ──────────────────────────
+  bool get _isVisitor => !_isMember && !_isAdmin;
+
 }
 
 // ═════════════════════════════════════════════════════════════
