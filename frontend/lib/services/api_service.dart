@@ -1001,21 +1001,31 @@ class ApiService {
   }) =>
       post('/clubs/$clubId/invites/', body: {'user_ids': userIds});
 
-  /// POST /api/clubs/generate-logo/
-  /// body: { prompt, name }
-  /// returns: { logo_url }  (or url / image_url — sheet handles all three)
+  /// Generates a club logo via the same /ai/image/ endpoint the
+  /// AI Image Generator screen uses (Pollinations FLUX). We wrap the
+  /// raw prompt with logo-friendly guidance so the result is a
+  /// centered, square, recognizable mark.
   ///
-  /// Asks the backend to generate a club logo from a natural-language
-  /// prompt (Flux). Caller is responsible for downloading the URL and
-  /// optionally uploading it as the real logo via uploadClubLogo.
+  /// Response shape (from /ai/image/):
+  ///   { id, prompt, model, image_url, width, height, seed, created_at }
+  /// The create-club sheet reads `image_url` from this map.
   Future<dynamic> generateClubLogo({
     required String prompt,
     String name = '',
-  }) =>
-      post('/clubs/generate-logo/', body: {
-        'prompt': prompt,
-        if (name.isNotEmpty) 'name': name,
-      });
+  }) {
+    final enhanced = name.isNotEmpty
+        ? 'Club logo for "$name": $prompt. Centered, clean vector-style '
+          'mark, bold flat illustration, square composition, recognizable '
+          'at small sizes, minimal background.'
+        : 'Club logo: $prompt. Centered, clean vector-style mark, bold '
+          'flat illustration, square composition, recognizable at small '
+          'sizes, minimal background.';
+    return post('/ai/image/', body: {
+      'prompt': enhanced,
+      'model':  'flux',
+      'aspect': 'square',
+    });
+  }
 
   // ══════════════════════════════════════════════════════════
   // ARCADE
