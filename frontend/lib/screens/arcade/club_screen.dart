@@ -459,6 +459,7 @@ class _ClubScreenState extends State<ClubScreen> {
           padding: EdgeInsets.zero,
           children: [
             _buildHeaderCard(),
+            _buildAdminEditBar(),
             const SizedBox(height: 16),
             if (_description.isNotEmpty || _mission.isNotEmpty)
               _buildAboutCard(),
@@ -1869,7 +1870,7 @@ class _ClubScreenState extends State<ClubScreen> {
     try {
       final r = await _api.uploadClubLogo(_clubId, filePath: x.path) as Map<String, dynamic>;
       if (mounted) {
-        setState(() => _logoUrl = r['logo_url'] as String?);
+        setState(() => _club = {..._club, ...r});
         _snack('Logo updated.');
       }
     } catch (e) { _snack('Could not update logo.', error: true); }
@@ -1885,7 +1886,7 @@ class _ClubScreenState extends State<ClubScreen> {
     try {
       final r = await _api.uploadClubCover(_clubId, filePath: x.path) as Map<String, dynamic>;
       if (mounted) {
-        setState(() => _coverUrl = r['cover_url'] as String?);
+        setState(() => _club = {..._club, ...r});
         _snack('Cover updated.');
       }
     } catch (e) { _snack('Could not update cover.', error: true); }
@@ -1932,11 +1933,13 @@ class _ClubScreenState extends State<ClubScreen> {
         'mission': missCtrl.text.trim(),
         'rules': ruleCtrl.text.trim(),
       }) as Map<String, dynamic>;
-      if (mounted) setState(() {
-        _description = (r['description'] ?? '') as String;
-        _mission = (r['mission'] ?? '') as String;
-        _rules = (r['rules'] ?? '') as String;
-      });
+      if (mounted) {
+        setState(() => _club = {..._club,
+          'description': r['description'] ?? '',
+          'mission': r['mission'] ?? '',
+          'rules': r['rules'] ?? '',
+        });
+      }
       _snack('About updated.');
     } catch (e) { _snack('Could not update about.', error: true); }
   }
