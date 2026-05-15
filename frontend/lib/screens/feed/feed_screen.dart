@@ -799,6 +799,26 @@ class _FeedScreenState extends State<FeedScreen>
       ]),
     ));
   }
+
+  Widget _buildEmptyEventsState() {
+    return Center(child: Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: _kViolet.withOpacity(0.06), shape: BoxShape.circle),
+          child: const Center(child: Text('🗓️',
+              style: TextStyle(fontSize: 34)))),
+        const SizedBox(height: 20),
+        const Text('No club events yet', style: TextStyle(
+            fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+        const SizedBox(height: 8),
+        Text("When clubs create events, you'll see them here",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: _kSlate)),
+      ]),
+    ));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
