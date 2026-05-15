@@ -1612,7 +1612,7 @@ class _ClubScreenState extends State<ClubScreen> {
   Future<void> _openCreatePost() async {
     HapticFeedback.lightImpact();
     final res = await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const CreatePostPage()),
+      MaterialPageRoute(builder: (_) => CreatePostPage(clubId: _clubId)),
     );
     if (!mounted) return;
     if (res != null) {

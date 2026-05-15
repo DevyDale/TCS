@@ -42,7 +42,8 @@ const _kCampusLocations = [
 
 
 class CreatePostPage extends StatefulWidget {
-  const CreatePostPage({super.key});
+  final String? clubId;
+  const CreatePostPage({super.key, this.clubId});
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
 }

@@ -610,3 +610,101 @@ def club_feed(request, pk):
         "events": EventSerializer(events, many=True,
                                   context={"request": request}).data,
     })
+
+
+# ─── Phase 4/5/7 endpoints ───────────────────────────────────
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def club_feed(request, pk):
+    try:
+        club = _active_qs().get(pk=pk)
+    except Club.DoesNotExist:
+        return Response({"error": "Club not found."}, status=404)
+    posts, events = [], []
+    try:
+        from apps.posts.models import Post
+        from apps.posts.serializers import PostSerializer
+        qs = Post.objects.filter(club=club, is_flagged=False).select_related('author').order_by('-created_at')[:20]
+        posts = PostSerializer(qs, many=True, context={'request': request}).data
+    except Exception: pass
+    try:
+        from apps.events.models import Event
+        from apps.events.serializers import EventSerializer
+        qs = Event.objects.filter(club=club).order_by('start_time')[:10]
+        events = EventSerializer(qs, many=True, context={'request': request}).data
+    except Exception: pass
+    return Response({'events': events, 'posts': posts})
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def invite_to_club(request, pk):
+    try:
+        club = _active_qs().get(pk=pk)
+    except Club.DoesNotExist:
+        return Response({"error": "Club not found."}, status=404)
+    if not _is_admin(club, request.user):
+        return Response({"error": "Admins only."}, status=403)
+    uids = request.data.get('user_ids') or []
+    if not isinstance(uids, list) or not uids:
+        return Response({"error": "user_ids list required."}, status=400)
+    from django.contrib.auth import get_user_model
+    U = get_user_model()
+    invited = []
+    for uid in uids:
+        try: u = U.objects.get(user_id=uid)
+        except U.DoesNotExist: continue
+        if ClubMember.objects.filter(club=club, user=u).exists(): continue
+        ClubMember.objects.create(club=club, user=u, status='pending', role='member')
+        invited.append(uid)
+    return Response({'invited': invited, 'count': len(invited)})
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def get_or_create_club_chat(request, pk):
+    try:
+        club = _active_qs().get(pk=pk)
+    except Club.DoesNotExist:
+        return Response({"error": "Club not found."}, status=404)
+    if not _is_admin(club, request.user):
+        m = _membership(club, request.user)
+        if not m or m.status != 'active':
+            return Response({"error": "Members only."}, status=403)
+    try:
+        from apps.chat.models import Room
+    except Exception as e:
+        return Response({"error": f"Chat app unavailable: {e}"}, status=500)
+    room = None
+    if getattr(club, 'chat_room_id', None):
+        try: room = Room.objects.get(pk=club.chat_room_id)
+        except Exception: room = None
+    if not room:
+        fields = {f.name for f in Room._meta.get_fields()}
+        kw = {}
+        if 'name' in fields: kw['name'] = f'{club.name} Chat'
+        if 'description' in fields: kw['description'] = f'Group chat for {club.name} members.'
+        for tf in ('type', 'room_type', 'kind'):
+            if tf in fields: kw[tf] = 'group'; break
+        if 'is_group' in fields: kw['is_group'] = True
+        if 'created_by' in fields: kw['created_by'] = request.user
+        try: room = Room.objects.create(**kw)
+        except Exception as e:
+            return Response({"error": f"Could not create room: {e}"}, status=500)
+        club.chat_room_id = room.id
+        club.save(update_fields=['chat_room_id'])
+    from django.contrib.auth import get_user_model
+    U = get_user_model()
+    member_ids = list(club.memberships.filter(status='active').values_list('user_id', flat=True))
+    users = list(U.objects.filter(id__in=member_ids))
+    for attr in ('members', 'participants', 'users'):
+        if hasattr(room, attr):
+            try: getattr(room, attr).set(users)
+            except Exception: pass
+            break
+    return Response({
+        'id': str(room.id),
+        'name': getattr(room, 'name', f'{club.name} Chat'),
+        'description': getattr(room, 'description', None),
+    })

@@ -57,6 +57,7 @@ class Club(models.Model):
     # Imagery — logo is the small icon, cover is the wide hero image.
     logo        = models.ImageField(upload_to="club_logos/%Y/",  null=True, blank=True)
     cover       = models.ImageField(upload_to="club_covers/%Y/", null=True, blank=True)
+    chat_room_id = models.UUIDField(null=True, blank=True)
     theme_icon  = models.CharField(max_length=10, blank=True)
 
     # Settings

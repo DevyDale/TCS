@@ -31,4 +31,11 @@ urlpatterns = [
     # Phase 6 — combined posts + events feed for a club
     path("<uuid:pk>/feed/",    v.club_feed,                  name="club-feed"),
 
+
+    # Phase 4/5/7
+    path("<uuid:pk>/feed/",    v.club_feed,               name="club-feed"),
+    path("<uuid:pk>/invite/",  v.invite_to_club,          name="club-invite"),
+    path("<uuid:pk>/chat/",    v.get_or_create_club_chat, name="club-chat"),
+    path("<uuid:pk>/members/<str:user_id>/decline/",
+                               v.reject_member,           name="club-member-decline"),
 ]
