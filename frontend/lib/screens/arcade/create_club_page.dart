@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../../services/api_service.dart';
 
@@ -628,6 +629,7 @@ class _AiLogoSheet extends StatefulWidget {
 class _AiLogoSheetState extends State<_AiLogoSheet> {
   final _promptCtrl = TextEditingController();
   String? _logoUrl;
+  Uint8List? _logoBytes;   // cached bytes — preview + save both reuse this
   bool _generating = false;
   bool _saving = false;
 
@@ -655,20 +657,34 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
       _err('Describe the logo you want');
       return;
     }
-    setState(() => _generating = true);
+    setState(() {
+      _generating = true;
+      _logoBytes = null;
+      _logoUrl = null;
+    });
     try {
+      // Step 1 — FLUX generation (slow: 5-30s, server-side)
       final res = await widget.api.generateClubLogo(
         prompt: prompt,
         name: widget.clubName,
       ) as Map<String, dynamic>;
+      final url = (res['image_url'] ?? res['logo_url'] ?? res['url']) as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception('No image URL in response');
+      }
+
+      // Step 2 — download bytes ONCE; both preview and save reuse them
+      final dl = await http.get(Uri.parse(url));
+      if (dl.statusCode < 200 || dl.statusCode >= 300) {
+        throw Exception('Download failed (' + dl.statusCode.toString() + ')');
+      }
+
       if (!mounted) return;
       setState(() {
-        _logoUrl = (res['logo_url'] ?? res['url'] ?? res['image_url']) as String?;
+        _logoUrl = url;
+        _logoBytes = dl.bodyBytes;
         _generating = false;
       });
-      if (_logoUrl == null || _logoUrl!.isEmpty) {
-        _err('No logo returned — try a different prompt');
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _generating = false);
@@ -677,20 +693,17 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
   }
 
   Future<void> _useThisLogo() async {
-    if (_logoUrl == null || _logoUrl!.isEmpty) return;
+    if (_logoBytes == null) return;
     setState(() => _saving = true);
     try {
-      final res = await http.get(Uri.parse(_logoUrl!));
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        throw Exception('Download failed (' + res.statusCode.toString() + ')');
-      }
-      final lower = _logoUrl!.toLowerCase();
+      // Bytes already in RAM — just persist to a temp file (near-instant)
+      final lower = (_logoUrl ?? '').toLowerCase();
       final ext = lower.contains('.png')  ? 'png'
                 : lower.contains('.webp') ? 'webp'
                 : 'jpg';
       final ts = DateTime.now().millisecondsSinceEpoch;
       final file = File(Directory.systemTemp.path + '/ai_logo_' + ts.toString() + '.' + ext);
-      await file.writeAsBytes(res.bodyBytes);
+      await file.writeAsBytes(_logoBytes!);
       if (!mounted) return;
       Navigator.pop(context, XFile(file.path));
     } catch (e) {
@@ -742,7 +755,8 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
               children: [
                 Text(
                   'Describe the vibe, mascot, or imagery and Flux will '
-                  'generate a logo you can drop straight into your club.',
+                  'generate a logo you can drop straight into your club. '
+                  'Generation takes 5-30 seconds.',
                   style: TextStyle(
                     fontFamily: 'Momo', fontSize: 12.5,
                     color: Colors.grey.shade600, height: 1.5,
@@ -772,7 +786,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (_logoUrl != null) ...[
+                if (_logoBytes != null) ...[
                   Container(
                     height: 240,
                     decoration: BoxDecoration(
@@ -781,9 +795,10 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.network(
-                        _logoUrl!,
+                      child: Image.memory(
+                        _logoBytes!,
                         fit: BoxFit.contain,
+                        gaplessPlayback: true,
                         errorBuilder: (_, __, ___) => const Center(
                           child: Icon(Icons.broken_image_rounded,
                               color: _kSlate, size: 40),
@@ -804,10 +819,22 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                     ),
                     child: Center(
                       child: _generating
-                          ? const SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                          ? const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                ),
+                                SizedBox(width: 10),
+                                Text('Flux is painting...',
+                                    style: TextStyle(
+                                      fontFamily: 'Arch', fontSize: 13,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    )),
+                              ],
                             )
                           : Row(
                               mainAxisSize: MainAxisSize.min,
@@ -816,7 +843,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                                     color: Colors.white, size: 16),
                                 const SizedBox(width: 8),
                                 Text(
-                                    _logoUrl == null
+                                    _logoBytes == null
                                         ? 'Generate Logo'
                                         : 'Regenerate',
                                     style: const TextStyle(
@@ -829,7 +856,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                     ),
                   ),
                 ),
-                if (_logoUrl != null) ...[
+                if (_logoBytes != null) ...[
                   const SizedBox(height: 10),
                   GestureDetector(
                     onTap: _saving ? null : _useThisLogo,
