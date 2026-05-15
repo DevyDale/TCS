@@ -1001,6 +1001,22 @@ class ApiService {
   }) =>
       post('/clubs/$clubId/invites/', body: {'user_ids': userIds});
 
+  /// POST /api/clubs/generate-logo/
+  /// body: { prompt, name }
+  /// returns: { logo_url }  (or url / image_url — sheet handles all three)
+  ///
+  /// Asks the backend to generate a club logo from a natural-language
+  /// prompt (Flux). Caller is responsible for downloading the URL and
+  /// optionally uploading it as the real logo via uploadClubLogo.
+  Future<dynamic> generateClubLogo({
+    required String prompt,
+    String name = '',
+  }) =>
+      post('/clubs/generate-logo/', body: {
+        'prompt': prompt,
+        if (name.isNotEmpty) 'name': name,
+      });
+
   // ══════════════════════════════════════════════════════════
   // ARCADE
   // ══════════════════════════════════════════════════════════

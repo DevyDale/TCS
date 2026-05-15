@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
 
 import '../../services/api_service.dart';
@@ -99,6 +100,26 @@ class _CreateClubPageState extends State<CreateClubPage> {
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openAiLogoSheet() async {
+    HapticFeedback.lightImpact();
+    FocusScope.of(context).unfocus();
+    final result = await showModalBottomSheet<XFile>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _AiLogoSheet(
+        api: _api,
+        clubName: _name.text.trim(),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _logoFile = result);
     }
   }
 
@@ -199,7 +220,48 @@ class _CreateClubPageState extends State<CreateClubPage> {
                     ],
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 14),
+
+                  // AI logo generator pill
+                  GestureDetector(
+                    onTap: _openAiLogoSheet,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _kG2.withOpacity(0.92),
+                            _kG1.withOpacity(0.92),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kG2.withOpacity(0.25),
+                            blurRadius: 12, offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.auto_awesome_rounded,
+                              color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('Generate Logo with AI',
+                              style: TextStyle(
+                                fontFamily: 'Arch',
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
 
                   _label('Club Name *'),
                   _textField(
@@ -542,6 +604,270 @@ class _CreateClubPageState extends State<CreateClubPage> {
             value: value,
             activeColor: _kIndigo,
             onChanged: onChanged,
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// AI LOGO SHEET — Flux-powered club logo generator
+// ═════════════════════════════════════════════════════════════
+
+class _AiLogoSheet extends StatefulWidget {
+  final ApiService api;
+  final String clubName;
+  const _AiLogoSheet({required this.api, required this.clubName});
+
+  @override
+  State<_AiLogoSheet> createState() => _AiLogoSheetState();
+}
+
+class _AiLogoSheetState extends State<_AiLogoSheet> {
+  final _promptCtrl = TextEditingController();
+  String? _logoUrl;
+  bool _generating = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _promptCtrl.dispose();
+    super.dispose();
+  }
+
+  void _err(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
+      backgroundColor: _kG4,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
+  Future<void> _generate() async {
+    final prompt = _promptCtrl.text.trim();
+    if (prompt.isEmpty) {
+      _err('Describe the logo you want');
+      return;
+    }
+    setState(() => _generating = true);
+    try {
+      final res = await widget.api.generateClubLogo(
+        prompt: prompt,
+        name: widget.clubName,
+      ) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _logoUrl = (res['logo_url'] ?? res['url'] ?? res['image_url']) as String?;
+        _generating = false;
+      });
+      if (_logoUrl == null || _logoUrl!.isEmpty) {
+        _err('No logo returned — try a different prompt');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _generating = false);
+      _err('Generation failed: ' + e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  Future<void> _useThisLogo() async {
+    if (_logoUrl == null || _logoUrl!.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      final res = await http.get(Uri.parse(_logoUrl!));
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw Exception('Download failed (' + res.statusCode.toString() + ')');
+      }
+      final lower = _logoUrl!.toLowerCase();
+      final ext = lower.contains('.png')  ? 'png'
+                : lower.contains('.webp') ? 'webp'
+                : 'jpg';
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final file = File(Directory.systemTemp.path + '/ai_logo_' + ts.toString() + '.' + ext);
+      await file.writeAsBytes(res.bodyBytes);
+      if (!mounted) return;
+      Navigator.pop(context, XFile(file.path));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _err('Could not use this logo: ' + e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (_, ctrl) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(children: [
+              const Expanded(
+                child: Text('AI Logo Generator',
+                    style: TextStyle(
+                      fontFamily: 'Alfa', fontSize: 22, color: _kInk,
+                      fontWeight: FontWeight.w900,
+                    )),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: _kSlate),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: ListView(
+              controller: ctrl,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              children: [
+                Text(
+                  'Describe the vibe, mascot, or imagery and Flux will '
+                  'generate a logo you can drop straight into your club.',
+                  style: TextStyle(
+                    fontFamily: 'Momo', fontSize: 12.5,
+                    color: Colors.grey.shade600, height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TextField(
+                    controller: _promptCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(
+                        fontFamily: 'Momo', fontSize: 14, color: _kInk),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. minimalist owl mascot, navy blue and '
+                          'gold, modern flat illustration',
+                      hintStyle: TextStyle(
+                          fontFamily: 'Momo', fontSize: 13,
+                          color: Colors.grey.shade400),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (_logoUrl != null) ...[
+                  Container(
+                    height: 240,
+                    decoration: BoxDecoration(
+                      color: _kBg,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.network(
+                        _logoUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(Icons.broken_image_rounded,
+                              color: _kSlate, size: 40),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                GestureDetector(
+                  onTap: _generating ? null : _generate,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_kG2, _kG1]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Center(
+                      child: _generating
+                          ? const SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.auto_awesome_rounded,
+                                    color: Colors.white, size: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                    _logoUrl == null
+                                        ? 'Generate Logo'
+                                        : 'Regenerate',
+                                    style: const TextStyle(
+                                      fontFamily: 'Arch', fontSize: 14,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    )),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+                if (_logoUrl != null) ...[
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: _saving ? null : _useThisLogo,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            colors: [_kIndigo, _kDeep]),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: _saving
+                            ? const SizedBox(
+                                width: 20, height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_rounded,
+                                      color: Colors.white, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Use this logo',
+                                      style: TextStyle(
+                                        fontFamily: 'Arch', fontSize: 14,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      )),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ]),
       ),
