@@ -2,9 +2,29 @@
 //
 // Profile (own) — redesigned to match the arcade light theme.
 //
-// HIGHLIGHTS REMOVED: all story-highlight functionality has been
-// stripped — no highlights row, no fetching, no create-highlight
-// navigation, no story viewer, no related imports.
+// Visual identity:
+//   • Light page gradient (white → soft grey → white)
+//   • White card surfaces with thin _kBorder outlines
+//   • Animated SweepGradient borders on the avatar ring and the
+//     primary CTA (Edit Bio). Keeps the arcade visual language.
+//   • Custom segmented tab bar (no animated_segmented_tab_control,
+//     same swap as arcade to avoid the dispose-after-listener crash).
+//
+// Layout, top to bottom:
+//   1. Cover banner (180px) — image, or a soft animated gradient
+//      using the role palette as the default
+//   2. Avatar (overlapping cover) with animated gradient ring
+//   3. Identity strip — name, role · handle
+//   4. Stats row — Posts / Followers / Following
+//   5. Action row — Edit Bio (primary, gradient border) + Share
+//   6. Bio card (only if filled)
+//   7. Interests strip
+//   8. Sticky tab bar — Posts · Fweets · Favorites
+//   9. Tab content
+//
+// Functionality unchanged: image picking, uploads, fetches, deletes,
+// privacy toggles, share-profile sheet — all the existing methods are
+// preserved verbatim.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -19,11 +39,14 @@ import 'package:tcs_app/services/settings_Screen.dart';
 import '../../models/biodata.dart';
 import '../../services/api_service.dart';
 import 'bio.dart';
+import 'create_highlight_page.dart';
 import 'createpostspage.dart';
 import 'fweetspage.dart';
 import 'interests.dart';
 import 'media_item_view.dart';
+import '../../highlight_story_viewer.dart';
 import '../../widgets/privacy_toggle_sheet.dart';
+import 'share_profile_screen.dart';
 
 // ── Light palette (matches arcade) ───────────────────────────
 const _kBg1     = Color(0xFFFAFAFC);
@@ -80,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   List<Map<String, dynamic>> _posts     = [];
   List<Map<String, dynamic>> _fweets    = [];
   List<Map<String, dynamic>> _favorites = [];
+  List<Map<String, dynamic>> _highlights = [];
   final List<String>         _interests = [];
 
   int  _followers = 0;
@@ -87,6 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _postsLoading     = true;
   bool _fweetsLoading    = true;
   bool _favoritesLoading = true;
+  bool _highlightsLoading = true;
 
   String? _myUserId;
 
@@ -104,6 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool    _coverUploading  = false;
 
   // ── user-scoped SharedPreferences keys ──
+  // Suffixed with the current user_id so two accounts on the
+  // same device never read each other's avatar/cover URLs.
   static const _kAvatarUrlPrefix = 'profile_avatar_url_';
   static const _kCoverUrlPrefix  = 'profile_cover_url_';
   static const _kCoverH    = 180.0;
@@ -120,6 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _fetchPosts();
     _fetchFweets();
     _fetchFavorites();
+    _fetchHighlights();
     _fetchStats();
   }
 
@@ -130,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  // ── Data fetches ──────────────────────────────────────────
+  // ── Data fetches (unchanged) ──────────────────────────────
 
   Future<void> _fetchPosts() async {
     setState(() => _postsLoading = true);
@@ -165,6 +193,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     } catch (_) { setState(() => _favoritesLoading = false); }
   }
 
+  Future<void> _fetchHighlights() async {
+    setState(() => _highlightsLoading = true);
+    try {
+      final d = await _api.getMyHighlights();
+      final list = d is List
+          ? d
+          : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
+      setState(() {
+        _highlights        = list.cast<Map<String, dynamic>>();
+        _highlightsLoading = false;
+      });
+    } catch (_) {
+      setState(() => _highlightsLoading = false);
+    }
+  }
+
   Future<void> _fetchStats() async {
     try {
       final d = await _api.getMyProfile() as Map<String, dynamic>;
@@ -188,6 +232,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           _interestsSeeded = true;
         }
 
+        // Re-hydrate _bioData on every fetch so navigating away and back
+        // does not wipe the displayed bio. Always overwrite from backend,
+        // since the backend is the source of truth after a save.
         final hasBio = d['bio'] != null || d['quote'] != null ||
             d['pronouns'] != null || d['country'] != null ||
             d['year'] != null || d['school'] != null ||
@@ -205,6 +252,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           );
         }
 
+        // Always rehydrate interests after the first seed so a server-side
+        // save (via InterestsPage) survives a screen pop+push.
         if (_interestsSeeded) {
           final saved = (d['interests'] as List?)?.cast<String>();
           if (saved != null) {
@@ -249,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         .setString('$_kCoverUrlPrefix$uid', url);
   }
 
-  // ── Delete ────────────────────────────────────────────────
+  // ── Delete (unchanged) ────────────────────────────────────
 
   Future<void> _deletePost(int i) async {
     final id = _posts[i]['id']?.toString() ?? '';
@@ -331,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     ));
   }
 
-  // ── Image picking + upload ────────────────────────────────
+  // ── Image picking + upload (unchanged) ────────────────────
 
   Future<void> _pickAvatar() async {
     final x = await _picker.pickImage(
@@ -369,7 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     finally { if (mounted) setState(() => _coverUploading = false); }
   }
 
-  // ── Navigation ────────────────────────────────────────────
+  // ── Navigation (unchanged) ────────────────────────────────
 
   Future<void> _openInterests() async {
     final r = await Navigator.of(context).push<List<String>>(
@@ -401,303 +450,496 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (r != null && r.isNotEmpty) _fetchFweets();
   }
 
-  Future<void> _shareMyProfile() async {
+  Future<void> _openCreateHighlight() async {
     HapticFeedback.lightImpact();
+    final created = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreateHighlightPage()));
+    if (created == true) _fetchHighlights();
+  }
 
-    if (_myUserId == null || _myUserId!.isEmpty) {
+  Future<void> _openHighlight(int index) async {
+    HapticFeedback.lightImpact();
+    if (index < 0 || index >= _highlights.length) return;
+    final h = _highlights[index];
+
+    // The list endpoint may omit each highlight's items. If they're
+    // not inline, fetch the full highlight before opening the viewer.
+    var rawItems = (h['items'] as List?) ?? const [];
+    if (rawItems.isEmpty) {
       try {
-        final me = await _api.getMyProfile() as Map<String, dynamic>;
-        _myUserId = me['user_id'] as String? ?? '';
+        final full = await _api.getHighlight(h['id']?.toString() ?? '')
+            as Map<String, dynamic>;
+        rawItems = (full['items'] as List?) ?? const [];
       } catch (_) {
-        _snack('Could not load your profile to share.', error: true);
+        _snack('Could not load this highlight', error: true);
         return;
       }
     }
-
-    if (_myUserId == null || _myUserId!.isEmpty) {
-      _snack('Could not load your profile to share.', error: true);
+    if (rawItems.isEmpty) {
+      _snack('This highlight has no stories yet');
       return;
     }
 
-    List<Map<String, dynamic>> recent = [];
-
-    try {
-      final data = await _api.getRecentChats(limit: 5);
-      if (data is List) {
-        recent = data.cast<Map<String, dynamic>>();
-      }
-    } catch (_) {
-      try {
-        final data = await _api.getChatRooms();
-        if (data is List) {
-          recent = data.cast<Map<String, dynamic>>().take(5).toList();
-        }
-      } catch (_) {}
-    }
+    final stories = rawItems
+        .cast<Map<String, dynamic>>()
+        .map((it) => HighlightStory.fromJson(it))
+        .toList();
 
     if (!mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => HighlightStoryViewer(stories: stories),
+    ));
+  }
+Future<void> _shareMyProfile() async {
+  HapticFeedback.lightImpact();
 
-    final searchCtrl = TextEditingController();
-    List<Map<String, dynamic>> filtered = List.from(recent);
+  // ── Ensure current user id exists ─────────────────────────
+  if (_myUserId == null || _myUserId!.isEmpty) {
+    try {
+      final me = await _api.getMyProfile() as Map<String, dynamic>;
+      _myUserId = me['user_id'] as String? ?? '';
+    } catch (_) {
+      _snack('Could not load your profile to share.', error: true);
+      return;
+    }
+  }
 
-    String roomName(Map<String, dynamic> r) {
-      final type = r['room_type'] as String? ?? 'direct';
-      if (type == 'group') return (r['name'] as String?) ?? 'Group';
-      final other = r['other_user'] as Map<String, dynamic>?;
-      return (other?['name'] as String?) ?? 'Unknown';
+  if (_myUserId == null || _myUserId!.isEmpty) {
+    _snack('Could not load your profile to share.', error: true);
+    return;
+  }
+
+  // ── Load recent chats directly here ──────────────────────
+  List<Map<String, dynamic>> recent = [];
+
+  try {
+    final data = await _api.getRecentChats(limit: 5);
+
+    if (data is List) {
+      recent = data.cast<Map<String, dynamic>>();
+    }
+  } catch (_) {
+    try {
+      final data = await _api.getChatRooms();
+
+      if (data is List) {
+        recent = data
+            .cast<Map<String, dynamic>>()
+            .take(5)
+            .toList();
+      }
+    } catch (_) {}
+  }
+
+  if (!mounted) return;
+
+  final searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> filtered = List.from(recent);
+
+  String roomName(Map<String, dynamic> r) {
+    final type = r['room_type'] as String? ?? 'direct';
+
+    if (type == 'group') {
+      return (r['name'] as String?) ?? 'Group';
     }
 
-    String? roomAvatar(Map<String, dynamic> r) {
-      final type = r['room_type'] as String? ?? 'direct';
-      if (type == 'group') return r['avatar_url'] as String?;
-      final other = r['other_user'] as Map<String, dynamic>?;
-      return other?['avatar_url'] as String?;
+    final other = r['other_user'] as Map<String, dynamic>?;
+
+    return (other?['name'] as String?) ?? 'Unknown';
+  }
+
+  String? roomAvatar(Map<String, dynamic> r) {
+    final type = r['room_type'] as String? ?? 'direct';
+
+    if (type == 'group') {
+      return r['avatar_url'] as String?;
     }
 
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            void applyFilter(String q) {
-              final query = q.trim().toLowerCase();
-              setModalState(() {
-                if (query.isEmpty) {
-                  filtered = List.from(recent);
-                } else {
-                  filtered = recent.where((r) =>
-                      roomName(r).toLowerCase().contains(query)).toList();
-                }
-              });
-            }
+    final other = r['other_user'] as Map<String, dynamic>?;
 
-            return DraggableScrollableSheet(
-              initialChildSize: 0.55,
-              minChildSize: 0.3,
-              maxChildSize: 0.85,
-              expand: false,
-              builder: (_, scrollCtrl) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    return other?['avatar_url'] as String?;
+  }
+
+  // ── Bottom sheet directly inside function ────────────────
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          void applyFilter(String q) {
+            final query = q.trim().toLowerCase();
+
+            setModalState(() {
+              if (query.isEmpty) {
+                filtered = List.from(recent);
+              } else {
+                filtered = recent.where((r) {
+                  return roomName(r)
+                      .toLowerCase()
+                      .contains(query);
+                }).toList();
+              }
+            });
+          }
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.55,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (_, scrollCtrl) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(28),
                   ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12, bottom: 4),
-                        child: Container(
-                          width: 36, height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                ),
+                child: Column(
+                  children: [
+                    // Handle
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(top: 12, bottom: 4),
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                        child: Row(
-                          children: [
-                            const Text('Share Profile',
-                              style: TextStyle(fontFamily: 'Alfa',
-                                  fontSize: 20, color: Color(0xFF1A1A2E))),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text('· ${widget.fullName}',
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontFamily: 'Momo',
-                                    fontSize: 13, color: Color(0xFF64687A))),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded,
-                                  color: Color(0xFF64687A)),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F5FA),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: TextField(
-                            controller: searchCtrl,
-                            onChanged: applyFilter,
-                            style: const TextStyle(
-                                fontFamily: 'Momo', fontSize: 14),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              hintText: 'Search recent chats...',
-                              hintStyle: TextStyle(fontFamily: 'Momo',
-                                  fontSize: 13, color: Colors.grey.shade500),
-                              prefixIcon: Icon(Icons.search_rounded,
-                                  color: Colors.grey.shade500, size: 20),
-                              border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: filtered.isEmpty
-                            ? Center(
-                                child: Text(
-                                  recent.isEmpty
-                                      ? 'No recent chats yet'
-                                      : 'No matches',
-                                  style: const TextStyle(
-                                      fontFamily: 'Alfa', fontSize: 16),
-                                ),
-                              )
-                            : ListView.builder(
-                                controller: scrollCtrl,
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                                itemCount: filtered.length,
-                                itemBuilder: (_, i) {
-                                  final room = filtered[i];
-                                  final name = roomName(room);
-                                  final avatar = roomAvatar(room);
-                                  final type =
-                                      room['room_type'] as String? ?? 'direct';
-                                  final isGroup = type == 'group';
-                                  final initial = name.isNotEmpty
-                                      ? name[0].toUpperCase() : '?';
+                    ),
 
-                                  return InkWell(
-                                    borderRadius: BorderRadius.circular(14),
-                                    onTap: () async {
-                                      try {
-                                        HapticFeedback.mediumImpact();
-                                        final roomId =
-                                            room['id']?.toString() ?? '';
-                                        if (roomId.isEmpty) return;
-                                        await _api.shareProfileToRoom(
-                                          roomId: roomId,
-                                          targetUserId: _myUserId!,
-                                          targetName: widget.fullName,
-                                        );
-                                        if (!mounted) return;
-                                        Navigator.pop(context);
-                                        _snack('Profile shared to $name ✓');
-                                      } catch (_) {
-                                        _snack('Share failed', error: true);
-                                      }
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 8),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 48, height: 48,
-                                            decoration: BoxDecoration(
-                                              gradient: const LinearGradient(
-                                                colors: [
-                                                  Color(0xFF6DD5FA),
-                                                  Color(0xFF8E54E9),
-                                                ],
-                                              ),
-                                              shape: isGroup
-                                                  ? BoxShape.rectangle
-                                                  : BoxShape.circle,
-                                              borderRadius: isGroup
-                                                  ? BorderRadius.circular(14)
-                                                  : null,
+                    // Header
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Share Profile',
+                            style: TextStyle(
+                              fontFamily: 'Alfa',
+                              fontSize: 20,
+                              color: Color(0xFF1A1A2E),
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          Expanded(
+                            child: Text(
+                              '· ${widget.fullName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Momo',
+                                fontSize: 13,
+                                color: Color(0xFF64687A),
+                              ),
+                            ),
+                          ),
+
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Color(0xFF64687A),
+                            ),
+                            onPressed: () =>
+                                Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Search
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F5FA),
+                          borderRadius:
+                              BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                          ),
+                        ),
+                 child: TextField(
+  controller: searchCtrl,
+  onChanged: applyFilter,
+  style: const TextStyle(
+    fontFamily: 'Momo',
+    fontSize: 14,
+  ),
+  decoration: InputDecoration(
+    filled: true,
+    fillColor: Colors.white, // <- white fill color
+    hintText: 'Search recent chats...',
+    hintStyle: TextStyle(
+      fontFamily: 'Momo',
+      fontSize: 13,
+      color: Colors.grey.shade500,
+    ),
+    prefixIcon: Icon(
+      Icons.search_rounded,
+      color: Colors.grey.shade500,
+      size: 20,
+    ),
+    border: InputBorder.none,
+    contentPadding: const EdgeInsets.symmetric(
+      vertical: 14,
+    ),
+  ),
+),    ),
+                    ),
+
+                    // List
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(
+                              child: Text(
+                                recent.isEmpty
+                                    ? 'No recent chats yet'
+                                    : 'No matches',
+                                style: const TextStyle(
+                                  fontFamily: 'Alfa',
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollCtrl,
+                              padding:
+                                  const EdgeInsets.fromLTRB(
+                                      12, 4, 12, 24),
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final room = filtered[i];
+
+                                final name = roomName(room);
+                                final avatar =
+                                    roomAvatar(room);
+
+                                final type =
+                                    room['room_type']
+                                            as String? ??
+                                        'direct';
+
+                                final isGroup =
+                                    type == 'group';
+
+                                final initial =
+                                    name.isNotEmpty
+                                        ? name[0]
+                                            .toUpperCase()
+                                        : '?';
+
+                                return InkWell(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          14),
+                                  onTap: () async {
+                                    try {
+                                      HapticFeedback
+                                          .mediumImpact();
+
+                                      final roomId =
+                                          room['id']
+                                                  ?.toString() ??
+                                              '';
+
+                                      if (roomId
+                                          .isEmpty) return;
+
+                                      await _api
+                                          .shareProfileToRoom(
+                                        roomId: roomId,
+                                        targetUserId:
+                                            _myUserId!,
+                                        targetName:
+                                            widget.fullName,
+                                      );
+
+                                      if (!mounted) return;
+
+                                      Navigator.pop(
+                                          context);
+
+                                      _snack(
+                                        'Profile shared to $name ✓',
+                                      );
+                                    } catch (e) {
+                                      _snack(
+                                        'Share failed',
+                                        error: true,
+                                      );
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration:
+                                              BoxDecoration(
+                                            gradient:
+                                                const LinearGradient(
+                                              colors: [
+                                                Color(
+                                                    0xFF6DD5FA),
+                                                Color(
+                                                    0xFF8E54E9),
+                                              ],
                                             ),
-                                            child: ClipRRect(
-                                              borderRadius: isGroup
-                                                  ? BorderRadius.circular(14)
-                                                  : BorderRadius.circular(24),
-                                              child: avatar != null &&
-                                                      avatar.isNotEmpty
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: avatar,
-                                                      fit: BoxFit.cover,
-                                                      errorWidget:
-                                                          (_, __, ___) =>
-                                                              Center(
-                                                        child: Text(initial,
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Colors.white,
-                                                            fontFamily: 'Arch',
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    )
-                                                  : Center(
-                                                      child: Text(initial,
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontFamily: 'Arch',
+                                            shape: isGroup
+                                                ? BoxShape
+                                                    .rectangle
+                                                : BoxShape
+                                                    .circle,
+                                            borderRadius:
+                                                isGroup
+                                                    ? BorderRadius
+                                                        .circular(
+                                                            14)
+                                                    : null,
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                isGroup
+                                                    ? BorderRadius
+                                                        .circular(
+                                                            14)
+                                                    : BorderRadius
+                                                        .circular(
+                                                            24),
+                                            child: avatar !=
+                                                        null &&
+                                                    avatar
+                                                        .isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl:
+                                                        avatar,
+                                                    fit: BoxFit
+                                                        .cover,
+                                                    errorWidget:
+                                                        (_, __,
+                                                                ___) =>
+                                                            Center(
+                                                      child:
+                                                          Text(
+                                                        initial,
+                                                        style:
+                                                            const TextStyle(
+                                                          color:
+                                                              Colors.white,
+                                                          fontFamily:
+                                                              'Arch',
                                                           fontWeight:
                                                               FontWeight.bold,
                                                         ),
                                                       ),
                                                     ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(name, maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontFamily: 'Arch',
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14,
-                                                    color: Color(0xFF1A1A2E),
+                                                  )
+                                                : Center(
+                                                    child:
+                                                        Text(
+                                                      initial,
+                                                      style:
+                                                          const TextStyle(
+                                                        color: Colors
+                                                            .white,
+                                                        fontFamily:
+                                                            'Arch',
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                                Text(
-                                                  isGroup
-                                                      ? 'Group chat'
-                                                      : 'Direct message',
-                                                  style: TextStyle(
-                                                    fontFamily: 'Momo',
-                                                    fontSize: 11,
-                                                    color:
-                                                        Colors.grey.shade500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
                                           ),
-                                          const Icon(Icons.send_rounded,
-                                              color: Color(0xFF8E54E9),
-                                              size: 20),
-                                        ],
-                                      ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 12),
+
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment
+                                                    .start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow
+                                                        .ellipsis,
+                                                style:
+                                                    const TextStyle(
+                                                  fontFamily:
+                                                      'Arch',
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .bold,
+                                                  fontSize:
+                                                      14,
+                                                  color: Color(
+                                                      0xFF1A1A2E),
+                                                ),
+                                              ),
+                                              Text(
+                                                isGroup
+                                                    ? 'Group chat'
+                                                    : 'Direct message',
+                                                style:
+                                                    TextStyle(
+                                                  fontFamily:
+                                                      'Momo',
+                                                  fontSize:
+                                                      11,
+                                                  color: Colors
+                                                      .grey
+                                                      .shade500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        const Icon(
+                                          Icons
+                                              .send_rounded,
+                                          color: Color(
+                                              0xFF8E54E9),
+                                          size: 20,
+                                        ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
 
   Future<void> _changeBioPrivacy() async {
     HapticFeedback.lightImpact();
@@ -794,6 +1036,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (_bioData != null && !_bioData!.isEmpty)
               SliverToBoxAdapter(child: _buildBioCard()),
             SliverToBoxAdapter(child: _buildInterestsStrip()),
+            SliverToBoxAdapter(child: _buildHighlightsRow()),
             SliverPersistentHeader(
               pinned: true,
               delegate: _StickyTabBarDelegate(
@@ -840,33 +1083,40 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: Colors.white, strokeWidth: 2))),
             ]))),
 
-        Positioned(
-          top: topPad + 12,
-          left: 16,
-          child: GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
-            child: Container(
-              width: 38, height: 38,
-              decoration: BoxDecoration(
-                color: _kCard,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _kBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 8, offset: const Offset(0, 2),
-                  )
-                ],
-              ),
-              child: const Icon(Icons.settings_rounded,
-                  color: _kInk, size: 18),
-            ),
-          ),
-        ),
-
+      Positioned(
+  top: topPad + 12,
+  left: 16,
+  child: GestureDetector(
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SettingsScreen(),
+      ),
+    ),
+    child: Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: const Icon(
+        Icons.settings_rounded,
+        color: _kInk,
+        size: 18,
+      ),
+    ),
+  ),
+),
+        // Edit cover button
         Positioned(top: topPad + 12, right: 16,
           child: GestureDetector(onTap: _pickCover,
             child: Container(width: 38, height: 38,
@@ -880,6 +1130,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: const Icon(Icons.photo_camera_rounded,
                   color: _kInkSoft, size: 16)))),
 
+        // Avatar with animated gradient ring
         Positioned(top: _kCoverH - _kAvatarR, left: 0, right: 0,
           child: Center(child: GestureDetector(onTap: _pickAvatar,
             child: Stack(children: [
@@ -982,6 +1233,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               fontWeight: FontWeight.w600, letterSpacing: 0.2)),
         const SizedBox(height: 18),
 
+        // Stats card
         Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
@@ -1001,6 +1253,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 14),
 
+        // Action row — Edit Bio (primary, animated border) + Share
         Row(children: [
           Expanded(flex: 3, child: GestureDetector(onTap: _openBio,
             child: _GradientBorderCard(
@@ -1031,7 +1284,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       ]),
     );
   }
-
 
   Widget _divider() => Container(width: 1, height: 28, color: _kBorder);
 
@@ -1170,141 +1422,184 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ── Interests strip ───────────────────────────────────────
+
   Widget _buildInterestsStrip() {
     if (_interests.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: GestureDetector(
-          onTap: _openInterests,
+        child: GestureDetector(onTap: _openInterests,
           child: Container(
             margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            height: 52,
-            decoration: BoxDecoration(
-              color: _kBlue.withOpacity(0.08),
+            height: 42,
+            decoration: BoxDecoration(color: _kCard,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: _kBlue.withOpacity(0.3),
-                width: 1.5,
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.add_circle_outline_rounded,
-                  size: 18,
-                  color: _kBlue,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Add your interests',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: _kBlue,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+              border: Border.all(color: _kBorder, width: 1.5)),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.add_circle_outline_rounded, size: 14, color: _kSlate2),
+              SizedBox(width: 6),
+              Text('Add your interests', style: TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 12, color: _kSlate2)),
+            ]))),
       );
     }
 
-    // When interests exist
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: Row(
-              children: [
-                const Text(
-                  'Interests',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: _kInk,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                _privacyChip(
-                  icon: _visibilityIcon(_interestsVis),
-                  label: PrivacyToggleSheet.interestsLabel(_interestsVis),
-                  onTap: _changeInterestsPrivacy,
-                ),
-              ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+          child: Row(children: [
+            const Text('Interests', style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 12,
+                color: _kInk, letterSpacing: 0.5)),
+            const SizedBox(width: 10),
+            _privacyChip(
+              icon:  _visibilityIcon(_interestsVis),
+              label: PrivacyToggleSheet.interestsLabel(_interestsVis),
+              onTap: _changeInterestsPrivacy,
             ),
+          ]),
+        ),
+        SizedBox(height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            itemCount: _interests.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              if (i == _interests.length) {
+                return GestureDetector(onTap: _openInterests,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _kCard,
+                      border: Border.all(color: _kBorder, width: 1.5),
+                      borderRadius: BorderRadius.circular(22)),
+                    child: const Text('+ Edit', style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11,
+                        color: _kSlate))));
+              }
+              final c = [_kBlue, _kPurple, _kAmber, _kCoral][i % 4];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.10),
+                  border: Border.all(color: c.withOpacity(0.30), width: 1.5),
+                  borderRadius: BorderRadius.circular(22)),
+                child: Text(_interests[i], style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 11, color: c)));
+            },
           ),
-          const SizedBox(height: 40),
-          SizedBox(
-            height: 40,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              itemCount: _interests.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                if (i == _interests.length) {
-                  return GestureDetector(
-                    onTap: _openInterests,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _kCard,
-                        border: Border.all(color: _kBorder, width: 1.5),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: const Text(
-                        '+ Edit',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
-                          color: _kSlate,
-                        ),
-                      ),
-                    ),
-                  );
-                }
+        ),
+      ]),
+    );
+  }
 
-                final c = [_kBlue, _kPurple, _kAmber, _kCoral][i % 4];
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c.withOpacity(0.10),
-                    border: Border.all(
-                      color: c.withOpacity(0.30),
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Text(
-                    _interests[i],
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                      color: c,
-                    ),
-                  ),
-                );
-              },
-            ),
+  // ── Custom segmented tab bar (matching arcade) ────────────
+
+  // ── Highlights row (Instagram-style story circles) ────────
+
+  Widget _buildHighlightsRow() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Text('Highlights', style: TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 12,
+              color: _kInk, letterSpacing: 0.5)),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 96,
+          child: _highlightsLoading
+              ? const Center(child: SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(
+                      color: _kPurple, strokeWidth: 2)))
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _highlights.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                  itemBuilder: (_, i) {
+                    if (i == 0) return _buildAddHighlightCircle();
+                    return _buildHighlightCircle(_highlights[i - 1], i - 1);
+                  },
+                ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildAddHighlightCircle() {
+    return GestureDetector(
+      onTap: _openCreateHighlight,
+      child: SizedBox(
+        width: 66,
+        child: Column(children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              color: _kCardLo,
+              shape: BoxShape.circle,
+              border: Border.all(color: _kBorder, width: 1.5)),
+            child: const Icon(Icons.add_rounded, color: _kSlate2, size: 26),
           ),
-        ],
+          const SizedBox(height: 6),
+          const Text('New', maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w700, color: _kSlate)),
+        ]),
       ),
     );
   }
- 
-  // ── Custom segmented tab bar ──────────────────────────────
+
+  Widget _buildHighlightCircle(Map<String, dynamic> h, int index) {
+    final title = (h['title'] as String? ?? 'Highlight').trim();
+    final cover = (h['cover_url'] as String? ?? '').trim();
+    return GestureDetector(
+      onTap: () => _openHighlight(index),
+      child: SizedBox(
+        width: 66,
+        child: Column(children: [
+          Container(
+            width: 64, height: 64,
+            padding: const EdgeInsets.all(2.5),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_kBlue, _kPurple, _kCoral],
+                begin: Alignment.topLeft, end: Alignment.bottomRight)),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                  color: _kBg1, shape: BoxShape.circle),
+              child: ClipOval(
+                child: cover.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: cover, fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: _kCardLo),
+                        errorWidget: (_, __, ___) => Container(
+                          color: _kCardLo,
+                          child: const Icon(Icons.auto_awesome_rounded,
+                              color: _kSlate2, size: 22)))
+                    : Container(
+                        color: _kCardLo,
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: _kSlate2, size: 22)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w700, color: _kInk)),
+        ]),
+      ),
+    );
+  }
 
   Widget _buildTabBar() {
     const labels = ['Posts', 'Fweets', 'Favorites'];
@@ -1523,6 +1818,7 @@ class _PostsTab extends StatelessWidget {
           },
         ),
       ),
+      // Always-reachable FAB, lifted clear of the app's bottom nav bar.
       Positioned(
         bottom: 20 + bottomInset + 80,
         right: 20,
@@ -1547,7 +1843,12 @@ class _PostsTab extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// STATS BOTTOM SHEET
+// PROFILE POST CARD
+// ═════════════════════════════════════════════════════════════
+
+
+// ═════════════════════════════════════════════════════════════
+// STATS BOTTOM SHEET — tap a post/fweet stats row to open
 // ═════════════════════════════════════════════════════════════
 
 int _statInt(Map m, List<String> keys) {
@@ -1963,12 +2264,12 @@ class _FavoritesTab extends StatelessWidget {
         sub: 'Posts you bookmark from the feed appear here', color: _kPurple);
     }
     return RefreshIndicator(
-      color: _kInk, onRefresh: onRefresh,
-      child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-          16, 16, 16,
-          16 + MediaQuery.of(context).padding.bottom + 90,
-        ),
+  color: _kInk, onRefresh: onRefresh,
+  child: ListView.builder(
+    padding: EdgeInsets.fromLTRB(
+      16, 16, 16,
+      16 + MediaQuery.of(context).padding.bottom + 90,
+    ),
         itemCount: favorites.length,
         itemBuilder: (_, i) {
           final p       = favorites[i];
@@ -2054,16 +2355,15 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
   Widget build(BuildContext context) =>
     AnimatedBuilder(animation: _a, builder: (_, __) {
       final o = 0.04 + _a.value * 0.06;
-      return ListView(
-        padding: EdgeInsets.fromLTRB(
-          16, 16, 16,
-          16 + MediaQuery.of(context).padding.bottom + 90,
-        ),
-        children: [
-          _sh(o, 200), const SizedBox(height: 16),
-          _sh(o, 120), const SizedBox(height: 16),
-          _sh(o, 160),
-        ]);
+return ListView(
+  padding: EdgeInsets.fromLTRB(
+    16, 16, 16,
+    16 + MediaQuery.of(context).padding.bottom + 90,
+  ),
+  children: [        _sh(o, 200), const SizedBox(height: 16),
+        _sh(o, 120), const SizedBox(height: 16),
+        _sh(o, 160),
+      ]);
     });
   Widget _sh(double o, double h) => Container(
     decoration: BoxDecoration(color: _kCard,
@@ -2089,6 +2389,9 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
 // ═════════════════════════════════════════════════════════════
 // EMPTY STATE
 // ═════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════
+// EMPTY STATE  (responsive — scrolls when tab area is short)
+// ═════════════════════════════════════════════════════════════
 
 class _EmptyTab extends StatelessWidget {
   final IconData icon;
@@ -2111,6 +2414,8 @@ class _EmptyTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Scale the icon bubble down on cramped layouts so the whole
+        // empty state still fits without overflowing.
         final cramped  = constraints.maxHeight < 240;
         final iconSize = cramped ? 56.0 : 72.0;
         final iconInner = cramped ? 24.0 : 30.0;
@@ -2126,36 +2431,48 @@ class _EmptyTab extends StatelessWidget {
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    32, 16, 32,
-                    16 + MediaQuery.of(context).padding.bottom + 90,
-                  ),
+  32, 16, 32,
+  16 + MediaQuery.of(context).padding.bottom + 90,
+),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: iconSize, height: iconSize,
+                        width: iconSize,
+                        height: iconSize,
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.10),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: color.withOpacity(0.25), width: 1.5),
+                            color: color.withOpacity(0.25),
+                            width: 1.5,
+                          ),
                         ),
-                        child: Icon(icon,
-                            size: iconInner,
-                            color: color.withOpacity(0.7)),
+                        child: Icon(
+                          icon,
+                          size: iconInner,
+                          color: color.withOpacity(0.7),
+                        ),
                       ),
                       SizedBox(height: cramped ? 12 : 18),
-                      Text(label, textAlign: TextAlign.center,
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w900,
-                          color: _kInk, letterSpacing: -0.3,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: _kInk,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(sub, textAlign: TextAlign.center,
+                      Text(
+                        sub,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 12, color: _kSlate,
+                          fontSize: 12,
+                          color: _kSlate,
                         ),
                       ),
                       if (buttonLabel != null && onTap != null) ...[
@@ -2164,15 +2481,19 @@ class _EmptyTab extends StatelessWidget {
                           onTap: onTap,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 26, vertical: 12),
+                              horizontal: 26,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
                               color: _kInk,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Text(buttonLabel!,
+                            child: Text(
+                              buttonLabel!,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white, fontSize: 13,
+                                color: Colors.white,
+                                fontSize: 13,
                               ),
                             ),
                           ),
@@ -2189,8 +2510,6 @@ class _EmptyTab extends StatelessWidget {
     );
   }
 }
-
-// ═════════════════════════════════════════════════════════════
 // BIO ROW
 // ═════════════════════════════════════════════════════════════
 
@@ -2217,8 +2536,9 @@ class _BioRow extends StatelessWidget {
     ]));
 }
 
+
 // ═════════════════════════════════════════════════════════════
-// INLINE EMPTY STATE
+// INLINE EMPTY STATE — sits under the composer when a tab is empty.
 // ═════════════════════════════════════════════════════════════
 
 class _InlineEmptyState extends StatelessWidget {
