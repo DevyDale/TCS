@@ -311,6 +311,37 @@ class _ClubScreenState extends State<ClubScreen> {
     }
   }
 
+  // ── Approvals + chat actions ──────────────────────────────
+
+  Future<void> _approve(String userId) async {
+    if (userId.isEmpty) return;
+    HapticFeedback.lightImpact();
+    try {
+      await _api.approveClubMember(_clubId, userId);
+      _snack('Approved ✓');
+      await _loadMembers();
+    } catch (e) {
+      _snack('Could not approve: ' + e.toString().replaceAll('Exception: ', ''), error: true);
+    }
+  }
+
+  Future<void> _decline(String userId) async {
+    if (userId.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    try {
+      await _api.declineClubMember(_clubId, userId);
+      _snack('Declined');
+      await _loadMembers();
+    } catch (e) {
+      _snack('Could not decline: ' + e.toString().replaceAll('Exception: ', ''), error: true);
+    }
+  }
+
+  Future<void> _openClubChat() async {
+    HapticFeedback.lightImpact();
+    _snack('Club chat coming soon — backend chat-room endpoint pending.');
+  }
+
   // ── Helpers ───────────────────────────────────────────────
 
   Future<bool?> _confirm({
@@ -1221,7 +1252,7 @@ class _ClubScreenState extends State<ClubScreen> {
                         fontWeight: FontWeight.w800,
                       )),
                 ),
-                if (_isMember)
+                if (_isAdmin)
                   GestureDetector(
                     onTap: _openCreatePost,
                     child: Container(
@@ -1528,6 +1559,208 @@ class _ClubScreenState extends State<ClubScreen> {
           ),
         ),
       );
+
+  // ══════════════════════════════════════════════════════════
+  // CREATE POST — admin pushes the global CreatePostPage
+  // ══════════════════════════════════════════════════════════
+
+  Future<void> _openCreatePost() async {
+    HapticFeedback.lightImpact();
+    final res = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreatePostPage()),
+    );
+    if (!mounted) return;
+    if (res != null) {
+      _snack('Post created ✓');
+      await _loadFeed();
+    }
+  }
+
+
+  // ── Approvals card (admin + requires_approval + pending > 0) ─────
+
+  Widget _buildApprovalsCard() {
+    if (!_isAdmin || !_requiresApproval || _pendingMembers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8, offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Text('Approvals',
+                  style: TextStyle(
+                    fontFamily: 'Alfa', fontSize: 17, color: _kInk,
+                    fontWeight: FontWeight.w800,
+                  )),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _kG3.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('${_pendingMembers.length}',
+                    style: const TextStyle(
+                      fontFamily: 'Arch', fontSize: 11,
+                      color: _kG3, fontWeight: FontWeight.bold,
+                    )),
+              ),
+            ]),
+            const SizedBox(height: 14),
+            ..._pendingMembers.map(_buildPendingRow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingRow(Map<String, dynamic> m) {
+    final name = m['name'] as String? ?? 'User';
+    final avatar = m['avatar_url'] as String? ?? '';
+    final uid = m['user_id']?.toString() ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: _kBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(colors: [_kG1, _kG2]),
+          ),
+          child: ClipOval(
+            child: avatar.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: avatar, fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => _avatarFallback(initial),
+                    placeholder: (_, __) => _avatarFallback(initial),
+                  )
+                : _avatarFallback(initial),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(name,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Arch', fontSize: 13,
+                color: _kInk, fontWeight: FontWeight.bold,
+              )),
+        ),
+        GestureDetector(
+          onTap: () => _decline(uid),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _kG4, width: 1.2),
+            ),
+            child: const Icon(Icons.close_rounded, color: _kG4, size: 14),
+          ),
+        ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => _approve(uid),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_kIndigo, _kDeep]),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 4),
+                Text('Approve',
+                    style: TextStyle(
+                      fontFamily: 'Arch', fontSize: 11,
+                      color: Colors.white, fontWeight: FontWeight.bold,
+                    )),
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ── Club chat card (members + admins) ─────────────────────
+
+  Widget _buildChatCard() {
+    if (!_isMember && !_isAdmin) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        onTap: _openClubChat,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [_kIndigo, _kDeep]),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: _kIndigo.withOpacity(0.25),
+                blurRadius: 14, offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.forum_rounded,
+                  color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Club Chat',
+                      style: TextStyle(
+                        fontFamily: 'Alfa', fontSize: 16,
+                        color: Colors.white, fontWeight: FontWeight.w800,
+                      )),
+                  SizedBox(height: 2),
+                  Text('Members-only conversation',
+                      style: TextStyle(
+                        fontFamily: 'Momo', fontSize: 11.5,
+                        color: Colors.white70,
+                      )),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: Colors.white, size: 22),
+          ]),
+        ),
+      ),
+    );
+  }
 
   // ══════════════════════════════════════════════════════════
   // CREATE EVENT SHEET — with Flux AI poster generator

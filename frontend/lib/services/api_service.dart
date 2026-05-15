@@ -892,8 +892,8 @@ class ApiService {
   Future<dynamic> getClub(String id) => get('/clubs/$id/');
   /// POST /api/clubs/  (creator becomes PRESIDENT)
   ///
-  /// If [logoPath] / [coverPath] are provided, they are uploaded via the
-  /// admin-only image endpoints right after creation.
+  /// Uploads logo + cover after creation, then performs a final GET so
+  /// the returned map has BOTH logo_url and cover_url populated.
   Future<dynamic> createClub(
     Map<String, dynamic> data, {
     String? logoPath,
@@ -903,20 +903,20 @@ class ApiService {
     final id = created['id']?.toString();
     if (id == null || id.isEmpty) return created;
 
-    Map<String, dynamic> latest = created;
     if (logoPath != null && logoPath.isNotEmpty) {
-      try {
-        latest = await uploadClubLogo(id, filePath: logoPath)
-            as Map<String, dynamic>;
-      } catch (_) {/* logo failed, club still exists */}
+      try { await uploadClubLogo(id, filePath: logoPath); } catch (_) {}
     }
     if (coverPath != null && coverPath.isNotEmpty) {
-      try {
-        latest = await uploadClubCover(id, filePath: coverPath)
-            as Map<String, dynamic>;
-      } catch (_) {/* cover failed, club still exists */}
+      try { await uploadClubCover(id, filePath: coverPath); } catch (_) {}
     }
-    return latest;
+
+    // Final fetch so the caller sees both URLs merged in.
+    try {
+      final fresh = await getClub(id) as Map<String, dynamic>;
+      return fresh;
+    } catch (_) {
+      return created;
+    }
   }
 
 
