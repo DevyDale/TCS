@@ -429,8 +429,13 @@ class _ClubScreenState extends State<ClubScreen> {
             const SizedBox(height: 16),
             _buildMembersCard(),
             const SizedBox(height: 16),
+            _buildApprovalsCard(),
+            if (_isAdmin && _requiresApproval && _pendingMembers.isNotEmpty)
+              const SizedBox(height: 16),
             _buildPostsCard(),
             const SizedBox(height: 16),
+            _buildChatCard(),
+            if (_isMember || _isAdmin) const SizedBox(height: 16),
             _buildActionRow(),
             const SizedBox(height: 40),
           ],
