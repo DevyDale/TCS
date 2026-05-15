@@ -22,6 +22,7 @@ import 'package:intl/intl.dart';
 
 import '../../services/api_service.dart';
 import '../profile/user_screen_profile.dart';
+import '../profile/createpostspage.dart';
 
 // ─────────────────────────────────────────────────────────────
 // PALETTE — keep original light theme
@@ -1211,11 +1212,50 @@ class _ClubScreenState extends State<ClubScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Posts & Videos',
-                style: TextStyle(
-                  fontFamily: 'Alfa', fontSize: 17, color: _kInk,
-                  fontWeight: FontWeight.w800,
-                )),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('Posts & Videos',
+                      style: TextStyle(
+                        fontFamily: 'Alfa', fontSize: 17, color: _kInk,
+                        fontWeight: FontWeight.w800,
+                      )),
+                ),
+                if (_isMember)
+                  GestureDetector(
+                    onTap: _openCreatePost,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            colors: [_kIndigo, _kDeep]),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kIndigo.withOpacity(0.25),
+                            blurRadius: 8, offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded,
+                              color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text('Add Post',
+                              style: TextStyle(
+                                fontFamily: 'Arch', fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 14),
 
             if (_loadingFeed)
