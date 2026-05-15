@@ -24,8 +24,6 @@ import 'package:tcs_app/services/notification_Service.dart';
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
 import '../../highlight_story_viewer.dart';
-import '../dashboard/event_details.dart';
-import '../dashboard/highlight_card.dart';
 // Only deletedPostIds is imported now — deletedHighlightIds is declared
 // locally below so this file doesn't depend on profile_screen.dart
 // having that symbol.
@@ -77,7 +75,6 @@ class _FeedScreenState extends State<FeedScreen>
   final _scrollCtrl = ScrollController();
 
   List<Map<String, dynamic>> _posts      = [];
-  List<Map<String, dynamic>> _highlights = [];
   // Story highlights (Instagram-style circles)
   List<Map<String, dynamic>> _storyHighlights = [];
   bool _storyHighlightsLoading = true;
@@ -87,9 +84,6 @@ class _FeedScreenState extends State<FeedScreen>
   bool _fetchingMore = false;
   int  _feedPage     = 1;
   int  _feedTab      = 0;
-  final _carouselCtrl = PageController(viewportFraction: 0.92);
-  int  _carouselPage  = 0;
-  Timer? _carouselTimer;
 
   late final AnimationController _refreshSpinCtrl;
 
@@ -101,7 +95,6 @@ class _FeedScreenState extends State<FeedScreen>
       duration: const Duration(milliseconds: 700),
     );
     _loadFeed();
-    _loadHighlights();
     _loadStoryHighlights();
     _scrollCtrl.addListener(_onScroll);
     deletedPostIds.addListener(_onPostsDeleted);
@@ -110,25 +103,11 @@ class _FeedScreenState extends State<FeedScreen>
 
   @override
   void dispose() {
-    _carouselTimer?.cancel();
-    _carouselCtrl.dispose();
     deletedPostIds.removeListener(_onPostsDeleted);
     deletedHighlightIds.removeListener(_onHighlightsDeleted);
     _scrollCtrl.dispose();
     _refreshSpinCtrl.dispose();
     super.dispose();
-  }
-
-  void _startCarouselTimer() {
-    _carouselTimer?.cancel();
-    if (_highlights.length <= 1) return;
-    _carouselTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted || !_carouselCtrl.hasClients) return;
-      final next = (_carouselPage + 1) % _highlights.length;
-      _carouselCtrl.animateToPage(next,
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.easeInOutCubic);
-    });
   }
 
   void _onScroll() {
@@ -175,19 +154,6 @@ class _FeedScreenState extends State<FeedScreen>
     } catch (_) {
       setState(() => _feedLoading = false);
     }
-  }
-
-  Future<void> _loadHighlights() async {
-    try {
-      final data = await _api.getCampusHighlights(limit: 10)
-          as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _highlights = (data['results'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
-      });
-      _startCarouselTimer();
-    } catch (_) {}
   }
 
   // FIX: was calling _api.getHighlightsFeed() which doesn't exist on
@@ -254,7 +220,6 @@ class _FeedScreenState extends State<FeedScreen>
   Future<void> _refreshAll() async {
     await Future.wait([
       _loadFeed(refresh: true),
-      _loadHighlights(),
       _loadStoryHighlights(),
     ]);
   }
@@ -308,26 +273,6 @@ class _FeedScreenState extends State<FeedScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => _ShareSheet(api: _api, post: post));
 
-  void _openHighlight(Map<String, dynamic> item) {
-    HapticFeedback.lightImpact();
-    final kind = item['kind'] as String? ?? '';
-    final id   = item['id']?.toString() ?? '';
-
-    if (kind == 'event') {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => EventDetailsScreen(eventId: id, initial: item),
-      ));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(item['title']?.toString() ?? 'Announcement',
-            style: const TextStyle(fontFamily: 'Momo')),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ));
-    }
-  }
-
   void _onCreatePostTap() {
     HapticFeedback.mediumImpact();
     Navigator.of(context).push(
@@ -361,7 +306,6 @@ class _FeedScreenState extends State<FeedScreen>
                     parent: AlwaysScrollableScrollPhysics()),
                 slivers: [
                   SliverToBoxAdapter(child: _buildStoryHighlightsRow()),
-                  SliverToBoxAdapter(child: _buildHighlightsSection()),
                   SliverToBoxAdapter(child: _buildFeedLabel()),
 
                   if (_feedLoading)
@@ -716,88 +660,6 @@ class _FeedScreenState extends State<FeedScreen>
           ],
         ),
       ]),
-    );
-  }
-
-  Widget _buildHighlightsSection() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 26),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('CAMPUS UPDATES', style: TextStyle(
-                fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                fontSize: 10, color: _kViolet, letterSpacing: 1.5)),
-            const SizedBox(height: 2),
-            const Text('Highlights', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
-          ]),
-          const Spacer(),
-          if (_highlights.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: _kViolet.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20)),
-              child: Text('${_highlights.length} active',
-                style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 11, color: _kViolet))),
-        ]),
-      ),
-      if (_highlights.isEmpty)
-        _buildEmptyHighlights()
-      else
-        SizedBox(
-          height: 200,
-          child: PageView.builder(
-            controller: _carouselCtrl,
-            itemCount: _highlights.length,
-            onPageChanged: (p) => setState(() => _carouselPage = p),
-            itemBuilder: (_, i) {
-              final item = _highlights[i];
-              return HighlightCard(
-                item: item,
-                onTap: () => _openHighlight(item),
-              );
-            },
-          ),
-        ),
-      if (_highlights.length > 1) ...[
-        const SizedBox(height: 14),
-        Row(mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_highlights.length, (i) {
-            final active = i == _carouselPage;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOutCubic,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: active ? 24 : 6, height: 6,
-              decoration: BoxDecoration(
-                gradient: active ? const LinearGradient(
-                    colors: [_kViolet, _kBlue]) : null,
-                color: active ? null : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(3)));
-          })),
-      ],
-      const SizedBox(height: 8),
-    ]);
-  }
-
-  Widget _buildEmptyHighlights() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 100,
-        decoration: BoxDecoration(color: _kCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200)),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.campaign_outlined, color: Colors.grey.shade300, size: 26),
-          const SizedBox(width: 10),
-          Text('No highlights right now',
-            style: TextStyle(fontFamily: 'Momo',
-                fontSize: 13, color: Colors.grey.shade400)),
-        ])),
     );
   }
 
