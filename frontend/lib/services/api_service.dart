@@ -935,7 +935,7 @@ class ApiService {
   Future<dynamic> approveClubMember(String clubId, String userId) =>
       post('/clubs/$clubId/members/$userId/approve/');
 
-  Future<dynamic> rejectClubMember(String clubId, String userId) =>
+  Future<dynamic> declineClubMember(String clubId, String userId) =>
       post('/clubs/$clubId/members/$userId/reject/');
 
   Future<dynamic> removeClubMember(String clubId, String userId) =>
