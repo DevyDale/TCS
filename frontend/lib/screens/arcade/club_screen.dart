@@ -24,6 +24,7 @@ import '../../services/api_service.dart';
 import '../profile/user_screen_profile.dart';
 import '../profile/createpostspage.dart';
 
+import '../chat/chat_room_screen.dart';
 // ─────────────────────────────────────────────────────────────
 // PALETTE — keep original light theme
 // ─────────────────────────────────────────────────────────────
@@ -339,7 +340,37 @@ class _ClubScreenState extends State<ClubScreen> {
 
   Future<void> _openClubChat() async {
     HapticFeedback.lightImpact();
-    _snack('Club chat coming soon — backend chat-room endpoint pending.');
+    try {
+      final res = await _api.getOrCreateClubChat(_clubId);
+      if (res is! Map) {
+        _snack("Could not open club chat.");
+        return;
+      }
+      final room   = Map<String, dynamic>.from(res);
+      final roomId = room['id']?.toString() ?? '';
+      if (roomId.isEmpty) {
+        _snack("Could not open club chat.");
+        return;
+      }
+      final roomName = (room['name'] as String?) ??
+          (_club['name'] as String?) ??
+          'Club Chat';
+      final desc = (room['description'] as String?) ??
+          (_club['description'] as String?);
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ChatRoomScreen(
+          roomId:      roomId,
+          roomName:    roomName,
+          userName:    'You',
+          roomType:    'group',
+          description: desc,
+        ),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      _snack("Couldn't open club chat. $e");
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────

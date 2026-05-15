@@ -991,6 +991,17 @@ class ApiService {
           'poster_url': posterUrl,
       });
 
+  /// POST /api/clubs/<id>/chat/
+  /// Get-or-create the club's members-only chat room. Backend should:
+  ///   (1) verify the caller is an active member or admin of the club,
+  ///   (2) return the existing club chat room, or create one on the
+  ///       first call (group room, members = all active club members,
+  ///       name defaults to "<club.name> Chat").
+  /// Response shape matches other chat-room endpoints: id, name,
+  /// room_type, members, ai_enabled, last_message, …
+  Future<dynamic> getOrCreateClubChat(String clubId) =>
+      post('/clubs/$clubId/chat/');
+
   /// POST /api/clubs/<id>/invites/
   /// Send club invites to a list of user IDs. Backend permission:
   /// caller must be president of the given club. Creates ClubInvite
