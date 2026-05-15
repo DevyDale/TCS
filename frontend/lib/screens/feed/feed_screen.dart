@@ -3,6 +3,14 @@
 // FIX: _PostCardState now owns its own ApiService instance (_api), and
 // _handleBookmark is async so it can await the favorite/unfavorite
 // POST/DELETE calls.
+//
+// ERROR FIX (2):
+//   1. `deletedHighlightIds` was imported from profile_screen.dart but
+//      never defined there. It's now declared locally at the top of
+//      this file (alongside the existing deletedPostIds import).
+//   2. `_api.getHighlightsFeed()` didn't exist on ApiService. Replaced
+//      the call with a direct `_api.get('/highlights/feed/')` so this
+//      file works regardless of whether the method exists.
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,11 +23,27 @@ import 'package:tcs_app/services/notification_Service.dart';
 
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
+import '../../highlight_story_viewer.dart';
 import '../dashboard/event_details.dart';
 import '../dashboard/highlight_card.dart';
+// Only deletedPostIds is imported now — deletedHighlightIds is declared
+// locally below so this file doesn't depend on profile_screen.dart
+// having that symbol.
 import '../profile/profile_screen.dart' show deletedPostIds;
 import '../dashboard/suggestion_box_screen.dart';
 import '../dashboard/full_screen_video_player.dart';
+
+
+// ─────────────────────────────────────────────────────────────
+// LOCAL NOTIFIERS
+// ─────────────────────────────────────────────────────────────
+// `deletedHighlightIds` mirrors the `deletedPostIds` pattern in
+// profile_screen.dart, but lives here so feed_screen.dart compiles
+// even if profile_screen.dart hasn't been updated to export it.
+// Other screens can `import '../feed/feed_screen.dart' show
+// deletedHighlightIds;` to add to it when a highlight is deleted.
+final ValueNotifier<Set<String>> deletedHighlightIds =
+    ValueNotifier<Set<String>>(<String>{});
 
 
 // ── Palette ───────────────────────────────────────────────────
@@ -54,6 +78,9 @@ class _FeedScreenState extends State<FeedScreen>
 
   List<Map<String, dynamic>> _posts      = [];
   List<Map<String, dynamic>> _highlights = [];
+  // Story highlights (Instagram-style circles)
+  List<Map<String, dynamic>> _storyHighlights = [];
+  bool _storyHighlightsLoading = true;
 
   bool _feedLoading  = true;
   bool _feedHasMore  = true;
@@ -75,8 +102,10 @@ class _FeedScreenState extends State<FeedScreen>
     );
     _loadFeed();
     _loadHighlights();
+    _loadStoryHighlights();
     _scrollCtrl.addListener(_onScroll);
     deletedPostIds.addListener(_onPostsDeleted);
+    deletedHighlightIds.addListener(_onHighlightsDeleted);
   }
 
   @override
@@ -84,6 +113,7 @@ class _FeedScreenState extends State<FeedScreen>
     _carouselTimer?.cancel();
     _carouselCtrl.dispose();
     deletedPostIds.removeListener(_onPostsDeleted);
+    deletedHighlightIds.removeListener(_onHighlightsDeleted);
     _scrollCtrl.dispose();
     _refreshSpinCtrl.dispose();
     super.dispose();
@@ -160,10 +190,72 @@ class _FeedScreenState extends State<FeedScreen>
     } catch (_) {}
   }
 
+  // FIX: was calling _api.getHighlightsFeed() which doesn't exist on
+  // ApiService. Use the generic _api.get() helper directly — this hits
+  // the same endpoint without needing to modify api_service.dart.
+  Future<void> _loadStoryHighlights() async {
+    if (mounted) setState(() => _storyHighlightsLoading = true);
+    try {
+      final d = await _api.get('/highlights/feed/');
+      final list = d is List
+          ? d
+          : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
+      if (!mounted) return;
+      setState(() {
+        _storyHighlights = list.cast<Map<String, dynamic>>();
+        _storyHighlightsLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _storyHighlightsLoading = false);
+    }
+  }
+
+  void _onHighlightsDeleted() {
+    final deleted = deletedHighlightIds.value;
+    if (deleted.isEmpty) return;
+    setState(() {
+      _storyHighlights.removeWhere(
+          (h) => deleted.contains(h['id']?.toString()));
+    });
+  }
+
+  Future<void> _openStoryHighlight(Map<String, dynamic> h) async {
+    HapticFeedback.lightImpact();
+    final id = h['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+
+    var rawItems = (h['items'] as List?) ?? const [];
+    if (rawItems.isEmpty) {
+      try {
+        final full = await _api.getHighlight(id) as Map<String, dynamic>;
+        rawItems = (full['items'] as List?) ?? const [];
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not load this highlight',
+              style: TextStyle(fontFamily: 'Momo')),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+    }
+    if (rawItems.isEmpty || !mounted) return;
+
+    final stories = rawItems
+        .cast<Map<String, dynamic>>()
+        .map((it) => HighlightStory.fromJson(it))
+        .toList();
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => HighlightStoryViewer(stories: stories),
+    ));
+  }
+
   Future<void> _refreshAll() async {
     await Future.wait([
       _loadFeed(refresh: true),
       _loadHighlights(),
+      _loadStoryHighlights(),
     ]);
   }
 
@@ -268,6 +360,7 @@ class _FeedScreenState extends State<FeedScreen>
                 physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics()),
                 slivers: [
+                  SliverToBoxAdapter(child: _buildStoryHighlightsRow()),
                   SliverToBoxAdapter(child: _buildHighlightsSection()),
                   SliverToBoxAdapter(child: _buildFeedLabel()),
 
@@ -308,6 +401,108 @@ class _FeedScreenState extends State<FeedScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStoryHighlightsRow() {
+    if (_storyHighlightsLoading) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
+        child: SizedBox(
+          height: 96,
+          child: Center(child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(color: _kViolet, strokeWidth: 2),
+          )),
+        ),
+      );
+    }
+
+    if (_storyHighlights.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 22, 20, 0),
+          child: Text('HIGHLIGHTS', style: TextStyle(
+              fontFamily: 'Arch', fontWeight: FontWeight.bold,
+              fontSize: 10, color: _kViolet, letterSpacing: 1.5)),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _storyHighlights.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (_, i) => _buildStoryCircle(_storyHighlights[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoryCircle(Map<String, dynamic> h) {
+    final cover = (h['cover_url'] as String? ?? '').trim();
+    final title = (h['title'] as String? ?? '').trim();
+    final owner = (h['owner_name'] as String? ?? '').trim();
+
+    final label = title.isNotEmpty ? title : (owner.isNotEmpty ? owner : 'Highlight');
+
+    return GestureDetector(
+      onTap: () => _openStoryHighlight(h),
+      child: SizedBox(
+        width: 66,
+        child: Column(children: [
+          Container(
+            width: 64,
+            height: 64,
+            padding: const EdgeInsets.all(2.5),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_kG1, _kViolet, _kCoral],
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: _kBg,
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: cover.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: cover,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFFEDEEF3),
+                          child: const Icon(Icons.auto_awesome_rounded,
+                              color: _kSlate, size: 22),
+                        ),
+                      )
+                    : Container(
+                        color: const Color(0xFFEDEEF3),
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: _kSlate, size: 22),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _kInk)),
+        ]),
       ),
     );
   }
