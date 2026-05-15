@@ -1,6 +1,7 @@
 # apps/events/urls.py
 from django.urls import path
 from . import views
+from . import poster_views
 
 urlpatterns = [
     # ── List / Create / Detail ────────────────────────────────
@@ -17,4 +18,5 @@ urlpatterns = [
 
     # ── Poster upload (Phase 2 spec 10.2) ─────────────────────
     path("<uuid:event_id>/poster/", views.upload_event_poster, name="event-poster"),
+    path("generate-poster/", poster_views.generate_event_poster, name="generate-event-poster"),
 ]

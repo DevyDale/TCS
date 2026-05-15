@@ -708,3 +708,66 @@ def get_or_create_club_chat(request, pk):
         'name': getattr(room, 'name', f'{club.name} Chat'),
         'description': getattr(room, 'description', None),
     })
+
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def create_club_event(request, pk):
+    """POST /api/clubs/<pk>/events/  (admin only)
+
+    Defensive: introspects Event model fields so it works with whatever
+    field names your Event uses (title/name, start_time/starts_at, etc.)
+    """
+    try:
+        club = _active_qs().get(pk=pk)
+    except Club.DoesNotExist:
+        return Response({"error": "Club not found."}, status=404)
+    if not _is_admin(club, request.user):
+        return Response({"error": "Admins only."}, status=403)
+
+    try:
+        from apps.events.models import Event
+    except Exception as e:
+        return Response({"error": f"Events app unavailable: {e}"}, status=500)
+
+    fields = {f.name for f in Event._meta.get_fields()}
+    title = (request.data.get('title') or '').strip()
+    start = request.data.get('start_time')
+    if not title:
+        return Response({"error": "title required"}, status=400)
+    if not start:
+        return Response({"error": "start_time required"}, status=400)
+
+    kw = {}
+    if 'club' in fields: kw['club'] = club
+
+    mappings = [
+        (('title', 'name'), title),
+        (('description', 'body', 'about'), (request.data.get('description') or '').strip()),
+        (('location', 'venue', 'place'), (request.data.get('location') or '').strip()),
+        (('start_time', 'start_at', 'starts_at', 'starts'), start),
+        (('end_time', 'end_at', 'ends_at', 'ends'), request.data.get('end_time')),
+        (('poster_url', 'poster', 'image_url', 'image'), request.data.get('poster_url')),
+    ]
+    for names, val in mappings:
+        if val in (None, ''): continue
+        for name in names:
+            if name in fields:
+                kw[name] = val; break
+
+    for owner in ('created_by', 'organizer', 'host', 'author', 'user'):
+        if owner in fields:
+            kw[owner] = request.user; break
+
+    try:
+        event = Event.objects.create(**kw)
+    except Exception as e:
+        return Response({"error": f"Could not create event: {type(e).__name__}: {e}"}, status=500)
+
+    return Response({
+        'id': str(event.pk),
+        'title': title,
+        'club_id': str(club.id),
+        'success': True,
+    })

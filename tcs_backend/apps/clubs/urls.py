@@ -38,4 +38,5 @@ urlpatterns = [
     path("<uuid:pk>/chat/",    v.get_or_create_club_chat, name="club-chat"),
     path("<uuid:pk>/members/<str:user_id>/decline/",
                                v.reject_member,           name="club-member-decline"),
+    path("<uuid:pk>/events/",  v.create_club_event,       name="club-event-create"),
 ]
