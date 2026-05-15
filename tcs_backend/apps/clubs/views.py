@@ -1,4 +1,5 @@
 # apps/clubs/views.py
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
