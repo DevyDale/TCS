@@ -664,7 +664,7 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildFeedLabel() {
-    const tabs = ['All', 'Following', 'Trending', 'Clubs'];
+    const tabs = ['All', 'Following', 'Events', 'Clubs'];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
