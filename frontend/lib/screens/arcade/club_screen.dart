@@ -136,6 +136,8 @@ class _ClubScreenState extends State<ClubScreen> {
   bool get _canCreateEvent =>
       _myRole == 'president' || _myRole == 'executive';
   bool get _canInvite => _myRole == 'president';
+  bool get _canDelete =>
+      _myRole == 'president' || (_membership['is_creator'] == true);
 
   String get _foundedYear {
     final iso = _club['created_at'] as String? ?? '';
@@ -444,6 +446,107 @@ class _ClubScreenState extends State<ClubScreen> {
     }
   }
 
+
+  // ─── Dissolve club (president / creator only) ───────────────
+
+  Future<void> _dissolveClub() async {
+    if (!_canDelete) return;
+    final confirmed = await _confirm(
+      title: 'Dissolve $_name?',
+      message: 'This permanently dissolves the club. All members will be '
+               'removed and posts/events will be unlinked. This cannot be undone.',
+      ok: 'Dissolve Club',
+      okColor: _kG4,
+    );
+    if (confirmed != true) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _busy = true);
+    try {
+      await _api.dissolveClub(_clubId);
+      if (!mounted) return;
+      _snack('$_name has been dissolved.');
+      Navigator.of(context).pop({'dissolved': true, 'club_id': _clubId});
+    } catch (e) {
+      _snack('Could not dissolve: \${e.toString().replaceAll("Exception: ", "")}',
+          error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _buildDangerZone() {
+    if (!_canDelete) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _kG4.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kG4.withOpacity(0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(children: [
+              Icon(Icons.warning_amber_rounded, size: 16, color: _kG4),
+              SizedBox(width: 8),
+              Text('Danger zone',
+                  style: TextStyle(
+                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontSize: 12, color: _kG4, letterSpacing: 0.5,
+                  )),
+            ]),
+            const SizedBox(height: 8),
+            const Text(
+              'Only the club president can dissolve the club. This removes '
+              'all members and cannot be undone.',
+              style: TextStyle(
+                fontFamily: 'Momo', fontSize: 12, color: _kSlate, height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _busy ? null : _dissolveClub,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _kG4, width: 1.5),
+                ),
+                child: Center(
+                  child: _busy
+                      ? const SizedBox(
+                          width: 18, height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: _kG4),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.delete_forever_rounded,
+                                size: 16, color: _kG4),
+                            SizedBox(width: 6),
+                            Text('Dissolve Club',
+                                style: TextStyle(
+                                  fontFamily: 'Arch',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13, color: _kG4,
+                                )),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ══════════════════════════════════════════════════════════
   // BUILD
   // ══════════════════════════════════════════════════════════
@@ -477,6 +580,7 @@ class _ClubScreenState extends State<ClubScreen> {
             _buildChatCard(),
             if (_isMember || _isAdmin) const SizedBox(height: 16),
             _buildActionRow(),
+            _buildDangerZone(),
             const SizedBox(height: 40),
           ],
         ),
