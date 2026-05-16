@@ -819,16 +819,19 @@ def upload_chat_media(request):
     # CloudinaryField tries to upload audio/m4a as an image and fails with
     # 'Invalid image file'.
     mtype = validated["message_type"]
+    explicit_url = None  # set when we upload directly (not via CloudinaryField)
     if mtype in ("audio", "video"):
         _up = cloudinary.uploader.upload(
             file, resource_type="video",
             folder=f"tcs_studenthub/chat/{mtype}")
-        media_val = _up["public_id"]
+        media_val    = _up["public_id"]
+        explicit_url = _up.get("secure_url") or _up.get("url")
     elif mtype == "file":
         _up = cloudinary.uploader.upload(
             file, resource_type="raw",
             folder="tcs_studenthub/chat/files")
-        media_val = _up["public_id"]
+        media_val    = _up["public_id"]
+        explicit_url = _up.get("secure_url") or _up.get("url")
     else:
         media_val = file  # image / gif — let CloudinaryField handle it
 
@@ -845,7 +848,7 @@ def upload_chat_media(request):
         last_message_sender=request.user,
     )
 
-    media_url = request.build_absolute_uri(msg.media.url)
+    media_url = explicit_url or request.build_absolute_uri(msg.media.url)
 
     # Phase 3A: push the new message into the chat list group so the chat
     # list bumps this room to the top and increments the unread badge live.
