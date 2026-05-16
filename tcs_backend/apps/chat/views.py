@@ -867,9 +867,9 @@ def upload_chat_media(request):
         file_name=file.name,
         file_size=file.size,
     )
-            if locals().get("secure_url"):
-                msg.media_url = secure_url
-                msg.save(update_fields=["media_url"])
+    if locals().get("secure_url"):
+        msg.media_url = secure_url
+        msg.save(update_fields=["media_url"])
     Room.objects.filter(id=room_id).update(
         last_message_text=msg.display_text,
         last_message_at=timezone.now(),
