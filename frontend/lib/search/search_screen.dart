@@ -30,6 +30,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../screens/dashboard/other_user_profile_Screen.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Add this
 
 // Brand colours — kept consistent with the rest of the app.
@@ -472,41 +473,14 @@ class _SearchScreenState extends State<SearchScreen> {
         onSet    = (v) => setState(() => _peopleRole = v);
         break;
       case 'clubs':
-        chips    = const [
-          ('all','All'), ('sports','Sports'), ('arts','Arts'),
-          ('technology','Tech'), ('mathematics','Math'),
-          ('science','Science'), ('music','Music'),
-          ('business','Business'), ('language','Language'),
-          ('gaming','Gaming'), ('general','General'),
-        ];
-        selected = _clubsTheme;
-        onSet    = (v) => setState(() => _clubsTheme = v);
-        break;
+        // Filter strip removed — clubs are searched by name only.
+        return const SizedBox(height: 8);
       case 'events':
-        // For events we render TWO strips (date + category) stacked.
-        return Container(color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: Column(children: [
-            _chipStrip(
-              chips: const [('all','All time'), ('upcoming','Upcoming'),
-                            ('week','This week'), ('month','This month')],
-              selected: _eventsDate,
-              onSet: (v) => setState(() => _eventsDate = v),
-              color: _kG1,
-            ),
-            const SizedBox(height: 6),
-            _chipStrip(
-              chips: const [
-                ('all','All'), ('academic','Academic'), ('sports','Sports'),
-                ('club','Club'), ('social','Social'),
-                ('arcade','Arcade'), ('other','Other'),
-              ],
-              selected: _eventsCat,
-              onSet: (v) => setState(() => _eventsCat = v),
-              color: _kG2,
-            ),
-          ]),
-        );
+        chips    = const [('all','All time'), ('upcoming','Upcoming'),
+                          ('week','This week'), ('month','This month')];
+        selected = _eventsDate;
+        onSet    = (v) => setState(() => _eventsDate = v);
+        break;
       default:
         return const SizedBox(height: 8);
     }
@@ -676,62 +650,82 @@ class _SearchScreenState extends State<SearchScreen> {
       itemBuilder: (_, i) {
         final u = items[i];
         final isFollowing = u['is_following'] as bool? ?? false;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
-                  blurRadius: 6, offset: const Offset(0, 2))]),
-          child: Row(children: [
-            _avatar(u['avatar_url'] as String?, u['name'] as String?, _kG1, 44),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(u['name'] as String? ?? '',
-                    style: const TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14, color: _kInk)),
-                Text(u['role'] as String? ?? '',
-                    style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                        color: Colors.grey.shade500)),
-              ],
-            )),
-            GestureDetector(
-              onTap: () async {
-                final id = u['user_id'] as String? ?? '';
-                if (id.isEmpty) return;
-                try {
-                  await _api.followToggle(id);
-                  final pos = _allPeople.indexWhere(
-                      (e) => e['user_id'] == id);
-                  if (pos >= 0) {
-                    setState(() => _allPeople[pos] = {
-                          ..._allPeople[pos],
-                          'is_following': !isFollowing,
-                        });
-                  }
-                } catch (_) {}
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  gradient: isFollowing ? null
-                      : const LinearGradient(colors: [_kG1, _kG2]),
-                  color: isFollowing ? Colors.grey.shade100 : null,
-                  borderRadius: BorderRadius.circular(10),
-                  border: isFollowing
-                      ? Border.all(color: Colors.grey.shade300) : null,
-                ),
-                child: Text(isFollowing ? 'Following' : 'Follow',
-                    style: TextStyle(fontFamily: 'Arch',
-                        fontWeight: FontWeight.bold, fontSize: 12,
-                        color: isFollowing
-                            ? Colors.grey.shade600 : Colors.white)),
+        // /users/search/ may serialise the name as display_name or
+        // preferred_name. Fall through so the tile is never blank.
+        final displayName = (u['display_name'] ??
+                             u['preferred_name'] ??
+                             u['name'] ??
+                             u['username'] ??
+                             u['user_id'] ??
+                             'Unknown').toString();
+        final userId = (u['user_id'] ?? u['id'] ?? '').toString();
+        return GestureDetector(
+          onTap: () {
+            if (userId.isEmpty) return;
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => OtherUserProfileScreen(
+                userId: userId,
+                initialData: u,
               ),
-            ),
-          ]),
+            ));
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6, offset: const Offset(0, 2))]),
+            child: Row(children: [
+              _avatar(u['avatar_url'] as String?, displayName, _kG1, 44),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(displayName,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14, color: _kInk)),
+                  Text(u['role'] as String? ?? '',
+                      style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                          color: Colors.grey.shade500)),
+                ],
+              )),
+              GestureDetector(
+                onTap: () async {
+                  if (userId.isEmpty) return;
+                  try {
+                    await _api.followToggle(userId);
+                    final pos = _allPeople.indexWhere(
+                        (e) => (e['user_id'] ?? e['id']) == userId);
+                    if (pos >= 0) {
+                      setState(() => _allPeople[pos] = {
+                            ..._allPeople[pos],
+                            'is_following': !isFollowing,
+                          });
+                    }
+                  } catch (_) {}
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    gradient: isFollowing ? null
+                        : const LinearGradient(colors: [_kG1, _kG2]),
+                    color: isFollowing ? Colors.grey.shade100 : null,
+                    borderRadius: BorderRadius.circular(10),
+                    border: isFollowing
+                        ? Border.all(color: Colors.grey.shade300) : null,
+                  ),
+                  child: Text(isFollowing ? 'Following' : 'Follow',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold, fontSize: 12,
+                          color: isFollowing
+                              ? Colors.grey.shade600 : Colors.white)),
+                ),
+              ),
+            ]),
+          ),
         );
       },
     );
