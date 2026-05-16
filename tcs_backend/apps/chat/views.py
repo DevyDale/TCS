@@ -25,6 +25,9 @@ User = get_user_model()
 
 
 def _chat_media_url(msg, request=None):
+    persisted = getattr(msg, "media_url", "") or ""
+    if persisted:
+        return request.build_absolute_uri(persisted) if request else persisted
     """Return the correct Cloudinary URL for a chat Message.
 
     CloudinaryField.url always builds /image/upload/, which 404s for audio
@@ -864,6 +867,9 @@ def upload_chat_media(request):
         file_name=file.name,
         file_size=file.size,
     )
+            if locals().get("secure_url"):
+                msg.media_url = secure_url
+                msg.save(update_fields=["media_url"])
     Room.objects.filter(id=room_id).update(
         last_message_text=msg.display_text,
         last_message_at=timezone.now(),
