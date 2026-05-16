@@ -77,7 +77,7 @@ class _GroupsStudyHubScreenState
   /// reset it.
   Future<void> _loadAvailability() async {
     try {
-      final me = await _api.get('/auth/me/');
+      final me = await _api.get('/users/me/');
       if (me is! Map) return;
       final available = (me['is_available_study'] ??
                          me['available'] ??
