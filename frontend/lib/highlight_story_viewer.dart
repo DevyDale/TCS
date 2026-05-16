@@ -3,34 +3,29 @@
 // HighlightStoryViewer — a full-screen, Instagram / WhatsApp-style story
 // player for campus highlights.
 //
-// SELF-CONTAINED: it defines its own HighlightStory model and only uses
-// packages already in the app (video_player, cached_network_image,
-// flutter_spinkit). It compiles and runs on its own — you can test it
-// with dummy HighlightStory objects before the backend exists.
-//
 // ── Usage ───────────────────────────────────────────────────
 //   Navigator.of(context).push(MaterialPageRoute(
 //     builder: (_) => HighlightStoryViewer(
-//       stories: stories,        // List<HighlightStory>
+//       stories: stories,           // List<HighlightStory>
 //       initialIndex: 0,
+//       highlightTitle: 'First day vibes',  // optional fallback
 //     ),
 //   ));
-//
-// Build HighlightStory objects from your API response with
-// HighlightStory.fromJson(json), or construct them directly for testing:
-//   HighlightStory(
-//     id: '1',
-//     mediaUrl: 'https://picsum.photos/1080/1920',
-//     mediaType: HighlightMediaType.image,
-//     caption: 'First day vibes',
-//     authorName: 'Shawn',
-//   )
 //
 // ── Gestures ────────────────────────────────────────────────
 //   • tap right 2/3   → next story
 //   • tap left  1/3   → previous story
 //   • press & hold    → pause
 //   • swipe down      → close
+//
+// ── This revision ───────────────────────────────────────────
+//   • The title is no longer rendered at the top of the viewer. It
+//     now appears as a pill at the BOTTOM-LEFT of the screen, sitting
+//     above the caption (if any). Each HighlightStory can carry its
+//     own `title` so a grouped feed (multiple highlights from one
+//     poster) can show the parent highlight title that the current
+//     story belongs to. `widget.highlightTitle` is kept as a fallback
+//     for callers that pass a single shared title.
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +48,14 @@ class HighlightStory {
   final String mediaUrl;
   final HighlightMediaType mediaType;
   final String? caption;
+
+  /// Title of the parent highlight this story belongs to. Used when
+  /// multiple highlights from one poster are flattened into a single
+  /// viewer session — each story carries the title of the highlight
+  /// it came from so the bottom-left label can switch as the user
+  /// taps through.
+  final String? title;
+
   final String? authorName;
   final String? authorAvatarUrl;
   final DateTime? createdAt;
@@ -66,6 +69,7 @@ class HighlightStory {
     required this.mediaUrl,
     required this.mediaType,
     this.caption,
+    this.title,
     this.authorName,
     this.authorAvatarUrl,
     this.createdAt,
@@ -79,6 +83,7 @@ class HighlightStory {
   factory HighlightStory.fromJson(Map<String, dynamic> j) {
     final type = (j['media_type'] as String? ?? 'image').toLowerCase();
     final rawCaption = (j['caption'] as String?)?.trim();
+    final rawTitle   = (j['title'] as String?)?.trim();
     return HighlightStory(
       id:        j['id']?.toString() ?? '',
       mediaUrl:  (j['media_url'] ?? j['url'] ?? '').toString(),
@@ -86,6 +91,7 @@ class HighlightStory {
           ? HighlightMediaType.video
           : HighlightMediaType.image,
       caption:   (rawCaption == null || rawCaption.isEmpty) ? null : rawCaption,
+      title:     (rawTitle   == null || rawTitle.isEmpty)   ? null : rawTitle,
       authorName:      j['author_name']   as String?,
       authorAvatarUrl: j['author_avatar'] as String?,
       createdAt: DateTime.tryParse(j['created_at']?.toString() ?? ''),
@@ -101,10 +107,15 @@ class HighlightStoryViewer extends StatefulWidget {
   final List<HighlightStory> stories;
   final int initialIndex;
 
+  /// Fallback title used when a story doesn't carry its own. The title
+  /// renders as a pill at the bottom-left of the viewer.
+  final String? highlightTitle;
+
   const HighlightStoryViewer({
     super.key,
     required this.stories,
     this.initialIndex = 0,
+    this.highlightTitle,
   });
 
   @override
@@ -274,6 +285,8 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
     }
 
     final story = widget.stories[_index];
+    final title = (story.title ?? widget.highlightTitle ?? '').trim();
+    final caption = (story.caption ?? '').trim();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -309,7 +322,7 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
               ),
             ),
 
-            // ── Progress segments + header ──
+            // ── Progress segments + header (title is NOT here anymore) ──
             SafeArea(
               bottom: false,
               child: Padding(
@@ -326,11 +339,15 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
               ),
             ),
 
-            // ── Caption ──
-            if (story.caption != null)
+            // ── Bottom-left title + caption overlay ──
+            // The title pill sits at the bottom-left of the viewer (above
+            // the caption, if any). It updates per story so a grouped
+            // viewing session shows the right parent highlight title for
+            // whichever story is currently on screen.
+            if (title.isNotEmpty || caption.isNotEmpty)
               Positioned(
                 left: 0, right: 0, bottom: 0,
-                child: _buildCaption(story.caption!),
+                child: _buildBottomTextOverlay(title: title, caption: caption),
               ),
 
             // ── Paused hint ──
@@ -503,27 +520,84 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
         ),
       );
 
-  Widget _buildCaption(String caption) {
+  Widget _buildBottomTextOverlay({
+    required String title,
+    required String caption,
+  }) {
     return IgnorePointer(
       child: Container(
         padding: EdgeInsets.fromLTRB(
-            20, 28, 20, MediaQuery.of(context).padding.bottom + 24),
+          16,
+          // Pull-up gradient height — gives the text room to breathe over
+          // dark photos without obscuring the whole frame.
+          caption.isNotEmpty ? 90 : 60,
+          16,
+          MediaQuery.of(context).padding.bottom + 22,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [
-              Colors.black.withOpacity(0.7),
+              Colors.black.withOpacity(0.72),
               Colors.transparent,
             ],
           ),
         ),
-        child: Text(
-          caption,
-          style: const TextStyle(
-            fontFamily: 'Momo', fontSize: 14,
-            color: Colors.white, height: 1.45,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title.isNotEmpty) ...[
+              // Bottom-left title pill — distinct from the caption so the
+              // poster-defined highlight name reads as a label, not body.
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.28)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded,
+                        color: Colors.white, size: 12),
+                    const SizedBox(width: 6),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.72,
+                      ),
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Alfa',
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (caption.isNotEmpty) const SizedBox(height: 12),
+            ],
+            if (caption.isNotEmpty)
+              Text(
+                caption,
+                style: const TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 14,
+                  color: Colors.white,
+                  height: 1.45,
+                ),
+              ),
+          ],
         ),
       ),
     );

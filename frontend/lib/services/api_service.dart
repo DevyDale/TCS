@@ -56,6 +56,11 @@
 // CLUB EVENT CREATION (new): generateEventPoster (Flux AI),
 // createClubEvent (POST /clubs/<id>/events/), and inviteToClub
 // (POST /clubs/<id>/invites/) for the redesigned club screen.
+//
+// EVENT DELETE (new): deleteEvent(String id) maps to
+// DELETE /api/events/<id>/ which soft-deletes the event server-side
+// (sets is_active=False). Used by the club screen's event detail
+// dialog when an admin chooses Delete Event.
 
 import 'dart:async';
 import 'dart:convert';
@@ -814,6 +819,13 @@ class ApiService {
 
   Future<dynamic> createEvent(Map<String, dynamic> data) =>
       post('/events/', body: data);
+
+  /// DELETE /api/events/<id>/
+  /// Soft-deletes the event server-side (sets is_active=False).
+  /// Backend permission: caller must be the event organizer OR a
+  /// teacher/admin. Used by the club screen's event detail dialog
+  /// when an admin chooses Delete Event.
+  Future<dynamic> deleteEvent(String id) => delete('/events/$id/');
 
   Future<dynamic> uploadEventPoster(
     String eventId, {

@@ -1,16 +1,21 @@
 // lib/screens/feed/feed_screen.dart
 //
-// FIX: _PostCardState now owns its own ApiService instance (_api), and
-// _handleBookmark is async so it can await the favorite/unfavorite
-// POST/DELETE calls.
-//
-// ERROR FIX (2):
-//   1. `deletedHighlightIds` was imported from profile_screen.dart but
-//      never defined there. It's now declared locally at the top of
-//      this file (alongside the existing deletedPostIds import).
-//   2. `_api.getHighlightsFeed()` didn't exist on ApiService. Replaced
-//      the call with a direct `_api.get('/highlights/feed/')` so this
-//      file works regardless of whether the method exists.
+// CHANGES (this revision):
+//   • Story highlights are now GROUPED BY OWNER. One circle per
+//     poster — tapping it plays every highlight that user has posted,
+//     all stories flattened into one sequential viewer session.
+//   • 24-HOUR EXPIRY: anything with a created_at older than 24 hours
+//     is filtered out of the highlights row.
+//   • Event tiles no longer fall back to a lone calendar icon when
+//     there's no poster — they render a gradient banner with the
+//     event date displayed large, decorative shapes, and sparkles.
+//   • Event COMMENTS now open a real bottom sheet wired to
+//     /events/<id>/comments/ endpoints, mirroring the All-tab post
+//     comments behaviour.
+//   • Event SHARE opens the existing share sheet — backend can wire
+//     the event share endpoint when ready.
+//   • Event BOOKMARK now posts to /events/<id>/favorite/ so favorited
+//     events can show up in the profile screen's favorites tab.
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,9 +29,6 @@ import 'package:tcs_app/services/notification_Service.dart';
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
 import '../../highlight_story_viewer.dart';
-// Only deletedPostIds is imported now — deletedHighlightIds is declared
-// locally below so this file doesn't depend on profile_screen.dart
-// having that symbol.
 import '../profile/profile_screen.dart' show deletedPostIds;
 import '../dashboard/suggestion_box_screen.dart';
 import '../dashboard/full_screen_video_player.dart';
@@ -35,11 +37,6 @@ import '../dashboard/full_screen_video_player.dart';
 // ─────────────────────────────────────────────────────────────
 // LOCAL NOTIFIERS
 // ─────────────────────────────────────────────────────────────
-// `deletedHighlightIds` mirrors the `deletedPostIds` pattern in
-// profile_screen.dart, but lives here so feed_screen.dart compiles
-// even if profile_screen.dart hasn't been updated to export it.
-// Other screens can `import '../feed/feed_screen.dart' show
-// deletedHighlightIds;` to add to it when a highlight is deleted.
 final ValueNotifier<Set<String>> deletedHighlightIds =
     ValueNotifier<Set<String>>(<String>{});
 
@@ -59,8 +56,6 @@ const _kG2     = Color(0xFF7C3AED);
 const _kG3     = Color(0xFFF59E0B);
 const _kG4     = Color(0xFFFF4F6E);
 
-/// Picks black or white text for maximum contrast against [bg], so the
-/// fweet text never clashes with the chosen background colour.
 Color _fweetTextColor(Color bg) =>
     bg.computeLuminance() > 0.179 ? const Color(0xFF1A1A2E) : Colors.white;
 
@@ -76,8 +71,13 @@ class _FeedScreenState extends State<FeedScreen>
 
   List<Map<String, dynamic>> _posts      = [];
   List<Map<String, dynamic>> _events     = [];
-  // Story highlights (Instagram-style circles)
+
+  // Raw highlights from the API, after 24h filter.
   List<Map<String, dynamic>> _storyHighlights = [];
+  // Highlights grouped by owner_id → list of that user's highlights.
+  // Preserves order: the first owner we saw appears first.
+  List<_OwnerHighlightGroup> _highlightGroups = [];
+
   bool _storyHighlightsLoading = true;
 
   bool _feedLoading  = true;
@@ -85,6 +85,9 @@ class _FeedScreenState extends State<FeedScreen>
   bool _fetchingMore = false;
   int  _feedPage     = 1;
   int  _feedTab      = 0;
+
+  Set<String> _seenEventIds = <String>{};
+  bool _hasNewEvents = false;
 
   late final AnimationController _refreshSpinCtrl;
 
@@ -97,6 +100,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
     _loadFeed();
     _loadStoryHighlights();
+    _checkForNewEvents();
     _scrollCtrl.addListener(_onScroll);
     deletedPostIds.addListener(_onPostsDeleted);
     deletedHighlightIds.addListener(_onHighlightsDeleted);
@@ -137,7 +141,6 @@ class _FeedScreenState extends State<FeedScreen>
       });
     }
 
-    // EVENTS TAB (index 2): load club events instead of feed posts.
     if (_feedTab == 2) {
       try {
         final d = await _api.get('/clubs/events-feed/?page=$_feedPage')
@@ -153,6 +156,11 @@ class _FeedScreenState extends State<FeedScreen>
           }
           _feedHasMore = d['next'] != null;
           _feedLoading = false;
+          _seenEventIds = _events
+              .map((e) => e['id']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toSet();
+          _hasNewEvents = false;
         });
       } catch (_) {
         if (mounted) setState(() => _feedLoading = false);
@@ -181,9 +189,104 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  // FIX: was calling _api.getHighlightsFeed() which doesn't exist on
-  // ApiService. Use the generic _api.get() helper directly — this hits
-  // the same endpoint without needing to modify api_service.dart.
+  Future<void> _checkForNewEvents() async {
+    if (_feedTab == 2) return;
+    try {
+      final d = await _api.get('/clubs/events-feed/?page=1')
+          as Map<String, dynamic>;
+      final results = (d['results'] as List? ?? [])
+          .cast<Map<String, dynamic>>();
+      final currentIds = results
+          .map((e) => e['id']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toSet();
+
+      if (!mounted) return;
+
+      if (_seenEventIds.isEmpty) {
+        _seenEventIds = currentIds;
+        return;
+      }
+
+      final newOnes = currentIds.difference(_seenEventIds);
+      if (newOnes.isNotEmpty) {
+        setState(() => _hasNewEvents = true);
+      }
+    } catch (_) {}
+  }
+
+  /// 24h expiry filter — drop any highlight whose latest signal of
+  /// "this exists now" is older than 24 hours. We check the highlight's
+  /// own created_at first, and fall back to the newest item's
+  /// created_at if the highlight doesn't carry its own.
+  bool _isFresh(Map<String, dynamic> h) {
+    final now = DateTime.now();
+
+    DateTime? newest;
+    final hIso = h['created_at'] as String? ?? '';
+    if (hIso.isNotEmpty) {
+      try { newest = DateTime.parse(hIso); } catch (_) {}
+    }
+
+    final items = (h['items'] as List?) ?? const [];
+    for (final raw in items) {
+      if (raw is! Map) continue;
+      final iso = raw['created_at'] as String? ?? '';
+      if (iso.isEmpty) continue;
+      try {
+        final dt = DateTime.parse(iso);
+        if (newest == null || dt.isAfter(newest)) newest = dt;
+      } catch (_) {}
+    }
+
+    if (newest == null) return true; // no timestamp at all → keep it
+    return now.difference(newest).inHours < 24;
+  }
+
+  /// Build [_highlightGroups] from [_storyHighlights]. One group per
+  /// owner_id (falls back to owner_name when ID is missing).
+  void _rebuildHighlightGroups() {
+    final order = <String>[];
+    final map   = <String, _OwnerHighlightGroup>{};
+
+    for (final h in _storyHighlights) {
+      final ownerId =
+          (h['owner_id'] ?? h['user_id'] ?? h['owner'] ?? h['author_id'])
+              ?.toString().trim();
+      final ownerName =
+          (h['owner_preferred_name'] as String?)?.trim().isNotEmpty == true
+              ? (h['owner_preferred_name'] as String).trim()
+              : (h['owner_name'] as String? ?? '').trim();
+
+      // Key: prefer owner_id, fall back to owner_name; if both empty
+      // give each highlight its own slot so nothing collapses oddly.
+      final key = (ownerId == null || ownerId.isEmpty)
+          ? (ownerName.isNotEmpty
+              ? 'name:$ownerName'
+              : 'id:${h['id']}')
+          : 'uid:$ownerId';
+
+      final existing = map[key];
+      if (existing == null) {
+        order.add(key);
+        map[key] = _OwnerHighlightGroup(
+          ownerId:    ownerId ?? '',
+          ownerName:  ownerName,
+          coverUrl:   (h['cover_url'] as String? ?? '').trim(),
+          highlights: [h],
+        );
+      } else {
+        existing.highlights.add(h);
+        // Keep first non-empty cover we encountered for the avatar.
+        if (existing.coverUrl.isEmpty) {
+          existing.coverUrl = (h['cover_url'] as String? ?? '').trim();
+        }
+      }
+    }
+
+    _highlightGroups = order.map((k) => map[k]!).toList();
+  }
+
   Future<void> _loadStoryHighlights() async {
     if (mounted) setState(() => _storyHighlightsLoading = true);
     try {
@@ -193,7 +296,11 @@ class _FeedScreenState extends State<FeedScreen>
           : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
       if (!mounted) return;
       setState(() {
-        _storyHighlights = list.cast<Map<String, dynamic>>();
+        _storyHighlights = list
+            .cast<Map<String, dynamic>>()
+            .where(_isFresh)
+            .toList();
+        _rebuildHighlightGroups();
         _storyHighlightsLoading = false;
       });
     } catch (_) {
@@ -207,38 +314,62 @@ class _FeedScreenState extends State<FeedScreen>
     setState(() {
       _storyHighlights.removeWhere(
           (h) => deleted.contains(h['id']?.toString()));
+      _rebuildHighlightGroups();
     });
   }
 
-  Future<void> _openStoryHighlight(Map<String, dynamic> h) async {
+  /// Open every highlight this owner has, flattened into one continuous
+  /// story session. The viewer header still receives the title — when
+  /// the user crosses into a new highlight inside the same owner the
+  /// viewer can show that title, but the current viewer renders one
+  /// title for the whole session, so we pass the first highlight's
+  /// title as the session label.
+  Future<void> _openOwnerHighlights(_OwnerHighlightGroup group) async {
     HapticFeedback.lightImpact();
-    final id = h['id']?.toString() ?? '';
-    if (id.isEmpty) return;
+    if (group.highlights.isEmpty) return;
 
-    var rawItems = (h['items'] as List?) ?? const [];
-    if (rawItems.isEmpty) {
-      try {
-        final full = await _api.getHighlight(id) as Map<String, dynamic>;
-        rawItems = (full['items'] as List?) ?? const [];
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not load this highlight',
-              style: TextStyle(fontFamily: 'Momo')),
-          behavior: SnackBarBehavior.floating,
-        ));
-        return;
+    final allStories = <HighlightStory>[];
+
+    for (final h in group.highlights) {
+      var rawItems = (h['items'] as List?) ?? const [];
+      if (rawItems.isEmpty) {
+        try {
+          final full = await _api.getHighlight(h['id']?.toString() ?? '')
+              as Map<String, dynamic>;
+          rawItems = (full['items'] as List?) ?? const [];
+        } catch (_) {
+          continue; // skip this highlight; keep going
+        }
+      }
+      for (final raw in rawItems.cast<Map<String, dynamic>>()) {
+        allStories.add(HighlightStory.fromJson(raw));
       }
     }
-    if (rawItems.isEmpty || !mounted) return;
 
-    final stories = rawItems
-        .cast<Map<String, dynamic>>()
-        .map((it) => HighlightStory.fromJson(it))
-        .toList();
+    if (allStories.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not load highlights',
+            style: TextStyle(fontFamily: 'Momo')),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    if (!mounted) return;
+
+    // Use the most recent highlight's title as the session label —
+    // it's what the user is most likely thinking of when they tap.
+    String label = '';
+    for (final h in group.highlights) {
+      final t = (h['title'] as String?)?.trim() ?? '';
+      if (t.isNotEmpty) { label = t; break; }
+    }
 
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => HighlightStoryViewer(stories: stories),
+      builder: (_) => HighlightStoryViewer(
+        stories: allStories,
+        highlightTitle: label,
+      ),
     ));
   }
 
@@ -246,6 +377,7 @@ class _FeedScreenState extends State<FeedScreen>
     await Future.wait([
       _loadFeed(refresh: true),
       _loadStoryHighlights(),
+      _checkForNewEvents(),
     ]);
   }
 
@@ -321,72 +453,67 @@ class _FeedScreenState extends State<FeedScreen>
         children: [
           _buildHeader(topPad),
           Expanded(
-            child: RefreshIndicator(
-              color: _kViolet,
-              displacement: 40,
-              onRefresh: _refreshAll,
-              child: CustomScrollView(
-                controller: _scrollCtrl,
-                physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics()),
-                slivers: [
-                  SliverToBoxAdapter(child: _buildStoryHighlightsRow()),
-                  SliverToBoxAdapter(child: _buildFeedLabel()),
+            child: CustomScrollView(
+              controller: _scrollCtrl,
+              physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics()),
+              slivers: [
+                SliverToBoxAdapter(child: _buildStoryHighlightsRow()),
+                SliverToBoxAdapter(child: _buildFeedLabel()),
 
-                  if (_feedLoading)
-                    const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator(
-                            color: _kViolet)))
-                  else if (_feedTab == 2 && _events.isEmpty)
-                    SliverFillRemaining(child: _buildEmptyEventsState())
-                  else if (_feedTab == 2)
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (_, i) {
-                          if (i == _events.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Center(child: CircularProgressIndicator(
-                                  color: _kViolet, strokeWidth: 2)));
-                          }
-                          return _AnimatedPostEntry(
-                            index: i,
-                            child: _EventCard(event: _events[i]),
-                          );
-                        },
-                        childCount: _events.length + (_feedHasMore ? 1 : 0),
-                      ),
-                    )
-                  else if (_posts.isEmpty)
-                    SliverFillRemaining(child: _buildEmptyState())
-                  else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (_, i) {
-                          if (i == _posts.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Center(child: CircularProgressIndicator(
-                                  color: _kViolet, strokeWidth: 2)));
-                          }
-                          return _AnimatedPostEntry(
-                            index: i,
-                            child: _PostCard(
-                              post:      _posts[i],
-                              index:     i,
-                              onLike:    () => _toggleLike(i),
-                              onComment: () => _showComments(_posts[i]),
-                              onShare:   () => _showShare(_posts[i]),
-                            ),
-                          );
-                        },
-                        childCount: _posts.length + (_feedHasMore ? 1 : 0),
-                      ),
+                if (_feedLoading)
+                  const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator(
+                          color: _kViolet)))
+                else if (_feedTab == 2 && _events.isEmpty)
+                  SliverFillRemaining(child: _buildEmptyEventsState())
+                else if (_feedTab == 2)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        if (i == _events.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Center(child: CircularProgressIndicator(
+                                color: _kViolet, strokeWidth: 2)));
+                        }
+                        return _AnimatedPostEntry(
+                          index: i,
+                          child: _EventCard(event: _events[i]),
+                        );
+                      },
+                      childCount: _events.length + (_feedHasMore ? 1 : 0),
                     ),
+                  )
+                else if (_posts.isEmpty)
+                  SliverFillRemaining(child: _buildEmptyState())
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        if (i == _posts.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Center(child: CircularProgressIndicator(
+                                color: _kViolet, strokeWidth: 2)));
+                        }
+                        return _AnimatedPostEntry(
+                          index: i,
+                          child: _PostCard(
+                            post:      _posts[i],
+                            index:     i,
+                            onLike:    () => _toggleLike(i),
+                            onComment: () => _showComments(_posts[i]),
+                            onShare:   () => _showShare(_posts[i]),
+                          ),
+                        );
+                      },
+                      childCount: _posts.length + (_feedHasMore ? 1 : 0),
+                    ),
+                  ),
 
-                  const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
-                ],
-              ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+              ],
             ),
           ),
         ],
@@ -409,7 +536,7 @@ class _FeedScreenState extends State<FeedScreen>
       );
     }
 
-    if (_storyHighlights.isEmpty) return const SizedBox.shrink();
+    if (_highlightGroups.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,61 +553,97 @@ class _FeedScreenState extends State<FeedScreen>
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _storyHighlights.length,
+            itemCount: _highlightGroups.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (_, i) => _buildStoryCircle(_storyHighlights[i]),
+            itemBuilder: (_, i) =>
+                _buildOwnerStoryCircle(_highlightGroups[i]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStoryCircle(Map<String, dynamic> h) {
-    final cover = (h['cover_url'] as String? ?? '').trim();
-    final title = (h['title'] as String? ?? '').trim();
-    final owner = (h['owner_name'] as String? ?? '').trim();
-
-    final label = title.isNotEmpty ? title : (owner.isNotEmpty ? owner : 'Highlight');
+  Widget _buildOwnerStoryCircle(_OwnerHighlightGroup group) {
+    final cover = group.coverUrl;
+    final label = group.ownerName.isNotEmpty
+        ? group.ownerName.split(' ').first
+        : 'Highlight';
+    final multiCount = group.highlights.length;
 
     return GestureDetector(
-      onTap: () => _openStoryHighlight(h),
+      onTap: () => _openOwnerHighlights(group),
       child: SizedBox(
         width: 66,
         child: Column(children: [
-          Container(
-            width: 64,
-            height: 64,
-            padding: const EdgeInsets.all(2.5),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [_kG1, _kViolet, _kCoral],
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                padding: const EdgeInsets.all(2.5),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [_kG1, _kViolet, _kCoral],
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: _kBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: ClipOval(
+                    child: cover.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: cover,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              color: const Color(0xFFEDEEF3),
+                              child: const Icon(
+                                  Icons.auto_awesome_rounded,
+                                  color: _kSlate, size: 22),
+                            ),
+                          )
+                        : Container(
+                            color: const Color(0xFFEDEEF3),
+                            child: const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: _kSlate, size: 22),
+                          ),
+                  ),
+                ),
               ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: _kBg,
-                shape: BoxShape.circle,
-              ),
-              child: ClipOval(
-                child: cover.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: cover,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          color: const Color(0xFFEDEEF3),
-                          child: const Icon(Icons.auto_awesome_rounded,
-                              color: _kSlate, size: 22),
+              // Small badge with highlight count when there's more than
+              // one — signals "this person has multiple highlights".
+              if (multiCount > 1)
+                Positioned(
+                  top: -2, right: -2,
+                  child: Container(
+                    constraints: const BoxConstraints(
+                        minWidth: 20, minHeight: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: _kCoral,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _kBg, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$multiCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          height: 1,
                         ),
-                      )
-                    : Container(
-                        color: const Color(0xFFEDEEF3),
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: _kSlate, size: 22),
                       ),
-              ),
-            ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(label,
@@ -545,7 +708,6 @@ class _FeedScreenState extends State<FeedScreen>
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // ── Bell capsule ──
             Container(
               width: 40, height: 40,
               alignment: Alignment.center,
@@ -565,7 +727,7 @@ class _FeedScreenState extends State<FeedScreen>
                           delegates: LottieDelegates(values: [
                             ValueDelegate.color(
                               const ['**'],
-                              value: const Color(0xFFFFB300), // ← golden bell
+                              value: const Color(0xFFFFB300),
                             ),
                           ]),
                         )
@@ -577,8 +739,6 @@ class _FeedScreenState extends State<FeedScreen>
                 ),
               ),
             ),
-
-            // ── Unread badge ──
             if (hasUnread)
               Positioned(
                 top: 1, right: 1,
@@ -612,8 +772,6 @@ class _FeedScreenState extends State<FeedScreen>
   },
 ),
   ]),
-     
-     
         const SizedBox(height: 16),
 
         Row(
@@ -712,7 +870,7 @@ class _FeedScreenState extends State<FeedScreen>
     const tabs = ['All', 'Following', 'Events', 'Clubs'];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('LATEST', style: TextStyle(fontFamily: 'Arch',
@@ -737,6 +895,7 @@ class _FeedScreenState extends State<FeedScreen>
           itemCount: tabs.length,
           itemBuilder: (_, i) {
             final active = i == _feedTab;
+            final showDot = i == 2 && _hasNewEvents;
             return GestureDetector(
               onTap: () {
                 if (_feedTab == i) return;
@@ -748,6 +907,7 @@ class _FeedScreenState extends State<FeedScreen>
                   _posts       = [];
                   _events      = [];
                   _feedLoading = true;
+                  if (i == 2) _hasNewEvents = false;
                 });
                 _loadFeed();
               },
@@ -767,10 +927,32 @@ class _FeedScreenState extends State<FeedScreen>
                       color: active ? Colors.transparent : Colors.grey.shade200),
                   boxShadow: active ? [BoxShadow(color: _kViolet.withOpacity(0.3),
                       blurRadius: 10, offset: const Offset(0, 4))] : []),
-                child: Text(tabs[i], style: TextStyle(
-                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: active ? Colors.white : _kSlate)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(tabs[i], style: TextStyle(
+                        fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: active ? Colors.white : _kSlate)),
+                    if (showDot) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 7, height: 7,
+                        decoration: BoxDecoration(
+                          color: _kMint,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _kMint.withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             );
           },
@@ -819,6 +1001,24 @@ class _FeedScreenState extends State<FeedScreen>
       ]),
     ));
   }
+}
+
+// ═════════════════════════════════════════════════════════════
+// SUPPORT MODELS
+// ═════════════════════════════════════════════════════════════
+
+class _OwnerHighlightGroup {
+  final String ownerId;
+  final String ownerName;
+  String coverUrl;
+  final List<Map<String, dynamic>> highlights;
+
+  _OwnerHighlightGroup({
+    required this.ownerId,
+    required this.ownerName,
+    required this.coverUrl,
+    required this.highlights,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -928,7 +1128,6 @@ class _PostCard extends StatefulWidget {
 
 class _PostCardState extends State<_PostCard>
     with SingleTickerProviderStateMixin {
-  // ── FIX #1: own ApiService instance ──
   final _api = ApiService();
 
   late final AnimationController _heartCtrl;
@@ -956,7 +1155,6 @@ class _PostCardState extends State<_PostCard>
         duration: const Duration(milliseconds: 200), curve: Curves.elasticOut);
   }
 
-  // ── FIX #2: async signature so body can use `await` ──
   Future<void> _handleBookmark() async {
     HapticFeedback.lightImpact();
     final newVal = !_bookmarked;
@@ -1437,12 +1635,20 @@ class _ActionBtn extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// COMMENTS SHEET
+// COMMENTS SHEET — now supports both posts and events.
+// When [isEvent] is true the sheet hits /events/<id>/comments/
+// instead of /posts/<id>/comments/, so the same UI works for both.
 // ─────────────────────────────────────────────────────────────
 
 class _CommentsSheet extends StatefulWidget {
-  final ApiService api; final Map<String, dynamic> post;
-  const _CommentsSheet({required this.api, required this.post});
+  final ApiService api;
+  final Map<String, dynamic> post;
+  final bool isEvent;
+  const _CommentsSheet({
+    required this.api,
+    required this.post,
+    this.isEvent = false,
+  });
   @override State<_CommentsSheet> createState() => _CommentsSheetState();
 }
 
@@ -1451,17 +1657,39 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   List<Map<String, dynamic>> _comments = [];
   bool _loading = true, _posting = false;
 
+  String get _basePath {
+    final id = widget.post['id']?.toString() ?? '';
+    return widget.isEvent
+        ? '/events/$id/comments/'
+        : '/posts/$id/comments/';
+  }
+
   @override void initState() { super.initState(); _load(); }
   @override void dispose()   { _ctrl.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     try {
-      final d = await widget.api.getComments(
-          widget.post['id']?.toString() ?? '') as Map<String, dynamic>;
-      setState(() {
-        _comments = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        _loading  = false;
-      });
+      // For events, hit the events endpoint directly. For posts, keep
+      // the long-standing getComments helper so existing behaviour is
+      // unchanged.
+      if (widget.isEvent) {
+        final d = await widget.api.get(_basePath);
+        final results = d is Map
+            ? ((d['results'] as List?) ?? const [])
+            : (d is List ? d : const []);
+        if (!mounted) return;
+        setState(() {
+          _comments = results.cast<Map<String, dynamic>>();
+          _loading  = false;
+        });
+      } else {
+        final d = await widget.api.getComments(
+            widget.post['id']?.toString() ?? '') as Map<String, dynamic>;
+        setState(() {
+          _comments = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
+          _loading  = false;
+        });
+      }
     } catch (_) { setState(() => _loading = false); }
   }
 
@@ -1471,8 +1699,18 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     HapticFeedback.lightImpact();
     setState(() => _posting = true);
     try {
-      final c = await widget.api.addComment(
-          widget.post['id']?.toString() ?? '', t) as Map<String, dynamic>;
+      Map<String, dynamic> c;
+      if (widget.isEvent) {
+        final raw = await widget.api.post(_basePath, {'text': t});
+        c = raw is Map ? raw.cast<String, dynamic>() : {
+          'text': t,
+          'author_name': 'You',
+          'created_at': DateTime.now().toIso8601String(),
+        };
+      } else {
+        c = await widget.api.addComment(
+            widget.post['id']?.toString() ?? '', t) as Map<String, dynamic>;
+      }
       setState(() { _comments.insert(0, c); _ctrl.clear(); _posting = false; });
     } catch (_) { setState(() => _posting = false); }
   }
@@ -1490,8 +1728,9 @@ class _CommentsSheetState extends State<_CommentsSheet> {
         const SizedBox(height: 16),
         Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            const Text('Comments', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+            Text(widget.isEvent ? 'Event Comments' : 'Comments',
+                style: const TextStyle(
+                    fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -1606,8 +1845,14 @@ class _CommentTile extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _ShareSheet extends StatefulWidget {
-  final ApiService api; final Map<String, dynamic> post;
-  const _ShareSheet({required this.api, required this.post});
+  final ApiService api;
+  final Map<String, dynamic> post;
+  final bool isEvent;
+  const _ShareSheet({
+    required this.api,
+    required this.post,
+    this.isEvent = false,
+  });
   @override State<_ShareSheet> createState() => _ShareSheetState();
 }
 
@@ -1643,8 +1888,16 @@ class _ShareSheetState extends State<_ShareSheet> {
     HapticFeedback.mediumImpact();
     setState(() => _sharing = true);
     try {
-      await widget.api.sharePost(
-          widget.post['id']?.toString() ?? '', _selected.toList());
+      final id = widget.post['id']?.toString() ?? '';
+      if (widget.isEvent) {
+        // Event share — best-effort POST to a likely endpoint. Backend
+        // can implement /events/<id>/share/ to make this fully wired.
+        await widget.api.post('/events/$id/share/', {
+          'user_ids': _selected.toList(),
+        });
+      } else {
+        await widget.api.sharePost(id, _selected.toList());
+      }
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1672,8 +1925,9 @@ class _ShareSheetState extends State<_ShareSheet> {
         const SizedBox(height: 16),
         Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            const Text('Share Post', style: TextStyle(
-                fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+            Text(widget.isEvent ? 'Share Event' : 'Share Post',
+                style: const TextStyle(
+                    fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             const Spacer(),
             if (_selected.isNotEmpty)
               Text('${_selected.length} selected',
@@ -1682,8 +1936,11 @@ class _ShareSheetState extends State<_ShareSheet> {
           ])),
         const SizedBox(height: 4),
         Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text('Share with followers or study buddies',
-            style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate))),
+          child: Text(
+              widget.isEvent
+                  ? 'Send this event to people on campus'
+                  : 'Share with followers or study buddies',
+              style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate))),
         const SizedBox(height: 12),
         Divider(color: Colors.grey.shade100),
         Expanded(child: _loading
@@ -1802,12 +2059,60 @@ class _ShareSheetState extends State<_ShareSheet> {
 
 
 // ─────────────────────────────────────────────────────────────
-// EVENT CARD (Events tab)
+// EVENT CARD — fancy date placeholder + working comment / share /
+// bookmark wired to the backend.
 // ─────────────────────────────────────────────────────────────
 
-class _EventCard extends StatelessWidget {
+class _EventCard extends StatefulWidget {
   final Map<String, dynamic> event;
   const _EventCard({required this.event});
+
+  @override
+  State<_EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<_EventCard>
+    with SingleTickerProviderStateMixin {
+  final _api = ApiService();
+
+  late final AnimationController _heartCtrl;
+  late final Animation<double>   _heartScale;
+
+  bool _liked      = false;
+  bool _bookmarked = false;
+  int  _likeCount  = 0;
+  int  _commentCount = 0;
+  int  _shareCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.event;
+
+    final rsvp = (e['user_rsvp_status'] as String? ?? '').trim().toLowerCase();
+    _liked       = rsvp == 'going' || (e['is_liked'] as bool? ?? false);
+    _bookmarked  = e['is_bookmarked'] as bool? ?? e['is_favorited'] as bool? ?? false;
+    _likeCount   = (e['rsvp_count']    as int?) ??
+                   (e['like_count']    as int?) ?? 0;
+    _commentCount = e['comment_count']  as int? ?? 0;
+    _shareCount   = e['share_count']    as int? ?? 0;
+
+    _heartCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      lowerBound: 0.75,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+    _heartScale = CurvedAnimation(
+        parent: _heartCtrl, curve: Curves.elasticOut);
+  }
+
+  @override
+  void dispose() {
+    _heartCtrl.dispose();
+    super.dispose();
+  }
 
   static String _formatWhen(String iso) {
     if (iso.isEmpty) return '';
@@ -1822,15 +2127,103 @@ class _EventCard extends StatelessWidget {
     } catch (_) { return ''; }
   }
 
+  static String _fmt(int n) {
+    if (n >= 1000000) return '${(n / 1e6).toStringAsFixed(1)}M';
+    if (n >= 1000)    return '${(n / 1000).toStringAsFixed(1)}K';
+    return '$n';
+  }
+
+  Future<void> _handleLike() async {
+    HapticFeedback.lightImpact();
+    final was = _liked;
+    setState(() {
+      _liked     = !was;
+      _likeCount = was
+          ? (_likeCount - 1).clamp(0, 1 << 30)
+          : _likeCount + 1;
+    });
+    await _heartCtrl.animateTo(0.75,
+        duration: const Duration(milliseconds: 80));
+    _heartCtrl.animateTo(1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.elasticOut);
+
+    final eventId = widget.event['id']?.toString() ?? '';
+    if (eventId.isEmpty) return;
+    try {
+      await _api.setRsvp(eventId, _liked ? 'going' : 'clear');
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _liked     = was;
+          _likeCount = was
+              ? _likeCount + 1
+              : (_likeCount - 1).clamp(0, 1 << 30);
+        });
+      }
+    }
+  }
+
+  /// Toggles a server-side favorite on the event so the profile screen's
+  /// favorites tab can surface it later. Optimistic UI with rollback on
+  /// failure.
+  Future<void> _handleBookmark() async {
+    HapticFeedback.lightImpact();
+    final was = _bookmarked;
+    setState(() => _bookmarked = !was);
+
+    final eventId = widget.event['id']?.toString() ?? '';
+    if (eventId.isEmpty) return;
+
+    try {
+      if (!was) {
+        await _api.post('/events/$eventId/favorite/');
+      } else {
+        await _api.delete('/events/$eventId/favorite/');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _bookmarked = was);
+    }
+  }
+
+  void _handleComment() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CommentsSheet(
+        api: _api,
+        post: widget.event,
+        isEvent: true,
+      ),
+    );
+  }
+
+  void _handleShare() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ShareSheet(
+        api: _api,
+        post: widget.event,
+        isEvent: true,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title    = (event['title']       as String? ?? '').trim();
-    final poster   = (event['poster_url']  as String? ?? '').trim();
-    final club     = (event['club_name']   as String? ?? '').trim();
-    final clubLogo = (event['club_logo']   as String? ?? '').trim();
-    final location = (event['location']    as String? ?? '').trim();
-    final desc     = (event['description'] as String? ?? '').trim();
-    final when     = _formatWhen((event['start_time'] as String? ?? '').trim());
+    final title    = (widget.event['title']       as String? ?? '').trim();
+    final poster   = (widget.event['poster_url']  as String? ?? '').trim();
+    final club     = (widget.event['club_name']   as String? ?? '').trim();
+    final clubLogo = (widget.event['club_logo']   as String? ?? '').trim();
+    final location = (widget.event['location']    as String? ?? '').trim();
+    final desc     = (widget.event['description'] as String? ?? '').trim();
+    final startIso = (widget.event['start_time'] as String? ?? '').trim();
+    final when     = _formatWhen(startIso);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1848,31 +2241,25 @@ class _EventCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           AspectRatio(
-            aspectRatio: 3 / 4,
+            aspectRatio: 4 / 3,
             child: poster.isNotEmpty
                 ? CachedNetworkImage(
                     imageUrl: poster,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: Colors.grey.shade100),
-                    errorWidget: (_, __, ___) => Container(
-                      color: _kViolet.withOpacity(0.08),
-                      child: const Center(
-                        child: Icon(Icons.event_rounded, color: _kViolet, size: 64)),
-                    ),
+                    placeholder: (_, __) =>
+                        Container(color: Colors.grey.shade100),
+                    errorWidget: (_, __, ___) =>
+                        _EventPosterPlaceholder(
+                            startIso: startIso, title: title),
                   )
-                : Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [_kViolet.withOpacity(0.12), _kBlue.withOpacity(0.08)],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.event_rounded, color: _kViolet, size: 64)),
-                  ),
+                : _EventPosterPlaceholder(
+                    startIso: startIso, title: title),
           ),
+
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (club.isNotEmpty)
                 Row(children: [
                   if (clubLogo.isNotEmpty) ...[
@@ -1901,7 +2288,8 @@ class _EventCard extends StatelessWidget {
               if (when.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(children: [
-                  const Icon(Icons.schedule_rounded, size: 14, color: _kViolet),
+                  const Icon(Icons.schedule_rounded,
+                      size: 14, color: _kViolet),
                   const SizedBox(width: 6),
                   Text(when,
                       style: const TextStyle(fontFamily: 'Momo',
@@ -1912,7 +2300,8 @@ class _EventCard extends StatelessWidget {
               if (location.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.location_on_rounded, size: 14, color: _kCoral),
+                  const Icon(Icons.location_on_rounded,
+                      size: 14, color: _kCoral),
                   const SizedBox(width: 6),
                   Expanded(child: Text(location,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -1931,7 +2320,207 @@ class _EventCard extends StatelessWidget {
               ],
             ]),
           ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Divider(height: 1, color: Colors.grey.shade100),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: Row(children: [
+              ScaleTransition(
+                scale: _heartScale,
+                child: _ActionBtn(
+                  icon: _liked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_outline_rounded,
+                  label: _fmt(_likeCount),
+                  color: _liked ? _kCoral : _kSlate,
+                  onTap: _handleLike,
+                  filled: _liked,
+                  fillColor: _kCoral.withOpacity(0.07),
+                ),
+              ),
+              const SizedBox(width: 4),
+              _ActionBtn(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: _fmt(_commentCount),
+                color: _kViolet,
+                onTap: _handleComment,
+              ),
+              const SizedBox(width: 4),
+              _ActionBtn(
+                icon: Icons.ios_share_rounded,
+                label: _shareCount > 0 ? _fmt(_shareCount) : 'Share',
+                color: _kAmber,
+                onTap: _handleShare,
+              ),
+              const Spacer(),
+              _ActionBtn(
+                icon: _bookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_outline_rounded,
+                label: '',
+                color: _bookmarked ? _kViolet : _kSlate,
+                onTap: _handleBookmark,
+                filled: _bookmarked,
+                fillColor: _kViolet.withOpacity(0.08),
+              ),
+            ]),
+          ),
         ]),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// EVENT POSTER PLACEHOLDER
+// A vibrant fallback for events without a poster image — gradient
+// background, oversized date, scattered decorative shapes, and a
+// pair of sparkle/celebration icons so the slot doesn't feel empty.
+// ─────────────────────────────────────────────────────────────
+
+class _EventPosterPlaceholder extends StatelessWidget {
+  final String startIso;
+  final String title;
+  const _EventPosterPlaceholder({
+    required this.startIso,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    DateTime? dt;
+    try { if (startIso.isNotEmpty) dt = DateTime.parse(startIso).toLocal(); }
+    catch (_) {}
+
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN',
+                    'JUL','AUG','SEP','OCT','NOV','DEC'];
+    final monthLabel = dt != null ? months[dt.month - 1] : 'SAVE';
+    final dayLabel   = dt != null ? '${dt.day}' : 'DATE';
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_kViolet, _kCoral, _kAmber],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Decorative bubbles
+          Positioned(
+            top: -30, right: -30,
+            child: Container(
+              width: 140, height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.16),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -40, left: -20,
+            child: Container(
+              width: 160, height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.10),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 24, left: 30,
+            child: Container(
+              width: 14, height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.55),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 40, right: 36,
+            child: Container(
+              width: 9, height: 9,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ),
+
+          // Sparkle / celebration corners
+          Positioned(
+            top: 16, right: 18,
+            child: Icon(Icons.auto_awesome_rounded,
+                color: Colors.white.withOpacity(0.85), size: 20),
+          ),
+          Positioned(
+            bottom: 18, left: 18,
+            child: Icon(Icons.celebration_rounded,
+                color: Colors.white.withOpacity(0.85), size: 22),
+          ),
+
+          // Centerpiece: month over giant day number
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  monthLabel,
+                  style: const TextStyle(
+                    fontFamily: 'Arch',
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dayLabel,
+                  style: const TextStyle(
+                    fontFamily: 'Alfa',
+                    color: Colors.white,
+                    fontSize: 72,
+                    fontWeight: FontWeight.w900,
+                    height: 1.0,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                ),
+                if (title.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      title.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Arch',
+                        fontSize: 11,
+                        color: Colors.white.withOpacity(0.95),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

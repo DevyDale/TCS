@@ -11,6 +11,9 @@
 //     Flux AI poster generation step
 //   • Invite Member button (president only) → user search + multi-select
 //   • Posts & Videos section reads from getClubFeed posts payload
+//   • Tap event tile → opens event detail dialog with poster preview,
+//     full description, organizer info. Admins (president / executive)
+//     see Edit Poster + Delete Event buttons at the bottom.
 //
 // Original light palette preserved (_kBg / _kIndigo / _kDeep / gradient _kG1-_kG4).
 
@@ -319,6 +322,77 @@ class _ClubScreenState extends State<ClubScreen> {
       _snack('RSVP confirmed ✓');
     } catch (_) {
       _snack('Could not RSVP. Try again.', error: true);
+    }
+  }
+
+  // ── Event detail dialog ───────────────────────────────────
+
+  void _showEventDetailDialog(Map<String, dynamic> event) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _EventDetailSheet(
+        event: event,
+        canManage: _canCreateEvent,
+        onDelete: () async {
+          Navigator.pop(ctx);
+          await _deleteEvent(event['id']?.toString() ?? '');
+        },
+        onReplacePoster: () async {
+          Navigator.pop(ctx);
+          await _pickAndUploadEventPoster(event['id']?.toString() ?? '');
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteEvent(String eventId) async {
+    if (eventId.isEmpty) return;
+    final ok = await _confirm(
+      title: 'Delete this event?',
+      message: 'This permanently removes the event and its poster. '
+          'Members who RSVPed will no longer see it.',
+      ok: 'Delete',
+      okColor: _kG4,
+    );
+    if (ok != true) return;
+    HapticFeedback.mediumImpact();
+    try {
+      await _api.deleteEvent(eventId);
+      if (!mounted) return;
+      setState(() {
+        _feedEvents.removeWhere((e) => e['id']?.toString() == eventId);
+      });
+      _snack('Event deleted');
+    } catch (e) {
+      _snack(
+          'Could not delete: ${e.toString().replaceAll("Exception: ", "")}',
+          error: true);
+    }
+  }
+
+  Future<void> _pickAndUploadEventPoster(String eventId) async {
+    if (eventId.isEmpty) return;
+    final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 88,
+        maxWidth: 1600);
+    if (file == null) return;
+    HapticFeedback.lightImpact();
+    try {
+      await _api.uploadEventPoster(eventId, filePath: file.path);
+      if (!mounted) return;
+      _snack('Poster updated ✓');
+      await _loadFeed();
+    } catch (e) {
+      _snack(
+          'Could not update poster: ${e.toString().replaceAll("Exception: ", "")}',
+          error: true);
     }
   }
 
@@ -1094,103 +1168,107 @@ class _ClubScreenState extends State<ClubScreen> {
       return fmt(dt);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _kBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: _kIndigo.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              children: [
-                Text(monthLabel,
-                    style: const TextStyle(
-                      fontFamily: 'Arch', fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: _kIndigo, letterSpacing: 1,
-                    )),
-                const SizedBox(height: 2),
-                Text(dayLabel,
-                    style: const TextStyle(
-                      fontFamily: 'Alfa', fontSize: 22,
-                      color: _kInk, height: 1,
-                    )),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'Alfa', fontSize: 15,
-                      color: _kInk, fontWeight: FontWeight.w700,
-                    )),
-                if (timeLabel().isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.access_time_rounded,
-                        size: 12, color: _kSlate),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(timeLabel(),
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontFamily: 'Momo', fontSize: 11,
-                              color: _kSlate)),
-                    ),
-                  ]),
-                ],
-                if (loc.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    const Icon(Icons.place_outlined,
-                        size: 12, color: _kSlate),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(loc,
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontFamily: 'Momo', fontSize: 11,
-                              color: _kSlate)),
-                    ),
-                  ]),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _rsvp(e),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8),
+    return GestureDetector(
+      onTap: () => _showEventDetailDialog(e),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
                 color: _kIndigo.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _kIndigo),
               ),
-              child: const Text('RSVP',
-                  style: TextStyle(
-                    fontFamily: 'Arch', fontSize: 11,
-                    color: _kIndigo, fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  )),
+              child: Column(
+                children: [
+                  Text(monthLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Arch', fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _kIndigo, letterSpacing: 1,
+                      )),
+                  const SizedBox(height: 2),
+                  Text(dayLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Alfa', fontSize: 22,
+                        color: _kInk, height: 1,
+                      )),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Alfa', fontSize: 15,
+                        color: _kInk, fontWeight: FontWeight.w700,
+                      )),
+                  if (timeLabel().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 12, color: _kSlate),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(timeLabel(),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontFamily: 'Momo', fontSize: 11,
+                                color: _kSlate)),
+                      ),
+                    ]),
+                  ],
+                  if (loc.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Row(children: [
+                      const Icon(Icons.place_outlined,
+                          size: 12, color: _kSlate),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(loc,
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontFamily: 'Momo', fontSize: 11,
+                                color: _kSlate)),
+                      ),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () => _rsvp(e),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _kIndigo.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _kIndigo),
+                ),
+                child: const Text('RSVP',
+                    style: TextStyle(
+                      fontFamily: 'Arch', fontSize: 11,
+                      color: _kIndigo, fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    )),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2809,4 +2887,270 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
       ),
     );
   }
+}
+
+// ═════════════════════════════════════════════════════════════
+// EVENT DETAIL SHEET — tap an event tile to open this
+// ═════════════════════════════════════════════════════════════
+
+class _EventDetailSheet extends StatelessWidget {
+  final Map<String, dynamic> event;
+  final bool canManage;
+  final VoidCallback onDelete;
+  final VoidCallback onReplacePoster;
+
+  const _EventDetailSheet({
+    required this.event,
+    required this.canManage,
+    required this.onDelete,
+    required this.onReplacePoster,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = event['title'] as String? ?? 'Untitled event';
+    final desc = event['description'] as String? ?? '';
+    final loc = event['location'] as String? ?? '';
+    final start = event['start_time'] as String? ?? '';
+    final end = event['end_time'] as String? ?? '';
+    final organizer = (event['organizer_name'] as String?) ??
+        (event['organizer'] is Map
+            ? (event['organizer']['name'] as String?)
+            : null) ??
+        '';
+
+    // Try a bunch of poster-url keys the backend might use.
+    final posterUrl = (event['poster_url'] as String?) ??
+        (event['card_url'] as String?) ??
+        (event['image_url'] as String?) ??
+        (event['image'] as String?) ??
+        '';
+
+    DateTime? startDt;
+    DateTime? endDt;
+    try { startDt = DateTime.parse(start).toLocal(); } catch (_) {}
+    try { endDt = DateTime.parse(end).toLocal(); } catch (_) {}
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.75,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (_, scrollCtrl) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+            child: Row(children: [
+              Expanded(
+                child: Text(title,
+                    maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Alfa', fontSize: 20, color: _kInk,
+                      fontWeight: FontWeight.w900,
+                    )),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: _kSlate),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              children: [
+                // Poster (or "no poster" placeholder)
+                if (posterUrl.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 18),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: AspectRatio(
+                        aspectRatio: 4 / 3,
+                        child: CachedNetworkImage(
+                          imageUrl: posterUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: Colors.grey.shade100),
+                          errorWidget: (_, __, ___) => Container(
+                            color: Colors.grey.shade100,
+                            child: const Center(
+                              child: Icon(Icons.broken_image_rounded,
+                                  color: _kSlate, size: 40),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 18),
+                    child: AspectRatio(
+                      aspectRatio: 4 / 3,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _kBg,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.image_outlined,
+                                  color: _kSlate, size: 40),
+                              SizedBox(height: 6),
+                              Text('No poster',
+                                  style: TextStyle(
+                                    fontFamily: 'Momo',
+                                    fontSize: 12,
+                                    color: _kSlate,
+                                  )),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Date + time + location + organizer
+                if (startDt != null)
+                  _detailRow(
+                    Icons.calendar_today_rounded,
+                    DateFormat('EEEE, MMM d, y').format(startDt),
+                  ),
+                if (startDt != null)
+                  _detailRow(
+                    Icons.access_time_rounded,
+                    endDt != null
+                        ? '${DateFormat('h:mm a').format(startDt)} – ${DateFormat('h:mm a').format(endDt)}'
+                        : DateFormat('h:mm a').format(startDt),
+                  ),
+                if (loc.isNotEmpty)
+                  _detailRow(Icons.place_outlined, loc),
+                if (organizer.isNotEmpty)
+                  _detailRow(Icons.person_outline_rounded,
+                      'Organized by $organizer'),
+
+                // Description
+                if (desc.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('About this event',
+                      style: TextStyle(
+                        fontFamily: 'Arch', fontSize: 11,
+                        color: _kSlate, fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      )),
+                  const SizedBox(height: 6),
+                  Text(desc,
+                      style: const TextStyle(
+                        fontFamily: 'Momo', fontSize: 14,
+                        color: _kInk, height: 1.5,
+                      )),
+                ],
+              ],
+            ),
+          ),
+
+          // Admin action row at bottom
+          if (canManage)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              child: Row(children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onReplacePoster,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            colors: [_kIndigo, _kDeep]),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kIndigo.withOpacity(0.25),
+                            blurRadius: 10, offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.image_outlined,
+                                color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit Poster',
+                                style: TextStyle(
+                                  fontFamily: 'Arch', fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onDelete,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _kG4, width: 1.5),
+                      ),
+                      child: const Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delete_outline_rounded,
+                                color: _kG4, size: 18),
+                            SizedBox(width: 8),
+                            Text('Delete Event',
+                                style: TextStyle(
+                                  fontFamily: 'Arch', fontSize: 14,
+                                  color: _kG4, fontWeight: FontWeight.bold,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(children: [
+          Icon(icon, color: _kIndigo, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    fontFamily: 'Momo', fontSize: 14, color: _kInk)),
+          ),
+        ]),
+      );
 }
