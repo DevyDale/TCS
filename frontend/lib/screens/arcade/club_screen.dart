@@ -1753,15 +1753,18 @@ class _ClubScreenState extends State<ClubScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        builder: (_, scrollCtrl) => SingleChildScrollView(
-          controller: scrollCtrl,
-          padding: const EdgeInsets.all(16),
-          child: _buildPostCard(p),
-        ),
+      builder: (_) => _ClubPostDetailSheet(
+        post: p,
+        api: _api,
+        canDelete: _isAdmin,
+        onDeleted: () {
+          if (!mounted) return;
+          setState(() {
+            _feedPosts.removeWhere(
+                (e) => e['id']?.toString() == p['id']?.toString());
+          });
+          _snack('Post deleted');
+        },
       ),
     );
   }
@@ -3283,4 +3286,489 @@ class _EventDetailSheet extends StatelessWidget {
           ),
         ]),
       );
+}
+
+// ═════════════════════════════════════════════════════════════
+// CLUB POST DETAIL SHEET — likes/comments/shares stats, full
+// comments list, admin delete button.
+// ═════════════════════════════════════════════════════════════
+
+class _ClubPostDetailSheet extends StatefulWidget {
+  final Map<String, dynamic> post;
+  final ApiService api;
+  final bool canDelete;
+  final VoidCallback onDeleted;
+
+  const _ClubPostDetailSheet({
+    required this.post,
+    required this.api,
+    required this.canDelete,
+    required this.onDeleted,
+  });
+
+  @override
+  State<_ClubPostDetailSheet> createState() => _ClubPostDetailSheetState();
+}
+
+class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
+  final _commentCtrl = TextEditingController();
+  List<Map<String, dynamic>> _comments = [];
+  bool _loadingComments = true;
+  bool _posting = false;
+  bool _deleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+    _commentCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _postId => widget.post['id']?.toString() ?? '';
+
+  Future<void> _loadComments() async {
+    try {
+      final d = await widget.api.getComments(_postId);
+      final results = d is Map
+          ? ((d['results'] as List?) ?? const [])
+          : (d is List ? d : const []);
+      if (!mounted) return;
+      setState(() {
+        _comments = results.cast<Map<String, dynamic>>();
+        _loadingComments = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingComments = false);
+    }
+  }
+
+  Future<void> _addComment() async {
+    final t = _commentCtrl.text.trim();
+    if (t.isEmpty || _posting) return;
+    HapticFeedback.lightImpact();
+    setState(() => _posting = true);
+    try {
+      final c = await widget.api.addComment(_postId, t)
+          as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _comments.insert(0, c);
+        _commentCtrl.clear();
+        _posting = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+        title: const Text('Delete this post?',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18)),
+        content: const Text(
+            'This permanently removes the post from the club. '
+            'This cannot be undone.',
+            style: TextStyle(fontFamily: 'Momo')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel',
+                style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete',
+                style: TextStyle(fontFamily: 'Arch', color: _kG4)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _deleting = true);
+    try {
+      await widget.api.delete('/posts/$_postId/');
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onDeleted();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          'Could not delete: ${e.toString().replaceAll("Exception: ", "")}',
+          style: const TextStyle(fontFamily: 'Momo', color: Colors.white),
+        ),
+        backgroundColor: _kG4,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.post;
+    final likes = p['like_count'] as int? ?? 0;
+    final cmts = p['comment_count'] as int? ??
+        p['comments_count'] as int? ?? _comments.length;
+    final shrs = p['share_count'] as int? ??
+        p['shares_count'] as int? ?? 0;
+    final canType = _commentCtrl.text.trim().isNotEmpty && !_posting;
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.78,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (_, scrollCtrl) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              children: [
+                _renderPostBody(p),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _stat(Icons.favorite_rounded, _kG4,
+                          '$likes', 'Likes'),
+                      _stat(Icons.chat_bubble_rounded, _kIndigo,
+                          '$cmts', 'Comments'),
+                      _stat(Icons.share_rounded, _kG3,
+                          '$shrs', 'Shares'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  const Text('Comments',
+                      style: TextStyle(
+                        fontFamily: 'Alfa', fontSize: 15, color: _kInk,
+                        fontWeight: FontWeight.w800,
+                      )),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _kIndigo.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('${_comments.length}',
+                        style: const TextStyle(
+                          fontFamily: 'Arch', fontSize: 11,
+                          color: _kIndigo, fontWeight: FontWeight.bold,
+                        )),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                if (_loadingComments)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                        child: CircularProgressIndicator(color: _kIndigo)),
+                  )
+                else if (_comments.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Center(
+                      child: Text('No comments yet. Be the first!',
+                          style: TextStyle(
+                              fontFamily: 'Momo', fontSize: 12,
+                              color: _kSlate)),
+                    ),
+                  )
+                else
+                  ..._comments.map(_renderComment),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+            ),
+            child: Row(children: [
+              if (widget.canDelete) ...[
+                GestureDetector(
+                  onTap: _deleting ? null : _delete,
+                  child: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _kG4, width: 1.5),
+                    ),
+                    child: _deleting
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(
+                                color: _kG4, strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete_outline_rounded,
+                            color: _kG4, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(child: TextField(
+                controller: _commentCtrl,
+                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Add a comment...',
+                  hintStyle: TextStyle(
+                      fontFamily: 'Momo', fontSize: 13,
+                      color: Colors.grey.shade400),
+                  filled: true,
+                  fillColor: _kBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                ),
+              )),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: canType ? _addComment : null,
+                child: Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    gradient: canType
+                        ? const LinearGradient(colors: [_kIndigo, _kDeep])
+                        : null,
+                    color: canType ? null : Colors.grey.shade300,
+                    shape: BoxShape.circle,
+                  ),
+                  child: _posting
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded,
+                          color: Colors.white, size: 18),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _renderPostBody(Map<String, dynamic> p) {
+    final author = p['author_name'] as String? ?? 'Member';
+    final avatar = p['author_avatar'] as String? ?? '';
+    final content = (p['content'] as String? ?? '').trim();
+    final media = (p['media'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    final firstMedia = media.isNotEmpty ? media.first : null;
+    final mediaUrl = (firstMedia?['url'] as String?) ??
+        (firstMedia?['thumbnail_url'] as String?) ?? '';
+    final isVideo = (firstMedia?['media_type'] as String? ?? '')
+            .toLowerCase().contains('video') ||
+        (firstMedia?['type'] as String? ?? '')
+            .toLowerCase().contains('video');
+    final initial = author.isNotEmpty ? author[0].toUpperCase() : '?';
+
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+      Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(colors: [_kG1, _kG2]),
+          ),
+          child: ClipOval(
+            child: avatar.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: avatar, fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
+                        Center(child: Text(initial,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Arch',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15))),
+                    placeholder: (_, __) =>
+                        Center(child: Text(initial,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Arch',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15))),
+                  )
+                : Center(child: Text(initial,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15))),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(author,
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Arch', fontSize: 14,
+              color: _kInk, fontWeight: FontWeight.bold,
+            ))),
+      ]),
+      if (mediaUrl.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: AspectRatio(
+            aspectRatio: 4 / 5,
+            child: Stack(fit: StackFit.expand, children: [
+              CachedNetworkImage(
+                imageUrl: mediaUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: _kBg),
+                errorWidget: (_, __, ___) =>
+                    Container(color: Colors.grey.shade200),
+              ),
+              if (isVideo)
+                Container(
+                  color: Colors.black.withOpacity(0.18),
+                  child: const Center(
+                    child: Icon(Icons.play_circle_fill_rounded,
+                        color: Colors.white, size: 56),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+      ],
+      if (content.isNotEmpty) ...[
+        SizedBox(height: mediaUrl.isNotEmpty ? 12 : 10),
+        Text(content,
+            style: const TextStyle(
+              fontFamily: 'Momo', fontSize: 14,
+              color: _kInk, height: 1.5,
+            )),
+      ],
+    ]);
+  }
+
+  Widget _stat(IconData icon, Color color, String n, String label) =>
+      Column(mainAxisSize: MainAxisSize.min, children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 4),
+          Text(n,
+              style: TextStyle(
+                fontFamily: 'Alfa', fontSize: 15, color: color,
+                fontWeight: FontWeight.w900,
+              )),
+        ]),
+        const SizedBox(height: 2),
+        Text(label,
+            style: const TextStyle(
+              fontFamily: 'Arch', fontSize: 10, color: _kSlate,
+              letterSpacing: 0.5,
+            )),
+      ]);
+
+  Widget _renderComment(Map<String, dynamic> c) {
+    final name = c['author_name'] as String? ?? '';
+    final text = (c['text'] as String?) ?? (c['content'] as String?) ?? '';
+    final avatar = c['author_avatar'] as String? ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32, height: 32,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [_kG1, _kG2]),
+            ),
+            child: ClipOval(
+              child: avatar.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: avatar, fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) =>
+                          Center(child: Text(initial,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Arch',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12))),
+                    )
+                  : Center(child: Text(initial,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12))),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _kBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              Text(name,
+                  style: const TextStyle(
+                    fontFamily: 'Arch', fontSize: 12,
+                    color: _kInk, fontWeight: FontWeight.bold,
+                  )),
+              const SizedBox(height: 3),
+              Text(text,
+                  style: const TextStyle(
+                    fontFamily: 'Momo', fontSize: 13,
+                    color: _kInk, height: 1.4,
+                  )),
+            ]),
+          )),
+        ],
+      ),
+    );
+  }
 }
