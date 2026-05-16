@@ -157,7 +157,7 @@ class _SearchScreenState extends State<SearchScreen> {
         final r = await _api.get(path, query: qp);
         return r is Map<String, dynamic> ? r : <String, dynamic>{};
       } catch (e) {
-        debugPrint('🔎 search \$path failed: \$e');
+        debugPrint('🔎 search $path failed: $e');
         return <String, dynamic>{};
       }
     }
@@ -186,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _loading = false;
       });
     } catch (e) {
-      debugPrint('🔎 search outer failure: \$e');
+      debugPrint('🔎 search outer failure: $e');
       if (mounted) setState(() => _loading = false);
     }
   }
