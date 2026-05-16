@@ -209,6 +209,328 @@ class _GroupsStudyHubScreenState
     }
   }
 
+  // ── Long-press → actions (creator: delete, member: leave) ─
+
+  void _showGroupActions(Map<String, dynamic> group) {
+    HapticFeedback.mediumImpact();
+    final isCreator = _isCreator(group);
+    final name = group['name'] as String? ?? 'Group';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(top: false, child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Row(children: [
+                Text(group['theme_icon'] as String? ?? '👥',
+                    style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 10),
+                Expanded(child: Text(name,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontFamily: 'Alfa',
+                        fontSize: 17, color: Color(0xFF1A1A2E)))),
+              ]),
+            ),
+            const SizedBox(height: 4),
+            if (isCreator)
+              ListTile(
+                leading: const Icon(Icons.delete_forever_rounded,
+                    color: _kG4, size: 22),
+                title: const Text('Delete Group',
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14, color: _kG4)),
+                subtitle: const Text(
+                    'Removes the group for every member. Materials are saved to your library.',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDissolveGroup(group);
+                },
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.logout_rounded,
+                    color: _kG3, size: 22),
+                title: const Text('Leave Group',
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14, color: _kG3)),
+                subtitle: const Text(
+                    'You will stop receiving updates from this group.',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmLeaveGroup(group);
+                },
+              ),
+            const SizedBox(height: 8),
+          ])),
+      ),
+    );
+  }
+
+  bool _isCreator(Map<String, dynamic> group) {
+    if (group['is_creator'] == true) return true;
+    if (group['is_owner']   == true) return true;
+    return false;
+  }
+
+  // ── Dissolve (creator) ──────────────────────────────────
+
+  Future<void> _confirmDissolveGroup(Map<String, dynamic> group) async {
+    final reasonCtrl = TextEditingController();
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _kG4.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.delete_forever_rounded,
+                    color: _kG4, size: 20)),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Delete Group',
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+            ]),
+            const SizedBox(height: 10),
+            Text(
+              'This removes the group for every member. All shared '
+              'materials will be saved to your Digital Library first.',
+              style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 12.5, color: Colors.grey.shade600, height: 1.4)),
+            const SizedBox(height: 14),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200)),
+              child: TextField(
+                controller: reasonCtrl, autofocus: true, maxLines: 3,
+                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Reason for deleting...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(14)),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Cancel',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                ),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: GestureDetector(
+                onTap: () {
+                  final v = reasonCtrl.text.trim();
+                  if (v.isNotEmpty) Navigator.pop(ctx, v);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _kG4,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Delete',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, fontSize: 13))),
+                ),
+              )),
+            ]),
+          ]),
+        ),
+      ),
+    );
+
+    if (reason == null || reason.isEmpty || !mounted) return;
+    await _executeDissolve(group, reason);
+  }
+
+  Future<void> _executeDissolve(Map<String, dynamic> group, String reason) async {
+    final gid   = group['id']?.toString() ?? '';
+    final gname = group['name'] as String? ?? 'Group';
+    setState(() => _deletingIds.add(gid));
+
+    // Archive every material to the user's library before destroying
+    try {
+      final mats = await _api.getGroupMaterials(gid);
+      final list = mats is List
+          ? mats.cast<Map<String, dynamic>>()
+          : (mats is Map
+              ? ((mats['results'] as List?) ?? const [])
+                  .cast<Map<String, dynamic>>()
+              : <Map<String, dynamic>>[]);
+      await Future.wait(list.map((mat) => _api.post('/chat/saved/save/', body: {
+        'title':              mat['title']     ?? '',
+        'file_url':           mat['file_url']  ?? mat['external_url'] ?? '',
+        'file_name':          mat['file_name'] ?? '',
+        'file_type':          mat['file_type'] ?? '',
+        'subject':            group['theme'] ?? group['category'] ?? '',
+        'source_group_name':  gname,
+        'source_type':        'group_dissolved',
+      }).catchError((_) => null)));
+    } catch (_) {}
+
+    try {
+      await _api.delete('/groups/$gid/', body: {'reason': reason});
+      _api.post('/activity/', body: {
+        'event_type':  'group_dissolved',
+        'target_type': 'group',
+        'target_id':   gid,
+        'target_name': gname,
+        'message':     reason,
+      }).catchError((_) {});
+
+      await Future.delayed(const Duration(milliseconds: 420));
+      if (!mounted) return;
+      setState(() {
+        _myGroups.removeWhere((x) => x['id']?.toString() == gid);
+        _deletingIds.remove(gid);
+      });
+      _loadActivity();
+      _snack('"$gname" deleted');
+    } catch (e) {
+      if (mounted) setState(() => _deletingIds.remove(gid));
+      _snack('Failed: $e');
+    }
+  }
+
+  // ── Leave (member) ──────────────────────────────────────
+
+  Future<void> _confirmLeaveGroup(Map<String, dynamic> group) async {
+    final name = group['name'] as String? ?? 'Group';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22)),
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: _kG3.withOpacity(0.12),
+                shape: BoxShape.circle),
+              child: const Icon(Icons.logout_rounded,
+                  color: _kG3, size: 28)),
+            const SizedBox(height: 14),
+            Text('Leave "$name"?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontFamily: 'Alfa',
+                    fontSize: 18, color: Color(0xFF1A1A2E))),
+            const SizedBox(height: 8),
+            Text(
+                "You'll stop receiving posts and materials from this group. "
+                "You can re-join later if it's public.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
+                    height: 1.4, color: Colors.grey.shade600)),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx, false),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Cancel',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                ),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx, true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_kG3, _kG4]),
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Leave',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, fontSize: 13))),
+                ),
+              )),
+            ]),
+          ]),
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _executeLeave(group);
+  }
+
+  Future<void> _executeLeave(Map<String, dynamic> group) async {
+    final gid   = group['id']?.toString() ?? '';
+    final gname = group['name'] as String? ?? 'Group';
+    setState(() => _deletingIds.add(gid));
+    try {
+      await _api.leaveGroup(gid);
+      _api.post('/activity/', body: {
+        'event_type':  'group_left',
+        'target_type': 'group',
+        'target_id':   gid,
+        'target_name': gname,
+      }).catchError((_) {});
+      await Future.delayed(const Duration(milliseconds: 420));
+      if (!mounted) return;
+      setState(() {
+        _myGroups.removeWhere((x) => x['id']?.toString() == gid);
+        _deletingIds.remove(gid);
+      });
+      _loadActivity();
+      _snack('Left "$gname"');
+    } catch (e) {
+      if (mounted) setState(() => _deletingIds.remove(gid));
+      _snack('Could not leave: $e');
+    }
+  }
+
   // ── Availability ──────────────────────────────────────────
 
   Future<void> _toggleAvailability() async {
@@ -612,6 +934,7 @@ class _GroupsStudyHubScreenState
                 child: _GroupCard(
                   group: g,
                   onTap: () => _openMyGroup(g),
+                  onLongPress: () => _showGroupActions(g),
                 ),
               );
             }),
@@ -840,11 +1163,13 @@ class _GroupCard extends StatelessWidget {
   final Map<String, dynamic> group;
   final VoidCallback onTap;
   final VoidCallback? onJoin;
+  final VoidCallback? onLongPress;
 
   const _GroupCard({
     required this.group,
     required this.onTap,
     this.onJoin,
+    this.onLongPress,
   });
 
   @override
@@ -860,6 +1185,7 @@ class _GroupCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
