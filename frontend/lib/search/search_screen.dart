@@ -151,36 +151,42 @@ class _SearchScreenState extends State<SearchScreen> {
     _lastQuery = q;
     setState(() => _loading = true);
 
+    // Per-call helper: log failures instead of swallowing them silently
+    Future<Map<String, dynamic>> safe(String path, Map<String, String> qp) async {
+      try {
+        final r = await _api.get(path, query: qp);
+        return r is Map<String, dynamic> ? r : <String, dynamic>{};
+      } catch (e) {
+        debugPrint('🔎 search \$path failed: \$e');
+        return <String, dynamic>{};
+      }
+    }
+
     try {
       final results = await Future.wait([
-        _api.get('/posts/search/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
-        _api.get('/search/people/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
-        _api.get('/groups/', query: {'q': q, 'category': 'club'}).catchError((_) => <String, dynamic>{}),
-        _api.get('/events/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
+        safe('/posts/search/', {'q': q}),
+        safe('/users/search/', {'q': q}),
+        safe('/clubs/',        {'q': q}),
+        safe('/events/',       {'q': q}),
       ]);
 
-      final postsData  = results[0] as Map<String, dynamic>? ?? {};
-      final peopleData = results[1] as Map<String, dynamic>? ?? {};
-      final groupsData = results[2] as Map<String, dynamic>? ?? {};
-      final eventsData = results[3] as Map<String, dynamic>? ?? {};
+      final postsData  = results[0];
+      final peopleData = results[1];
+      final clubsData  = results[2];
+      final eventsData = results[3];
 
       if (!mounted) return;
 
       setState(() {
         _allPosts  = (postsData['results']  as List? ?? []).cast<Map<String, dynamic>>();
         _allPeople = (peopleData['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        
-        final allGroups = (groupsData['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        _allClubs = allGroups.where((g) =>
-            (g['category']?.toString() ?? '').toLowerCase() == 'club').toList();
-
+        _allClubs  = (clubsData['results']  as List? ?? []).cast<Map<String, dynamic>>();
         _allEvents = (eventsData['results'] as List? ?? eventsData['events'] as List? ?? [])
             .cast<Map<String, dynamic>>();
-
         _loading = false;
       });
     } catch (e) {
-      print('Search error: $e');
+      debugPrint('🔎 search outer failure: \$e');
       if (mounted) setState(() => _loading = false);
     }
   }
