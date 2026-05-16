@@ -23,6 +23,28 @@ User = get_user_model()
 
 # ── Serializers ───────────────────────────────────────────────
 
+
+def _chat_media_url(msg, request=None):
+    """Return the correct Cloudinary URL for a chat Message.
+
+    CloudinaryField.url always builds /image/upload/, which 404s for audio
+    + video assets (served at /video/upload/) and files (/raw/upload/).
+    This rewrites the path based on Message.message_type so chat history
+    returns playable URLs for every media kind.
+    """
+    if not getattr(msg, "media", None):
+        return None
+    try:
+        raw_url = msg.media.url
+    except (ValueError, AttributeError):
+        return None
+    if msg.message_type in ("audio", "video"):
+        raw_url = raw_url.replace("/image/upload/", "/video/upload/")
+    elif msg.message_type == "file":
+        raw_url = raw_url.replace("/image/upload/", "/raw/upload/")
+    return request.build_absolute_uri(raw_url) if request else raw_url
+
+
 class MemberSerializer(serializers.ModelSerializer):
     user_id      = serializers.CharField(source="user.user_id")
     display_name = serializers.CharField(source="user.display_name")
@@ -500,7 +522,7 @@ def message_history(request, room_id):
                              if m.sender and m.sender.avatar else None,
             "message_type": m.message_type,
             "text":         m.text,
-            "media_url":    request.build_absolute_uri(m.media.url) if m.media else m.media_url or None,
+            "media_url":    _chat_media_url(m, request) if m.media else m.media_url or None,
             "file_name":    m.file_name or None,
             "file_size":    m.file_size,
             "is_deleted":   m.is_deleted,
@@ -695,7 +717,7 @@ def save_material(request):
 
             if not file_url:
                 if message.media:
-                    file_url = request.build_absolute_uri(message.media.url)
+                    file_url = _chat_media_url(message, request)
                 elif message.media_url:
                     file_url = message.media_url
             if not file_name:
@@ -848,7 +870,7 @@ def upload_chat_media(request):
         last_message_sender=request.user,
     )
 
-    media_url = explicit_url or request.build_absolute_uri(msg.media.url)
+    media_url = explicit_url or _chat_media_url(msg, request)
 
     # Phase 3A: push the new message into the chat list group so the chat
     # list bumps this room to the top and increments the unread badge live.
