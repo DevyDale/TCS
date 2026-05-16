@@ -18,6 +18,7 @@ User = get_user_model()
 class GroupSerializer(serializers.ModelSerializer):
     avatar_url      = serializers.SerializerMethodField()
     is_joined       = serializers.SerializerMethodField()
+    is_creator      = serializers.SerializerMethodField()
     is_admin        = serializers.SerializerMethodField()
     is_expired      = serializers.SerializerMethodField()
     # ── exposed from new model properties ──────────────────
@@ -33,6 +34,7 @@ class GroupSerializer(serializers.ModelSerializer):
             "requires_approval", "members_count", "active_now",
             "duration_days", "expires_at", "is_joined", "is_admin",
             "is_expired", "created_at",
+            "is_creator",
         ]
 
     def get_avatar_url(self, obj):
@@ -40,6 +42,11 @@ class GroupSerializer(serializers.ModelSerializer):
         if obj.avatar:
             return req.build_absolute_uri(obj.avatar.url) if req else obj.avatar.url
         return None
+
+    def get_is_creator(self, obj):
+        req = self.context.get('request')
+        return bool(req and req.user.is_authenticated
+                    and obj.created_by_id == req.user.id)
 
     def get_is_joined(self, obj):
         u = self.context.get("request") and self.context["request"].user
