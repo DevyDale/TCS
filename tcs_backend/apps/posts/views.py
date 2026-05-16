@@ -110,21 +110,21 @@ class PostListCreateView(generics.ListCreateAPIView):
         return {"request": self.request}
 
     def get_queryset(self):
-        qs      = (Post.objects
-                       .select_related("author", "club")
-                       .prefetch_related("media_files", "hashtags")
-                       .filter(visibility="public")
-                       .exclude(is_flagged=True))
+        qs = (Post.objects
+                  .select_related("author")
+                  .prefetch_related("media_files", "hashtags")
+                  .exclude(is_flagged=True))
+
+        group_id = self.request.query_params.get("group_id")
+        if group_id:
+            qs = qs.filter(group_id=group_id)
+        else:
+            qs = qs.filter(visibility="public", group__isnull=True)
+
         user_id = self.request.query_params.get("user_id")
-        club_id = self.request.query_params.get("club_id")
         if user_id:
             qs = qs.filter(author__user_id=user_id)
-        if club_id:
-            # Posts scoped to a specific club. Used by the in-club
-            # Feed tab. Visibility filter above already restricts to
-            # public; club admins can broaden this in a later phase.
-            qs = qs.filter(club_id=club_id)
-        qs = filter_posts_by_role(qs, self.request.user)
+
         return qs.order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
@@ -323,12 +323,9 @@ class MyPostsView(generics.ListAPIView):
                     .select_related("author")
                     .prefetch_related("media_files", "hashtags")
                     .filter(author=self.request.user, post_type=post_type)
+                    .filter(group__isnull=True)
+                    .exclude(is_flagged=True)
                     .order_by("-created_at"))
-
-
-# ─────────────────────────────────────────────────────────────
-# BOOKMARKS
-# ─────────────────────────────────────────────────────────────
 
 class BookmarkListView(generics.ListAPIView):
     """GET /api/posts/bookmarks/"""
