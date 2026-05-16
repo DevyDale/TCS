@@ -384,16 +384,40 @@ class _GroupScreenState extends State<GroupScreen>
   // ── Upload photo / video ──────────────────────────────────
 
   Future<void> _uploadMedia() async {
-    final picked = await _picker.pickMedia(requestFullMetadata: false);
+    final action = await _showMediaPickerSheet();
+    if (action == null) return;
+
+    XFile? picked;
+    bool isVideo = false;
+    try {
+      switch (action) {
+        case 'take_photo':
+          picked = await _picker.pickImage(source: ImageSource.camera);
+          break;
+        case 'record_video':
+          picked = await _picker.pickVideo(source: ImageSource.camera);
+          isVideo = true;
+          break;
+        case 'gallery_photo':
+          picked = await _picker.pickImage(source: ImageSource.gallery);
+          break;
+        case 'gallery_video':
+          picked = await _picker.pickVideo(source: ImageSource.gallery);
+          isVideo = true;
+          break;
+      }
+    } catch (e) {
+      _snack('Could not open picker: $e');
+      return;
+    }
     if (picked == null) return;
 
-    final path  = picked.path;
-    final lower = path.toLowerCase();
-    final isVid = lower.endsWith('.mp4') ||
-                  lower.endsWith('.mov')  ||
-                  lower.endsWith('.webm');
-    final ext = path.split('.').last.toLowerCase();
-    final mime = isVid
+    final path = picked.path;
+    final ext  = path.split('.').last.toLowerCase();
+    if (!isVideo) {
+      isVideo = ext == 'mp4' || ext == 'mov' || ext == 'webm';
+    }
+    final mime = isVideo
         ? 'video/$ext'
         : (ext == 'png' ? 'image/png'
            : ext == 'gif' ? 'image/gif' : 'image/jpeg');
@@ -411,23 +435,74 @@ class _GroupScreenState extends State<GroupScreen>
         _loadMaterials();
         _emitActivity(
           eventType: 'material_shared',
-          message:   'shared a ${isVid ? 'video' : 'photo'}: $fileName',
+          message:   'shared a ${isVideo ? 'video' : 'photo'}: $fileName',
         );
-        _snack('${isVid ? 'Video' : 'Photo'} uploaded ✓');
+        _snack('${isVideo ? 'Video' : 'Photo'} uploaded ✓');
       }
     } catch (e) {
       _snack('Upload failed: $e');
     }
   }
 
+  Future<String?> _showMediaPickerSheet() {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(top: false, child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(children: [
+                Icon(Icons.photo_camera_rounded, color: _kG3, size: 22),
+                SizedBox(width: 10),
+                Text('Photo or Video',
+                    style: TextStyle(fontFamily: 'Alfa',
+                        fontSize: 17, color: Color(0xFF1A1A2E))),
+              ]),
+            ),
+            _sheetTile(ctx, 'take_photo',
+              Icons.camera_alt_rounded, 'Take Photo', _kG3),
+            _sheetTile(ctx, 'record_video',
+              Icons.videocam_rounded, 'Record Video', _kG4),
+            _sheetTile(ctx, 'gallery_photo',
+              Icons.photo_library_rounded, 'Choose Photo from Gallery', _indigo),
+            _sheetTile(ctx, 'gallery_video',
+              Icons.video_library_rounded, 'Choose Video from Gallery', _kG2),
+            const SizedBox(height: 10),
+          ])),
+      ),
+    );
+  }
+
   // ── Upload document ───────────────────────────────────────
 
   Future<void> _uploadDocument() async {
+    final cat = await _showDocPickerSheet();
+    if (cat == null) return;
+
+    const typeMap = <String, List<String>>{
+      'pdf':   ['pdf'],
+      'word':  ['doc', 'docx'],
+      'excel': ['xls', 'xlsx', 'csv'],
+      'ppt':   ['ppt', 'pptx'],
+      'text':  ['txt'],
+    };
+    final exts = typeMap[cat] ??
+        const ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
+
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const [
-        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
-      ],
+      allowedExtensions: exts,
       allowMultiple: false,
       withData: false,
     );
@@ -466,6 +541,73 @@ class _GroupScreenState extends State<GroupScreen>
     } catch (e) {
       _snack('Upload failed: $e');
     }
+  }
+
+  Future<String?> _showDocPickerSheet() {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(top: false, child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(children: [
+                Icon(Icons.description_rounded, color: _indigo, size: 22),
+                SizedBox(width: 10),
+                Text('Upload Document',
+                    style: TextStyle(fontFamily: 'Alfa',
+                        fontSize: 17, color: Color(0xFF1A1A2E))),
+              ]),
+            ),
+            _sheetTile(ctx, 'pdf',
+              Icons.picture_as_pdf_rounded, 'PDF', const Color(0xFFEF4444)),
+            _sheetTile(ctx, 'word',
+              Icons.article_rounded, 'Word Document', const Color(0xFF2563EB)),
+            _sheetTile(ctx, 'excel',
+              Icons.table_chart_rounded, 'Excel / CSV', const Color(0xFF16A34A)),
+            _sheetTile(ctx, 'ppt',
+              Icons.slideshow_rounded, 'PowerPoint', const Color(0xFFEA580C)),
+            _sheetTile(ctx, 'text',
+              Icons.text_snippet_rounded, 'Text File', const Color(0xFF64748B)),
+            const SizedBox(height: 10),
+          ])),
+      ),
+    );
+  }
+
+  Widget _sheetTile(BuildContext ctx, String value, IconData icon,
+      String label, Color color) {
+    return InkWell(
+      onTap: () => Navigator.pop(ctx, value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, color: color, size: 22)),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label,
+              style: const TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, color: Color(0xFF1A1A2E)))),
+          Icon(Icons.chevron_right_rounded,
+              color: Colors.grey.shade400, size: 20),
+        ]),
+      ),
+    );
   }
 
   // ── Members ───────────────────────────────────────────────
