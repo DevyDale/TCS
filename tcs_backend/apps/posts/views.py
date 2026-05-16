@@ -128,7 +128,7 @@ class PostListCreateView(generics.ListCreateAPIView):
         return qs.order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
-        ser = CreatePostSerializer(data=request.data)
+        ser = CreatePostSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
         post = ser.save(author=request.user)
 
