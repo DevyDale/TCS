@@ -2400,8 +2400,16 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _generating = false);
+      final raw = e.toString();
+      final friendly = raw.contains("REPLICATE_API_TOKEN not set")
+          ? "AI poster generation isn't set up on the server yet. You can upload your own poster instead."
+          : raw.contains("401") || raw.contains("Unauthenticated")
+              ? "AI poster generation is unavailable right now. Try uploading your own poster instead."
+              : raw.contains("timeout") || raw.contains("TimeoutException")
+                  ? "Poster generation took too long. Try a shorter prompt or upload your own poster."
+                  : "Couldn't generate a poster right now. You can upload your own instead.";
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Poster generation failed: ${e.toString().replaceAll("Exception: ", "")}',
+        content: Text(friendly,
             style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
         backgroundColor: _kG4,
         behavior: SnackBarBehavior.floating,
