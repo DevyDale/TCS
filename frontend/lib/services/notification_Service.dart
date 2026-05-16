@@ -91,6 +91,8 @@ class NotificationService extends ChangeNotifier {
     _connectWS();
   }
 
+  
+
   Future<void> disposeAll() async {
     _reconnectTimer?.cancel();
     await _wsSub?.cancel();

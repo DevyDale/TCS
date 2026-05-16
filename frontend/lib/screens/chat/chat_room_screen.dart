@@ -33,6 +33,8 @@ import 'package:tcs_app/screens/chat/chat_audio_player.dart';
 import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
 import 'package:tcs_app/screens/ai/system_message_pill.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcs_app/screens/auth/session_keys.dart';
 import '../../services/api_service.dart';
 
 
@@ -86,6 +88,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   /// instantly without a re-fetch.
   final Map<int, String> _stickerById = {};
 
+  /// Logged-in user's user_id, loaded lazily inside _loadHistory.
+  /// Used to compute is_me by comparing sender_id from the backend.
+  String _myUserId = '';
+
   bool get _isStudyBuddy => widget.roomType == 'study_buddy';
 
   @override
@@ -121,6 +127,7 @@ Future<void> _pickAndSendMedia() async {
 
   final tempMsg = {
     'id': tempId,
+    'sender_id': _myUserId,
     'sender_name': widget.userName,
     'message_type': isVideo ? 'video' : 'image',
     'media_url': '',
@@ -208,6 +215,12 @@ void _onWsMessage(Map<String, dynamic> event) {
   _scrollToBottom();
 }
 Future<void> _loadHistory() async {
+  if (_myUserId.isEmpty) {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() {
+      _myUserId = prefs.getString(SessionKeys.userId) ?? '';
+    });
+  }
   try {
     final data = await _api.getRoomMessages(widget.roomId) as Map<String, dynamic>;
     final rawMessages = ((data['results'] as List?) ?? [])
@@ -351,6 +364,7 @@ Future<void> _loadHistory() async {
     // Optimistic UI
     final tempMsg = {
       'id': 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      'sender_id': _myUserId,
       'sender_name': widget.userName, 'text': text,
       'message_type': 'text', 'created_at': DateTime.now().toIso8601String(),
       'is_me': true,
@@ -383,6 +397,7 @@ Future<void> _loadHistory() async {
 
     final tempMsg = {
       'id':           'temp_${DateTime.now().millisecondsSinceEpoch}',
+      'sender_id':  _myUserId,
       'sender_name':  widget.userName,
       'message_type': 'sticker',
       'sticker_id':   id,
@@ -402,6 +417,7 @@ Future<void> _loadHistory() async {
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempMsg = {
       'id':           tempId,
+      'sender_id':  _myUserId,
       'sender_name':  widget.userName,
       'message_type': 'image',
       'media_url':    '',
@@ -457,6 +473,7 @@ Future<void> _loadHistory() async {
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempMsg = {
       'id':           tempId,
+      'sender_id':  _myUserId,
       'sender_name':  widget.userName,
       'message_type': 'audio',
       'duration':     rec.durationSeconds,
