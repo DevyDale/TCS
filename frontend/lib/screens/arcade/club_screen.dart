@@ -520,7 +520,6 @@ class _ClubScreenState extends State<ClubScreen> {
     }
   }
 
-
   // ─── Dissolve club (president / creator only) ───────────────
 
   Future<void> _dissolveClub() async {
@@ -1936,7 +1935,6 @@ class _ClubScreenState extends State<ClubScreen> {
     }
   }
 
-
   // ── Approvals card (admin + requires_approval + pending > 0) ─────
 
   Widget _buildApprovalsCard() {
@@ -2171,7 +2169,6 @@ class _ClubScreenState extends State<ClubScreen> {
     }
   }
 
-
   // ─── PHASE 3: Admin inline editing ──────────────────────────
   final ImagePicker _adminPicker = ImagePicker();
 
@@ -2315,13 +2312,11 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   final _titleCtrl = TextEditingController();
   final _descCtrl  = TextEditingController();
   final _locCtrl   = TextEditingController();
-  final _promptCtrl = TextEditingController();
 
   DateTime? _start;
   DateTime? _end;
 
   String? _posterUrl;
-  bool _generating = false;
   bool _saving = false;
 
   @override
@@ -2329,7 +2324,6 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _locCtrl.dispose();
-    _promptCtrl.dispose();
     super.dispose();
   }
 
@@ -2364,60 +2358,6 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
         _end = combined;
       }
     });
-  }
-
-  Future<void> _generatePoster() async {
-    final prompt = _promptCtrl.text.trim();
-    final title = _titleCtrl.text.trim();
-    if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Add a prompt describing your poster',
-            style: TextStyle(fontFamily: 'Momo', color: Colors.white)),
-        backgroundColor: _kG4,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ));
-      return;
-    }
-
-    setState(() => _generating = true);
-    try {
-      // Backend assumption: POST /api/events/generate-poster/
-      //   body: { prompt, title, club_id }
-      //   returns: { poster_url }
-      final res = await widget.api.generateEventPoster(
-        prompt: prompt,
-        title: title,
-        clubId: widget.clubId,
-      ) as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _posterUrl = res['poster_url'] as String?;
-        _generating = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _generating = false);
-      final raw = e.toString();
-      final friendly = raw.contains("REPLICATE_API_TOKEN not set")
-          ? "AI poster generation isn't set up on the server yet. You can upload your own poster instead."
-          : raw.contains("401") || raw.contains("Unauthenticated")
-              ? "AI poster generation is unavailable right now. Try uploading your own poster instead."
-              : raw.contains("timeout") || raw.contains("TimeoutException")
-                  ? "Poster generation took too long. Try a shorter prompt or upload your own poster."
-                  : "Couldn't generate a poster right now. You can upload your own instead.";
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(friendly,
-            style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
-        backgroundColor: _kG4,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ));
-    }
   }
 
   Future<void> _save() async {
@@ -2529,111 +2469,6 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
                 _dateRow(_fmt(_end),
                     onTap: () => _pickDateTime(isStart: false)),
                 const SizedBox(height: 22),
-
-                // Flux AI poster card
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        _kG2.withOpacity(0.08),
-                        _kG1.withOpacity(0.08),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _kG2.withOpacity(0.20)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(children: [
-                        Icon(Icons.auto_awesome_rounded,
-                            color: _kG2, size: 18),
-                        SizedBox(width: 6),
-                        Text('AI Poster Generator',
-                            style: TextStyle(
-                              fontFamily: 'Alfa', fontSize: 15, color: _kInk,
-                              fontWeight: FontWeight.w800,
-                            )),
-                      ]),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Describe the vibe and we\'ll generate a poster with Flux.',
-                        style: TextStyle(
-                          fontFamily: 'Momo', fontSize: 12,
-                          color: Colors.grey.shade600, height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _textField(_promptCtrl,
-                          hint: 'e.g. cinematic football training at sunset, '
-                              'dramatic lighting, navy and gold colors',
-                          maxLines: 2),
-                      const SizedBox(height: 12),
-                      if (_posterUrl != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: AspectRatio(
-                            aspectRatio: 4 / 3,
-                            child: CachedNetworkImage(
-                              imageUrl: _posterUrl!,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                color: Colors.grey.shade100,
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(Icons.broken_image_rounded,
-                                      color: _kSlate),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      GestureDetector(
-                        onTap: _generating ? null : _generatePoster,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [_kG2, _kG1]),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: _generating
-                                ? const SizedBox(
-                                    width: 18, height: 18,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2),
-                                  )
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.auto_awesome_rounded,
-                                          color: Colors.white, size: 14),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                          _posterUrl == null
-                                              ? 'Generate Poster'
-                                              : 'Regenerate',
-                                          style: const TextStyle(
-                                            fontFamily: 'Arch', fontSize: 13,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
                 const SizedBox(height: 24),
 
