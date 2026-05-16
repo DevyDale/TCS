@@ -2335,42 +2335,7 @@ class _EventCardState extends State<_EventCard>
             ]),
           ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Divider(height: 1, color: Colors.grey.shade100),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-            child: Row(children: [
-              ScaleTransition(
-                scale: _heartScale,
-                child: _ActionBtn(
-                  icon: _liked
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_outline_rounded,
-                  label: _fmt(_likeCount),
-                  color: _liked ? _kCoral : _kSlate,
-                  onTap: _handleLike,
-                  filled: _liked,
-                  fillColor: _kCoral.withOpacity(0.07),
-                ),
-              ),
-              const SizedBox(width: 4),
-              _ActionBtn(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: _fmt(_commentCount),
-                color: _kViolet,
-                onTap: _handleComment,
-              ),
-              const SizedBox(width: 4),
-              _ActionBtn(
-                icon: Icons.ios_share_rounded,
-                label: _shareCount > 0 ? _fmt(_shareCount) : 'Share',
-                color: _kAmber,
-                onTap: _handleShare,
-              ),
-            ]),
-          ),
+          const SizedBox(height: 12),
         ]),
       ),
     );
