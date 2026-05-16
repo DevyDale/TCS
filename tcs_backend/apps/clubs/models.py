@@ -126,3 +126,43 @@ class ClubMember(models.Model):
 
     def __str__(self):
         return f"{self.user} @ {self.club} ({self.role})"
+
+
+class ClubInvite(models.Model):
+    """An admin-initiated invitation for a user to join a club.
+
+    Lives independently of ClubMember so we can track the lifecycle
+    (pending → accepted/declined) and surface it via Notifications.
+    On accept, a ClubMember row is created with status='active'.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    club = models.ForeignKey(
+        'Club', on_delete=models.CASCADE, related_name='invites')
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='club_invites_sent')
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='club_invites_received')
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['club', 'recipient'],
+                condition=models.Q(status='pending'),
+                name='unique_pending_club_invite',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.sender} → {self.recipient} ({self.club}, {self.status})"

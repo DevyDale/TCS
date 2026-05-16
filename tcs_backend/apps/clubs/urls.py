@@ -1,6 +1,7 @@
 # apps/clubs/urls.py
 from django.urls import path
 from . import views as v
+from . import invite_views as iv
 
 urlpatterns = [
     path('events-feed/', v.club_events_feed,     name='club-events-feed'),
@@ -40,4 +41,7 @@ urlpatterns = [
     path("<uuid:pk>/members/<str:user_id>/decline/",
                                v.reject_member,           name="club-member-decline"),
     path("<uuid:pk>/events/",  v.create_club_event,       name="club-event-create"),
+    path("<uuid:pk>/send-invite/",        iv.send_club_invite,    name="club-send-invite"),
+    path("invites/<uuid:invite_id>/accept/",  iv.accept_club_invite,  name="club-invite-accept"),
+    path("invites/<uuid:invite_id>/decline/", iv.decline_club_invite, name="club-invite-decline"),
 ]
