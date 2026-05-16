@@ -507,7 +507,7 @@ def message_history(request, room_id):
     if not RoomMember.objects.filter(room_id=room_id, user=request.user).exists():
         return Response({"error": "Not a member."}, status=403)
     before = request.query_params.get("before")
-    qs = Message.objects.filter(room_id=room_id).select_related("sender").order_by("-created_at")
+    qs = Message.objects.filter(room_id=room_id, is_deleted=False).select_related("sender").order_by("-created_at")
     if before:
         try:
             pivot = Message.objects.get(id=before)
@@ -542,7 +542,7 @@ def message_history(request, room_id):
 
 @api_view(["POST"])
 def mark_room_read(request, room_id):
-    last = Message.objects.filter(room_id=room_id).last()
+    last = Message.objects.filter(room_id=room_id, is_deleted=False).last()
     if last:
         RoomMember.objects.filter(room_id=room_id, user=request.user).update(
             last_read_message=last)
