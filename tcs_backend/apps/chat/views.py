@@ -14,6 +14,7 @@ from django.conf import settings as django_settings
 
 from .models import Room, RoomMember, Message, StickerPack, Sticker, ChatRequest, SavedMaterial
 from apps.groups.models import Group         # ← used to auto-tag saved materials
+import cloudinary.uploader
 from apps.media.validators import validate_file
 from apps.accounts.role_perms import is_cross_role, visible_user_qs
 
@@ -813,10 +814,28 @@ def upload_chat_media(request):
     except ValueError as e:
         return Response({"error": str(e)}, status=400)
 
+    # Cloudinary: images go as image (default), audio + video as 'video',
+    # everything else (pdf/zip/docx) as 'raw'. Without this override the
+    # CloudinaryField tries to upload audio/m4a as an image and fails with
+    # 'Invalid image file'.
+    mtype = validated["message_type"]
+    if mtype in ("audio", "video"):
+        _up = cloudinary.uploader.upload(
+            file, resource_type="video",
+            folder=f"tcs_studenthub/chat/{mtype}")
+        media_val = _up["public_id"]
+    elif mtype == "file":
+        _up = cloudinary.uploader.upload(
+            file, resource_type="raw",
+            folder="tcs_studenthub/chat/files")
+        media_val = _up["public_id"]
+    else:
+        media_val = file  # image / gif — let CloudinaryField handle it
+
     msg = Message.objects.create(
         room_id=room_id, sender=request.user,
-        message_type=validated["message_type"],
-        media=file,
+        message_type=mtype,
+        media=media_val,
         file_name=file.name,
         file_size=file.size,
     )
