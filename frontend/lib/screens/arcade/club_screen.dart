@@ -3656,7 +3656,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: AspectRatio(
-            aspectRatio: 4 / 5,
+            aspectRatio: 4 / 3,
             child: Stack(fit: StackFit.expand, children: [
               CachedNetworkImage(
                 imageUrl: mediaUrl,
