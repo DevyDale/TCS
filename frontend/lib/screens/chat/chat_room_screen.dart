@@ -134,7 +134,10 @@ Future<void> _pickAndSendMedia() async {
   _scrollToBottom();
 
   try {
-    final mimeType = isVideo ? 'video/mp4' : 'image/jpeg';
+    final mimeType = isVideo
+        ? (picked.path.toLowerCase().endsWith('.mov')
+            ? 'video/quicktime' : 'video/mp4')
+        : 'image/jpeg';
 
     final res = await _api.uploadChatMedia(
       roomId: widget.roomId,
@@ -169,7 +172,8 @@ Future<void> _pickAndSendMedia() async {
   } catch (e) {
     if (!mounted) return;
     setState(() => _messages.removeWhere((m) => m['id'] == tempId));
-    _showSnack("Couldn't send media. Try again.");
+    debugPrint('📷 media upload failed: $e');
+    _showSnack('Media failed: $e');
   }
 }
   // ── Data ──────────────────────────────────────────────────
@@ -468,7 +472,7 @@ Future<void> _loadHistory() async {
       final res = await _api.uploadChatMedia(
         roomId:   widget.roomId,
         file:     File(rec.filePath),
-        mimeType: 'audio/m4a',
+        mimeType: 'audio/mp4',
       ) as Map<String, dynamic>;
 
       final mediaUrl  = (res['media_url'] ?? res['url']) as String? ?? '';
@@ -497,7 +501,8 @@ Future<void> _loadHistory() async {
     } catch (e) {
       if (!mounted) return;
       setState(() => _messages.removeWhere((m) => m['id'] == tempId));
-      _showSnack('Couldn\'t send voice note. Try again.');
+      debugPrint('🎤 voice upload failed: $e');
+      _showSnack('Voice note failed: $e');
     } finally {
       try { File(rec.filePath).deleteSync(); } catch (_) {}
     }
