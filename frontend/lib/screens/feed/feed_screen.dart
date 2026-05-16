@@ -1154,25 +1154,26 @@ class _PostCardState extends State<_PostCard>
     _heartCtrl.animateTo(1.0,
         duration: const Duration(milliseconds: 200), curve: Curves.elasticOut);
   }
-
   Future<void> _handleBookmark() async {
-    HapticFeedback.lightImpact();
-    final newVal = !_bookmarked;
-    setState(() => _bookmarked = newVal);
-    try {
-      final pid = widget.post['id']?.toString() ?? '';
-      if (pid.isNotEmpty) {
-        if (newVal) {
-          await _api.post('/posts/$pid/favorite/');
-        } else {
-          await _api.delete('/posts/$pid/favorite/');
-        }
-      }
-    } catch (_) {
-      if (mounted) setState(() => _bookmarked = !newVal);
-    }
-  }
+  HapticFeedback.lightImpact();
+  final was = _bookmarked;
+  final newVal = !was;
 
+  setState(() => _bookmarked = newVal);
+
+  final pid = widget.post['id']?.toString() ?? '';
+  if (pid.isEmpty) return;
+
+  try {
+    if (newVal) {
+      await _api.post('/posts/$pid/favorite/');           // ← Clean call
+    } else {
+      await _api.delete('/posts/$pid/favorite/');
+    }
+  } catch (_) {
+    if (mounted) setState(() => _bookmarked = was);
+  }
+}
   static List<Color> _roleGrad(String role) {
     switch (role.toLowerCase()) {
       case 'student':            return [const Color(0xFF10B981), const Color(0xFF6DD5FA)];
@@ -1694,26 +1695,44 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   }
 
   Future<void> _post() async {
-    final t = _ctrl.text.trim();
-    if (t.isEmpty || _posting) return;
-    HapticFeedback.lightImpact();
-    setState(() => _posting = true);
-    try {
-      Map<String, dynamic> c;
-      if (widget.isEvent) {
-        final raw = await widget.api.post(_basePath, {'text': t});
-        c = raw is Map ? raw.cast<String, dynamic>() : {
-          'text': t,
-          'author_name': 'You',
-          'created_at': DateTime.now().toIso8601String(),
-        };
-      } else {
-        c = await widget.api.addComment(
-            widget.post['id']?.toString() ?? '', t) as Map<String, dynamic>;
-      }
-      setState(() { _comments.insert(0, c); _ctrl.clear(); _posting = false; });
-    } catch (_) { setState(() => _posting = false); }
+  final t = _ctrl.text.trim();
+  if (t.isEmpty || _posting) return;
+
+  HapticFeedback.lightImpact();
+  setState(() => _posting = true);
+
+  try {
+    Map<String, dynamic> c;
+
+    if (widget.isEvent) {
+      final raw = await widget.api.post(
+        _basePath,
+        body: {'text': t},           // ← Fixed: use named parameter 'body:'
+      );
+
+      c = raw is Map<String, dynamic>
+          ? raw
+          : {
+              'text': t,
+              'author_name': 'You',
+              'created_at': DateTime.now().toIso8601String(),
+            };
+    } else {
+      c = await widget.api.addComment(
+        widget.post['id']?.toString() ?? '',
+        t,
+      ) as Map<String, dynamic>;
+    }
+
+    setState(() {
+      _comments.insert(0, c);
+      _ctrl.clear();
+      _posting = false;
+    });
+  } catch (_) {
+    if (mounted) setState(() => _posting = false);
   }
+}
 
   @override
   Widget build(BuildContext context) => DraggableScrollableSheet(
@@ -1882,35 +1901,44 @@ class _ShareSheetState extends State<_ShareSheet> {
       setState(() { _people = all; _loading = false; });
     } catch (_) { setState(() => _loading = false); }
   }
+Future<void> _share() async {
+  if (_selected.isEmpty || _sharing) return;
 
-  Future<void> _share() async {
-    if (_selected.isEmpty || _sharing) return;
-    HapticFeedback.mediumImpact();
-    setState(() => _sharing = true);
-    try {
-      final id = widget.post['id']?.toString() ?? '';
-      if (widget.isEvent) {
-        // Event share — best-effort POST to a likely endpoint. Backend
-        // can implement /events/<id>/share/ to make this fully wired.
-        await widget.api.post('/events/$id/share/', {
-          'user_ids': _selected.toList(),
-        });
-      } else {
-        await widget.api.sharePost(id, _selected.toList());
-      }
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Shared with ${_selected.length} people ✓',
-              style: const TextStyle(fontFamily: 'Momo')),
+  HapticFeedback.mediumImpact();
+  setState(() => _sharing = true);
+
+  try {
+    final id = widget.post['id']?.toString() ?? '';
+
+    if (widget.isEvent) {
+      await widget.api.post(
+        '/events/$id/share/',
+        body: {'user_ids': _selected.toList()},           // ← Fixed
+      );
+    } else {
+      await widget.api.sharePost(id, _selected.toList());
+    }
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Shared with ${_selected.length} people ✓',
+            style: const TextStyle(fontFamily: 'Momo'),
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: _kMint,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14)),
-          margin: const EdgeInsets.all(16)));
-      }
-    } catch (_) { setState(() => _sharing = false); }
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  } catch (_) {
+    if (mounted) setState(() => _sharing = false);
   }
+}
 
   @override
   Widget build(BuildContext context) => DraggableScrollableSheet(
@@ -2164,28 +2192,24 @@ class _EventCardState extends State<_EventCard>
     }
   }
 
-  /// Toggles a server-side favorite on the event so the profile screen's
-  /// favorites tab can surface it later. Optimistic UI with rollback on
-  /// failure.
   Future<void> _handleBookmark() async {
-    HapticFeedback.lightImpact();
-    final was = _bookmarked;
-    setState(() => _bookmarked = !was);
+  HapticFeedback.lightImpact();
+  final was = _bookmarked;
+  setState(() => _bookmarked = !was);
 
-    final eventId = widget.event['id']?.toString() ?? '';
-    if (eventId.isEmpty) return;
+  final eventId = widget.event['id']?.toString() ?? '';
+  if (eventId.isEmpty) return;
 
-    try {
-      if (!was) {
-        await _api.post('/events/$eventId/favorite/');
-      } else {
-        await _api.delete('/events/$eventId/favorite/');
-      }
-    } catch (_) {
-      if (mounted) setState(() => _bookmarked = was);
+  try {
+    if (!was) {
+      await _api.post('/events/$eventId/favorite/');      // ← Clean call
+    } else {
+      await _api.delete('/events/$eventId/favorite/');
     }
+  } catch (_) {
+    if (mounted) setState(() => _bookmarked = was);
   }
-
+}
   void _handleComment() {
     HapticFeedback.lightImpact();
     showModalBottomSheet(

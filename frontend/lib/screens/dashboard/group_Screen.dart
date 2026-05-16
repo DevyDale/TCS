@@ -25,6 +25,8 @@ class _GroupScreenState extends State<GroupScreen>
   final _api    = ApiService();
   final _picker = ImagePicker();
   late final TabController _tabCtrl;
+  String? _myUserId;
+  String? _myName;
 
   final _msgCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
@@ -45,11 +47,61 @@ class _GroupScreenState extends State<GroupScreen>
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
     _isAdmin = widget.group['is_admin'] as bool? ?? false;
-    _loadMessages();
+    
+    _initializeData();   // This ensures user ID loads first
+  }
+  Future<void> _initializeData() async {
+    await _loadCurrentUserId();
+    await _loadMessages();     // Important: load AFTER user ID
     _loadMembers();
     _loadMaterials();
   }
 
+     Future<void> _loadCurrentUserId() async {
+    final user = await _api.cachedUser;
+    setState(() {
+      _myUserId = user?['user_id']?.toString() ?? user?['id']?.toString();
+      _myName   = (user?['name'] as String?)?.trim().toLowerCase() ?? 
+                  (user?['full_name'] as String?)?.trim().toLowerCase() ?? '';
+    });
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final data = await _api.get('/posts/',
+          query: {'group_id': _groupId}) as Map<String, dynamic>;
+
+      final rawList = (data['results'] as List? ?? [])
+          .cast<Map<String, dynamic>>();
+
+      // Get current user info
+      final currentUser = await _api.cachedUser;
+      final myId = currentUser?['user_id']?.toString() ?? 
+                   currentUser?['id']?.toString();
+      final myName = (currentUser?['name'] as String?)?.trim().toLowerCase() ?? 
+                     (currentUser?['full_name'] as String?)?.trim().toLowerCase() ?? '';
+
+      for (final msg in rawList) {
+        final authorId = msg['author_id']?.toString() ??
+                        msg['author']?.toString() ??
+                        msg['user_id']?.toString() ?? '';
+
+        final authorName = (msg['author_name'] as String?)?.trim().toLowerCase() ?? '';
+
+        // Mark message as mine using ID or name
+        msg['is_me'] = (authorId.isNotEmpty && authorId == myId) ||
+                       (authorName.isNotEmpty && authorName == myName);
+      }
+
+      setState(() {
+        _messages = rawList;
+        _loadingMsgs = false;
+      });
+    } catch (e) {
+      print('Load messages error: $e');
+      setState(() => _loadingMsgs = false);
+    }
+  }
   @override
   void dispose() {
     _tabCtrl.dispose();
@@ -61,24 +113,27 @@ class _GroupScreenState extends State<GroupScreen>
   String get _groupId   => widget.group['id']?.toString() ?? '';
   String get _groupName => widget.group['name'] as String? ?? 'Group';
   String get _icon      => widget.group['theme_icon'] as String? ?? '👥';
+     bool _isMyMessage(Map<String, dynamic> message) {
+    if (message['is_me'] == true) return true;
 
-  // ── Data loading ──────────────────────────────────────────
+    final authorId = message['author_id']?.toString() ??
+                     message['author']?.toString() ??
+                     message['user_id']?.toString() ?? '';
 
-  Future<void> _loadMessages() async {
-    try {
-      // FIX 1: /posts/ returns a paginated Map, not a List
-      final data = await _api.get('/posts/',
-          query: {'group_id': _groupId}) as Map<String, dynamic>;
-      setState(() {
-        _messages = (data['results'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
-        _loadingMsgs = false;
-      });
-    } catch (_) {
-      setState(() => _loadingMsgs = false);
+    final authorName = (message['author_name'] as String?)?.trim().toLowerCase() ?? '';
+
+    // Check by ID first
+    if (authorId.isNotEmpty && _myUserId != null && authorId == _myUserId) {
+      return true;
     }
-  }
 
+    // Fallback: Check by name
+    if (authorName.isNotEmpty && _myName != null && authorName == _myName) {
+      return true;
+    }
+
+    return false;
+  }
   Future<void> _loadMembers() async {
     try {
       // /groups/<id>/members/ returns a plain List
@@ -89,6 +144,7 @@ class _GroupScreenState extends State<GroupScreen>
     } catch (_) {}
   }
 
+  
   Future<void> _loadMaterials() async {
     try {
       // FIX 2: getGroupMaterials returns a plain List, not a Map
@@ -506,13 +562,13 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   // ── Chat tab ──────────────────────────────────────────────
-
-  Widget _buildChatTab() {
+  // ── Chat tab ──────────────────────────────────────────────
+  // ── Chat tab ──────────────────────────────────────────────
+Widget _buildChatTab() {
     return Column(children: [
       Expanded(
         child: _loadingMsgs
-            ? const Center(
-                child: CircularProgressIndicator(color: _indigo))
+            ? const Center(child: CircularProgressIndicator(color: _indigo))
             : _messages.isEmpty
                 ? Center(
                     child: Text('No posts yet — start the conversation!',
@@ -524,50 +580,14 @@ class _GroupScreenState extends State<GroupScreen>
                     padding: const EdgeInsets.all(16),
                     itemCount: _messages.length,
                     itemBuilder: (_, i) {
-                      final m = _messages[i];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 6)
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Text(
-                                m['author_name'] as String? ?? 'Unknown',
-                                style: const TextStyle(
-                                    fontFamily: 'Arch',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: _indigo)),
-                              const Spacer(),
-                              Text(
-                                _timeAgo(m['created_at'] as String? ?? ''),
-                                style: TextStyle(
-                                    fontFamily: 'Momo',
-                                    fontSize: 10,
-                                    color: Colors.grey.shade400)),
-                            ]),
-                            const SizedBox(height: 6),
-                            Text(
-                              m['content'] as String? ?? '',
-                              style: const TextStyle(
-                                  fontFamily: 'Momo',
-                                  fontSize: 14,
-                                  color: Color(0xFF1A1A2E),
-                                  height: 1.4)),
-                          ],
-                        ),
-                      );
-                    },
+  final m = _messages[i];
+  final isMe = _isMyMessage(m);
+
+  // DEBUG LINE - ADD THIS
+  print('DEBUG → isMe: $isMe | myUserId: $_myUserId | authorId: ${m['author_id']} | author: ${m['author']} | author_name: ${m['author_name']}');
+
+  return _buildMessageBubble(m, isMe);
+},
                   ),
       ),
 
@@ -577,8 +597,7 @@ class _GroupScreenState extends State<GroupScreen>
             12, 10, 12, MediaQuery.of(context).padding.bottom + 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(
-              top: BorderSide(color: Colors.grey.shade100))),
+          border: Border(top: BorderSide(color: Colors.grey.shade100))),
         child: Row(children: [
           Expanded(
             child: Container(
@@ -590,13 +609,11 @@ class _GroupScreenState extends State<GroupScreen>
                 controller: _msgCtrl,
                 enableSuggestions: false,
                 autocorrect: false,
-                style: const TextStyle(
-                    fontFamily: 'Momo', fontSize: 14),
+                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Post to the group...',
                   hintStyle: TextStyle(
-                      fontFamily: 'Momo',
-                      color: Colors.grey.shade400),
+                      fontFamily: 'Momo', color: Colors.grey.shade400),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 12)),
@@ -628,9 +645,74 @@ class _GroupScreenState extends State<GroupScreen>
       ),
     ]);
   }
-
-  // ── Members tab ───────────────────────────────────────────
-
+  
+ 
+  Widget _buildMessageBubble(Map<String, dynamic> m, bool isMe) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.only(
+          bottom: 12,
+          left: isMe ? 64 : 0,
+          right: isMe ? 0 : 64,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isMe ? _indigo : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            if (!isMe)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  m['author_name'] as String? ?? 'Unknown',
+                  style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: _indigo,
+                  ),
+                ),
+              ),
+            Text(
+              m['content'] as String? ?? '',
+              style: TextStyle(
+                fontFamily: 'Momo',
+                fontSize: 15,
+                height: 1.4,
+                color: isMe ? Colors.white : const Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _timeAgo(m['created_at'] as String? ?? ''),
+              style: TextStyle(
+                fontFamily: 'Momo',
+                fontSize: 10,
+                color: isMe ? Colors.white.withOpacity(0.85) : Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   Widget _buildMembersTab() {
     return Column(children: [
       if (_isAdmin) ...[

@@ -202,6 +202,20 @@ class ApiService {
   /// Invoked by `_TCSAppState.didChangeAppLifecycleState` whenever
   /// the app comes back to the foreground AND the saved JWT's `exp`
   /// claim is expired or within 5 minutes of expiring. Returns true
+  /// 
+  /// 
+  ///   // Add this getter right after the existing getters (around line 90-100)
+  Future<String?> get currentUserId async {
+    final user = await cachedUser;
+    return user?['user_id']?.toString() ?? 
+           user?['id']?.toString();
+  }
+
+  // Optional: Also add a synchronous version using cached data
+  String? get currentUserIdSync {
+    // This is faster but might be null if not loaded yet
+    return null; // We'll use the async version for reliability
+  }
   /// on success, false on any failure (per the sticky-session
   /// contract, the session is left untouched either way).
   Future<bool> refreshAccessToken() => _tryRefresh();

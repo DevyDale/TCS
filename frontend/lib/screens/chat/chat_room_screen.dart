@@ -19,6 +19,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
@@ -44,6 +45,8 @@ class ChatRoomScreen extends StatefulWidget {
   final String userName;
   final String roomType; // 'direct' | 'study_buddy' | 'group'
   final String? description;
+  
+  
 
   const ChatRoomScreen({
     super.key,
@@ -64,6 +67,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final _msgCtrl    = TextEditingController();
   final _scrollCtrl = ScrollController();
   final _focusNode  = FocusNode();
+  
 
   List<Map<String, dynamic>> _messages = [];
   bool _loading  = true;
@@ -72,6 +76,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _isTyping = false;
 
   // ── Dale state ──
+  String? _myUserId;   // Will help as a more reliable fallback
+  final _picker = ImagePicker();
   String? _avatarUrl;          // Bubble avatar from room metadata
   bool _aiEnabled  = false;   // true if Dale is currently in the room
   bool _aiBusy     = false;   // true while a Dale-related API call is in flight
@@ -100,6 +106,72 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.dispose();
   }
 
+
+Future<void> _pickAndSendMedia() async {
+  final picked = await _picker.pickMedia(
+    requestFullMetadata: false,
+  );
+  if (picked == null) return;
+
+  HapticFeedback.lightImpact();
+
+  final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  final isVideo = picked.path.toLowerCase().endsWith('.mp4') ||
+                  picked.path.toLowerCase().endsWith('.mov');
+
+  final tempMsg = {
+    'id': tempId,
+    'sender_name': widget.userName,
+    'message_type': isVideo ? 'video' : 'image',
+    'media_url': '',
+    'local_path': picked.path,
+    'created_at': DateTime.now().toIso8601String(),
+    'is_me': true,
+    '_uploading': true,
+  };
+
+  setState(() => _messages.add(tempMsg));
+  _scrollToBottom();
+
+  try {
+    final mimeType = isVideo ? 'video/mp4' : 'image/jpeg';
+
+    final res = await _api.uploadChatMedia(
+      roomId: widget.roomId,
+      file: File(picked.path),
+      mimeType: mimeType,
+    ) as Map<String, dynamic>;
+
+    final mediaUrl = (res['media_url'] ?? res['url']) as String? ?? '';
+    final messageId = res['message_id'] ?? res['id'] ?? tempId;
+
+    if (!mounted) return;
+
+    setState(() {
+      final idx = _messages.indexWhere((m) => m['id'] == tempId);
+      if (idx != -1) {
+        _messages[idx] = {
+          ..._messages[idx],
+          'id': messageId,
+          'media_url': mediaUrl,
+          '_uploading': false,
+        };
+      }
+    });
+
+    // Send via WebSocket
+    try {
+      _chatWs.sendMedia(
+        messageType: isVideo ? 'video' : 'image',
+        mediaUrl: mediaUrl,
+      );
+    } catch (_) {}
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _messages.removeWhere((m) => m['id'] == tempId));
+    _showSnack("Couldn't send media. Try again.");
+  }
+}
   // ── Data ──────────────────────────────────────────────────
 
   Future<void> _connectWebSocket() async {
@@ -112,47 +184,75 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  void _onWsMessage(Map<String, dynamic> event) {
-    final type = event['type'] as String? ?? '';
-    if (type != 'message' && type != 'new_message') return;
-    final msg = (event['message'] as Map?)?.cast<String, dynamic>();
-    if (msg == null) return;
+void _onWsMessage(Map<String, dynamic> event) {
+  final type = event['type'] as String? ?? '';
+  if (type != 'message' && type != 'new_message') return;
 
-    // Don't double-insert messages we already have.
-    final id = msg['id']?.toString();
-    if (id != null && _messages.any((m) => m['id']?.toString() == id)) return;
+  final msg = (event['message'] as Map?)?.cast<String, dynamic>();
+  if (msg == null) return;
 
-    // Mark whether this message is from me so styling works.
-    msg['is_me'] = msg['sender_name'] == widget.userName;
-    setState(() => _messages.add(msg));
+  final id = msg['id']?.toString();
+  if (id != null && _messages.any((m) => m['id']?.toString() == id)) return;
+
+  final senderName = (msg['sender_name'] as String?)?.trim().toLowerCase() ?? '';
+  final currentNameLower = widget.userName.trim().toLowerCase();
+
+  msg['is_me'] = senderName == currentNameLower ||
+                 (msg['sender_id']?.toString() == _myUserId);
+
+  setState(() => _messages.add(msg));
+  _scrollToBottom();
+}
+Future<void> _loadHistory() async {
+  try {
+    final data = await _api.getRoomMessages(widget.roomId) as Map<String, dynamic>;
+    final rawMessages = ((data['results'] as List?) ?? [])
+        .cast<Map<String, dynamic>>();
+
+    final currentNameLower = widget.userName.trim().toLowerCase();
+
+    for (final msg in rawMessages) {
+      final senderName = (msg['sender_name'] as String?)?.trim().toLowerCase() ?? '';
+      
+      // Multiple reliable checks
+      msg['is_me'] = 
+          (msg['is_me'] as bool?) == true ||
+          senderName == currentNameLower ||
+          (msg['sender_id']?.toString() == _myUserId) ||
+          (msg['user_id']?.toString() == _myUserId);
+    }
+
+    setState(() {
+      _messages = rawMessages;
+      _loading = false;
+    });
     _scrollToBottom();
+  } catch (_) {
+    setState(() => _loading = false);
   }
-
-  Future<void> _loadHistory() async {
-    try {
-      final data = await _api.getRoomMessages(widget.roomId) as Map<String, dynamic>;
-      setState(() {
-        _messages = ((data['results'] as List?) ?? []).cast<Map<String, dynamic>>();
-        _loading  = false;
-      });
-      _scrollToBottom();
-    } catch (_) { setState(() => _loading = false); }
-  }
-
+}
   /// Fetch the room object so we know if Dale is already a member.
   /// Falls back silently if the endpoint isn't reachable — in which
   /// case the Dale button will start in the OFF state and the user
   /// can still enable him.
-  Future<void> _loadRoomMeta() async {
-    try {
-      final res = await _api.get('/chat/rooms/${widget.roomId}/');
-      if (!mounted || res is! Map) return;
-      setState(() {
-        _aiEnabled = res['ai_enabled'] as bool? ?? false;
-        _avatarUrl = res['avatar_url'] as String?;
-      });
-    } catch (_) { /* silent */ }
-  }
+ Future<void> _loadRoomMeta() async {
+  try {
+    final res = await _api.get('/chat/rooms/${widget.roomId}/');
+    if (!mounted || res is! Map) return;
+
+    setState(() {
+      _aiEnabled = res['ai_enabled'] as bool? ?? false;
+      _avatarUrl = res['avatar_url'] as String?;
+      
+      // Try to capture current user ID if available
+      if (res['current_user_id'] != null) {
+        _myUserId = res['current_user_id'].toString();
+      } else if (res['me'] != null && res['me'] is Map) {
+        _myUserId = (res['me']['user_id'] ?? res['me']['id']).toString();
+      }
+    });
+  } catch (_) { /* silent */ }
+}
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -433,106 +533,72 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Widget _buildAppBar() {
-    return Container(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top,
-          left: 8, right: 12, bottom: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _isStudyBuddy
-              ? [Colors.orange.shade600, Colors.amber.shade700]
-              : [Colors.deepPurple.shade600, Colors.purple.shade400],
-          begin: Alignment.topLeft, end: Alignment.bottomRight),
-        boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.3),
-            blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-            onPressed: () => Navigator.pop(context)),
-          _buildRoomAvatar(),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(widget.roomName, style: const TextStyle(color: Colors.white,
-                fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Arch')),
+Widget _buildAppBar() {
+  return Container(
+    padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top,
+        left: 8, right: 12, bottom: 12),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: _isStudyBuddy
+            ? [Colors.orange.shade600, Colors.amber.shade700]
+            : [Colors.deepPurple.shade600, Colors.purple.shade400],
+        begin: Alignment.topLeft, end: Alignment.bottomRight),
+      boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.3),
+          blurRadius: 12, offset: const Offset(0, 4))],
+    ),
+    child: SafeArea(
+      bottom: false,
+      child: Row(children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context)),
+
+        _buildRoomAvatar(),
+        const SizedBox(width: 10),
+
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.roomName, style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Arch')),
+
             if (_isStudyBuddy)
               const Text('Study Buddy Session 📚', style: TextStyle(
-                  color: Colors.white70, fontSize: 11.5, fontFamily: 'Momo'))
-            else if (_aiEnabled)
-              Row(children: [
-                const Icon(Icons.smart_toy_rounded,
-                    color: Colors.white70, size: 11),
-                const SizedBox(width: 4),
-                Text('Dale is here',
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 11.5,
-                        fontFamily: 'Momo')),
-              ]),
-          ])),
-
-          if (_isStudyBuddy) ...[
-            GestureDetector(
-              onTap: () => _showSnack('Materials shared — check Saved Materials'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                child: const Row(children: [
-                  Icon(Icons.folder_shared_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 4),
-                  Text('Materials', style: TextStyle(fontFamily: 'Momo',
-                      color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ]),
-              ),
-            ),
-            const SizedBox(width: 8),
+                  color: Colors.white70,
+                  fontSize: 11.5,
+                  fontFamily: 'Momo')),
           ],
+        )),
 
-          // ── Dale AI Lottie button ──────────────────────
+        if (_isStudyBuddy) ...[
           GestureDetector(
-            onTap: _handleDaleTap,
-            onLongPress: _aiEnabled ? _disableDale : null,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: 46, height: 46,
+            onTap: () => _showSnack('Materials shared — check Saved Materials'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _aiEnabled ? Colors.white.withOpacity(0.25)
-                                  : Colors.white.withOpacity(0.10),
-                border: Border.all(
-                  color: _aiEnabled ? Colors.white : Colors.white.withOpacity(0.45),
-                  width: 1.4),
-                boxShadow: _aiEnabled
-                    ? [BoxShadow(color: Colors.white.withOpacity(0.4),
-                          blurRadius: 14, spreadRadius: 1)]
-                    : [],
-              ),
-              child: _aiBusy
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Lottie.asset(
-                        'assets/lottie/dale.json',
-                        fit: BoxFit.contain,
-                        repeat: true,
-                        errorBuilder: (_, __, ___) => const Icon(
-                            Icons.auto_awesome_rounded,
-                            color: Colors.white, size: 22),
-                      ),
-                    ),
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10)),
+              child: const Row(children: [
+                Icon(Icons.folder_shared_rounded, color: Colors.white, size: 16),
+                SizedBox(width: 4),
+                Text('Materials', style: TextStyle(
+                    fontFamily: 'Momo',
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
+              ]),
             ),
           ),
-        ]),
-      ),
-    );
-  }
+          const SizedBox(width: 8),
+        ],
+      ]),
+    ),
+  );
+}
 
   Widget _buildRoomAvatar() {
     final hasUrl  = _avatarUrl != null && _avatarUrl!.isNotEmpty;
@@ -622,84 +688,40 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   );
 
   Widget _buildMessages() {
-    return ListView.builder(
-      controller: _scrollCtrl,
-      padding: const EdgeInsets.all(16),
-      itemCount: _messages.length,
-      itemBuilder: (_, i) {
-        final msg     = _messages[i];
-        final prev    = i > 0 ? _messages[i - 1] : null;
+  return ListView.builder(
+    controller: _scrollCtrl,
+    padding: const EdgeInsets.all(16),
+    itemCount: _messages.length,
+    itemBuilder: (_, i) {
+      final msg = _messages[i];
+      final prev = i > 0 ? _messages[i - 1] : null;
 
-        // ── System messages render as a centered pill ──
-        final isSystem = msg['is_system'] == true;
-        if (isSystem) {
-          final text = (msg['text'] as String?) ?? '';
-          return SystemMessagePill(text: text);
-        }
+      // System Message
+      if (msg['is_system'] == true) {
+        final text = (msg['text'] as String?) ?? '';
+        return SystemMessagePill(text: text);
+      }
 
-        // ── Dale (non-system AI) messages get their own bubble ──
-        final isAi = msg['is_ai'] == true;
-        if (isAi) {
-          final prevAi = prev != null
-              && prev['is_ai'] == true
-              && prev['is_system'] != true;
-          return DaleMessageBubble(message: msg, collapseHeader: prevAi);
-        }
+      // Dale AI Message
+      if (msg['is_ai'] == true) {
+        final prevAi = prev != null &&
+            prev['is_ai'] == true &&
+            prev['is_system'] != true;
+        return DaleMessageBubble(message: msg, collapseHeader: prevAi);
+      }
 
-        // ── Regular user messages (existing renderer) ──
-        final isMe    = msg['is_me'] as bool? ?? (msg['sender_name'] == widget.userName);
-        final time    = _fmt(msg['created_at'] as String? ?? '');
-        final name    = msg['sender_name'] as String? ?? '';
-        final msgType = msg['message_type'] as String? ?? 'text';
-        final showName = !isMe && (i == 0 || _messages[i-1]['sender_name'] != name);
+      // Regular Message - SUPER ROBUST isMe
+      final senderName = (msg['sender_name'] as String?)?.trim() ?? '';
+      final isMe = (msg['is_me'] as bool?) == true ||
+                   senderName.toLowerCase() == widget.userName.trim().toLowerCase();
 
-        // Stickers render WITHOUT a bubble
-        if (msgType == 'sticker') {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (!isMe) ...[
-                  _avatar(name),
-                  const SizedBox(width: 8),
-                ],
-                Column(
-                  crossAxisAlignment:
-                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                  children: [
-                    if (showName && !isMe)
-                      Padding(padding: const EdgeInsets.only(left: 8, bottom: 4),
-                        child: Text(name, style: TextStyle(fontSize: 12,
-                            fontWeight: FontWeight.w600, color: Colors.grey.shade700,
-                            fontFamily: 'Momo'))),
-                    ChatStickerBubble(
-                      message:    msg,
-                      isMe:       isMe,
-                      stickerMap: _stickerById,
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(
-                          top: 4,
-                          left:  isMe ? 0 : 6,
-                          right: isMe ? 6 : 0),
-                      child: Text(time, style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          fontFamily: 'Momo')),
-                    ),
-                  ],
-                ),
-                if (isMe) ...[const SizedBox(width: 8), _avatar(widget.userName)],
-              ],
-            ),
-          );
-        }
+      final time = _fmt(msg['created_at'] as String? ?? '');
+      final msgType = msg['message_type'] as String? ?? 'text';
+      final showName = !isMe && 
+          (i == 0 || (_messages[i - 1]['sender_name'] as String?) != senderName);
 
-        // Default: text / audio / image / file rendered inside the bubble
-        final text = msg['text'] as String? ?? msg['display_text'] as String? ?? '';
-
+      // Sticker
+      if (msgType == 'sticker') {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
@@ -707,137 +729,257 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isMe) ...[
-                _avatar(name),
+                _avatar(senderName),
                 const SizedBox(width: 8),
               ],
-              Flexible(child: Column(
+              Column(
                 crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
                   if (showName && !isMe)
-                    Padding(padding: const EdgeInsets.only(left: 8, bottom: 4),
-                      child: Text(name, style: TextStyle(fontSize: 12,
-                          fontWeight: FontWeight.w600, color: Colors.grey.shade700,
-                          fontFamily: 'Momo'))),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(senderName, style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    ),
+                  ChatStickerBubble(
+                    message: msg,
+                    isMe: isMe,
+                    stickerMap: _stickerById,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 4, left: isMe ? 0 : 6, right: isMe ? 6 : 0),
+                    child: Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ),
+                ],
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 8),
+                _avatar(widget.userName),
+              ],
+            ],
+          ),
+        );
+      }
+
+      // Regular Text / Media Message
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isMe) ...[
+              _avatar(senderName),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  if (showName && !isMe)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(senderName, style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    ),
                   Container(
                     constraints: BoxConstraints(
                         maxWidth: MediaQuery.of(context).size.width * 0.72),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      gradient: isMe ? LinearGradient(
-                          colors: [Colors.deepPurple.shade400, Colors.purple.shade600],
-                          begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+                      gradient: isMe
+                          ? const LinearGradient(
+                              colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight)
+                          : null,
                       color: isMe ? null : Colors.white,
                       borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(isMe ? 20 : (showName ? 4 : 20)),
-                        topRight: Radius.circular(isMe ? (showName ? 4 : 20) : 20),
+                        topLeft: Radius.circular(isMe ? 20 : 4),
+                        topRight: Radius.circular(isMe ? 4 : 20),
                         bottomLeft: const Radius.circular(20),
-                        bottomRight: const Radius.circular(20)),
-                      boxShadow: [BoxShadow(
-                        color: isMe ? Colors.deepPurple.withOpacity(0.3)
-                            : Colors.black.withOpacity(0.08),
-                        blurRadius: 8, offset: const Offset(0, 2))],
+                        bottomRight: const Radius.circular(20),
+                      ),
                     ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      if (msgType != 'text')
-                        _mediaMessage(msg, isMe)
-                      else
-                        Text(text, style: TextStyle(fontSize: 15,
-                            color: isMe ? Colors.white : Colors.black87,
-                            fontFamily: 'Momo', height: 1.4)),
-                      const SizedBox(height: 6),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text(time, style: TextStyle(fontSize: 11,
-                            color: isMe ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
-                            fontFamily: 'Momo')),
-                        if (isMe) ...[
-                          const SizedBox(width: 4),
-                          Icon(Icons.done_all_rounded, size: 14,
-                              color: Colors.white.withOpacity(0.8)),
-                        ],
-                      ]),
-                    ]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (msgType != 'text')
+                          _mediaMessage(msg, isMe)
+                        else
+                          Text(
+                            msg['text'] as String? ?? '',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: isMe ? Colors.white : Colors.black87,
+                              height: 1.4,
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(time, style: TextStyle(
+                                fontSize: 11,
+                                color: isMe ? Colors.white70 : Colors.grey.shade600)),
+                            if (isMe)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(Icons.done_all_rounded,
+                                    size: 14, color: Colors.white70),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              )),
-              if (isMe) ...[const SizedBox(width: 8), _avatar(widget.userName)],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _mediaMessage(Map<String, dynamic> msg, bool isMe) {
-    final type     = msg['message_type'] as String? ?? '';
-    final fileName = msg['file_name']    as String? ?? 'File';
-    final color    = isMe ? Colors.white : Colors.deepPurple.shade600;
-
-    if (type == 'audio') {
-      if (msg['_uploading'] == true) {
-        return SizedBox(
-          width: 220, height: 38,
-          child: Row(children: [
-            SizedBox(
-              width: 18, height: 18,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: isMe ? Colors.white : Colors.deepPurple.shade400)),
-            const SizedBox(width: 12),
-            Text('Uploading...',
-                style: TextStyle(
-                  fontFamily: 'Momo', fontSize: 13,
-                  color: isMe ? Colors.white : Colors.grey.shade700,
-                )),
-          ]),
-        );
-      }
-      final url      = msg['media_url'] as String? ?? '';
-      final duration = (msg['duration'] as int?) ?? 0;
-      return ChatAudioPlayer(url: url, duration: duration, isMe: isMe);
-    }
-
-    if (type == 'image') {
-      if (msg['_uploading'] == true) {
-        return SizedBox(
-          width: 200, height: 200,
-          child: Center(
-            child: SizedBox(
-              width: 28, height: 28,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: isMe ? Colors.white : Colors.deepPurple.shade400),
+              ),
             ),
-          ),
-        );
-      }
-      final url = msg['media_url'] as String? ?? '';
-      if (url.isEmpty) {
-        return const Icon(Icons.broken_image_rounded,
-            size: 40, color: Colors.white70);
-      }
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
-          width: 220,
-          placeholder: (_, __) => Container(
-              width: 220, height: 220, color: Colors.grey.shade200),
-          errorWidget: (_, __, ___) => const Icon(
-              Icons.broken_image_rounded, color: Color(0xFFB0B3BD)),
+            if (isMe) ...[
+              const SizedBox(width: 8),
+              _avatar(widget.userName),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+}
+Widget _mediaMessage(Map<String, dynamic> msg, bool isMe) {
+  final type = msg['message_type'] as String? ?? '';
+  final url = msg['media_url'] as String? ?? '';
+  final localPath = msg['local_path'] as String? ?? '';
+  final isUploading = msg['_uploading'] == true;
+
+  // Audio
+  if (type == 'audio') {
+    if (isUploading) {
+      return const SizedBox(
+        width: 220,
+        height: 50,
+        child: Row(
+          children: [
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text('Uploading voice note...', style: TextStyle(fontFamily: 'Momo')),
+          ],
         ),
       );
     }
-
-    return Row(children: [
-      Icon(Icons.attach_file_rounded, color: color, size: 20),
-      const SizedBox(width: 8),
-      Expanded(child: Text(fileName,
-          style: TextStyle(color: color, fontFamily: 'Momo', fontSize: 13),
-          maxLines: 1, overflow: TextOverflow.ellipsis)),
-    ]);
+    return ChatAudioPlayer(
+      url: url,
+      duration: (msg['duration'] as int?) ?? 0,
+      isMe: isMe,
+    );
   }
 
+  // Image
+  if (type == 'image') {
+    if (isUploading && localPath.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          File(localPath),
+          width: 220,
+          height: 220,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (url.isEmpty) {
+      return const Icon(Icons.broken_image_rounded, size: 60, color: Colors.grey);
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: 220,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+          width: 220,
+          height: 220,
+          color: Colors.grey.shade200,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        errorWidget: (_, __, ___) => const Icon(Icons.broken_image_rounded, size: 60),
+      ),
+    );
+  }
+
+  // Video
+  if (type == 'video') {
+    if (isUploading && localPath.isNotEmpty) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(File(localPath), width: 220, height: 220, fit: BoxFit.cover),
+          ),
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+          ),
+          if (isUploading)
+            const Positioned(
+              bottom: 8,
+              child: Text('Uploading video...', style: TextStyle(color: Colors.white)),
+            ),
+        ],
+      );
+    }
+
+    if (url.isEmpty) return const Icon(Icons.video_library_rounded, size: 60);
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CachedNetworkImage(
+            imageUrl: url,
+            width: 220,
+            height: 220,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Container(color: Colors.grey.shade800),
+          ),
+        ),
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+        ),
+      ],
+    );
+  }
+
+  // Fallback for other file types
+  return Row(children: [
+    Icon(Icons.attach_file_rounded, color: isMe ? Colors.white : Colors.deepPurple, size: 20),
+    const SizedBox(width: 8),
+    Expanded(
+      child: Text(
+        msg['file_name'] as String? ?? 'File',
+        style: TextStyle(
+          color: isMe ? Colors.white : Colors.black87,
+          fontFamily: 'Momo',
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  ]);
+}
   Widget _avatar(String name) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final colors  = [Colors.blue.shade600, Colors.green.shade600,
@@ -852,14 +994,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   // ── Input bar ─────────────────────────────────────────────
-
-  Widget _buildInputBar() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05),
-              blurRadius: 10, offset: const Offset(0, -2))]),
-      child: SafeArea(top: false, child: Row(children: [
+Widget _buildInputBar() {
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [BoxShadow(
+        color: Colors.black.withOpacity(0.05),
+        blurRadius: 10,
+        offset: const Offset(0, -2),
+      )],
+    ),
+    child: SafeArea(
+      top: false,
+      child: Row(children: [
+        // Sticker Button
         GestureDetector(
           onTap: _openStickerPicker,
           child: Container(
@@ -868,41 +1017,68 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               color: Colors.purple.shade50,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.emoji_emotions_rounded,
-                color: Colors.purple.shade600, size: 22),
+            child: const Icon(Icons.emoji_emotions_rounded,
+                color: Colors.purple, size: 22),
           ),
         ),
 
         const SizedBox(width: 8),
+
+        // NEW: Media Picker (Images + Videos)
+        GestureDetector(
+          onTap: _pickAndSendMedia,
+          child: Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.photo_camera_rounded,
+                color: Colors.blue, size: 22),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
         Expanded(
           child: Container(
-            decoration: BoxDecoration(color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(24)),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: TextField(
-              controller: _msgCtrl, focusNode: _focusNode,
-              enableSuggestions: false, autocorrect: false,
+              controller: _msgCtrl,
+              focusNode: _focusNode,
+              enableSuggestions: false,
+              autocorrect: false,
               style: const TextStyle(fontSize: 15, fontFamily: 'Momo'),
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _sendMessage(),
               decoration: InputDecoration(
                 hintText: 'Type a message...',
-                hintStyle: TextStyle(color: Colors.grey.shade500, fontFamily: 'Momo'),
+                hintStyle: TextStyle(
+                    color: Colors.grey.shade500, fontFamily: 'Momo'),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
+              ),
             ),
           ),
         ),
+
         const SizedBox(width: 8),
+
         _isTyping
             ? GestureDetector(
                 onTap: _sendMessage,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 46, height: 46,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Colors.deepPurple.shade400, Colors.purple.shade600],
+                    gradient: const LinearGradient(
+                      colors: [Colors.deepPurple, Colors.purple],
                     ),
                   ),
                   child: _sending
@@ -919,10 +1095,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 onTooShort: () =>
                     _showSnack('Hold the mic a bit longer to record.'),
               ),
-      ])),
-    );
-  }
-
+      ]),
+    ),
+  );
+}
   Future<void> _summonDale() async {
     if (_analyzing) return;
     setState(() => _analyzing = true);

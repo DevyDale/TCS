@@ -2,29 +2,38 @@
 //
 // Profile (own) — redesigned to match the arcade light theme.
 //
-// Visual identity:
-//   • Light page gradient (white → soft grey → white)
-//   • White card surfaces with thin _kBorder outlines
-//   • Animated SweepGradient borders on the avatar ring and the
-//     primary CTA (Edit Bio). Keeps the arcade visual language.
-//   • Custom segmented tab bar (no animated_segmented_tab_control,
-//     same swap as arcade to avoid the dispose-after-listener crash).
+// Updates in this revision:
+//   1. Posts and Fweets cards now wear LINEAR-GRADIENT borders — each
+//      card pulls a gradient pair from a 6-pair palette so the wall
+//      reads vibrant without becoming chaotic. The gradient is static
+//      (not animated) so a long list of cards doesn't tax the GPU.
+//   2. Highlights are GROUPED BY UPLOADER — multiple highlights from
+//      the same user collapse into ONE circle, and tapping plays the
+//      whole batch back-to-back in the viewer. On the user's own
+//      profile this naturally produces a single "You" circle.
+//   3. Highlights EXPIRE AFTER 24 HOURS. Stale entries are filtered
+//      client-side using `created_at`; the backend should also be
+//      pruning these on its own.
+//   4. A new "Clubs" tab joins Posts / Fweets / Favorites — it lists
+//      the latest posts from clubs the user has joined, rendered with
+//      a club-logo header instead of an author-avatar header.
+//   5. The Favorites tab now renders favorited EVENT posters as well
+//      as posts/fweets. Items with `type == 'event'` show a poster
+//      card with title, date, location, and host club.
 //
-// Layout, top to bottom:
-//   1. Cover banner (180px) — image, or a soft animated gradient
-//      using the role palette as the default
-//   2. Avatar (overlapping cover) with animated gradient ring
-//   3. Identity strip — name, role · handle
-//   4. Stats row — Posts / Followers / Following
-//   5. Action row — Edit Bio (primary, gradient border) + Share
-//   6. Bio card (only if filled)
-//   7. Interests strip
-//   8. Sticky tab bar — Posts · Fweets · Favorites
-//   9. Tab content
-//
-// Functionality unchanged: image picking, uploads, fetches, deletes,
-// privacy toggles, share-profile sheet — all the existing methods are
-// preserved verbatim.
+// What still needs OTHER files (out of scope for this rewrite):
+//   • Event comment & share features — needs an EventDetailScreen,
+//     reuse of the existing comments widget, and API endpoints
+//     (POST /events/<id>/comments/, POST /events/<id>/share/).
+//   • Event tile redesign in club_screen.dart — replace the calendar-
+//     icon placeholder in event tiles with a more characterful visual.
+//   • Highlight story viewer caption position — move the highlight
+//     title from the top of the viewer to the bottom-left corner
+//     in highlight_story_viewer.dart.
+//   • API endpoints: getMyClubsPosts() — backend should expose
+//     GET /api/me/clubs/feed/ returning posts from clubs the user
+//     has joined. The Clubs tab here calls _api.getMyClubsPosts()
+//     and gracefully handles its absence (empty state).
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -71,6 +80,21 @@ const _gradColors = <Color>[
   Color(0xFF6DD5FA),
 ];
 
+// ── Gradient palette for STATIC tile borders ─────────────────
+// Each card pulls one pair from this list using `_gradFor(index)` so
+// neighboring cards never wear the same gradient. Six pairs cover
+// most lists without obvious repetition above the fold.
+const _gradientPairs = <List<Color>>[
+  [_kBlue,   _kPurple],
+  [_kPurple, _kCoral ],
+  [_kCoral,  _kAmber ],
+  [_kAmber,  _kBlue  ],
+  [_kPurple, _kAmber ],
+  [_kBlue,   _kCoral ],
+];
+List<Color> _gradFor(int i) =>
+    _gradientPairs[i % _gradientPairs.length];
+
 // ── Global notifier (preserved) ──────────────────────────────
 final deletedPostIds = ValueNotifier<Set<String>>({});
 void notifyPostDeleted(String id) =>
@@ -100,18 +124,21 @@ class _ProfileScreenState extends State<ProfileScreen>
   late final TabController _tabCtrl;
   late final AnimationController _shimmerCtrl;
 
-  List<Map<String, dynamic>> _posts     = [];
-  List<Map<String, dynamic>> _fweets    = [];
-  List<Map<String, dynamic>> _favorites = [];
+  List<Map<String, dynamic>> _posts      = [];
+  List<Map<String, dynamic>> _fweets     = [];
+  List<Map<String, dynamic>> _favorites  = [];
   List<Map<String, dynamic>> _highlights = [];
-  final List<String>         _interests = [];
+  // NEW — posts from clubs the user has joined, for the Clubs tab.
+  List<Map<String, dynamic>> _clubPosts  = [];
+  final List<String>         _interests  = [];
 
   int  _followers = 0;
   int  _following = 0;
-  bool _postsLoading     = true;
-  bool _fweetsLoading    = true;
-  bool _favoritesLoading = true;
+  bool _postsLoading      = true;
+  bool _fweetsLoading     = true;
+  bool _favoritesLoading  = true;
   bool _highlightsLoading = true;
+  bool _clubPostsLoading  = true;     // NEW
 
   String? _myUserId;
 
@@ -139,7 +166,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    // FOUR tabs now: Posts · Fweets · Favorites · Clubs
+    _tabCtrl = TabController(length: 4, vsync: this);
     _tabCtrl.addListener(() => setState(() {}));
     _shimmerCtrl = AnimationController(
         vsync: this, duration: const Duration(seconds: 6))..repeat();
@@ -148,6 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _fetchFweets();
     _fetchFavorites();
     _fetchHighlights();
+    _fetchClubPosts();      // NEW
     _fetchStats();
   }
 
@@ -158,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  // ── Data fetches (unchanged) ──────────────────────────────
+  // ── Data fetches ──────────────────────────────────────────
 
   Future<void> _fetchPosts() async {
     setState(() => _postsLoading = true);
@@ -193,6 +222,31 @@ class _ProfileScreenState extends State<ProfileScreen>
     } catch (_) { setState(() => _favoritesLoading = false); }
   }
 
+  /// NEW — fetches posts from clubs the user has joined.
+  ///
+  /// Calls `_api.getMyClubsPosts()`. If that method isn't wired up in
+  /// ApiService yet, the dynamic call will throw NoSuchMethodError
+  /// and we simply fall through to an empty list / empty state.
+  Future<void> _fetchClubPosts() async {
+    setState(() => _clubPostsLoading = true);
+    try {
+      // Use dynamic dispatch so a missing method on ApiService doesn't
+      // break the build — it just leaves the tab empty until the
+      // backend endpoint exists.
+      final dynamic api = _api;
+      final d = await api.getMyClubsPosts() as Map<String, dynamic>;
+      setState(() {
+        _clubPosts        = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
+        _clubPostsLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _clubPosts        = [];
+        _clubPostsLoading = false;
+      });
+    }
+  }
+
   Future<void> _fetchHighlights() async {
     setState(() => _highlightsLoading = true);
     try {
@@ -200,13 +254,74 @@ class _ProfileScreenState extends State<ProfileScreen>
       final list = d is List
           ? d
           : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
+      // Apply the 24-HOUR EXPIRY filter on the client. Anything with a
+      // `created_at` older than 24h gets dropped before display.
+      final cast = list.cast<Map<String, dynamic>>();
+      final fresh = cast.where(_isHighlightFresh).toList();
       setState(() {
-        _highlights        = list.cast<Map<String, dynamic>>();
+        _highlights        = fresh;
         _highlightsLoading = false;
       });
     } catch (_) {
       setState(() => _highlightsLoading = false);
     }
+  }
+
+  /// Returns true if a highlight was created within the last 24 hours,
+  /// OR if we can't tell (missing/unparseable timestamp → keep it
+  /// rather than risk hiding good content).
+  bool _isHighlightFresh(Map<String, dynamic> h) {
+    final iso = h['created_at'] as String?;
+    if (iso == null || iso.isEmpty) return true;
+    try {
+      final age = DateTime.now().toUtc().difference(
+          DateTime.parse(iso).toUtc());
+      return age.inHours < 24;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// NEW — groups _highlights by uploader so the row renders ONE circle
+  /// per person. On the user's own profile this is always a single
+  /// bucket; on a future "friends' stories" feed it would split.
+  ///
+  /// Each entry returned has the shape:
+  ///   {
+  ///     uploader_id, uploader_name, uploader_avatar, cover_url,
+  ///     highlights: [ <original highlight maps> ],
+  ///   }
+  List<Map<String, dynamic>> get _uploaderBundles {
+    final Map<String, List<Map<String, dynamic>>> bucketed = {};
+    for (final h in _highlights) {
+      final uid = (h['author_id']
+              ?? h['user_id']
+              ?? 'self')
+          .toString();
+      bucketed.putIfAbsent(uid, () => []).add(h);
+    }
+    return bucketed.entries.map((e) {
+      // The first highlight in the bucket supplies fallback display
+      // info — uploader name, uploader avatar, and a cover image for
+      // the circle (in case the uploader has no avatar set).
+      final first = e.value.first;
+      final isSelf = e.key == 'self' ||
+                     (_myUserId != null && e.key == _myUserId);
+      return {
+        'uploader_id': e.key,
+        'uploader_name': isSelf
+            ? 'You'
+            : (first['author_name'] as String? ?? 'Member'),
+        'uploader_avatar': isSelf
+            ? (_avatarUrl ?? '')
+            : (first['author_avatar']     as String?
+            ?? first['author_avatar_url'] as String?
+            ?? ''),
+        'cover_url'   : first['cover_url'] as String? ?? '',
+        'highlights'  : e.value,
+        'is_self'     : isSelf,
+      };
+    }).toList();
   }
 
   Future<void> _fetchStats() async {
@@ -457,31 +572,36 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (created == true) _fetchHighlights();
   }
 
-  Future<void> _openHighlight(int index) async {
+  /// NEW — opens the story viewer with EVERY item from every highlight
+  /// in this uploader's bundle, in order. If items are missing from
+  /// the list payload, fetch each highlight in full first.
+  Future<void> _openUploaderHighlights(Map<String, dynamic> bundle) async {
     HapticFeedback.lightImpact();
-    if (index < 0 || index >= _highlights.length) return;
-    final h = _highlights[index];
+    final highlights = (bundle['highlights'] as List)
+        .cast<Map<String, dynamic>>();
+    if (highlights.isEmpty) return;
 
-    // The list endpoint may omit each highlight's items. If they're
-    // not inline, fetch the full highlight before opening the viewer.
-    var rawItems = (h['items'] as List?) ?? const [];
-    if (rawItems.isEmpty) {
-      try {
-        final full = await _api.getHighlight(h['id']?.toString() ?? '')
-            as Map<String, dynamic>;
-        rawItems = (full['items'] as List?) ?? const [];
-      } catch (_) {
-        _snack('Could not load this highlight', error: true);
-        return;
+    final allItems = <Map<String, dynamic>>[];
+    for (final h in highlights) {
+      var items = (h['items'] as List?)?.cast<Map<String, dynamic>>()
+          ?? const <Map<String, dynamic>>[];
+      if (items.isEmpty) {
+        try {
+          final full = await _api.getHighlight(h['id']?.toString() ?? '')
+              as Map<String, dynamic>;
+          items = (full['items'] as List?)?.cast<Map<String, dynamic>>()
+              ?? const <Map<String, dynamic>>[];
+        } catch (_) {/* swallow — skip this highlight */}
       }
+      allItems.addAll(items);
     }
-    if (rawItems.isEmpty) {
-      _snack('This highlight has no stories yet');
+
+    if (allItems.isEmpty) {
+      _snack('No stories to show yet');
       return;
     }
 
-    final stories = rawItems
-        .cast<Map<String, dynamic>>()
+    final stories = allItems
         .map((it) => HighlightStory.fromJson(it))
         .toList();
 
@@ -490,6 +610,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       builder: (_) => HighlightStoryViewer(stories: stories),
     ));
   }
+
 Future<void> _shareMyProfile() async {
   HapticFeedback.lightImpact();
 
@@ -668,33 +789,35 @@ Future<void> _shareMyProfile() async {
                             color: Colors.grey.shade200,
                           ),
                         ),
-                 child: TextField(
-  controller: searchCtrl,
-  onChanged: applyFilter,
-  style: const TextStyle(
-    fontFamily: 'Momo',
-    fontSize: 14,
-  ),
-  decoration: InputDecoration(
-    filled: true,
-    fillColor: Colors.white, // <- white fill color
-    hintText: 'Search recent chats...',
-    hintStyle: TextStyle(
-      fontFamily: 'Momo',
-      fontSize: 13,
-      color: Colors.grey.shade500,
-    ),
-    prefixIcon: Icon(
-      Icons.search_rounded,
-      color: Colors.grey.shade500,
-      size: 20,
-    ),
-    border: InputBorder.none,
-    contentPadding: const EdgeInsets.symmetric(
-      vertical: 14,
-    ),
-  ),
-),    ),
+                        child: TextField(
+                          controller: searchCtrl,
+                          onChanged: applyFilter,
+                          style: const TextStyle(
+                            fontFamily: 'Momo',
+                            fontSize: 14,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            hintText: 'Search recent chats...',
+                            hintStyle: TextStyle(
+                              fontFamily: 'Momo',
+                              fontSize: 13,
+                              color: Colors.grey.shade500,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: Colors.grey.shade500,
+                              size: 20,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding:
+                                const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
 
                     // List
@@ -713,76 +836,57 @@ Future<void> _shareMyProfile() async {
                             )
                           : ListView.builder(
                               controller: scrollCtrl,
-                              padding:
-                                  const EdgeInsets.fromLTRB(
-                                      12, 4, 12, 24),
+                              padding: const EdgeInsets.fromLTRB(
+                                  12, 4, 12, 24),
                               itemCount: filtered.length,
                               itemBuilder: (_, i) {
                                 final room = filtered[i];
-
                                 final name = roomName(room);
-                                final avatar =
-                                    roomAvatar(room);
-
-                                final type =
-                                    room['room_type']
-                                            as String? ??
-                                        'direct';
-
-                                final isGroup =
-                                    type == 'group';
-
-                                final initial =
-                                    name.isNotEmpty
-                                        ? name[0]
-                                            .toUpperCase()
-                                        : '?';
+                                final avatar = roomAvatar(room);
+                                final type = room['room_type']
+                                        as String? ??
+                                    'direct';
+                                final isGroup = type == 'group';
+                                final initial = name.isNotEmpty
+                                    ? name[0].toUpperCase()
+                                    : '?';
 
                                 return InkWell(
                                   borderRadius:
-                                      BorderRadius.circular(
-                                          14),
+                                      BorderRadius.circular(14),
                                   onTap: () async {
                                     try {
                                       HapticFeedback
                                           .mediumImpact();
 
                                       final roomId =
-                                          room['id']
-                                                  ?.toString() ??
+                                          room['id']?.toString() ??
                                               '';
 
-                                      if (roomId
-                                          .isEmpty) return;
+                                      if (roomId.isEmpty) return;
 
                                       await _api
                                           .shareProfileToRoom(
                                         roomId: roomId,
-                                        targetUserId:
-                                            _myUserId!,
+                                        targetUserId: _myUserId!,
                                         targetName:
                                             widget.fullName,
                                       );
 
                                       if (!mounted) return;
 
-                                      Navigator.pop(
-                                          context);
+                                      Navigator.pop(context);
 
                                       _snack(
-                                        'Profile shared to $name ✓',
-                                      );
+                                          'Profile shared to $name ✓');
                                     } catch (e) {
-                                      _snack(
-                                        'Share failed',
-                                        error: true,
-                                      );
+                                      _snack('Share failed',
+                                          error: true);
                                     }
                                   },
                                   child: Padding(
-                                    padding:
-                                        const EdgeInsets
-                                            .symmetric(
+                                    padding: const EdgeInsets
+                                        .symmetric(
                                       horizontal: 8,
                                       vertical: 8,
                                     ),
@@ -836,13 +940,12 @@ Future<void> _shareMyProfile() async {
                                                         (_, __,
                                                                 ___) =>
                                                             Center(
-                                                      child:
-                                                          Text(
+                                                      child: Text(
                                                         initial,
                                                         style:
                                                             const TextStyle(
-                                                          color:
-                                                              Colors.white,
+                                                          color: Colors
+                                                              .white,
                                                           fontFamily:
                                                               'Arch',
                                                           fontWeight:
@@ -852,13 +955,12 @@ Future<void> _shareMyProfile() async {
                                                     ),
                                                   )
                                                 : Center(
-                                                    child:
-                                                        Text(
+                                                    child: Text(
                                                       initial,
                                                       style:
                                                           const TextStyle(
-                                                        color: Colors
-                                                            .white,
+                                                        color:
+                                                            Colors.white,
                                                         fontFamily:
                                                             'Arch',
                                                         fontWeight:
@@ -868,10 +970,7 @@ Future<void> _shareMyProfile() async {
                                                   ),
                                           ),
                                         ),
-
-                                        const SizedBox(
-                                            width: 12),
-
+                                        const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
@@ -891,8 +990,7 @@ Future<void> _shareMyProfile() async {
                                                   fontWeight:
                                                       FontWeight
                                                           .bold,
-                                                  fontSize:
-                                                      14,
+                                                  fontSize: 14,
                                                   color: Color(
                                                       0xFF1A1A2E),
                                                 ),
@@ -901,12 +999,10 @@ Future<void> _shareMyProfile() async {
                                                 isGroup
                                                     ? 'Group chat'
                                                     : 'Direct message',
-                                                style:
-                                                    TextStyle(
+                                                style: TextStyle(
                                                   fontFamily:
                                                       'Momo',
-                                                  fontSize:
-                                                      11,
+                                                  fontSize: 11,
                                                   color: Colors
                                                       .grey
                                                       .shade500,
@@ -915,12 +1011,9 @@ Future<void> _shareMyProfile() async {
                                             ],
                                           ),
                                         ),
-
                                         const Icon(
-                                          Icons
-                                              .send_rounded,
-                                          color: Color(
-                                              0xFF8E54E9),
+                                          Icons.send_rounded,
+                                          color: Color(0xFF8E54E9),
                                           size: 20,
                                         ),
                                       ],
@@ -1035,7 +1128,6 @@ Future<void> _shareMyProfile() async {
             SliverToBoxAdapter(child: _buildIdentitySection()),
             if (_bioData != null && !_bioData!.isEmpty)
               SliverToBoxAdapter(child: _buildBioCard()),
-            SliverToBoxAdapter(child: _buildInterestsStrip()),
             SliverToBoxAdapter(child: _buildHighlightsRow()),
             SliverPersistentHeader(
               pinned: true,
@@ -1059,6 +1151,12 @@ Future<void> _shareMyProfile() async {
                   userName: widget.fullName, avatarUrl: _avatarUrl),
               _FavoritesTab(favorites: _favorites, loading: _favoritesLoading,
                   onRefresh: _fetchFavorites),
+              // NEW — Clubs tab.
+              _ClubsTab(
+                clubPosts: _clubPosts,
+                loading: _clubPostsLoading,
+                onRefresh: _fetchClubPosts,
+              ),
             ],
           ),
         ),
@@ -1084,38 +1182,38 @@ Future<void> _shareMyProfile() async {
             ]))),
 
       Positioned(
-  top: topPad + 12,
-  left: 16,
-  child: GestureDetector(
-    onTap: () => Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const SettingsScreen(),
+        top: topPad + 12,
+        left: 16,
+        child: GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SettingsScreen(),
+            ),
+          ),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _kCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _kBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
+            child: const Icon(
+              Icons.settings_rounded,
+              color: _kInk,
+              size: 18,
+            ),
+          ),
+        ),
       ),
-    ),
-    child: Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: const Icon(
-        Icons.settings_rounded,
-        color: _kInk,
-        size: 18,
-      ),
-    ),
-  ),
-),
         // Edit cover button
         Positioned(top: topPad + 12, right: 16,
           child: GestureDetector(onTap: _pickCover,
@@ -1218,130 +1316,181 @@ Future<void> _shareMyProfile() async {
             fontWeight: FontWeight.w900, color: Colors.white))));
 
   // ── Identity section ──────────────────────────────────────
+Widget _buildIdentitySection() {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+    child: Column(children: [
+      Text(widget.fullName, textAlign: TextAlign.center,
+        style: const TextStyle(
+            fontSize: 22, fontWeight: FontWeight.w900,
+            color: _kInk, letterSpacing: -0.5)),
+      const SizedBox(height: 4),
+      Text('$_roleLabel  ·  $_handleName', textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: _kSlate,
+            fontWeight: FontWeight.w600, letterSpacing: 0.2)),
+      const SizedBox(height: 18),
 
-  Widget _buildIdentitySection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-      child: Column(children: [
-        Text(widget.fullName, textAlign: TextAlign.center,
-          style: const TextStyle(
-              fontSize: 22, fontWeight: FontWeight.w900,
-              color: _kInk, letterSpacing: -0.5)),
-        const SizedBox(height: 4),
-        Text('$_roleLabel  ·  $_handleName', textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 12, color: _kSlate,
-              fontWeight: FontWeight.w600, letterSpacing: 0.2)),
-        const SizedBox(height: 18),
+      // Stats card
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kBorder)),
+        child: IntrinsicHeight(child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _StatCell(value: _posts.length + _fweets.length, label: 'Posts'),
+            _divider(),
+            _StatCell(value: _followers, label: 'Followers'),
+            _divider(),
+            _StatCell(value: _following, label: 'Following'),
+          ],
+        )),
+      ),
+      const SizedBox(height: 14),
 
-        // Stats card
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: _kCard,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _kBorder)),
-          child: IntrinsicHeight(child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _StatCell(value: _posts.length + _fweets.length, label: 'Posts'),
-              _divider(),
-              _StatCell(value: _followers, label: 'Followers'),
-              _divider(),
-              _StatCell(value: _following, label: 'Following'),
-            ],
-          )),
-        ),
-        const SizedBox(height: 14),
-
-        // Action row — Edit Bio (primary, animated border) + Share
-        Row(children: [
-          Expanded(flex: 3, child: GestureDetector(onTap: _openBio,
+      // Action Row — Edit Bio + Add Interests + Share
+      Row(children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: _openBio,
             child: _GradientBorderCard(
               animation: _shimmerCtrl,
-              radius: 14, borderWidth: 1.4,
+              radius: 14,
+              borderWidth: 1.4,
               innerColor: _kCard,
               padding: const EdgeInsets.symmetric(vertical: 13),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.edit_rounded, color: _kInk, size: 14),
-                  const SizedBox(width: 6),
-                  Text(_bioData != null ? 'Edit Bio' : 'Add Bio',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: _kInk, fontSize: 13, letterSpacing: -0.2)),
-                ])),
-          )),
-          const SizedBox(width: 10),
-          GestureDetector(onTap: _shareMyProfile,
-            child: Container(width: 46, height: 46,
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.edit_rounded, color: _kInk, size: 14),
+                const SizedBox(width: 6),
+                Text(_bioData != null ? 'Edit Bio' : 'Add Bio',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: _kInk, fontSize: 13, letterSpacing: -0.2)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: GestureDetector(
+            onTap: _openInterests,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
-                color: _kCard, shape: BoxShape.circle,
+                color: _kCard,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kBorder)),
-              child: const Icon(Icons.ios_share_rounded, size: 18,
-                  color: _kInkSoft))),
-        ]),
-        const SizedBox(height: 8),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.interests_rounded, color: _kPurple, size: 14),
+                const SizedBox(width: 6),
+                Text(_interests.isEmpty ? 'Add Interests' : 'Edit Interests',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: _kInk, fontSize: 13, letterSpacing: -0.2)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _shareMyProfile,
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: _kCard,
+              shape: BoxShape.circle,
+              border: Border.all(color: _kBorder)),
+            child: const Icon(Icons.ios_share_rounded,
+                size: 18, color: _kInkSoft)),
+        ),
       ]),
-    );
-  }
-
+      const SizedBox(height: 8),
+    ]),
+  );
+}
   Widget _divider() => Container(width: 1, height: 28, color: _kBorder);
 
   // ── Bio card ──────────────────────────────────────────────
+Widget _buildBioCard() {
+  final bio = _bioData;
+  final hasBio = bio != null && !bio.isEmpty;
 
-  Widget _buildBioCard() {
-    final bio = _bioData!;
-    return GestureDetector(
-      onTap: _showBioSheet,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _kBorder)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(width: 28, height: 28,
-              decoration: BoxDecoration(
-                color: _kPurple.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.person_outline_rounded,
-                  color: _kPurple, size: 14)),
-            const SizedBox(width: 8),
-            const Text('About me', style: TextStyle(
-                fontWeight: FontWeight.w800, fontSize: 13,
-                color: _kInk, letterSpacing: -0.2)),
-            const Spacer(),
-            _privacyChip(
-              icon:  _bioPublic ? Icons.public_rounded : Icons.lock_rounded,
-              label: PrivacyToggleSheet.bioLabel(_bioPublic),
-              onTap: _changeBioPrivacy,
-            ),
-            const SizedBox(width: 10),
-            const Text('Edit ›', style: TextStyle(
-                fontWeight: FontWeight.w800, fontSize: 12, color: _kPurple)),
-          ]),
-          if (bio.bio != null) ...[
-            const SizedBox(height: 8),
-            Text(bio.bio!, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13,
-                  color: _kInkSoft, height: 1.5)),
-          ],
-          if (bio.country != null || bio.year != null) ...[
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              if (bio.country != null) _metaChip('📍 ${bio.country!}'),
-              if (bio.year    != null) _metaChip('🎓 ${bio.year!}'),
-              if (bio.availableForStudy)
-                _metaChip('📚 Study Buddy', color: const Color(0xFF22C55E)),
-            ]),
-          ],
+  return GestureDetector(
+    onTap: _showBioSheet,
+    child: Container(
+      margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: _kPurple.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.person_outline_rounded,
+                color: _kPurple, size: 14)),
+          const SizedBox(width: 8),
+          const Text('About me', style: TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 13,
+              color: _kInk, letterSpacing: -0.2)),
+          const Spacer(),
+          _privacyChip(
+            icon: _bioPublic ? Icons.public_rounded : Icons.lock_rounded,
+            label: PrivacyToggleSheet.bioLabel(_bioPublic),
+            onTap: _changeBioPrivacy,
+          ),
         ]),
-      ),
-    );
-  }
 
+        if (hasBio && bio!.bio != null) ...[
+          const SizedBox(height: 10),
+          Text(bio.bio!, style: const TextStyle(
+              fontSize: 14, color: _kInkSoft, height: 1.5)),
+        ],
+
+        // Interests inside About section
+        if (_interests.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text('Interests', style: TextStyle(
+              fontWeight: FontWeight.w700, fontSize: 12, color: _kSlate)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _interests.map((interest) {
+              final c = [_kBlue, _kPurple, _kAmber, _kCoral][_interests.indexOf(interest) % 4];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.10),
+                  border: Border.all(color: c.withOpacity(0.25)),
+                  borderRadius: BorderRadius.circular(20)),
+                child: Text(interest, style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: c)),
+              );
+            }).toList(),
+          ),
+        ],
+
+        if (_interests.isEmpty && !hasBio)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text(
+              "Tell others about yourself and your interests",
+              style: TextStyle(fontSize: 13, color: _kSlate),
+            ),
+          ),
+      ]),
+    ),
+  );
+}
   Widget _metaChip(String label, {Color? color}) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
@@ -1496,19 +1645,37 @@ Future<void> _shareMyProfile() async {
     );
   }
 
-  // ── Custom segmented tab bar (matching arcade) ────────────
-
-  // ── Highlights row (Instagram-style story circles) ────────
+  // ══════════════════════════════════════════════════════════
+  // HIGHLIGHTS ROW — one circle per uploader (grouped)
+  // ══════════════════════════════════════════════════════════
 
   Widget _buildHighlightsRow() {
+    // Compute the grouped, freshness-filtered bundles once per build.
+    final bundles = _uploaderBundles;
+
     return Padding(
       padding: const EdgeInsets.only(top: 14, bottom: 4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
-          child: Text('Highlights', style: TextStyle(
-              fontWeight: FontWeight.w800, fontSize: 12,
-              color: _kInk, letterSpacing: 0.5)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Row(children: [
+            const Text('Highlights', style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 12,
+                color: _kInk, letterSpacing: 0.5)),
+            const SizedBox(width: 8),
+            // Tiny "24h" pill to set the expectation that highlights
+            // disappear after a day. Communicates the new behaviour
+            // without needing a tooltip.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _kPurple.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(6)),
+              child: const Text('24h', style: TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 9,
+                  color: _kPurple, letterSpacing: 0.5)),
+            ),
+          ]),
         ),
         const SizedBox(height: 10),
         SizedBox(
@@ -1521,11 +1688,13 @@ Future<void> _shareMyProfile() async {
               : ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: _highlights.length + 1,
+                  itemCount: bundles.length + 1,
                   separatorBuilder: (_, __) => const SizedBox(width: 14),
                   itemBuilder: (_, i) {
+                    // Position 0 is the Add tile; the rest are
+                    // uploader bundles.
                     if (i == 0) return _buildAddHighlightCircle();
-                    return _buildHighlightCircle(_highlights[i - 1], i - 1);
+                    return _buildUploaderCircle(bundles[i - 1]);
                   },
                 ),
         ),
@@ -1556,44 +1725,65 @@ Future<void> _shareMyProfile() async {
     );
   }
 
-  Widget _buildHighlightCircle(Map<String, dynamic> h, int index) {
-    final title = (h['title'] as String? ?? 'Highlight').trim();
-    final cover = (h['cover_url'] as String? ?? '').trim();
+  /// One circle per uploader. Renders the uploader's avatar inside the
+  /// gradient ring, falling back to the cover image of their first
+  /// highlight if no avatar is set, then to the uploader's initial.
+  Widget _buildUploaderCircle(Map<String, dynamic> bundle) {
+    final name    = bundle['uploader_name'] as String? ?? 'You';
+    final avatar  = bundle['uploader_avatar'] as String? ?? '';
+    final cover   = bundle['cover_url'] as String? ?? '';
+    final count   = (bundle['highlights'] as List).length;
+    final imgUrl  = avatar.isNotEmpty ? avatar : cover;
+
     return GestureDetector(
-      onTap: () => _openHighlight(index),
+      onTap: () => _openUploaderHighlights(bundle),
       child: SizedBox(
         width: 66,
         child: Column(children: [
-          Container(
-            width: 64, height: 64,
-            padding: const EdgeInsets.all(2.5),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [_kBlue, _kPurple, _kCoral],
-                begin: Alignment.topLeft, end: Alignment.bottomRight)),
-            child: Container(
-              padding: const EdgeInsets.all(2),
+          Stack(children: [
+            Container(
+              width: 64, height: 64,
+              padding: const EdgeInsets.all(2.5),
               decoration: const BoxDecoration(
-                  color: _kBg1, shape: BoxShape.circle),
-              child: ClipOval(
-                child: cover.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: cover, fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(color: _kCardLo),
-                        errorWidget: (_, __, ___) => Container(
-                          color: _kCardLo,
-                          child: const Icon(Icons.auto_awesome_rounded,
-                              color: _kSlate2, size: 22)))
-                    : Container(
-                        color: _kCardLo,
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: _kSlate2, size: 22)),
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [_kBlue, _kPurple, _kCoral],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                    color: _kBg1, shape: BoxShape.circle),
+                child: ClipOval(
+                  child: imgUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imgUrl, fit: BoxFit.cover,
+                          placeholder: (_, __) => _circleInitial(name),
+                          errorWidget: (_, __, ___) => _circleInitial(name))
+                      : _circleInitial(name),
+                ),
               ),
             ),
-          ),
+            // Small badge showing how many highlights this uploader has.
+            // Hidden when there's only one — keeps the row tidy on
+            // first-time-user profiles.
+            if (count > 1)
+              Positioned(
+                right: 0, bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: _kInk,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _kBg1, width: 1.5)),
+                  child: Text('$count', style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9, fontWeight: FontWeight.w800)),
+                ),
+              ),
+          ]),
           const SizedBox(height: 6),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+          Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11,
                 fontWeight: FontWeight.w700, color: _kInk)),
         ]),
@@ -1601,8 +1791,21 @@ Future<void> _shareMyProfile() async {
     );
   }
 
+  Widget _circleInitial(String name) => Container(
+        color: _kCardLo,
+        alignment: Alignment.center,
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: const TextStyle(
+              color: _kPurple, fontWeight: FontWeight.w900, fontSize: 22),
+        ),
+      );
+
+  // ── Custom segmented tab bar — now FOUR segments ──────────
+
   Widget _buildTabBar() {
-    const labels = ['Posts', 'Fweets', 'Favorites'];
+    const labels = ['Posts', 'Fweets', 'Favorites', 'Clubs'];
+    const n = 4;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Container(
@@ -1616,9 +1819,10 @@ Future<void> _shareMyProfile() async {
         child: AnimatedBuilder(
           animation: _tabCtrl.animation!,
           builder: (_, __) {
-            final pos = _tabCtrl.animation!.value.clamp(0.0, 2.0);
+            // Clamp to (n-1) so the sliding indicator stays inside.
+            final pos = _tabCtrl.animation!.value.clamp(0.0, n - 1.0);
             return LayoutBuilder(builder: (_, c) {
-              final segW = c.maxWidth / 3;
+              final segW = c.maxWidth / n;
               return Stack(children: [
                 Positioned(
                   left: pos * segW,
@@ -1627,7 +1831,7 @@ Future<void> _shareMyProfile() async {
                     color: _kInk, borderRadius: BorderRadius.circular(10))),
                 ),
                 Row(children: [
-                  for (int i = 0; i < 3; i++)
+                  for (int i = 0; i < n; i++)
                     Expanded(child: GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -1637,7 +1841,7 @@ Future<void> _shareMyProfile() async {
                       child: Container(
                         alignment: Alignment.center,
                         child: Text(labels[i], style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w800,
+                            fontSize: 11.5, fontWeight: FontWeight.w800,
                             letterSpacing: -0.1,
                             color: Color.lerp(_kSlate, Colors.white,
                                 1.0 - (pos - i).abs().clamp(0.0, 1.0)))),
@@ -1654,7 +1858,8 @@ Future<void> _shareMyProfile() async {
 }
 
 // ═════════════════════════════════════════════════════════════
-// _GradientBorderCard
+// _GradientBorderCard — ANIMATED sweep gradient (used for avatar
+// ring and the Edit Bio CTA). Heavy; only used where it matters.
 // ═════════════════════════════════════════════════════════════
 
 class _GradientBorderCard extends StatelessWidget {
@@ -1703,6 +1908,55 @@ class _GradientBorderCard extends StatelessWidget {
         );
       },
       child: inner,
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// _GradientTile — STATIC linear-gradient border. Cheap. Use for
+// every post / fweet / club-post / favourite card.
+// ═════════════════════════════════════════════════════════════
+
+class _GradientTile extends StatelessWidget {
+  final Widget       child;
+  final List<Color>  gradient;
+  final double       radius;
+  final double       borderWidth;
+  final EdgeInsetsGeometry? margin;
+  final Color        innerColor;
+
+  const _GradientTile({
+    required this.child,
+    required this.gradient,
+    this.radius      = 18,
+    this.borderWidth = 1.8,
+    this.margin,
+    this.innerColor  = _kCard,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      padding: EdgeInsets.all(borderWidth),
+      child: Container(
+        decoration: BoxDecoration(
+          color: innerColor,
+          borderRadius: BorderRadius.circular(
+              math.max(0.0, radius - borderWidth)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(
+              math.max(0.0, radius - borderWidth)),
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -1809,11 +2063,15 @@ class _PostsTab extends StatelessWidget {
             final p     = posts[i];
             final media = (p['media'] as List? ?? [])
                 .cast<Map<String, dynamic>>();
+            // NEW — wrap every post card in a gradient border. The
+            // gradient pair rotates with index so neighbouring cards
+            // never share a gradient.
             return _ProfilePostCard(
               post:     p,
               media:    media,
               content:  p['content'] as String? ?? '',
               onDelete: () => onDelete(i),
+              gradient: _gradFor(i),
             );
           },
         ),
@@ -1841,11 +2099,6 @@ class _PostsTab extends StatelessWidget {
     ]);
   }
 }
-
-// ═════════════════════════════════════════════════════════════
-// PROFILE POST CARD
-// ═════════════════════════════════════════════════════════════
-
 
 // ═════════════════════════════════════════════════════════════
 // STATS BOTTOM SHEET — tap a post/fweet stats row to open
@@ -1930,13 +2183,22 @@ class _StatTile extends StatelessWidget {
   }
 }
 
+// ═════════════════════════════════════════════════════════════
+// _ProfilePostCard — gradient-bordered. Takes a `gradient` list
+// from the parent; falls back to blue→purple if none supplied.
+// ═════════════════════════════════════════════════════════════
+
 class _ProfilePostCard extends StatefulWidget {
   final Map<String, dynamic> post;
   final List<Map<String, dynamic>> media;
   final String content;
   final VoidCallback onDelete;
-  const _ProfilePostCard({required this.post, required this.media,
-      required this.content, required this.onDelete});
+  final List<Color> gradient;
+  const _ProfilePostCard({
+    required this.post, required this.media,
+    required this.content, required this.onDelete,
+    this.gradient = const [_kBlue, _kPurple],
+  });
   @override State<_ProfilePostCard> createState() => _ProfilePostCardState();
 }
 
@@ -1949,25 +2211,21 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
     final hasMedia = widget.media.isNotEmpty;
     final multi    = widget.media.length > 1;
 
-    return Container(
+    return _GradientTile(
+      gradient: widget.gradient,
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _kBorder)),
+      radius: 20,
+      borderWidth: 1.8,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (hasMedia) ...[
           Stack(children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-              child: SizedBox(
-                height: 220,
-                child: PageView.builder(
-                  itemCount: widget.media.length,
-                  onPageChanged: (p) => setState(() => _page = p),
-                  itemBuilder: (_, i) => MediaItemView(
-                    item:   widget.media[i], height: 220),
-                ),
+            SizedBox(
+              height: 220,
+              child: PageView.builder(
+                itemCount: widget.media.length,
+                onPageChanged: (p) => setState(() => _page = p),
+                itemBuilder: (_, i) => MediaItemView(
+                  item:   widget.media[i], height: 220),
               ),
             ),
             if (multi) Positioned(top: 10, right: 10,
@@ -2118,7 +2376,7 @@ class _FweetStatsRow extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// FWEETS TAB
+// FWEETS TAB — cards wrapped in gradient borders too
 // ═════════════════════════════════════════════════════════════
 
 class _FweetsTab extends StatelessWidget {
@@ -2175,48 +2433,49 @@ class _FweetsTab extends StatelessWidget {
                     'FF${bgHex.replaceAll('#', '')}', radix: 16));
               }
             } catch (_) {}
-            return Container(
+
+            // Same gradient-border treatment as posts. When the fweet
+            // already has a background colour, the gradient frame still
+            // reads against it nicely because of the 1.8px width.
+            return _GradientTile(
+              gradient: _gradFor(i),
               margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: bg ?? _kCard,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: bg != null
-                    ? Colors.white.withOpacity(0.15) : _kBorder)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(17),
-                child: Column(children: [
-                  Container(
-                    color: bg != null
-                        ? Colors.black.withOpacity(0.10) : _kCardLo,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    child: Row(children: [
-                      Text('⚡ Fweet', style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 11,
-                          color: bg != null ? Colors.white : _kCoral,
-                          letterSpacing: 0.3)),
-                      const Spacer(),
-                      GestureDetector(onTap: () => onDelete(i),
-                        child: Icon(Icons.delete_outline_rounded, size: 18,
-                            color: bg != null ? Colors.white70 : _kCoral)),
-                    ])),
-                  Padding(padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(content, style: TextStyle(
-                            fontSize: 15, height: 1.5,
-                            color: bg != null ? Colors.white : _kInk)),
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => showFweetStatsSheet(context, f),
-                          child: _FweetStatsRow(
-                              fweet: f, onColored: bg != null)),
-                      ],
-                    ),
+              radius: 18,
+              borderWidth: 1.8,
+              innerColor: bg ?? _kCard,
+              child: Column(children: [
+                Container(
+                  color: bg != null
+                      ? Colors.black.withOpacity(0.10) : _kCardLo,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  child: Row(children: [
+                    Text('⚡ Fweet', style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11,
+                        color: bg != null ? Colors.white : _kCoral,
+                        letterSpacing: 0.3)),
+                    const Spacer(),
+                    GestureDetector(onTap: () => onDelete(i),
+                      child: Icon(Icons.delete_outline_rounded, size: 18,
+                          color: bg != null ? Colors.white70 : _kCoral)),
+                  ])),
+                Padding(padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(content, style: TextStyle(
+                          fontSize: 15, height: 1.5,
+                          color: bg != null ? Colors.white : _kInk)),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => showFweetStatsSheet(context, f),
+                        child: _FweetStatsRow(
+                            fweet: f, onColored: bg != null)),
+                    ],
                   ),
-                ])),
+                ),
+              ]),
             );
           },
         ),
@@ -2245,8 +2504,19 @@ class _FweetsTab extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// FAVORITES TAB
+// FAVORITES TAB — now handles event posters too
 // ═════════════════════════════════════════════════════════════
+//
+// Each favourite entry is routed by its `type` field (or `post_type`
+// for legacy payloads):
+//   • 'event'         → _FavoriteEventCard (poster-style)
+//   • 'fweet'         → existing post-style row with ⚡ badge
+//   • anything else   → standard favourite post card
+//
+// Backend NOTE: GET /api/me/favorites/ should now return events
+// alongside posts, with `type: 'event'` and these fields:
+//   id, title, start_time, location, club_name, club_logo,
+//   poster_url (or card_url).
 
 class _FavoritesTab extends StatelessWidget {
   final List<Map<String, dynamic>> favorites;
@@ -2261,37 +2531,42 @@ class _FavoritesTab extends StatelessWidget {
     if (favorites.isEmpty) {
       return const _EmptyTab(
         icon: Icons.bookmark_outline_rounded, label: 'No Favorites Yet',
-        sub: 'Posts you bookmark from the feed appear here', color: _kPurple);
+        sub: 'Posts and event posters you bookmark appear here',
+        color: _kPurple);
     }
     return RefreshIndicator(
-  color: _kInk, onRefresh: onRefresh,
-  child: ListView.builder(
-    padding: EdgeInsets.fromLTRB(
-      16, 16, 16,
-      16 + MediaQuery.of(context).padding.bottom + 90,
-    ),
+      color: _kInk, onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: EdgeInsets.fromLTRB(
+          16, 16, 16,
+          16 + MediaQuery.of(context).padding.bottom + 90,
+        ),
         itemCount: favorites.length,
         itemBuilder: (_, i) {
-          final p       = favorites[i];
+          final p = favorites[i];
+          // Branch on item type — events render very differently from
+          // posts/fweets.
+          final kind = (p['type'] ?? p['kind'] ?? p['post_type'] ?? 'post')
+              .toString();
+          if (kind == 'event') {
+            return _FavoriteEventCard(event: p, gradient: _gradFor(i));
+          }
+
           final content = p['content']     as String? ?? '';
           final author  = p['author_name'] as String? ?? 'Unknown';
-          final isFweet = p['post_type']   == 'fweet';
+          final isFweet = kind == 'fweet';
           final initial = author.isNotEmpty ? author[0].toUpperCase() : '?';
           final media   = (p['media'] as List? ?? [])
               .cast<Map<String, dynamic>>();
-          return Container(
+          return _GradientTile(
+            gradient: _gradFor(i),
             margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: _kCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _kBorder)),
+            radius: 18, borderWidth: 1.8,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 10),
-                decoration: const BoxDecoration(
-                  color: _kCardLo,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(17))),
+                color: _kCardLo,
                 child: Row(children: [
                   Container(width: 26, height: 26,
                     decoration: const BoxDecoration(
@@ -2315,8 +2590,7 @@ class _FavoritesTab extends StatelessWidget {
                   const Icon(Icons.bookmark_rounded, color: _kPurple, size: 16),
                 ])),
               if (media.isNotEmpty)
-                ClipRRect(child: MediaItemView(
-                  item: media.first, height: 180)),
+                MediaItemView(item: media.first, height: 180),
               if (content.isNotEmpty)
                 Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Text(content, style: const TextStyle(
@@ -2328,6 +2602,372 @@ class _FavoritesTab extends StatelessWidget {
       ),
     );
   }
+}
+
+// ═════════════════════════════════════════════════════════════
+// _FavoriteEventCard — poster-style card for favourited events.
+//
+// Layout:
+//   • Poster image at top (16:9). If the event has no poster URL,
+//     show a decorative gradient block with a big day/month badge
+//     instead of a flat calendar icon.
+//   • Below: title (bold), date+time row, location row, host club row.
+//   • Wrapped in the same rotating-gradient border as posts.
+// ═════════════════════════════════════════════════════════════
+
+class _FavoriteEventCard extends StatelessWidget {
+  final Map<String, dynamic> event;
+  final List<Color> gradient;
+  const _FavoriteEventCard({required this.event, required this.gradient});
+
+  @override
+  Widget build(BuildContext context) {
+    final title     = event['title']      as String? ?? 'Untitled event';
+    final loc       = event['location']   as String? ?? '';
+    final start     = event['start_time'] as String? ?? '';
+    final club      = event['club_name']  as String? ?? '';
+    final clubLogo  = event['club_logo']  as String? ?? '';
+    final poster    = (event['poster_url'] as String?) ??
+                      (event['card_url']   as String?) ?? '';
+    final dt        = _tryParse(start);
+
+    return _GradientTile(
+      gradient: gradient,
+      margin: const EdgeInsets.only(bottom: 14),
+      radius: 18, borderWidth: 1.8,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Hero image / decorative date block
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: poster.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: poster,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => _decorativeDateBlock(dt),
+                  errorWidget: (_, __, ___) => _decorativeDateBlock(dt),
+                )
+              : _decorativeDateBlock(dt),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.celebration_rounded,
+                    size: 13, color: _kAmber),
+                const SizedBox(width: 5),
+                const Text('EVENT', style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w800,
+                    color: _kAmber, letterSpacing: 0.8)),
+                const Spacer(),
+                const Icon(Icons.bookmark_rounded,
+                    color: _kPurple, size: 16),
+              ]),
+              const SizedBox(height: 6),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w900,
+                      color: _kInk, letterSpacing: -0.3),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              if (dt != null) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  const Icon(Icons.event_rounded,
+                      size: 13, color: _kPurple),
+                  const SizedBox(width: 5),
+                  Text(_fmtDateTime(dt),
+                      style: const TextStyle(
+                          fontSize: 12, color: _kInkSoft,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ],
+              if (loc.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Icon(Icons.place_outlined,
+                      size: 13, color: _kCoral),
+                  const SizedBox(width: 5),
+                  Expanded(child: Text(loc, maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: _kSlate))),
+                ]),
+              ],
+              if (club.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  // Tiny club logo / initial — same pattern as the
+                  // chat-room avatars elsewhere in the app.
+                  Container(
+                    width: 18, height: 18,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                          colors: [_kBlue, _kPurple])),
+                    child: ClipOval(
+                      child: clubLogo.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: clubLogo, fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  _clubInitial(club),
+                              placeholder: (_, __) =>
+                                  _clubInitial(club))
+                          : _clubInitial(club),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text('Hosted by $club',
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: _kSlate,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+              ],
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// Decorative day/month block used when there's no poster. Beats the
+  /// old "single calendar icon on a flat tint" placeholder — feels
+  /// more like a save-the-date than a system glyph.
+  Widget _decorativeDateBlock(DateTime? dt) {
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN',
+                    'JUL','AUG','SEP','OCT','NOV','DEC'];
+    final day   = dt?.day.toString() ?? '?';
+    final month = dt != null ? months[dt.month - 1] : 'TBA';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: Stack(children: [
+        // Soft decorative circles
+        Positioned(right: -20, top: -20, child: Container(
+          width: 100, height: 100,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.10)))),
+        Positioned(left: -10, bottom: -30, child: Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.08)))),
+        // Day/month badge centered
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(month, style: const TextStyle(
+                  color: Colors.white, fontSize: 13,
+                  fontWeight: FontWeight.w900, letterSpacing: 3)),
+              Text(day, style: const TextStyle(
+                  color: Colors.white, fontSize: 54,
+                  fontWeight: FontWeight.w900, height: 1.0,
+                  letterSpacing: -1.5)),
+            ],
+          ),
+        ),
+        // Small "save the date" ribbon at the corner
+        Positioned(
+          top: 12, left: 12,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.22),
+              borderRadius: BorderRadius.circular(8)),
+            child: const Text('SAVE THE DATE', style: TextStyle(
+                color: Colors.white, fontSize: 9,
+                fontWeight: FontWeight.w800, letterSpacing: 1)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _clubInitial(String name) => Container(
+    color: _kCardLo,
+    alignment: Alignment.center,
+    child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(
+            color: _kPurple, fontSize: 9, fontWeight: FontWeight.w900)),
+  );
+
+  DateTime? _tryParse(String iso) {
+    if (iso.isEmpty) return null;
+    try { return DateTime.parse(iso).toLocal(); } catch (_) { return null; }
+  }
+
+  String _fmtDateTime(DateTime d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '${d.day} ${months[d.month - 1]} · $hh:$mm';
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// CLUBS TAB — posts from clubs the user has joined
+// ═════════════════════════════════════════════════════════════
+//
+// Backend NOTE: needs GET /api/me/clubs/feed/ (paginated, newest first)
+// returning posts authored *in* clubs the user is a member of. Shape
+// expected per post:
+//   id, content, media[], created_at,
+//   author_name, author_avatar,
+//   club_id, club_name, club_logo,
+//   like_count, comment_count, favorite_count
+// If the endpoint is missing the tab renders the empty state.
+
+class _ClubsTab extends StatelessWidget {
+  final List<Map<String, dynamic>> clubPosts;
+  final bool loading;
+  final Future<void> Function() onRefresh;
+  const _ClubsTab({
+    required this.clubPosts,
+    required this.loading,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const _TabLoadingShimmer();
+    if (clubPosts.isEmpty) {
+      return const _EmptyTab(
+        icon: Icons.groups_rounded,
+        label: 'No club posts yet',
+        sub: 'When clubs you\'ve joined post updates, they show up here.',
+        color: _kBlue,
+      );
+    }
+    return RefreshIndicator(
+      color: _kInk,
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: EdgeInsets.fromLTRB(
+          16, 16, 16,
+          16 + MediaQuery.of(context).padding.bottom + 90),
+        itemCount: clubPosts.length,
+        itemBuilder: (_, i) => _ClubPostCard(
+          post: clubPosts[i],
+          gradient: _gradFor(i),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClubPostCard extends StatelessWidget {
+  final Map<String, dynamic> post;
+  final List<Color> gradient;
+  const _ClubPostCard({required this.post, required this.gradient});
+
+  @override
+  Widget build(BuildContext context) {
+    final content    = post['content']      as String? ?? '';
+    final clubName   = post['club_name']    as String? ?? 'Club';
+    final clubLogo   = post['club_logo']    as String? ?? '';
+    final authorName = post['author_name']  as String? ?? '';
+    final media      = (post['media'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+
+    return _GradientTile(
+      gradient: gradient,
+      margin: const EdgeInsets.only(bottom: 14),
+      radius: 18, borderWidth: 1.8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: club logo + club name (+ optional author).
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            color: _kCardLo,
+            child: Row(children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: const LinearGradient(
+                      colors: [_kBlue, _kPurple])),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: clubLogo.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: clubLogo, fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => _initial(clubName),
+                          placeholder: (_, __) => _initial(clubName))
+                      : _initial(clubName),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(clubName, maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w900,
+                            color: _kInk, letterSpacing: -0.2)),
+                    if (authorName.isNotEmpty)
+                      Text('Posted by $authorName',
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 11, color: _kSlate,
+                              fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.groups_rounded,
+                  size: 16, color: _kBlue),
+            ]),
+          ),
+
+          // Media (first item, if any).
+          if (media.isNotEmpty)
+            MediaItemView(item: media.first, height: 200),
+
+          // Content + stats.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (content.isNotEmpty)
+                  Text(content,
+                      style: const TextStyle(
+                          fontSize: 14, color: _kInk, height: 1.5)),
+                if (content.isNotEmpty) const SizedBox(height: 10),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => showPostStatsSheet(context, post),
+                  child: _PostStatsRow(post: post),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _initial(String name) => Container(
+    alignment: Alignment.center,
+    child: Text(
+      name.isNotEmpty ? name[0].toUpperCase() : '?',
+      style: const TextStyle(
+          color: Colors.white, fontSize: 13,
+          fontWeight: FontWeight.w900)),
+  );
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -2355,15 +2995,16 @@ class _TabLoadingShimmerState extends State<_TabLoadingShimmer>
   Widget build(BuildContext context) =>
     AnimatedBuilder(animation: _a, builder: (_, __) {
       final o = 0.04 + _a.value * 0.06;
-return ListView(
-  padding: EdgeInsets.fromLTRB(
-    16, 16, 16,
-    16 + MediaQuery.of(context).padding.bottom + 90,
-  ),
-  children: [        _sh(o, 200), const SizedBox(height: 16),
-        _sh(o, 120), const SizedBox(height: 16),
-        _sh(o, 160),
-      ]);
+      return ListView(
+        padding: EdgeInsets.fromLTRB(
+          16, 16, 16,
+          16 + MediaQuery.of(context).padding.bottom + 90,
+        ),
+        children: [
+          _sh(o, 200), const SizedBox(height: 16),
+          _sh(o, 120), const SizedBox(height: 16),
+          _sh(o, 160),
+        ]);
     });
   Widget _sh(double o, double h) => Container(
     decoration: BoxDecoration(color: _kCard,
@@ -2386,9 +3027,6 @@ return ListView(
     ]));
 }
 
-// ═════════════════════════════════════════════════════════════
-// EMPTY STATE
-// ═════════════════════════════════════════════════════════════
 // ═════════════════════════════════════════════════════════════
 // EMPTY STATE  (responsive — scrolls when tab area is short)
 // ═════════════════════════════════════════════════════════════
@@ -2414,8 +3052,6 @@ class _EmptyTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Scale the icon bubble down on cramped layouts so the whole
-        // empty state still fits without overflowing.
         final cramped  = constraints.maxHeight < 240;
         final iconSize = cramped ? 56.0 : 72.0;
         final iconInner = cramped ? 24.0 : 30.0;
@@ -2431,9 +3067,9 @@ class _EmptyTab extends StatelessWidget {
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-  32, 16, 32,
-  16 + MediaQuery.of(context).padding.bottom + 90,
-),
+                    32, 16, 32,
+                    16 + MediaQuery.of(context).padding.bottom + 90,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -2510,6 +3146,8 @@ class _EmptyTab extends StatelessWidget {
     );
   }
 }
+
+// ═════════════════════════════════════════════════════════════
 // BIO ROW
 // ═════════════════════════════════════════════════════════════
 
@@ -2535,7 +3173,6 @@ class _BioRow extends StatelessWidget {
       ])),
     ]));
 }
-
 
 // ═════════════════════════════════════════════════════════════
 // INLINE EMPTY STATE — sits under the composer when a tab is empty.
