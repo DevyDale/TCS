@@ -50,6 +50,7 @@ class _GroupsStudyHubScreenState
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
+    _loadAvailability();
     _loadAll();
   }
 
@@ -67,6 +68,31 @@ class _GroupsStudyHubScreenState
     ]);
   }
 
+
+
+  /// Restores the user's study-buddy availability when the screen mounts.
+  /// We read /auth/me/ first (since the backend persists is_available_study
+  /// and study_subjects on the User model). The user can only manually
+  /// toggle themselves off — leaving and re-entering this screen will not
+  /// reset it.
+  Future<void> _loadAvailability() async {
+    try {
+      final me = await _api.get('/auth/me/');
+      if (me is! Map) return;
+      final available = (me['is_available_study'] ??
+                         me['available'] ??
+                         me['study_buddy_available']) == true;
+      final subjects  = (me['study_subjects'] as String?) ??
+                        (me['subjects']       as String?) ?? '';
+      if (!mounted) return;
+      setState(() {
+        _availableForStudy = available;
+        _availSubjects     = subjects;
+      });
+    } catch (_) {
+      // Silent — keep the local default (false). User can re-toggle.
+    }
+  }
   Future<void> _loadGroups() async {
     setState(() => _loadingGroups = true);
     try {
