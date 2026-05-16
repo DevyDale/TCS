@@ -444,6 +444,7 @@ class _CreatePostPageState extends State<CreatePostPage>
         postType:   'post',
         visibility: _visibility.toLowerCase(),
         location:   _locationCtrl.text.trim(),
+        clubId:     widget.clubId,
       ) as Map<String, dynamic>;
 
       final postId = created['id']?.toString() ?? '';

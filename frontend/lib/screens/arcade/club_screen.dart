@@ -1527,7 +1527,7 @@ class _ClubScreenState extends State<ClubScreen> {
                   icon: Icons.photo_library_outlined,
                   message: 'No posts or videos yet.')
             else
-              ..._feedPosts.take(5).map(_buildPostCard),
+              _buildPostsGrid(),
           ],
         ),
       ),
@@ -1632,6 +1632,136 @@ class _ClubScreenState extends State<ClubScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  // ── Posts grid (replaces vertical list) ─────────────────
+
+  Widget _buildPostsGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        childAspectRatio: 1,
+      ),
+      itemCount: _feedPosts.length.clamp(0, 30),
+      itemBuilder: (_, i) => _buildPostGridTile(_feedPosts[i]),
+    );
+  }
+
+  Widget _buildPostGridTile(Map<String, dynamic> p) {
+    final content = (p['content'] as String? ?? '').trim();
+    final media = (p['media'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    final firstMedia = media.isNotEmpty ? media.first : null;
+    final mediaUrl = (firstMedia?['url'] as String?) ??
+        (firstMedia?['thumbnail_url'] as String?) ?? '';
+    final isVideo = (firstMedia?['media_type'] as String? ?? '')
+            .toLowerCase().contains('video') ||
+        (firstMedia?['type'] as String? ?? '')
+            .toLowerCase().contains('video');
+
+    return GestureDetector(
+      onTap: () => _showPostDetailSheet(p),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: mediaUrl.isNotEmpty
+            ? Stack(fit: StackFit.expand, children: [
+                CachedNetworkImage(
+                  imageUrl: mediaUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(color: _kBg),
+                  errorWidget: (_, __, ___) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.broken_image_rounded,
+                        color: _kSlate),
+                  ),
+                ),
+                if (isVideo)
+                  Container(
+                    color: Colors.black.withOpacity(0.18),
+                    child: const Center(
+                      child: Icon(Icons.play_arrow_rounded,
+                          color: Colors.white, size: 36),
+                    ),
+                  ),
+                if (media.length > 1)
+                  Positioned(
+                    top: 4, right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.collections_rounded,
+                            color: Colors.white, size: 10),
+                        const SizedBox(width: 3),
+                        Text('${media.length}',
+                            style: const TextStyle(
+                              fontFamily: 'Arch',
+                              fontSize: 9,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            )),
+                      ]),
+                    ),
+                  ),
+              ])
+            : Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_kG1, _kG2],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: Center(
+                  child: Text(
+                    content.isEmpty ? 'Post' : content,
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 11,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  void _showPostDetailSheet(Map<String, dynamic> p) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        builder: (_, scrollCtrl) => SingleChildScrollView(
+          controller: scrollCtrl,
+          padding: const EdgeInsets.all(16),
+          child: _buildPostCard(p),
+        ),
       ),
     );
   }
