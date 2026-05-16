@@ -102,14 +102,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         iconTheme: const IconThemeData(color: _kInk),
         actions: [
           if (items.isNotEmpty)
-            TextButton(
-              onPressed: () async {
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: _kInk),
+              offset: const Offset(0, 48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) async {
                 HapticFeedback.lightImpact();
-                await _svc.markAllRead();
+                switch (value) {
+                  case 'mark_all':
+                    await _svc.markAllRead();
+                    break;
+                  case 'clear_all':
+                    final ok = await _confirmClearAll();
+                    if (ok == true) await _svc.clearAll();
+                    break;
+                }
               },
-              child: const Text('Mark all read',
-                style: TextStyle(fontFamily: 'Arch', color: _kViolet,
-                  fontWeight: FontWeight.bold, fontSize: 12)),
+              itemBuilder: (_) => const [
+                PopupMenuItem<String>(
+                  value: 'mark_all',
+                  child: Row(children: [
+                    Icon(Icons.done_all_rounded, size: 18, color: _kViolet),
+                    SizedBox(width: 10),
+                    Text('Mark all read',
+                      style: TextStyle(fontFamily: 'Arch',
+                        fontSize: 13, color: _kInk)),
+                  ]),
+                ),
+                PopupMenuItem<String>(
+                  value: 'clear_all',
+                  child: Row(children: [
+                    Icon(Icons.delete_sweep_rounded,
+                      size: 18, color: Color(0xFFFF5858)),
+                    SizedBox(width: 10),
+                    Text('Clear all',
+                      style: TextStyle(fontFamily: 'Arch', fontSize: 13,
+                        color: Color(0xFFFF5858),
+                        fontWeight: FontWeight.bold)),
+                  ]),
+                ),
+              ],
             ),
         ],
       ),
@@ -135,6 +168,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+  Future<bool?> _confirmClearAll() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
+        title: const Text('Clear all notifications?',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
+        content: const Text(
+          'This will permanently remove every notification. This action cannot be undone.',
+          style: TextStyle(fontFamily: 'Momo',
+            fontSize: 13, color: _kSlate, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+              style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear all',
+              style: TextStyle(fontFamily: 'Arch',
+                color: Color(0xFFFF5858), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _empty() => Center(
   child: Container(
     margin: const EdgeInsets.symmetric(horizontal: 32),
