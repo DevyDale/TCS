@@ -90,7 +90,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   /// Logged-in user's user_id, loaded lazily inside _loadHistory.
   /// Used to compute is_me by comparing sender_id from the backend.
-  String _myUserId = '';
 
   bool get _isStudyBuddy => widget.roomType == 'study_buddy';
 
