@@ -259,6 +259,7 @@ class FeedView(generics.ListAPIView):
         base = (Post.objects
                     .select_related("author", "club")
                     .prefetch_related("media_files", "hashtags")
+                    .filter(group__isnull=True)
                     .exclude(is_flagged=True))
         base = filter_posts_by_role(base, me)
 
