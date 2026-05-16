@@ -29,7 +29,10 @@ class UserMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ["id", "user_id", "display_name", "role",
-                  "avatar_url", "arcade_avatar_url", "is_online", "level", "xp"]
+                  "avatar_url", "arcade_avatar_url", "is_online", "level", "xp",
+            "is_available_study",
+            "study_subjects",
+        ]
 
     def get_avatar_url(self, obj):
         # 200×200 circle crop, WebP, quality auto — perfect for avatars in lists
@@ -67,6 +70,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_online", "last_seen", "date_joined", "is_verified",
             "followers_count", "following_count", "is_following",
             "notification_settings", "privacy_settings",
+            "is_available_study",
+            "study_subjects",
         ]
         read_only_fields = [
             "id", "user_id", "role", "xp", "level", "tokens",
@@ -175,4 +180,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             "interests_visibility",   # ← REQUIRED (Phase 3)
             "location", "website", "gamer_tag",
             "notification_settings", "privacy_settings",
+            "is_available_study",
+            "study_subjects",
         ]

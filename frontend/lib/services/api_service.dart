@@ -192,6 +192,9 @@ class ApiService {
     }
   }
 
+
+  
+
   Future<bool> get isLoggedIn              => _Tokens.has();
   Future<void> clearTokens()               => _Tokens.clear();
   Future<String?> get accessToken          => _Tokens.access();
@@ -235,8 +238,7 @@ class ApiService {
   }
 
   // ── Core HTTP ─────────────────────────────────────────────
-
-  Future<http.Response> _raw(String method, Uri uri,
+Future<http.Response> _raw(String method, Uri uri,
       {Map<String, dynamic>? body, bool auth = true}) async {
     final h = await _h(auth: auth);
     final b = body != null ? jsonEncode(body) : null;
@@ -245,7 +247,7 @@ class ApiService {
       case 'POST':   return _client.post(uri,   headers: h, body: b);
       case 'PUT':    return _client.put(uri,    headers: h, body: b);
       case 'PATCH':  return _client.patch(uri,  headers: h, body: b);
-      case 'DELETE': return _client.delete(uri, headers: h);
+      case 'DELETE': return _client.delete(uri, headers: h, body: b); // ← body added
       default:       throw ApiException('Unknown method: $method');
     }
   }
@@ -342,10 +344,9 @@ class ApiService {
   Future<dynamic> patch(String path,
       {Map<String, dynamic>? body, bool auth = true}) =>
       _req('PATCH', path, body: body, auth: auth);
-
-  Future<dynamic> delete(String path, {bool auth = true}) =>
-      _req('DELETE', path, auth: auth);
-
+Future<dynamic> delete(String path,
+      {Map<String, dynamic>? body, bool auth = true}) =>
+      _req('DELETE', path, body: body, auth: auth);
   // ── Multipart upload ──────────────────────────────────────
 
   Future<dynamic> uploadFile(
@@ -757,11 +758,8 @@ class ApiService {
         if (title   != null) 'title':   title,
         if (subject != null) 'subject': subject,
       });
-
-  Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
-      put('/groups/buddies/me/', body: data);
-
-  // ══════════════════════════════════════════════════════════
+Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
+      post('/groups/buddies/me/', body: data);  // ══════════════════════════════════════════════════════════
   // QUIZ
   // ══════════════════════════════════════════════════════════
 

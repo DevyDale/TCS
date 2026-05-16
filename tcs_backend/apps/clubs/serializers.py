@@ -133,6 +133,8 @@ class ClubMemberSerializer(serializers.ModelSerializer):
         fields = [
             "user_id", "name", "avatar_url", "user_role",
             "role", "status", "is_admin", "joined_at",
+            "is_available_study",
+            "study_subjects",
         ]
 
     def get_avatar_url(self, obj):

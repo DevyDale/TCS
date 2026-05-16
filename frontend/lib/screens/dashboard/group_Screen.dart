@@ -1,5 +1,4 @@
 // lib/screens/groups/group_screen.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,16 +24,21 @@ class _GroupScreenState extends State<GroupScreen>
   final _api    = ApiService();
   final _picker = ImagePicker();
   late final TabController _tabCtrl;
-  String? _myUserId;
-  String? _myName;
+
+  // ── Identity (collected from every possible field name) ──
+  final Set<String> _myIds   = <String>{};
+  final Set<String> _myNames = <String>{};   // lowercase, trimmed
+  bool _isCreator = false;
 
   final _msgCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
 
-  List<Map<String, dynamic>> _messages  = [];
-  List<Map<String, dynamic>> _members   = [];
-  List<Map<String, dynamic>> _materials = [];
+  List<Map<String, dynamic>> _messages   = [];
+  List<Map<String, dynamic>> _members    = [];
+  List<Map<String, dynamic>> _materials  = [];
   List<Map<String, dynamic>> _addResults = [];
+
+  Map<String, dynamic>? _replyingTo;
 
   bool _loadingMsgs  = true;
   bool _loadingMats  = true;
@@ -47,61 +51,131 @@ class _GroupScreenState extends State<GroupScreen>
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
     _isAdmin = widget.group['is_admin'] as bool? ?? false;
-    
-    _initializeData();   // This ensures user ID loads first
+    _initializeData();
   }
+
   Future<void> _initializeData() async {
-    await _loadCurrentUserId();
-    await _loadMessages();     // Important: load AFTER user ID
+    await _loadMe();          // gather all id / name variants
+    await _loadGroupMeta();   // authoritative is_creator
+    await _loadMessages();
     _loadMembers();
     _loadMaterials();
   }
 
-     Future<void> _loadCurrentUserId() async {
-    final user = await _api.cachedUser;
-    setState(() {
-      _myUserId = user?['user_id']?.toString() ?? user?['id']?.toString();
-      _myName   = (user?['name'] as String?)?.trim().toLowerCase() ?? 
-                  (user?['full_name'] as String?)?.trim().toLowerCase() ?? '';
-    });
+  // Pull every possible identifier and name variant for the current
+  // user. We hit /auth/me/ first because the cached blob in SharedPrefs
+  // is often abbreviated (e.g. user_id only) — but post objects might
+  // expose author by a different key (id, pk, author.user_id, ...).
+  // By collecting EVERY id and EVERY name into a Set, the match in
+  // _computeIsMe becomes resilient regardless of which key the
+  // serializer picked.
+  Future<void> _loadMe() async {
+    Map<String, dynamic>? me;
+    try {
+      final res = await _api.get('/auth/me/');
+      if (res is Map) me = Map<String, dynamic>.from(res);
+    } catch (_) {}
+    me ??= await _api.cachedUser;
+    if (me == null) return;
+
+    // Every key the backend might call the user's id
+    const idKeys = ['user_id', 'id', 'pk', 'uuid'];
+    for (final k in idKeys) {
+      final v = me[k]?.toString().trim();
+      if (v != null && v.isNotEmpty) _myIds.add(v);
+    }
+
+    // Every key the backend might call the user's name
+    const nameKeys = [
+      'display_name', 'preferred_name', 'name',
+      'full_name', 'first_name', 'username',
+    ];
+    for (final k in nameKeys) {
+      final v = (me[k] as String?)?.trim().toLowerCase();
+      if (v != null && v.isNotEmpty) _myNames.add(v);
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadGroupMeta() async {
+    bool creator = false;
+    try {
+      final g = await _api.get('/groups/$_groupId/');
+      if (g is Map) {
+        final cbId = (g['created_by_id'] ??
+                      g['created_by']?['user_id'] ??
+                      g['created_by'])?.toString();
+        creator = (g['is_creator'] as bool?) ??
+                  (cbId != null && _myIds.contains(cbId));
+      }
+    } catch (_) {
+      creator = (widget.group['is_creator'] as bool?) ?? false;
+    }
+    if (mounted) setState(() => _isCreator = creator);
   }
 
   Future<void> _loadMessages() async {
     try {
       final data = await _api.get('/posts/',
           query: {'group_id': _groupId}) as Map<String, dynamic>;
-
       final rawList = (data['results'] as List? ?? [])
           .cast<Map<String, dynamic>>();
-
-      // Get current user info
-      final currentUser = await _api.cachedUser;
-      final myId = currentUser?['user_id']?.toString() ?? 
-                   currentUser?['id']?.toString();
-      final myName = (currentUser?['name'] as String?)?.trim().toLowerCase() ?? 
-                     (currentUser?['full_name'] as String?)?.trim().toLowerCase() ?? '';
-
       for (final msg in rawList) {
-        final authorId = msg['author_id']?.toString() ??
-                        msg['author']?.toString() ??
-                        msg['user_id']?.toString() ?? '';
-
-        final authorName = (msg['author_name'] as String?)?.trim().toLowerCase() ?? '';
-
-        // Mark message as mine using ID or name
-        msg['is_me'] = (authorId.isNotEmpty && authorId == myId) ||
-                       (authorName.isNotEmpty && authorName == myName);
+        msg['is_me'] = _computeIsMe(msg);
       }
-
       setState(() {
-        _messages = rawList;
+        _messages    = rawList;
         _loadingMsgs = false;
       });
-    } catch (e) {
-      print('Load messages error: $e');
+    } catch (_) {
       setState(() => _loadingMsgs = false);
     }
   }
+
+  /// Bulletproof "is this message mine?" check. Compares every possible
+  /// author identifier on the message against every possible identifier
+  /// we know about the current user.
+  bool _computeIsMe(Map<String, dynamic> m) {
+    if (m['is_me'] == true) return true;
+
+    // 1) Flat id fields on the message
+    const idFields = [
+      'author_id', 'author', 'user_id',
+      'created_by', 'created_by_id', 'author_user_id',
+      'sender_id',
+    ];
+    for (final f in idFields) {
+      final v = m[f];
+      if (v != null && v is! Map) {
+        final s = v.toString().trim();
+        if (s.isNotEmpty && _myIds.contains(s)) return true;
+      }
+    }
+
+    // 2) Nested author map
+    if (m['author'] is Map) {
+      final a = m['author'] as Map;
+      for (final k in ['user_id', 'id', 'pk']) {
+        final v = a[k]?.toString().trim();
+        if (v != null && v.isNotEmpty && _myIds.contains(v)) return true;
+      }
+      final aName = (a['name'] as String?)?.trim().toLowerCase();
+      if (aName != null && aName.isNotEmpty && _myNames.contains(aName)) {
+        return true;
+      }
+    }
+
+    // 3) author_name fallback
+    final authorName = (m['author_name'] as String?)?.trim().toLowerCase();
+    if (authorName != null && authorName.isNotEmpty &&
+        _myNames.contains(authorName)) {
+      return true;
+    }
+
+    return false;
+  }
+
   @override
   void dispose() {
     _tabCtrl.dispose();
@@ -113,44 +187,18 @@ class _GroupScreenState extends State<GroupScreen>
   String get _groupId   => widget.group['id']?.toString() ?? '';
   String get _groupName => widget.group['name'] as String? ?? 'Group';
   String get _icon      => widget.group['theme_icon'] as String? ?? '👥';
-     bool _isMyMessage(Map<String, dynamic> message) {
-    if (message['is_me'] == true) return true;
 
-    final authorId = message['author_id']?.toString() ??
-                     message['author']?.toString() ??
-                     message['user_id']?.toString() ?? '';
-
-    final authorName = (message['author_name'] as String?)?.trim().toLowerCase() ?? '';
-
-    // Check by ID first
-    if (authorId.isNotEmpty && _myUserId != null && authorId == _myUserId) {
-      return true;
-    }
-
-    // Fallback: Check by name
-    if (authorName.isNotEmpty && _myName != null && authorName == _myName) {
-      return true;
-    }
-
-    return false;
-  }
   Future<void> _loadMembers() async {
     try {
-      // /groups/<id>/members/ returns a plain List
       final data = await _api.get('/groups/$_groupId/members/');
-      setState(() {
-        _members = (data as List).cast<Map<String, dynamic>>();
-      });
+      setState(() => _members = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {}
   }
 
-  
   Future<void> _loadMaterials() async {
     try {
-      // FIX 2: getGroupMaterials returns a plain List, not a Map
       final data = await _api.getGroupMaterials(_groupId);
       setState(() {
-        // data may be List or Map<results:List> — handle both
         if (data is List) {
           _materials = data.cast<Map<String, dynamic>>();
         } else if (data is Map) {
@@ -164,24 +212,64 @@ class _GroupScreenState extends State<GroupScreen>
     }
   }
 
-  // ── Actions ───────────────────────────────────────────────
+  // ── Activity emit (fire-and-forget) ───────────────────────
+
+  void _emitActivity({
+    required String eventType,
+    String message = '',
+    String? targetName,
+  }) {
+    _api.post('/activity/', body: {
+      'event_type':  eventType,
+      'target_type': 'group',
+      'target_id':   _groupId,
+      'target_name': targetName ?? _groupName,
+      if (message.isNotEmpty) 'message': message,
+    }).catchError((_) {});
+  }
+
+  // ── Send post (with optional reply) ───────────────────────
 
   Future<void> _sendPost() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _sendingMsg) return;
     HapticFeedback.lightImpact();
     setState(() => _sendingMsg = true);
+
+    final reply = _replyingTo;
+
+    String content = text;
+    if (reply != null) {
+      final qAuthor = (reply['author_name'] as String?) ?? 'someone';
+      final qText   = ((reply['content'] as String?) ?? '').trim();
+      final preview = qText.length > 120 ? '${qText.substring(0, 117)}…' : qText;
+      content = '↩️ @$qAuthor: $preview\n\n$text';
+    }
+
     try {
-      // FIX 3: createPost() has no groupId param — use post() directly
-      final created = await _api.post('/posts/', body: {
-        'content':    text,
+      final body = {
+        'content':    content,
         'post_type':  'post',
         'visibility': 'public',
         'group':      _groupId,
-      }) as Map<String, dynamic>;
+        if (reply != null) 'parent_id': reply['id']?.toString(),
+      };
+      final created = await _api.post('/posts/', body: body) as Map<String, dynamic>;
+
+      if (reply != null) {
+        created['reply_to'] = {
+          'id':          reply['id'],
+          'author_name': reply['author_name'],
+          'content':     (reply['content'] as String?) ?? '',
+        };
+        created['content'] = text;
+      }
+      created['is_me'] = true; // we just sent it, force alignment right
+
       setState(() {
         _messages.insert(0, created);
         _msgCtrl.clear();
+        _replyingTo = null;
         _sendingMsg = false;
       });
     } catch (_) {
@@ -189,46 +277,157 @@ class _GroupScreenState extends State<GroupScreen>
     }
   }
 
+  // ── Share link (BOTTOM SHEET) ─────────────────────────────
+
   Future<void> _shareLink() async {
     final ctrl = TextEditingController();
-    final url = await showDialog<String>(
+    final url = await showModalBottomSheet<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Share a Link'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com',
-            labelText: 'URL',
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _kG2.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.link_rounded, color: _kG2, size: 20)),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Share a Link',
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+            ]),
+            const SizedBox(height: 18),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200)),
+              child: TextField(
+                controller: ctrl,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'https://example.com',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                ),
+                onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Cancel',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                ),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx, ctrl.text.trim()),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_indigo, _deep]),
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Share',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, fontSize: 13))),
+                ),
+              )),
+            ]),
+          ]),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Share')),
-        ],
       ),
     );
+
     if (url == null || url.isEmpty) return;
     try {
       await _api.post('/groups/$_groupId/materials/', body: {
-        'title': url,
-        'file_type': 'link',
+        'title':        url,
+        'file_type':    'link',
         'external_url': url,
       });
       _loadMaterials();
+      _emitActivity(eventType: 'material_shared', message: 'shared a link');
       _snack('Link shared');
     } catch (e) {
       _snack('Could not share link: $e');
     }
   }
 
-  Future<void> _uploadMaterial() async {
+  // ── Upload photo / video ──────────────────────────────────
+
+  Future<void> _uploadMedia() async {
+    final picked = await _picker.pickMedia(requestFullMetadata: false);
+    if (picked == null) return;
+
+    final path  = picked.path;
+    final lower = path.toLowerCase();
+    final isVid = lower.endsWith('.mp4') ||
+                  lower.endsWith('.mov')  ||
+                  lower.endsWith('.webm');
+    final ext = path.split('.').last.toLowerCase();
+    final mime = isVid
+        ? 'video/$ext'
+        : (ext == 'png' ? 'image/png'
+           : ext == 'gif' ? 'image/gif' : 'image/jpeg');
+
+    try {
+      final fileName = path.split('/').last;
+      final result = await _api.uploadFile(
+        '/groups/$_groupId/materials/',
+        filePath:    path,
+        field:       'file',
+        mimeType:    mime,
+        extraFields: {'title': fileName},
+      );
+      if (result != null) {
+        _loadMaterials();
+        _emitActivity(
+          eventType: 'material_shared',
+          message:   'shared a ${isVid ? 'video' : 'photo'}: $fileName',
+        );
+        _snack('${isVid ? 'Video' : 'Photo'} uploaded ✓');
+      }
+    } catch (e) {
+      _snack('Upload failed: $e');
+    }
+  }
+
+  // ── Upload document ───────────────────────────────────────
+
+  Future<void> _uploadDocument() async {
     final picked = await FilePicker.platform.pickFiles(
-      type: FileType.any,
+      type: FileType.custom,
+      allowedExtensions: const [
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
+      ],
       allowMultiple: false,
       withData: false,
     );
@@ -238,36 +437,38 @@ class _GroupScreenState extends State<GroupScreen>
       _snack('Could not read file path');
       return;
     }
-    final file = File(pf.path!);
-    try {
-      // Derive mime from extension (Cloudinary RawMedia accepts anything)
-      final ext = (pf.extension ?? '').toLowerCase();
-      String mime = 'application/octet-stream';
-      if (ext == 'pdf')                           mime = 'application/pdf';
-      else if (ext == 'doc' || ext == 'docx')     mime = 'application/msword';
-      else if (ext == 'xls' || ext == 'xlsx')     mime = 'application/vnd.ms-excel';
-      else if (ext == 'ppt' || ext == 'pptx')     mime = 'application/vnd.ms-powerpoint';
-      else if (ext == 'txt')                      mime = 'text/plain';
-      else if (ext == 'mp4' || ext == 'mov' || ext == 'webm') mime = 'video/$ext';
-      else if (ext == 'mp3' || ext == 'wav' || ext == 'm4a')  mime = 'audio/$ext';
-      else if (ext == 'jpg' || ext == 'jpeg')     mime = 'image/jpeg';
-      else if (ext == 'png' || ext == 'gif' || ext == 'webp') mime = 'image/$ext';
 
+    final ext = (pf.extension ?? '').toLowerCase();
+    String mime = 'application/octet-stream';
+    if (ext == 'pdf')                          mime = 'application/pdf';
+    else if (ext == 'doc' || ext == 'docx')    mime = 'application/msword';
+    else if (ext == 'xls' || ext == 'xlsx')    mime = 'application/vnd.ms-excel';
+    else if (ext == 'ppt' || ext == 'pptx')    mime = 'application/vnd.ms-powerpoint';
+    else if (ext == 'txt')                     mime = 'text/plain';
+    else if (ext == 'csv')                     mime = 'text/csv';
+
+    try {
       final result = await _api.uploadFile(
         '/groups/$_groupId/materials/',
-        filePath:    file.path,
+        filePath:    pf.path!,
         field:       'file',
         mimeType:    mime,
         extraFields: {'title': pf.name},
       );
       if (result != null) {
         _loadMaterials();
-        _snack('Material uploaded ✓');
+        _emitActivity(
+          eventType: 'material_shared',
+          message:   'shared "${pf.name}"',
+        );
+        _snack('Document uploaded ✓');
       }
     } catch (e) {
       _snack('Upload failed: $e');
     }
   }
+
+  // ── Members ───────────────────────────────────────────────
 
   Future<void> _searchToAdd(String q) async {
     if (q.trim().isEmpty) {
@@ -312,112 +513,177 @@ class _GroupScreenState extends State<GroupScreen>
     }
   }
 
+  // ── Dissolve (creator only, BOTTOM SHEET reason) ──────────
+
   Future<void> _dissolveGroup() async {
-    // Ask for reason
+    if (!_isCreator) {
+      _snack('Only the group creator can dissolve this group.');
+      return;
+    }
+
     final reasonCtrl = TextEditingController();
-    final reason = await showDialog<String>(
+    final reason = await showModalBottomSheet<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Dissolve Group',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Please state why you are dissolving this group.',
-              style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 13, color: Colors.grey.shade600)),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200)),
-            child: TextField(
-              controller: reasonCtrl, autofocus: true, maxLines: 3,
-              style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Reason for dissolving...',
-                hintStyle: TextStyle(fontFamily: 'Momo',
-                    color: Colors.grey.shade400),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.all(14))),
-          ),
-        ]),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(fontFamily: 'Momo'))),
-          GestureDetector(
-            onTap: () {
-              if (reasonCtrl.text.trim().isNotEmpty) {
-                Navigator.pop(context, reasonCtrl.text.trim());
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
-                  color: _kG4, borderRadius: BorderRadius.circular(10)),
-              child: const Text('Dissolve',
-                  style: TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white, fontSize: 13)),
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2))),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _kG4.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.delete_forever_rounded,
+                    color: _kG4, size: 20)),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Dissolve Group',
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+            ]),
+            const SizedBox(height: 8),
+            Text(
+              'All shared materials will be saved to your Digital Library '
+              'before the group is removed.',
+              style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 12.5, color: Colors.grey.shade600, height: 1.4)),
+            const SizedBox(height: 14),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200)),
+              child: TextField(
+                controller: reasonCtrl, autofocus: true, maxLines: 3,
+                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Reason for dissolving...',
+                  hintStyle: TextStyle(fontFamily: 'Momo',
+                      color: Colors.grey.shade400),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(14)),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Cancel',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                ),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: GestureDetector(
+                onTap: () {
+                  final v = reasonCtrl.text.trim();
+                  if (v.isNotEmpty) Navigator.pop(ctx, v);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _kG4,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Dissolve',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, fontSize: 13))),
+                ),
+              )),
+            ]),
+          ]),
+        ),
       ),
     );
 
     if (reason == null || reason.isEmpty || !mounted) return;
 
-    // Show loading dialog while dissolving
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20)),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const CircularProgressIndicator(color: _kG4),
-              const SizedBox(height: 16),
-              Text('Dissolving group...',
-                style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 13, color: Colors.grey.shade700)),
-            ]),
-          ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20)),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const CircularProgressIndicator(color: _kG4),
+            const SizedBox(height: 16),
+            Text('Archiving materials & dissolving...',
+              style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 13, color: Colors.grey.shade700)),
+          ]),
         ),
+      ),
+    );
+
+    // Save every material to library first
+    final saves = <Future>[];
+    for (final mat in _materials) {
+      saves.add(
+        _api.post('/chat/saved/save/', body: {
+          'title':              mat['title']     ?? '',
+          'file_url':           mat['file_url']  ?? mat['external_url'] ?? '',
+          'file_name':          mat['file_name'] ?? '',
+          'file_type':          mat['file_type'] ?? '',
+          'subject':            widget.group['theme'] ?? widget.group['category'] ?? '',
+          'source_group_name':  _groupName,
+          'source_type':        'group_dissolved',
+        }).catchError((_) => null),
       );
     }
+    await Future.wait(saves);
+
     try {
-      await _api.patch('/groups/$_groupId/', body: {
-        'dissolve_reason': reason,
-        'is_active':       false,
-      });
-      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // close loading
-      if (mounted) Navigator.pop(context, 'dissolved');              // close group screen
+      await _api.delete('/groups/$_groupId/', body: {'reason': reason});
+      _emitActivity(eventType: 'group_dissolved', message: reason);
+
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (mounted) Navigator.pop(context, 'dissolved');
     } catch (e) {
-      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // close loading
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
       _snack('Failed: $e');
     }
   }
 
+  // ── Save material to library (per-item) ───────────────────
+
   Future<void> _saveMaterial(Map<String, dynamic> mat) async {
     try {
       await _api.post('/chat/saved/save/', body: {
-        'title':     mat['title'] ?? '',
-        'file_url':  mat['file_url'] ?? '',
-        'file_name': mat['file_name'] ?? '',
-        'file_type': mat['file_type'] ?? '',
+        'title':              mat['title']     ?? '',
+        'file_url':           mat['file_url']  ?? mat['external_url'] ?? '',
+        'file_name':          mat['file_name'] ?? '',
+        'file_type':          mat['file_type'] ?? '',
+        'subject':            widget.group['theme'] ?? widget.group['category'] ?? '',
+        'source_group_name':  _groupName,
+        'source_type':        'group',
       });
       _snack('Material saved ✓');
     } catch (e) {
       _snack('Could not save: $e');
     }
   }
+
+  // ── Helpers ───────────────────────────────────────────────
 
   Future<bool> _confirmDialog(String msg) async {
     return await showDialog<bool>(
@@ -436,8 +702,7 @@ class _GroupScreenState extends State<GroupScreen>
               TextButton(
                   onPressed: () => Navigator.pop(context, true),
                   child: const Text('Yes',
-                      style: TextStyle(
-                          fontFamily: 'Momo', color: _kG4))),
+                      style: TextStyle(fontFamily: 'Momo', color: _kG4))),
             ],
           ),
         ) ??
@@ -477,13 +742,11 @@ class _GroupScreenState extends State<GroupScreen>
     );
   }
 
-  // ── Header ────────────────────────────────────────────────
-
   Widget _buildHeader() {
     return Container(
       padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 12,
-          left: 8, right: 16, bottom: 14),
+          left: 8, right: 8, bottom: 14),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [_indigo, _deep],
@@ -500,12 +763,13 @@ class _GroupScreenState extends State<GroupScreen>
             child: const Icon(Icons.arrow_back_rounded,
                 color: Colors.white, size: 20)),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Text(_icon, style: const TextStyle(fontSize: 26)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(_groupName,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontFamily: 'Alfa',
                     fontSize: 18, color: Colors.white)),
             Text('${_members.length} members',
@@ -513,9 +777,9 @@ class _GroupScreenState extends State<GroupScreen>
                     fontSize: 12, color: Colors.white.withOpacity(0.7))),
           ]),
         ),
-        if (_isAdmin)
+        if (_isCreator)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Color.fromARGB(255, 197, 136, 136)),
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
             onSelected: (v) {
@@ -536,8 +800,6 @@ class _GroupScreenState extends State<GroupScreen>
       ]),
     );
   }
-
-  // ── Tab bar ───────────────────────────────────────────────
 
   Widget _buildTabBar() {
     return Container(
@@ -561,10 +823,7 @@ class _GroupScreenState extends State<GroupScreen>
     );
   }
 
-  // ── Chat tab ──────────────────────────────────────────────
-  // ── Chat tab ──────────────────────────────────────────────
-  // ── Chat tab ──────────────────────────────────────────────
-Widget _buildChatTab() {
+  Widget _buildChatTab() {
     return Column(children: [
       Expanded(
         child: _loadingMsgs
@@ -580,18 +839,15 @@ Widget _buildChatTab() {
                     padding: const EdgeInsets.all(16),
                     itemCount: _messages.length,
                     itemBuilder: (_, i) {
-  final m = _messages[i];
-  final isMe = _isMyMessage(m);
-
-  // DEBUG LINE - ADD THIS
-  print('DEBUG → isMe: $isMe | myUserId: $_myUserId | authorId: ${m['author_id']} | author: ${m['author']} | author_name: ${m['author_name']}');
-
-  return _buildMessageBubble(m, isMe);
-},
+                      final m = _messages[i];
+                      final isMe = _computeIsMe(m);
+                      return _buildMessageBubble(m, isMe);
+                    },
                   ),
       ),
 
-      // Message input bar
+      if (_replyingTo != null) _buildReplyBar(),
+
       Container(
         padding: EdgeInsets.fromLTRB(
             12, 10, 12, MediaQuery.of(context).padding.bottom + 10),
@@ -611,7 +867,9 @@ Widget _buildChatTab() {
                 autocorrect: false,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Post to the group...',
+                  hintText: _replyingTo == null
+                      ? 'Post to the group...'
+                      : 'Reply to ${_replyingTo!['author_name'] ?? 'message'}...',
                   hintStyle: TextStyle(
                       fontFamily: 'Momo', color: Colors.grey.shade400),
                   border: InputBorder.none,
@@ -645,74 +903,211 @@ Widget _buildChatTab() {
       ),
     ]);
   }
-  
- 
-  Widget _buildMessageBubble(Map<String, dynamic> m, bool isMe) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.only(
-          bottom: 12,
-          left: isMe ? 64 : 0,
-          right: isMe ? 0 : 64,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isMe ? _indigo : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+
+  Widget _buildReplyBar() {
+    final r = _replyingTo!;
+    final author = (r['author_name'] as String?) ?? 'Unknown';
+    final text   = ((r['content'] as String?) ?? '').replaceAll('\n', ' ');
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade100))),
+      child: Row(children: [
+        Container(width: 3, height: 36,
+          decoration: BoxDecoration(
+            color: _indigo, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isMe)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  m['author_name'] as String? ?? 'Unknown',
-                  style: TextStyle(
-                    fontFamily: 'Arch',
+            Text('Replying to $author',
+                style: const TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: _indigo,
+                    color: _indigo, fontSize: 12)),
+            const SizedBox(height: 2),
+            Text(text,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: 'Momo',
+                    color: Colors.grey.shade600, fontSize: 12)),
+          ])),
+        IconButton(
+          onPressed: () => setState(() => _replyingTo = null),
+          icon: const Icon(Icons.close_rounded, size: 20),
+          color: Colors.grey),
+      ]),
+    );
+  }
+
+  Widget _buildMessageBubble(Map<String, dynamic> m, bool isMe) {
+    final reply = m['reply_to'] as Map?;
+
+    var content = (m['content'] as String?) ?? '';
+    if (reply == null && content.startsWith('↩️ @')) {
+      final breakIdx = content.indexOf('\n\n');
+      if (breakIdx > 0) content = content.substring(breakIdx + 2);
+    }
+
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(m),
+      child: Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: EdgeInsets.only(
+            bottom: 12,
+            left:  isMe ? 64 : 0,
+            right: isMe ? 0  : 64,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isMe ? _indigo : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft:     const Radius.circular(16),
+              topRight:    const Radius.circular(16),
+              bottomLeft:  Radius.circular(isMe ? 16 : 4),
+              bottomRight: Radius.circular(isMe ? 4  : 16),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              if (!isMe)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    m['author_name'] as String? ?? 'Unknown',
+                    style: const TextStyle(
+                      fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: _indigo,
+                    ),
                   ),
                 ),
+              if (reply != null) _buildQuotedBlock(reply, isMe),
+              Text(
+                content,
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 15,
+                  height: 1.4,
+                  color: isMe ? Colors.white : const Color(0xFF1A1A2E),
+                ),
               ),
-            Text(
-              m['content'] as String? ?? '',
-              style: TextStyle(
-                fontFamily: 'Momo',
-                fontSize: 15,
-                height: 1.4,
-                color: isMe ? Colors.white : const Color(0xFF1A1A2E),
+              const SizedBox(height: 6),
+              Text(
+                _timeAgo(m['created_at'] as String? ?? ''),
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 10,
+                  color: isMe
+                      ? Colors.white.withOpacity(0.85)
+                      : Colors.grey.shade400,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _timeAgo(m['created_at'] as String? ?? ''),
-              style: TextStyle(
-                fontFamily: 'Momo',
-                fontSize: 10,
-                color: isMe ? Colors.white.withOpacity(0.85) : Colors.grey.shade400,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-  
+
+  Widget _buildQuotedBlock(Map reply, bool isMe) {
+    final author = (reply['author_name'] as String?) ?? 'Unknown';
+    final text   = ((reply['content'] as String?) ?? '').replaceAll('\n', ' ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
+      constraints: const BoxConstraints(minWidth: 120),
+      decoration: BoxDecoration(
+        color: isMe
+            ? Colors.white.withOpacity(0.18)
+            : _indigo.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(
+            color: isMe ? Colors.white : _indigo,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(author,
+              style: TextStyle(
+                  fontFamily: 'Arch',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isMe ? Colors.white : _indigo)),
+          const SizedBox(height: 2),
+          Text(text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 12,
+                  color: isMe
+                      ? Colors.white.withOpacity(0.9)
+                      : Colors.grey.shade700)),
+        ],
+      ),
+    );
+  }
+
+  void _showMessageActions(Map<String, dynamic> m) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+        child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(margin: const EdgeInsets.only(top: 10),
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.reply_rounded, color: _indigo),
+              title: const Text('Reply',
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _replyingTo = m);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_rounded, color: _indigo),
+              title: const Text('Copy text',
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
+              onTap: () {
+                Clipboard.setData(
+                    ClipboardData(text: (m['content'] as String?) ?? ''));
+                Navigator.pop(ctx);
+                _snack('Copied');
+              },
+            ),
+            const SizedBox(height: 8),
+          ])),
+      ),
+    );
+  }
+
+  // ── Members tab ───────────────────────────────────────────
+
   Widget _buildMembersTab() {
     return Column(children: [
       if (_isAdmin) ...[
@@ -740,16 +1135,12 @@ Widget _buildChatTab() {
                           width: 20, height: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: _indigo)))
-                    : const Icon(Icons.person_add_rounded,
-                        color: _indigo),
+                    : const Icon(Icons.person_add_rounded, color: _indigo),
                 border: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 14)),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14)),
             ),
           ),
         ),
-
-        // Search results dropdown
         if (_addResults.isNotEmpty)
           Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -760,15 +1151,13 @@ Widget _buildChatTab() {
             child: Column(
               children: _addResults.take(5).map((u) {
                 final name    = u['name'] as String? ?? '';
-                final initial = name.isNotEmpty
-                    ? name[0].toUpperCase() : '?';
+                final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
                 return ListTile(
                   leading: Container(
                     width: 34, height: 34,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                          colors: [_kG1, _kG2])),
+                      gradient: LinearGradient(colors: [_kG1, _kG2])),
                     child: Center(
                       child: Text(initial,
                           style: const TextStyle(
@@ -786,8 +1175,7 @@ Widget _buildChatTab() {
                           fontSize: 11,
                           color: Colors.grey.shade500)),
                   trailing: GestureDetector(
-                    onTap: () =>
-                        _addMember(u['user_id'] as String? ?? ''),
+                    onTap: () => _addMember(u['user_id'] as String? ?? ''),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
@@ -805,8 +1193,6 @@ Widget _buildChatTab() {
             ),
           ),
       ],
-
-      // Members list
       Expanded(
         child: _members.isEmpty
             ? Center(
@@ -820,20 +1206,16 @@ Widget _buildChatTab() {
                 itemBuilder: (_, i) {
                   final m       = _members[i];
                   final name    = m['name'] as String? ?? '';
-                  final initial = name.isNotEmpty
-                      ? name[0].toUpperCase() : '?';
+                  final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
                   final isAdm   = m['is_admin'] as bool? ?? false;
                   final userId  = m['user_id'] as String? ?? '';
-
                   return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 4),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
                     leading: Container(
                       width: 42, height: 42,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                            colors: [_kG1, _kG2])),
+                        gradient: LinearGradient(colors: [_kG1, _kG2])),
                       child: Center(
                         child: Text(initial,
                             style: const TextStyle(
@@ -858,8 +1240,7 @@ Widget _buildChatTab() {
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: _indigo.withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.circular(6)),
+                              borderRadius: BorderRadius.circular(6)),
                             child: const Text('Admin',
                                 style: TextStyle(
                                     fontFamily: 'Momo',
@@ -886,68 +1267,21 @@ Widget _buildChatTab() {
   Widget _buildMaterialsTab() {
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Row(children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: _uploadMaterial,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  gradient:
-                      const LinearGradient(colors: [_indigo, _deep]),
-                  borderRadius: BorderRadius.circular(14)),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.upload_file_rounded,
-                        color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Text('Upload',
-                        style: TextStyle(
-                            fontFamily: 'Arch',
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 14)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: GestureDetector(
-              onTap: _shareLink,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: _indigo, width: 1.5),
-                  borderRadius: BorderRadius.circular(14)),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.link_rounded,
-                        color: _indigo, size: 20),
-                    SizedBox(width: 8),
-                    Text('Share Link',
-                        style: TextStyle(
-                            fontFamily: 'Arch',
-                            fontWeight: FontWeight.bold,
-                            color: _indigo,
-                            fontSize: 14)),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          _matBtn(label: 'Photo / Video', icon: Icons.photo_camera_rounded,
+              color: _kG3, onTap: _uploadMedia),
+          const SizedBox(width: 8),
+          _matBtn(label: 'Document', icon: Icons.description_rounded,
+              color: _indigo, onTap: _uploadDocument),
+          const SizedBox(width: 8),
+          _matBtn(label: 'Link', icon: Icons.link_rounded,
+              color: _kG2, onTap: _shareLink, outlined: true),
         ]),
       ),
-
       Expanded(
         child: _loadingMats
-            ? const Center(
-                child: CircularProgressIndicator(color: _indigo))
+            ? const Center(child: CircularProgressIndicator(color: _indigo))
             : _materials.isEmpty
                 ? Center(
                     child: Column(
@@ -962,7 +1296,7 @@ Widget _buildChatTab() {
                                 fontSize: 16,
                                 color: Colors.grey.shade400)),
                         const SizedBox(height: 6),
-                        Text('Upload PDFs, notes, audio files…',
+                        Text('Upload photos, videos, docs or links',
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,
@@ -970,43 +1304,35 @@ Widget _buildChatTab() {
                       ],
                     ))
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                     itemCount: _materials.length,
                     itemBuilder: (_, i) {
                       final mat  = _materials[i];
                       final type = mat['file_type'] as String? ?? '';
                       final icon = _fileIcon(type);
-
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
+                          boxShadow: [BoxShadow(
                               color: Colors.black.withOpacity(0.03),
-                              blurRadius: 6)
-                          ],
+                              blurRadius: 6)],
                         ),
                         child: Row(children: [
-                          // File icon tile
                           Container(
                             width: 46, height: 46,
                             decoration: BoxDecoration(
                               color: _indigo.withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12)),
                             child: Center(
                               child: Text(icon,
-                                  style: const TextStyle(
-                                      fontSize: 22)))),
+                                  style: const TextStyle(fontSize: 22)))),
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   mat['title'] as String? ?? '',
@@ -1028,16 +1354,13 @@ Widget _buildChatTab() {
                               ],
                             ),
                           ),
-
-                          // Save button
                           GestureDetector(
                             onTap: () => _saveMaterial(mat),
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: _indigo.withOpacity(0.08),
-                                borderRadius:
-                                    BorderRadius.circular(10)),
+                                borderRadius: BorderRadius.circular(10)),
                               child: const Icon(
                                   Icons.bookmark_add_outlined,
                                   color: _indigo, size: 20))),
@@ -1049,20 +1372,63 @@ Widget _buildChatTab() {
     ]);
   }
 
-  // ── Helpers ───────────────────────────────────────────────
+  Widget _matBtn({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool outlined = false,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            gradient: outlined
+                ? null
+                : LinearGradient(colors: [color.withOpacity(0.85), color]),
+            color: outlined ? Colors.white : null,
+            border: outlined ? Border.all(color: color, width: 1.5) : null,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: outlined
+                ? null
+                : [BoxShadow(color: color.withOpacity(0.25),
+                    blurRadius: 8, offset: const Offset(0, 3))],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: outlined ? color : Colors.white, size: 20),
+            const SizedBox(height: 4),
+            Text(label,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11.5,
+                    color: outlined ? color : Colors.white)),
+          ]),
+        ),
+      ),
+    );
+  }
 
   String _fileIcon(String type) {
-    if (type.contains('pdf'))   return '📄';
-    if (type.contains('audio')) return '🎵';
-    if (type.contains('image')) return '🖼️';
-    if (type.contains('video')) return '🎬';
-    if (type.contains('word') || type.contains('doc')) return '📝';
+    final t = type.toLowerCase();
+    if (t.contains('pdf'))                              return '📄';
+    if (t.contains('audio'))                            return '🎵';
+    if (t.contains('image') || t.contains('photo'))     return '🖼️';
+    if (t.contains('video'))                            return '🎬';
+    if (t.contains('word') || t.contains('doc'))        return '📝';
+    if (t.contains('excel') || t.contains('xls') ||
+        t.contains('sheet') || t.contains('csv'))       return '📊';
+    if (t.contains('ppt') || t.contains('present'))     return '📽️';
+    if (t.contains('link'))                             return '🔗';
     return '📎';
   }
 
   String _fmtSize(dynamic bytes) {
     if (bytes == null) return '';
-    final b = bytes as int;
+    final b = bytes is int ? bytes : int.tryParse(bytes.toString()) ?? 0;
     if (b >= 1024 * 1024) {
       return '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
     }
@@ -1073,11 +1439,10 @@ Widget _buildChatTab() {
   String _timeAgo(String iso) {
     if (iso.isEmpty) return '';
     try {
-      final diff =
-          DateTime.now().difference(DateTime.parse(iso).toLocal());
+      final diff = DateTime.now().difference(DateTime.parse(iso).toLocal());
       if (diff.inSeconds < 60)  return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24)   return '${diff.inHours}h ago';
+      if (diff.inMinutes < 60)  return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24)    return '${diff.inHours}h ago';
       return '${diff.inDays}d ago';
     } catch (_) {
       return '';

@@ -6,12 +6,10 @@ import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
 
-
 import '../../services/api_service.dart';
 import '../chat/chat_room_screen.dart';
 import 'create_group_page.dart';
 import '../dashboard/group_Screen.dart';
-import '../../services/settings_Screen.dart';
 import '../../search/study_hub_search_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -24,8 +22,7 @@ const _deepPurple = Color(0xFF512DA8);
 class GroupsStudyHubScreen extends StatefulWidget {
   const GroupsStudyHubScreen({super.key});
   @override
-  State<GroupsStudyHubScreen> createState() =>
-      _GroupsStudyHubScreenState();
+  State<GroupsStudyHubScreen> createState() => _GroupsStudyHubScreenState();
 }
 
 class _GroupsStudyHubScreenState
@@ -35,7 +32,6 @@ class _GroupsStudyHubScreenState
   final _api = ApiService();
   late final TabController _tabCtrl;
 
-  // ── State ─────────────────────────────────────────────────
   bool _availableForStudy = false;
   String _availSubjects   = '';
 
@@ -48,8 +44,6 @@ class _GroupsStudyHubScreenState
   bool _loadingBuddies  = true;
   bool _loadingActivity = true;
 
-  // Group IDs currently animating out after a dissolve.
-  // Drives the vanish animation in _DismissibleGroupTile.
   final Set<String> _deletingIds = <String>{};
 
   @override
@@ -65,8 +59,6 @@ class _GroupsStudyHubScreenState
     super.dispose();
   }
 
-  // ── Data loaders ──────────────────────────────────────────
-
   Future<void> _loadAll() {
     return Future.wait([
       _loadGroups(),
@@ -80,13 +72,39 @@ class _GroupsStudyHubScreenState
     try {
       final mine = await _api.getGroups(filter: 'mine');
       final sugg = await _api.getGroups(filter: 'suggested');
+      final mineList = _asList(mine);
+
+      // Emit expiry-approaching activity for groups expiring within 3 days.
+      _checkExpiringGroups(mineList);
+
       setState(() {
-        _myGroups        = _asList(mine);
+        _myGroups        = mineList;
         _suggestedGroups = _asList(sugg);
         _loadingGroups   = false;
       });
     } catch (_) {
       setState(() => _loadingGroups = false);
+    }
+  }
+
+  void _checkExpiringGroups(List<Map<String, dynamic>> groups) {
+    final now = DateTime.now();
+    for (final g in groups) {
+      final iso = g['expires_at'] as String?;
+      if (iso == null || iso.isEmpty) continue;
+      try {
+        final exp = DateTime.parse(iso).toLocal();
+        final daysLeft = exp.difference(now).inDays;
+        if (daysLeft >= 0 && daysLeft <= 3) {
+          _api.post('/activity/', body: {
+            'event_type':  'group_expiring',
+            'target_type': 'group',
+            'target_id':   g['id']?.toString() ?? '',
+            'target_name': g['name'] ?? '',
+            'message':     'closes in ${daysLeft == 0 ? 'less than a day' : '$daysLeft day${daysLeft == 1 ? '' : 's'}'}',
+          }).catchError((_) {});
+        }
+      } catch (_) {}
     }
   }
 
@@ -106,8 +124,6 @@ class _GroupsStudyHubScreenState
   Future<void> _loadActivity() async {
     setState(() => _loadingActivity = true);
     try {
-      // Records-book feed: events from /activity/ — joined a group,
-      // material shared, group dissolved, expirations, etc.
       final data = await _api.get('/activity/',
           query: {'limit': '50'}) as Map<String, dynamic>;
       if (!mounted) return;
@@ -117,8 +133,7 @@ class _GroupsStudyHubScreenState
         _loadingActivity = false;
       });
     } catch (_) {
-      // Graceful fallback if /activity/ isn't wired up yet — keep
-      // showing announcements so the tab never sits empty.
+      // Fallback: announcements
       try {
         final fb = await _api.getFeed(type: 'announcements')
             as Map<String, dynamic>;
@@ -144,9 +159,6 @@ class _GroupsStudyHubScreenState
     return [];
   }
 
-  // ── Open a group I'm a member of ──────────────────────────
-  // If GroupScreen returns 'dissolved', play the vanish animation,
-  // record an activity entry, then drop the group from my list.
   Future<void> _openMyGroup(Map<String, dynamic> group) async {
     final gid  = group['id']?.toString() ?? '';
     final name = group['name'] as String? ?? 'Group';
@@ -157,20 +169,7 @@ class _GroupsStudyHubScreenState
     if (!mounted) return;
 
     if (result == 'dissolved') {
-      // 1. Trigger the vanish animation on this tile.
       setState(() => _deletingIds.add(gid));
-
-      // 2. Fire-and-forget activity record. Silent if the backend
-      //    endpoint isn't wired up yet — the animation still runs.
-      _api.post('/activity/', body: {
-        'event_type':  'group_dissolved',
-        'target_type': 'group',
-        'target_id':   gid,
-        'target_name': name,
-      }).catchError((_) {});
-
-      // 3. After the animation completes, remove the entry for real
-      //    and refresh the activity tab so the new record appears.
       await Future.delayed(const Duration(milliseconds: 420));
       if (!mounted) return;
       setState(() {
@@ -180,20 +179,18 @@ class _GroupsStudyHubScreenState
       _loadActivity();
       _snack('"$name" dissolved');
     } else {
-      // Normal return — just refresh in case anything else changed.
       _loadGroups();
     }
   }
 
-  // ── Availability toggle ───────────────────────────────────
+  // ── Availability ──────────────────────────────────────────
 
   Future<void> _toggleAvailability() async {
     HapticFeedback.lightImpact();
 
     if (!_availableForStudy) {
-      // Ask for subjects before going available
       final subjects = await _showSubjectPicker();
-      if (subjects == null) return; // user cancelled
+      if (subjects == null) return;
       setState(() {
         _availableForStudy = true;
         _availSubjects     = subjects;
@@ -201,7 +198,7 @@ class _GroupsStudyHubScreenState
       try {
         await _api.updateStudyBuddy({'available': true, 'subjects': subjects});
         _loadBuddies();
-        _snack('✅ You\'re now available as a Study Buddy!');
+        _snack("✅ You're now available as a Study Buddy!");
       } catch (e) {
         setState(() { _availableForStudy = false; _availSubjects = ''; });
         _snack('Could not update: $e');
@@ -211,9 +208,9 @@ class _GroupsStudyHubScreenState
       try {
         await _api.updateStudyBuddy({'available': false, 'subjects': ''});
         _loadBuddies();
-        _snack('You\'re now offline from Study Buddy');
+        _snack("You're now offline from Study Buddy");
       } catch (_) {
-        setState(() { _availableForStudy = true; });
+        setState(() => _availableForStudy = true);
       }
     }
   }
@@ -229,11 +226,9 @@ class _GroupsStudyHubScreenState
         title: const Text('What are you studying?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(
-            'Tell others what subjects you can help with.',
+          Text('Tell others what subjects you can help with.',
             style: TextStyle(fontFamily: 'Momo',
-                fontSize: 13, color: Colors.grey.shade600),
-          ),
+                fontSize: 13, color: Colors.grey.shade600)),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
@@ -283,7 +278,7 @@ class _GroupsStudyHubScreenState
     );
   }
 
-  // ── Connect to study buddy ────────────────────────────────
+  // ── Buddy connect ─────────────────────────────────────────
 
   Future<void> _connectBuddy(Map<String, dynamic> buddy) async {
     final userId   = buddy['user_id'] as String? ?? '';
@@ -296,10 +291,11 @@ class _GroupsStudyHubScreenState
         'subject': subjects,
       }) as Map<String, dynamic>;
       if (!mounted) return;
+      final subjectLabel = subjects.isEmpty ? 'General' : subjects;
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ChatRoomScreen(
           roomId:   room['id'] as String? ?? '',
-          roomName: '${buddy['name'] ?? 'Buddy'} (Study Buddy)',
+          roomName: 'Study Buddies ($subjectLabel)',
           userName: 'You',
           roomType: 'study_buddy',
         ),
@@ -307,6 +303,68 @@ class _GroupsStudyHubScreenState
     } catch (e) {
       _snack('Could not start chat: $e');
     }
+  }
+
+  // ── Study buddy request: accept / decline (from activity) ─
+
+  Future<void> _acceptStudyBuddyRequest(Map<String, dynamic> a) async {
+    final reqId    = (a['request_id'] ?? a['id'])?.toString() ?? '';
+    final userId   = (a['actor_user_id'] ?? a['from_user_id'])?.toString() ?? '';
+    final actor    = (a['actor_name']    ?? 'a buddy').toString();
+    final subjects = (a['subject']       ?? a['subjects'] ?? 'General').toString();
+
+    Map<String, dynamic>? room;
+    try {
+      // Best-effort: tell backend the request was accepted.
+      if (reqId.isNotEmpty) {
+        await _api.post('/chat/study-buddy/requests/$reqId/accept/')
+            .catchError((_) => null);
+      }
+      // Open / create the room either way.
+      if (userId.isNotEmpty) {
+        room = await _api.post('/chat/study-buddy/start/', body: {
+          'user_id': userId,
+          'subject': subjects,
+        }) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      _snack('Could not accept: $e');
+      return;
+    }
+
+    // Drop the accepted tile locally.
+    setState(() {
+      _activities.removeWhere((x) =>
+          (x['event_type'] == 'study_buddy_request') &&
+          ((x['request_id'] ?? x['id'])?.toString() == reqId));
+    });
+
+    if (room != null && mounted) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ChatRoomScreen(
+          roomId:   room!['id'] as String? ?? '',
+          roomName: 'Study Buddies ($subjects)',
+          userName: 'You',
+          roomType: 'study_buddy',
+        ),
+      ));
+    }
+    _snack('Connected with $actor');
+  }
+
+  Future<void> _declineStudyBuddyRequest(Map<String, dynamic> a) async {
+    final reqId = (a['request_id'] ?? a['id'])?.toString() ?? '';
+    try {
+      if (reqId.isNotEmpty) {
+        await _api.post('/chat/study-buddy/requests/$reqId/decline/')
+            .catchError((_) => null);
+      }
+    } catch (_) {}
+    setState(() {
+      _activities.removeWhere((x) =>
+          (x['event_type'] == 'study_buddy_request') &&
+          ((x['request_id'] ?? x['id'])?.toString() == reqId));
+    });
   }
 
   void _snack(String msg, {bool success = false}) {
@@ -333,106 +391,97 @@ class _GroupsStudyHubScreenState
           _buildHeader(),
           _buildQuickActions(),
           _buildTabBar(),
-         Expanded(
-  child: Container(
-    margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.white, width: 3),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: TabBarView(
-      controller: _tabCtrl,
-      children: [
-        _buildGroupsView(),
-        _buildBuddiesView(),
-        _buildActivityView(),
-      ],
-    ),
-  ),
-),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: 3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: TabBarView(
+                controller: _tabCtrl,
+                children: [
+                  _buildGroupsView(),
+                  _buildBuddiesView(),
+                  _buildActivityView(),
+                ],
+              ),
+            ),
+          ),
         ]),
       ),
     );
   }
 
-  // ── Header ────────────────────────────────────────────────
-Widget _buildHeader() {
-  return Container(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
-    ),
-    child: Row(children: [
-      // Logo + title
-      Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [_indigo, _deepPurple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.school_rounded,
-            color: Colors.white, size: 20)),
-      const SizedBox(width: 12),
-      const Text('Study Hub',
-          style: TextStyle(fontFamily: 'Alfa',
-              fontSize: 22, color: Color(0xFF1A1A2E))),
-      const Spacer(),
-
-      // ── Search → navigates to StudyHubSearchScreen ──────
-      GestureDetector(
-        onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => const StudyHubSearchScreen())),
-        child: _hdrBtn(Icons.search_rounded)),
-      const SizedBox(width: 8),
-
-      // ── AI → navigates to AiHubScreen ───────────────────
-      GestureDetector(
-        onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => const AiHubScreen())),
-        child: Container(
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+      ),
+      child: Row(children: [
+        Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
+                colors: [_indigo, _deepPurple],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(
-                color: const Color(0xFF8E54E9).withOpacity(0.3),
-                blurRadius: 8, offset: const Offset(0, 2))]),
-          child: Center(
-            child: Lottie.asset(
-              'assets/images/robot.json',
-              width: 26, height: 26,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
-                  Icons.smart_toy_rounded,
-                  color: Colors.white, size: 20),
+            borderRadius: BorderRadius.circular(12)),
+          child: const Icon(Icons.school_rounded,
+              color: Colors.white, size: 20)),
+        const SizedBox(width: 12),
+        const Text('Study Hub',
+            style: TextStyle(fontFamily: 'Alfa',
+                fontSize: 22, color: Color(0xFF1A1A2E))),
+        const Spacer(),
+
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const StudyHubSearchScreen())),
+          child: _hdrBtn(Icons.search_rounded)),
+        const SizedBox(width: 8),
+
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const AiHubScreen())),
+          child: Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(
+                  color: const Color(0xFF8E54E9).withOpacity(0.3),
+                  blurRadius: 8, offset: const Offset(0, 2))]),
+            child: Center(
+              child: Lottie.asset(
+                'assets/images/robot.json',
+                width: 26, height: 26,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.smart_toy_rounded,
+                    color: Colors.white, size: 20),
+              ),
             ),
           ),
         ),
-      ),
-      const SizedBox(width: 8),
+      ]),
+    );
+  }
 
-      // ── Settings → navigates to SettingsScreen ──────────
-     
-    ]),
-  );
-}
   Widget _hdrBtn(IconData icon) => Container(
     width: 40, height: 40,
     decoration: BoxDecoration(
       color: Colors.grey.shade100,
       borderRadius: BorderRadius.circular(10)),
     child: Icon(icon, color: Colors.grey.shade600, size: 20));
-
-  // ── Quick Actions ─────────────────────────────────────────
 
   Widget _buildQuickActions() {
     return Container(
@@ -452,8 +501,6 @@ Widget _buildHeader() {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-
-          // Create Group → wizard page
           _QAction(
             icon: Icons.add_rounded,
             label: 'Create\nGroup',
@@ -465,10 +512,7 @@ Widget _buildHeader() {
               if (created != null) _loadGroups();
             },
           ),
-
           Container(width: 1, height: 40, color: Colors.white12),
-
-          // Go Available / Go Offline
           _QAction(
             icon: _availableForStudy
                 ? Icons.visibility_off_rounded
@@ -476,10 +520,7 @@ Widget _buildHeader() {
             label: _availableForStudy ? 'Go\nOffline' : 'Go\nAvailable',
             onTap: _toggleAvailability,
           ),
-
           Container(width: 1, height: 40, color: Colors.white12),
-
-          // Saved Materials
           _QAction(
             icon: Icons.bookmark_rounded,
             label: 'Saved\nMaterials',
@@ -491,8 +532,6 @@ Widget _buildHeader() {
       ),
     );
   }
-
-  // ── Tab bar ───────────────────────────────────────────────
 
   Widget _buildTabBar() {
     return Padding(
@@ -537,7 +576,6 @@ Widget _buildHeader() {
         children: [
           if (_availableForStudy) _availBanner(),
 
-          // My Groups
           if (_myGroups.isNotEmpty) ...[
             _sectionHeader('My Groups', _myGroups.length),
             const SizedBox(height: 10),
@@ -555,7 +593,6 @@ Widget _buildHeader() {
             _emptyGroups(),
           ],
 
-          // Suggested Groups
           if (_suggestedGroups.isNotEmpty) ...[
             const SizedBox(height: 20),
             _sectionHeader('Suggested Groups', _suggestedGroups.length),
@@ -563,8 +600,7 @@ Widget _buildHeader() {
             ..._suggestedGroups.map((g) => _GroupCard(
               group: g,
               onJoin: () async {
-                await _api.joinGroup(
-                    g['id']?.toString() ?? '');
+                await _api.joinGroup(g['id']?.toString() ?? '');
                 _loadGroups();
                 _snack('Joined ${g['name']}!');
               },
@@ -683,7 +719,7 @@ Widget _buildHeader() {
                           fontSize: 17, color: Color(0xFF1A1A2E))),
                   const SizedBox(height: 6),
                   Text(
-                    'Group events appear here — joins, materials shared,\ndissolutions, and expirations.',
+                    'Group events appear here — joins, materials shared,\ndissolutions, expirations and buddy requests.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 13, color: Colors.grey.shade400)),
@@ -696,22 +732,30 @@ Widget _buildHeader() {
               itemCount: _activities.length + 1,
               itemBuilder: (_, i) {
                 if (i == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: const Text('Recent Activity',
+                  return const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text('Recent Activity',
                         style: TextStyle(fontFamily: 'Alfa',
                             fontSize: 18, color: Color(0xFF1A1A2E))),
                   );
                 }
                 final a = _activities[i - 1];
+                final type = (a['event_type']
+                            ?? a['kind']
+                            ?? a['post_type']
+                            ?? '').toString();
+                if (type == 'study_buddy_request') {
+                  return _StudyBuddyRequestCard(
+                    activity: a,
+                    onAccept: () => _acceptStudyBuddyRequest(a),
+                    onDecline: () => _declineStudyBuddyRequest(a),
+                  );
+                }
                 return _ActivityCard(activity: a);
               },
             ),
     );
   }
-
-  // ── FAB ───────────────────────────────────────────────────
- // ── Shared helper widgets ─────────────────────────────────
 
   Widget _availBanner() => Container(
     margin: const EdgeInsets.only(bottom: 16),
@@ -763,7 +807,7 @@ Widget _buildHeader() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GROUP CARD — backend-driven, no hardcoded data
+// GROUP CARD
 // ─────────────────────────────────────────────────────────────
 
 class _GroupCard extends StatelessWidget {
@@ -800,7 +844,6 @@ class _GroupCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.04),
             blurRadius: 10, offset: const Offset(0, 3))]),
         child: Row(children: [
-          // Theme icon tile
           Container(
             width: 52, height: 52,
             decoration: BoxDecoration(
@@ -832,9 +875,10 @@ class _GroupCard extends StatelessWidget {
                         size: 14, color: Colors.grey.shade400)),
               ]),
               const SizedBox(height: 3),
-              Text(subject[0].toUpperCase() + subject.substring(1),
-                  style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
+              if (subject.isNotEmpty)
+                Text(subject[0].toUpperCase() + subject.substring(1),
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 12, color: Colors.grey.shade500)),
               const SizedBox(height: 6),
               Row(children: [
                 Icon(Icons.people_rounded, size: 12,
@@ -847,7 +891,6 @@ class _GroupCard extends StatelessWidget {
             ])),
           const SizedBox(width: 10),
 
-          // Trailing — unread badge / join button / arrow
           if (isJoined && unread > 0)
             Container(
               padding: const EdgeInsets.symmetric(
@@ -885,7 +928,7 @@ class _GroupCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// BUDDY CARD — backend-driven, no hardcoded data
+// BUDDY CARD
 // ─────────────────────────────────────────────────────────────
 
 class _BuddyCard extends StatelessWidget {
@@ -903,7 +946,6 @@ class _BuddyCard extends StatelessWidget {
     final avatarUrl = buddy['avatar_url'] as String? ?? '';
     final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    // Derive a consistent color from the name's hash
     final colors  = [_kG4, _kG1, _kG3, _kG2, _indigo];
     final color   = colors[name.hashCode.abs() % colors.length];
 
@@ -921,7 +963,6 @@ class _BuddyCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              // Avatar with online indicator
               Stack(children: [
                 Container(
                   width: 52, height: 52,
@@ -968,7 +1009,6 @@ class _BuddyCard extends StatelessWidget {
                       fontSize: 12, color: Colors.grey.shade500)),
                 ])),
 
-              // Connect button → opens study buddy chat room
               GestureDetector(
                 onTap: onConnect,
                 child: Container(
@@ -984,7 +1024,6 @@ class _BuddyCard extends StatelessWidget {
                           color: Colors.white, fontSize: 12)))),
             ]),
 
-            // Subject chips
             if (subjects.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(spacing: 6, runSpacing: 6,
@@ -1012,12 +1051,7 @@ class _BuddyCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ACTIVITY CARD — records-book entries:
-//   group_joined, group_left, material_shared, group_dissolved,
-//   group_expiring, group_expired, plus generic announcements.
-//
-// Reads either the new /activity/ event shape OR the old announcement
-// post shape — same widget renders both during the transition.
+// ACTIVITY CARD (generic events)
 // ─────────────────────────────────────────────────────────────
 
 class _ActivityCard extends StatelessWidget {
@@ -1046,11 +1080,15 @@ class _ActivityCard extends StatelessWidget {
       case 'group_expiring':
         return (icon: Icons.timer_outlined,
                 color: Colors.amber.shade700,
-                verb:  'expiring soon —');
+                verb:  'expiring —');
       case 'group_expired':
         return (icon: Icons.history_toggle_off_rounded,
                 color: Colors.grey.shade600,
                 verb:  'expired —');
+      case 'dale_invoked':
+        return (icon: Icons.auto_awesome_rounded,
+                color: _kG2,
+                verb:  'asked Dale in');
       default:
         return (icon: Icons.campaign_rounded,
                 color: _indigo,
@@ -1060,8 +1098,6 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Accept both the new activity-entry shape and the old
-    // announcement-post shape so nothing breaks during rollout.
     final type      = (activity['event_type']
                     ?? activity['kind']
                     ?? activity['post_type']
@@ -1141,9 +1177,125 @@ class _ActivityCard extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// STUDY BUDDY REQUEST CARD (accept / decline)
+// ─────────────────────────────────────────────────────────────
+
+class _StudyBuddyRequestCard extends StatelessWidget {
+  final Map<String, dynamic> activity;
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+
+  const _StudyBuddyRequestCard({
+    required this.activity,
+    required this.onAccept,
+    required this.onDecline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name     = (activity['actor_name']  ?? 'A student').toString();
+    final role     = (activity['actor_role']  ?? '').toString();
+    final subject  = (activity['subject']     ?? activity['subjects'] ?? 'General').toString();
+    final message  = (activity['message']     ?? '').toString();
+    final avatar   = (activity['actor_avatar'] ?? '').toString();
+    final initial  = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kG2.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+            blurRadius: 10, offset: const Offset(0, 3))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: [_kG1, _kG2]),
+              image: avatar.isNotEmpty
+                  ? DecorationImage(image: NetworkImage(avatar), fit: BoxFit.cover)
+                  : null),
+            child: avatar.isEmpty
+                ? Center(child: Text(initial,
+                    style: const TextStyle(color: Colors.white,
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18)))
+                : null),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$name wants to study together',
+                  style: const TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14, color: Color(0xFF1A1A2E))),
+              const SizedBox(height: 2),
+              Text(role.isEmpty ? subject : '$role  ·  $subject',
+                  style: TextStyle(fontFamily: 'Momo',
+                      fontSize: 12, color: Colors.grey.shade500)),
+            ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: _kG2.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(6)),
+            child: const Text('Study Buddy',
+                style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 10, fontWeight: FontWeight.bold, color: _kG2))),
+        ]),
+        if (message.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10)),
+            child: Text(message,
+                style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 13, color: Colors.grey.shade700, height: 1.4))),
+        ],
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: GestureDetector(
+            onTap: onDecline,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: Colors.grey.shade300)),
+              child: const Center(child: Text('Decline',
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13, color: Color(0xFF1A1A2E)))),
+            ),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: GestureDetector(
+            onTap: onAccept,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_indigo, _deepPurple]),
+                borderRadius: BorderRadius.circular(11)),
+              child: const Center(child: Text('Accept',
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13, color: Colors.white))),
+            ),
+          )),
+        ]),
+      ]),
+    );
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
-// QUICK ACTION BUTTON — unchanged from original design
+// QUICK ACTION
 // ─────────────────────────────────────────────────────────────
 
 class _QAction extends StatelessWidget {
@@ -1179,8 +1331,7 @@ class _QAction extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// DISMISSIBLE GROUP TILE — vanish animation wrapper
-// Fades and collapses the tile to zero height over ~400ms.
+// DISMISSIBLE TILE WRAPPER
 // ─────────────────────────────────────────────────────────────
 
 class _DismissibleGroupTile extends StatelessWidget {
