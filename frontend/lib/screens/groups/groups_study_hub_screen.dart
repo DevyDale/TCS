@@ -138,11 +138,19 @@ class _GroupsStudyHubScreenState
     setState(() => _loadingBuddies = true);
     try {
       final data = await _api.getStudyBuddies();
+      final list = _asList(data);
+      // ── TEMP DIAGNOSTIC ──
+      debugPrint('🧑‍🎓 getStudyBuddies raw runtimeType: ${data.runtimeType}');
+      debugPrint('🧑‍🎓 getStudyBuddies raw: $data');
+      debugPrint('🧑‍🎓 _asList → ${list.length} buddies');
+      _snack('Buddies loaded: ${list.length}');
       setState(() {
-        _buddies        = _asList(data);
+        _buddies        = list;
         _loadingBuddies = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('🧑‍🎓 getStudyBuddies failed: $e\n$st');
+      _snack('Buddies error: $e');
       setState(() => _loadingBuddies = false);
     }
   }
