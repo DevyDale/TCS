@@ -26,6 +26,12 @@ MIME_MAP = {
     "application/zip":  "file",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "file",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":       "file",
+    "audio/x-m4a",
+    "audio/m4a",
+    "audio/mp3",
+    "audio/x-wav",
+    "audio/webm",
+    "audio/3gpp",
 }
 
 
