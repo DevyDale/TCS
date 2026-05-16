@@ -1360,7 +1360,6 @@ class _BuddyCard extends StatelessWidget {
                   Text(role, style: TextStyle(fontFamily: 'Momo',
                       fontSize: 12, color: Colors.grey.shade500)),
                 ])),
-
               GestureDetector(
                 onTap: onConnect,
                 child: Container(
