@@ -78,7 +78,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _isTyping = false;
 
   // ── Dale state ──
-  String? _myUserId;   // Will help as a more reliable fallback
+  String _myUserId = '';   // Logged-in user_id; used to compute is_me
   final _picker = ImagePicker();
   String? _avatarUrl;          // Bubble avatar from room metadata
   bool _aiEnabled  = false;   // true if Dale is currently in the room
