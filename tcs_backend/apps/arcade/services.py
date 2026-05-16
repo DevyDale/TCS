@@ -81,7 +81,7 @@ def adjust_wallet(user, delta: int, reason: str, *,
     Raises InsufficientTokens if delta < 0 and balance would go negative.
     """
     # SELECT … FOR UPDATE on the user row
-    locked = User.objects.select_for_update().get(pk=user.pk)
+    locked = User.objects.select_for_update(of=('self',)).get(pk=user.pk)
     new_balance = locked.tokens + delta
     if new_balance < 0:
         raise InsufficientTokens(
@@ -278,7 +278,7 @@ def accept_request(request_row: GameRequest, user) -> GameSession:
     if request_row.receiver_id != user.pk:
         raise PermissionError("This request isn't for you.")
     # Re-lock to avoid race
-    gr = (GameRequest.objects.select_for_update()
+    gr = (GameRequest.objects.select_for_update(of=('self',))
           .select_related("invite", "invite__game")
           .get(pk=request_row.pk))
 
@@ -305,7 +305,7 @@ def accept_request(request_row: GameRequest, user) -> GameSession:
     if game.invite_mode == Game.InviteMode.FIRST_COME:
         # Lock: auto-decline all OTHER pending siblings, refund nothing
         # (only the accepter paid, sender's escrow stays)
-        siblings = GameRequest.objects.select_for_update().filter(
+        siblings = GameRequest.objects.select_for_update(of=('self',)).filter(
             invite=invite, status="pending").exclude(pk=gr.pk)
         for s in siblings:
             s.status = "auto_declined"
@@ -319,7 +319,7 @@ def accept_request(request_row: GameRequest, user) -> GameSession:
 
     elif game.invite_mode == Game.InviteMode.ROYALE:
         # Either there's an existing session in 'waiting' status, or we create one.
-        session = (GameSession.objects.select_for_update()
+        session = (GameSession.objects.select_for_update(of=('self',))
                    .filter(invite=invite).first())
         if session is None:
             session = _create_session(invite, [invite.sender, user],
@@ -342,7 +342,7 @@ def accept_request(request_row: GameRequest, user) -> GameSession:
 def decline_request(request_row: GameRequest, user):
     if request_row.receiver_id != user.pk:
         raise PermissionError("This request isn't for you.")
-    gr = GameRequest.objects.select_for_update().get(pk=request_row.pk)
+    gr = GameRequest.objects.select_for_update(of=('self',)).get(pk=request_row.pk)
     if gr.status != "pending":
         raise ValueError(f"Already {gr.status}.")
     gr.status       = "declined"
@@ -400,7 +400,7 @@ def _create_session(invite: GameInvite, players: list,
 def cancel_invite(invite: GameInvite, sender):
     if invite.sender_id != sender.pk:
         raise PermissionError("Only the sender can cancel.")
-    inv = GameInvite.objects.select_for_update().get(pk=invite.pk)
+    inv = GameInvite.objects.select_for_update(of=('self',)).get(pk=invite.pk)
     if inv.status != "pending":
         raise ValueError(f"Invite is already {inv.status}.")
 
@@ -424,7 +424,7 @@ def expire_stale_invites():
     stale = GameInvite.objects.filter(status="pending", expires_at__lt=now)
     for inv in stale:
         with transaction.atomic():
-            inv = GameInvite.objects.select_for_update().get(pk=inv.pk)
+            inv = GameInvite.objects.select_for_update(of=('self',)).get(pk=inv.pk)
             if inv.status != "pending":
                 continue
             GameRequest.objects.filter(
@@ -451,14 +451,14 @@ def settle_match(session: GameSession,
     """
     forfeited_by = set(forfeited_by or [])
 
-    sess = (GameSession.objects.select_for_update()
+    sess = (GameSession.objects.select_for_update(of=('self',))
             .select_related("invite", "game")
             .get(pk=session.pk))
     if sess.status == "completed":
         raise MatchAlreadySettled("Already settled.")
 
     # Update SessionPlayer rows
-    participants = list(sess.participants.select_for_update().all())
+    participants = list(sess.participants.select_for_update(of=('self',)).all())
     if not participants:
         raise ValueError("No participants on this session.")
 
