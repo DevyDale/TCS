@@ -218,6 +218,7 @@ def search_posts(request):
                 .select_related("author")
                 .prefetch_related("media_files", "hashtags")
                 .exclude(is_flagged=True)
+                .filter(group__isnull=True)
                 .filter(Q(visibility="public") | Q(author=me)))
     base = filter_posts_by_role(base, me)
 
