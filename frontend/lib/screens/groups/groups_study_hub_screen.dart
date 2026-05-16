@@ -1369,7 +1369,7 @@ class _BuddyCard extends StatelessWidget {
                     gradient: const LinearGradient(
                         colors: [_indigo, _deepPurple]),
                     borderRadius: BorderRadius.circular(10)),
-                  child: const Text('Connect',
+                  child: const Text('Request',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 12)))),
