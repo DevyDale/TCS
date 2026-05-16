@@ -117,7 +117,7 @@ class PostListCreateView(generics.ListCreateAPIView):
 
         group_id = self.request.query_params.get("group_id")
         if group_id:
-            qs = qs.filter(group_id=group_id)
+            qs = qs.filter(group_id=group_id, post_type="post")
         else:
             qs = qs.filter(visibility="public", group__isnull=True)
 
@@ -144,6 +144,16 @@ class PostListCreateView(generics.ListCreateAPIView):
 # ─────────────────────────────────────────────────────────────
 # POST DETAIL
 # ─────────────────────────────────────────────────────────────
+
+    def perform_create(self, serializer):
+        # Fweets are global. Strip any group context that may have leaked in
+        # from the frontend (e.g. typing a fweet while a group screen is
+        # mounted). A fweet with a group FK is always a bug.
+        extra = {}
+        if serializer.validated_data.get("post_type") == "fweet":
+            extra["group"] = None
+        serializer.save(**extra)
+
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
