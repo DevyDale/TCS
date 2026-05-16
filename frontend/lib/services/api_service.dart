@@ -687,7 +687,7 @@ Future<dynamic> delete(String path,
         if (groupId     != null) 'group_id':    groupId,
       });
 
-  Future<dynamic> getStudyBuddies()         => get('/chat/study-buddy/');
+  Future<dynamic> getStudyBuddies()         => get('/groups/buddies/');
 
   // ══════════════════════════════════════════════════════════
   // CHAT BUBBLES (Phase 3B)
