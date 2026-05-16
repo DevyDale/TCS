@@ -734,8 +734,11 @@ Widget _buildAppBar() {
 
       // Regular Message - SUPER ROBUST isMe
       final senderName = (msg['sender_name'] as String?)?.trim() ?? '';
-      final isMe = (msg['is_me'] as bool?) == true ||
-                   senderName.toLowerCase() == widget.userName.trim().toLowerCase();
+      final senderId = msg['sender_id'] as String? ?? '';
+      final isMe = senderId.isNotEmpty
+          ? senderId == _myUserId
+          : ((msg['is_me'] as bool?) == true ||
+             senderName.toLowerCase() == widget.userName.trim().toLowerCase());
 
       final time = _fmt(msg['created_at'] as String? ?? '');
       final msgType = msg['message_type'] as String? ?? 'text';
