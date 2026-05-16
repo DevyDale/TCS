@@ -1338,16 +1338,6 @@ class _PostCardState extends State<_PostCard>
                   icon: Icons.ios_share_rounded,
                   label: shares > 0 ? _fmt(shares) : 'Share',
                   color: _kAmber, onTap: widget.onShare),
-              const Spacer(),
-              _ActionBtn(
-                icon: _bookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_outline_rounded,
-                label: '',
-                color: _bookmarked ? _kViolet : _kSlate,
-                onTap: _handleBookmark,
-                filled: _bookmarked,
-                fillColor: _kViolet.withOpacity(0.08)),
             ]),
           ),
         ]),
@@ -2378,17 +2368,6 @@ class _EventCardState extends State<_EventCard>
                 label: _shareCount > 0 ? _fmt(_shareCount) : 'Share',
                 color: _kAmber,
                 onTap: _handleShare,
-              ),
-              const Spacer(),
-              _ActionBtn(
-                icon: _bookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_outline_rounded,
-                label: '',
-                color: _bookmarked ? _kViolet : _kSlate,
-                onTap: _handleBookmark,
-                filled: _bookmarked,
-                fillColor: _kViolet.withOpacity(0.08),
               ),
             ]),
           ),
