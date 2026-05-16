@@ -163,56 +163,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   if (confirmed == true) await _performLogout();
 }
-
 Future<void> _performLogout() async {
-  if (_loggingOut) return;
+  if (_loggingOut || !mounted) return;
+
+  FocusScope.of(context).unfocus();
+
   setState(() => _loggingOut = true);
 
-  // Blocking progress overlay
+  // Show loading overlay
   showDialog(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.black54,
-    builder: (_) => Center(
-      child: Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: _card, borderRadius: BorderRadius.circular(20)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(width: 36, height: 36,
-            child: CircularProgressIndicator(color: _kG4, strokeWidth: 2.6)),
-          const SizedBox(height: 16),
-          Text('Logging out…',
-            style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 14, color: _text)),
-        ]),
+    useRootNavigator: true,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: Center(
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 28,
+          ),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      _kG4.withOpacity(0.15),
+                      _kG4.withOpacity(0.05),
+                    ],
+                  ),
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.8,
+                      color: _kG4,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Text(
+                'Logging you out',
+                style: TextStyle(
+                  fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: _text,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                'Please wait a moment...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 12,
+                  color: _text.withOpacity(0.6),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );
 
   try {
-    // Unsubscribe this device from all FCM topics first so it stops
-    // receiving pushes meant for the user we're about to sign out.
+    // Disable push notifications for this device
     await _s.setPush(false);
-    try { await syncFcmTopics(); } catch (_) {}
 
-    // Hit /accounts/logout/ to blacklist the refresh token + clear
-    // SharedPreferences (access, refresh, cached user JSON).
+    // Sync & unsubscribe FCM topics
+    try {
+      await syncFcmTopics();
+    } catch (_) {}
+
+    // Logout user + clear tokens/session
     await AuthService().logout();
-  } catch (_) {
-    // Even on network failure AuthService.logout() still wipes local
-    // tokens via clearTokens(), so the session is gone either way.
+
+  } catch (e) {
+    debugPrint('Logout error: $e');
   }
 
   if (!mounted) return;
 
-  // Wipe the entire nav stack — user cannot "back" into the app.
-  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+  // Close loading dialog safely
+  Navigator.of(context, rootNavigator: true).pop();
+
+  // Small transition delay for smoother UX
+  await Future.delayed(const Duration(milliseconds: 150));
+
+  if (!mounted) return;
+
+  // Clear entire navigation stack
+  Navigator.of(context).pushAndRemoveUntil(
+    PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (_, animation, __) => FadeTransition(
+        opacity: animation,
+        child: const RoleSelectionScreen(),
+      ),
+    ),
     (route) => false,
   );
-}
 
+  // Reset state after navigation
+  if (mounted) {
+    setState(() => _loggingOut = false);
+  }
+}
   void _showInfoSheet(String title, String body) {
     showModalBottomSheet(
       context: context,

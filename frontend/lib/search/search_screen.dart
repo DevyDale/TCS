@@ -30,6 +30,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Add this
 
 // Brand colours — kept consistent with the rest of the app.
 const _kG1 = Color(0xFF6DD5FA);  // sky
@@ -145,50 +146,44 @@ class _SearchScreenState extends State<SearchScreen> {
     _debounce = Timer(const Duration(milliseconds: 400),
         () => _search(q.trim()));
   }
-
   Future<void> _search(String q) async {
     if (q == _lastQuery || q.isEmpty) return;
     _lastQuery = q;
     setState(() => _loading = true);
+
     try {
-      // Run posts/people/groups + events in parallel.
       final results = await Future.wait([
-        _api.get('/posts/search/', query: {'q': q, 'type': 'all'}),
-        _api.getEvents(search: q).catchError((_) => null),
+        _api.get('/posts/search/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
+        _api.get('/search/people/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
+        _api.get('/groups/', query: {'q': q, 'category': 'club'}).catchError((_) => <String, dynamic>{}),
+        _api.get('/events/', query: {'q': q}).catchError((_) => <String, dynamic>{}),
       ]);
 
-      final main = (results[0] as Map?)?.cast<String, dynamic>() ?? {};
-      final ev   = results[1];
-
-      // Events endpoint may return either a list or a paginated map.
-      List eventsList = [];
-      if (ev is List) {
-        eventsList = ev;
-      } else if (ev is Map) {
-        eventsList = (ev['results'] as List?)
-                  ?? (ev['events']  as List?)
-                  ?? [];
-      }
-
-      // Clubs are groups with category=='club'.
-      final allGroups = (main['groups'] as List? ?? [])
-          .cast<Map<String, dynamic>>();
+      final postsData  = results[0] as Map<String, dynamic>? ?? {};
+      final peopleData = results[1] as Map<String, dynamic>? ?? {};
+      final groupsData = results[2] as Map<String, dynamic>? ?? {};
+      final eventsData = results[3] as Map<String, dynamic>? ?? {};
 
       if (!mounted) return;
+
       setState(() {
-        _allPosts  = (main['posts']  as List? ?? []).cast<Map<String, dynamic>>();
-        _allPeople = (main['people'] as List? ?? []).cast<Map<String, dynamic>>();
-        _allClubs  = allGroups.where((g) =>
+        _allPosts  = (postsData['results']  as List? ?? []).cast<Map<String, dynamic>>();
+        _allPeople = (peopleData['results'] as List? ?? []).cast<Map<String, dynamic>>();
+        
+        final allGroups = (groupsData['results'] as List? ?? []).cast<Map<String, dynamic>>();
+        _allClubs = allGroups.where((g) =>
             (g['category']?.toString() ?? '').toLowerCase() == 'club').toList();
-        _allEvents = eventsList.cast<Map<String, dynamic>>();
+
+        _allEvents = (eventsData['results'] as List? ?? eventsData['events'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
+
         _loading = false;
       });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
+    } catch (e) {
+      print('Search error: $e');
+      if (mounted) setState(() => _loading = false);
     }
   }
-
   // ─── Filtering ─────────────────────────────────────────
 
   List<Map<String, dynamic>> get _visibleResults {
@@ -564,27 +559,21 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   // ── Results ─────────────────────────────────────────────
-
   Widget _buildResults() {
     if (_loading && _ctrl.text.isNotEmpty) {
-      return Center(child: CircularProgressIndicator(color: _modeColor()));
+      return const Center(child: CircularProgressIndicator());
     }
-    if (_ctrl.text.isEmpty) {
-      return _emptyState(
-        'Search ${_modeLabel().toLowerCase()}',
-        _modeIcon(),
-        _modeColor(),
-        sub: 'Type to find ${_modeLabel().toLowerCase()} across TCS.',
-      );
-    }
+
     final visible = _visibleResults;
+    if (_ctrl.text.isEmpty) {
+      return _emptyState('Search ${_modeLabel().toLowerCase()}', 
+                         _modeIcon(), _modeColor());
+    }
+
     if (visible.isEmpty) {
-      return _emptyState(
-        'No ${_modeLabel().toLowerCase()} found',
-        _modeIcon(),
-        _modeColor(),
-        sub: 'Try different keywords or change the filter.',
-      );
+      return _emptyState('No ${_modeLabel().toLowerCase()} found', 
+                         _modeIcon(), _modeColor(), 
+                         sub: 'Try different keywords or filters.');
     }
 
     switch (_mode) {
@@ -592,10 +581,9 @@ class _SearchScreenState extends State<SearchScreen> {
       case 'people': return _buildPeopleList(visible);
       case 'clubs':  return _buildClubList(visible);
       case 'events': return _buildEventList(visible);
+      default:       return const SizedBox.shrink();
     }
-    return const SizedBox.shrink();
   }
-
   String _modeLabel() {
     for (final m in _modes) {
       if (m.key == _mode) return m.label;
