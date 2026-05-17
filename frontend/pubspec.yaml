@@ -118,7 +118,7 @@ flutter_native_splash:
   color: "#8E54E9"
   image: assets/icon/tcs-icon-1024.png
   android: true
-  ios: false
+  ios: true
   android_12:
     color: "#8E54E9"
     image: assets/icon/tcs-icon-foreground.png
