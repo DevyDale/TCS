@@ -79,18 +79,20 @@ import '../screens/auth/session_keys.dart';
 // ─────────────────────────────────────────────────────────────
 
 class ApiConfig {
-  // iOS simulator / same Mac → routes to host's localhost
-  static const String baseUrl = 'https://tcs-nsw.duckdns.org';
-
-  // Android emulator → uncomment when running on Android
-  // static const String baseUrl = 'http://10.0.2.2:8000';
-
-  // Physical device on same WiFi — replace with your Mac IP
-  // Run: ipconfig getifaddr en0
-  // static const String baseUrl = 'http://192.168.x.x:8000';
+  // Production backend (DigitalOcean droplet, Sydney).
+  // Override for local dev with:
+  //   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
+  //   (Android emulator: http://10.0.2.2:8000)
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://tcs-nsw.duckdns.org',
+  );
 
   static String get api => '$baseUrl/api';
-  static String get ws  => baseUrl.replaceFirst('http', 'ws');
+
+  // Converts http→ws AND https→wss (replaceFirst on 'http' inside
+  // 'https' correctly yields 'wss').
+  static String get ws => baseUrl.replaceFirst('http', 'ws');
 }
 
 // ─────────────────────────────────────────────────────────────
