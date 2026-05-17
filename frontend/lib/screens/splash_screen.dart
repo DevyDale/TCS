@@ -10,6 +10,7 @@ import '../utils/responsive_helper.dart';
 import 'auth/role_selection_screen.dart';
 import 'auth/session_keys.dart';
 import 'dashboard/dashboard_screen.dart';
+import '../walkthroughscreen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -110,7 +111,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     Widget dest;
     if (!hasSession) {
-      dest = const RoleSelectionScreen();
+      final walkthroughCompleted =
+          prefs.getBool('walkthrough_completed') ?? false;
+      dest = walkthroughCompleted
+          ? const RoleSelectionScreen()
+          : const WalkthroughScreen();
     } else {
       // Pull cached identity. If the direct keys are blank for any
       // reason, recover from the full user JSON.
