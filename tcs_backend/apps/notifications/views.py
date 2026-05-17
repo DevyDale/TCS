@@ -1,7 +1,8 @@
 from rest_framework import serializers, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Notification
 
 
@@ -25,6 +26,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def notification_list(request):
     unread_only = request.query_params.get("unread") == "true"
     qs = Notification.objects.filter(recipient=request.user).select_related("actor")
@@ -42,12 +44,14 @@ def notification_list(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def unread_count(request):
     count = Notification.objects.filter(recipient=request.user, is_read=False).count()
     return Response({"unread_count": count})
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def mark_read(request, notif_id):
     updated = Notification.objects.filter(id=notif_id, recipient=request.user).update(is_read=True)
     if not updated:
@@ -56,6 +60,7 @@ def mark_read(request, notif_id):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def mark_all_read(request):
     count = Notification.objects.filter(
         recipient=request.user, is_read=False).update(is_read=True)
@@ -63,12 +68,14 @@ def mark_all_read(request):
 
 
 @api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
 def delete_notification(request, notif_id):
     Notification.objects.filter(id=notif_id, recipient=request.user).delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
 def clear_all(request):
     Notification.objects.filter(recipient=request.user).delete()
     return Response(status=status.HTTP_204_NO_CONTENT)

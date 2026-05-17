@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.conf import settings as django_settings
 
@@ -281,6 +282,7 @@ def recent_chats(request):
 
 
 class RoomListCreateView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = RoomSerializer
 
     def get(self, request):
@@ -334,6 +336,7 @@ class RoomListCreateView(generics.GenericAPIView):
 
 
 class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = RoomSerializer
 
     def get_queryset(self):
