@@ -16,7 +16,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.tcs.tcs_app"
+    namespace = "com.lumora.tcs"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
     compileOptions {
@@ -28,7 +28,7 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
     defaultConfig {
-        applicationId = "com.tcs.tcs_app"
+        applicationId = "com.lumora.tcs"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
