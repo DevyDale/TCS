@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'screens/role_selection_screen.dart';
+import 'screens/auth/role_selection_screen.dart';
 
 // ── Palette ───────────────────────────────────────────────────────
 const _kG1     = Color(0xFF6DD5FA);
