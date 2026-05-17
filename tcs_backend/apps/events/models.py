@@ -33,6 +33,13 @@ class Event(models.Model):
     group       = models.ForeignKey("groups.Group", null=True, blank=True,
                                     on_delete=models.SET_NULL)
 
+    # Club association.
+    club        = models.ForeignKey(
+        "clubs.Club", null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name="club_events",
+    )
+
     # Phase 6 — Club ownership.
     # Mirrors Post.club. Used by the in-club Feed tab and the
     # arcade's Club Activity Hub to surface a club's events.

@@ -126,7 +126,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   List<Map<String, dynamic>> _posts      = [];
   List<Map<String, dynamic>> _fweets     = [];
-  List<Map<String, dynamic>> _favorites  = [];
   List<Map<String, dynamic>> _highlights = [];
   // NEW — posts from clubs the user has joined, for the Clubs tab.
   List<Map<String, dynamic>> _clubPosts  = [];
@@ -136,7 +135,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   int  _following = 0;
   bool _postsLoading      = true;
   bool _fweetsLoading     = true;
-  bool _favoritesLoading  = true;
   bool _highlightsLoading = true;
   bool _clubPostsLoading  = true;     // NEW
 
@@ -167,14 +165,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     // FOUR tabs now: Posts · Fweets · Favorites · Clubs
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _tabCtrl.addListener(() => setState(() {}));
     _shimmerCtrl = AnimationController(
         vsync: this, duration: const Duration(seconds: 6))..repeat();
     _loadSavedUrls();
     _fetchPosts();
     _fetchFweets();
-    _fetchFavorites();
     _fetchHighlights();
     _fetchClubPosts();      // NEW
     _fetchStats();
@@ -209,17 +206,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         _fweetsLoading = false;
       });
     } catch (_) { setState(() => _fweetsLoading = false); }
-  }
-
-  Future<void> _fetchFavorites() async {
-    setState(() => _favoritesLoading = true);
-    try {
-      final d = await _api.getFavorites() as Map<String, dynamic>;
-      setState(() {
-        _favorites        = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        _favoritesLoading = false;
-      });
-    } catch (_) { setState(() => _favoritesLoading = false); }
   }
 
   /// NEW — fetches posts from clubs the user has joined.
@@ -1149,8 +1135,7 @@ Future<void> _shareMyProfile() async {
                   onCreate: _openCreateFweet, onDelete: _deleteFweet,
                   onRefresh: _fetchFweets,
                   userName: widget.fullName, avatarUrl: _avatarUrl),
-              _FavoritesTab(favorites: _favorites, loading: _favoritesLoading,
-                  onRefresh: _fetchFavorites),
+              
               // NEW — Clubs tab.
               _ClubsTab(
                 clubPosts: _clubPosts,
@@ -1804,8 +1789,8 @@ Widget _buildBioCard() {
   // ── Custom segmented tab bar — now FOUR segments ──────────
 
   Widget _buildTabBar() {
-    const labels = ['Posts', 'Fweets', 'Favorites', 'Clubs'];
-    const n = 4;
+    const labels = ['Posts', 'Fweets', 'Clubs'];
+    const n = 3;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Container(
@@ -2517,92 +2502,6 @@ class _FweetsTab extends StatelessWidget {
 // alongside posts, with `type: 'event'` and these fields:
 //   id, title, start_time, location, club_name, club_logo,
 //   poster_url (or card_url).
-
-class _FavoritesTab extends StatelessWidget {
-  final List<Map<String, dynamic>> favorites;
-  final bool loading;
-  final Future<void> Function() onRefresh;
-  const _FavoritesTab({required this.favorites, required this.loading,
-      required this.onRefresh});
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) return const _TabLoadingShimmer();
-    if (favorites.isEmpty) {
-      return const _EmptyTab(
-        icon: Icons.bookmark_outline_rounded, label: 'No Favorites Yet',
-        sub: 'Posts and event posters you bookmark appear here',
-        color: _kPurple);
-    }
-    return RefreshIndicator(
-      color: _kInk, onRefresh: onRefresh,
-      child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-          16, 16, 16,
-          16 + MediaQuery.of(context).padding.bottom + 90,
-        ),
-        itemCount: favorites.length,
-        itemBuilder: (_, i) {
-          final p = favorites[i];
-          // Branch on item type — events render very differently from
-          // posts/fweets.
-          final kind = (p['type'] ?? p['kind'] ?? p['post_type'] ?? 'post')
-              .toString();
-          if (kind == 'event') {
-            return _FavoriteEventCard(event: p, gradient: _gradFor(i));
-          }
-
-          final content = p['content']     as String? ?? '';
-          final author  = p['author_name'] as String? ?? 'Unknown';
-          final isFweet = kind == 'fweet';
-          final initial = author.isNotEmpty ? author[0].toUpperCase() : '?';
-          final media   = (p['media'] as List? ?? [])
-              .cast<Map<String, dynamic>>();
-          return _GradientTile(
-            gradient: _gradFor(i),
-            margin: const EdgeInsets.only(bottom: 14),
-            radius: 18, borderWidth: 1.8,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
-                color: _kCardLo,
-                child: Row(children: [
-                  Container(width: 26, height: 26,
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: [_kBlue, _kPurple])),
-                    child: Center(child: Text(initial, style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800, fontSize: 11)))),
-                  const SizedBox(width: 8),
-                  Text(author, style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 12, color: _kInk)),
-                  if (isFweet) ...[
-                    const SizedBox(width: 6),
-                    Container(padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: _kCoral.withOpacity(0.10),
-                          borderRadius: BorderRadius.circular(6)),
-                      child: const Text('⚡', style: TextStyle(fontSize: 10))),
-                  ],
-                  const Spacer(),
-                  const Icon(Icons.bookmark_rounded, color: _kPurple, size: 16),
-                ])),
-              if (media.isNotEmpty)
-                MediaItemView(item: media.first, height: 180),
-              if (content.isNotEmpty)
-                Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                  child: Text(content, style: const TextStyle(
-                      fontSize: 14, color: _kInk, height: 1.5))),
-              if (content.isEmpty) const SizedBox(height: 8),
-            ]),
-          );
-        },
-      ),
-    );
-  }
-}
 
 // ═════════════════════════════════════════════════════════════
 // _FavoriteEventCard — poster-style card for favourited events.

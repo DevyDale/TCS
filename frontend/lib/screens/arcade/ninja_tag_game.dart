@@ -229,16 +229,26 @@ class _NinjaTagGameState extends State<NinjaTagGame> {
     final cellSize=gridPx/_grid;
     return Column(children:[
       // HUD
-      Padding(padding:const EdgeInsets.fromLTRB(16,10,16,0),child:Row(children:[
-        Text('Lv.${_level+1}',style:const TextStyle(fontFamily:'Alfa',fontSize:14,color:kNeonRed)),
-        const Spacer(),
-        Text('⭐ ${_stars.length} left',style:const TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white70)),
-        const Spacer(),
-        Text('⏱ $_timeLeft s',style:TextStyle(fontFamily:'Alfa',fontSize:14,
-          color:_timeLeft<10?kNeonRed:kNeonBlue)),
-        const SizedBox(width:10),
-        Text('$_score pts',style:const TextStyle(fontFamily:'Alfa',fontSize:14,color:kNeonOrange)),
-      ])),
+      // HUD with Pause & Quit buttons
+GameHUD(
+  score: '$_score pts',
+  level: 'Lv.${_level + 1} • ${_cfg['name']}',
+  paused: _paused,
+  onPause: () => setState(() => _paused = true),
+  onQuit: _handleQuit,
+  extra: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text('⭐ ${_stars.length}', style: const TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white70)),
+      const SizedBox(width: 12),
+      Text('⏱ $_timeLeft s', style: TextStyle(
+        fontFamily:'Alfa',
+        fontSize:14,
+        color: _timeLeft < 10 ? kNeonRed : kNeonBlue,
+      )),
+    ],
+  ),
+),
       const SizedBox(height:8),
       // Grid
       Container(margin:const EdgeInsets.symmetric(horizontal:16),

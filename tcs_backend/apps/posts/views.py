@@ -113,6 +113,7 @@ class PostListCreateView(generics.ListCreateAPIView):
         qs = (Post.objects
                   .select_related("author")
                   .prefetch_related("media_files", "hashtags")
+                  .filter(Q(club__isnull=True) | Q(club__is_active=True))
                   .exclude(is_flagged=True))
 
         group_id = self.request.query_params.get("group_id")
@@ -271,6 +272,7 @@ class FeedView(generics.ListAPIView):
                     .select_related("author", "club")
                     .prefetch_related("media_files", "hashtags")
                     .filter(group__isnull=True)
+                    .filter(Q(club__isnull=True) | Q(club__is_active=True))
                     .exclude(is_flagged=True))
         base = filter_posts_by_role(base, me)
 

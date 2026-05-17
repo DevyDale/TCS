@@ -125,7 +125,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "location", "is_online", "meeting_url",
             "start_time", "end_time",
             "max_attendees", "is_featured",
-        ]
+            "club",]
 
 
 class HighlightItemSerializer(serializers.Serializer):

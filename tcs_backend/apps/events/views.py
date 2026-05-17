@@ -53,7 +53,7 @@ class EventSerializer(serializers.ModelSerializer):
             "is_online", "meeting_url", "start_time", "end_time",
             "max_attendees", "attendees_count", "is_featured",
             "is_full", "is_rsvped", "can_manage", "created_at",
-        ]
+            "club",]
         read_only_fields = ["id", "attendees_count", "created_at"]
 
     # ── Validators ────────────────────────────────────────────
@@ -130,7 +130,10 @@ class EventListCreateView(generics.ListCreateAPIView):
         return {"request": self.request}
 
     def get_queryset(self):
-        qs = Event.objects.filter(is_active=True).select_related("organizer")
+        qs = (Event.objects
+                   .filter(is_active=True)
+                   .filter(Q(club__isnull=True) | Q(club__is_active=True))
+                   .select_related("organizer"))
         category = self.request.query_params.get("category")
         featured = self.request.query_params.get("featured")
         if category:
@@ -153,7 +156,9 @@ class EventListCreateView(generics.ListCreateAPIView):
 
 class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = EventSerializer
-    queryset         = Event.objects.filter(is_active=True)
+    queryset         = (Event.objects
+                            .filter(is_active=True)
+                            .filter(Q(club__isnull=True) | Q(club__is_active=True)))
     parser_classes   = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_context(self):
