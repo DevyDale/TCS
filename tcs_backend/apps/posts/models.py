@@ -37,14 +37,6 @@ class Post(models.Model):
     tagged_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                           related_name="post_tags")
 
-    # Club association.
-    club = models.ForeignKey(
-        "clubs.Club",
-        null=True, blank=True,
-        on_delete=models.CASCADE,
-        related_name="club_posts",
-    )
-
     # Phase 6 — Club scoping.
     # When set, this post is "owned" by the club: it appears in the
     # club's internal Feed tab and in the campus feed's Club Posts tab.
@@ -53,7 +45,7 @@ class Post(models.Model):
     # member's content history.
     club = models.ForeignKey(
         "clubs.Club",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True, blank=True,
         related_name="posts",
         help_text="If set, scopes the post to a club.",
