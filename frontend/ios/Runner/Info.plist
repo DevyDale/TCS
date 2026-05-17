@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Tcs App</string>
+	<string>TCS</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,8 +24,18 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>TCS needs camera access so you can take photos and share them in chats.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TCS needs microphone access to record voice notes in chats.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>TCS needs permission to save photos you share or download.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TCS needs photo library access so you can share photos and add stickers from your gallery.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -49,14 +59,6 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>TCS needs microphone access to record voice notes in chats.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>TCS needs photo library access so you can share photos and add stickers from your gallery.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>TCS needs permission to save photos you share or download.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>TCS needs camera access so you can take photos and share them in chats.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
