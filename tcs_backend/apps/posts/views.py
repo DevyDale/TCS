@@ -1,4 +1,5 @@
 from apps.accounts.role_filter import filter_posts_by_role, cross_role_post_404
+from apps.moderation.utils import filter_blocked_users
 """
 apps/posts/views.py
 """
@@ -126,6 +127,7 @@ class PostListCreateView(generics.ListCreateAPIView):
         if user_id:
             qs = qs.filter(author__user_id=user_id)
 
+        qs = filter_blocked_users(qs, self.request.user)
         return qs.order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
@@ -168,7 +170,8 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
                     .prefetch_related("media_files", "hashtags"))
 
     def get_queryset(self):
-        return filter_posts_by_role(super().get_queryset(), self.request.user)
+        qs = filter_posts_by_role(super().get_queryset(), self.request.user)
+        return filter_blocked_users(qs, self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -275,6 +278,7 @@ class FeedView(generics.ListAPIView):
                     .filter(Q(club__isnull=True) | Q(club__is_active=True))
                     .exclude(is_flagged=True))
         base = filter_posts_by_role(base, me)
+        base = filter_blocked_users(base, me)
 
         if feed_type == "announcements":
             return base.filter(post_type="announcement").order_by("-created_at")
@@ -352,11 +356,11 @@ class BookmarkListView(generics.ListAPIView):
         ids = Bookmark.objects.filter(
             user=self.request.user
         ).values_list("post_id", flat=True)
-        return (Post.objects
-                    .select_related("author")
-                    .prefetch_related("media_files", "hashtags")
-                    .filter(id__in=ids)
-                    .order_by("-created_at"))
+        qs = (Post.objects
+                  .select_related("author")
+                  .prefetch_related("media_files", "hashtags")
+                  .filter(id__in=ids))
+        return filter_blocked_users(qs, self.request.user).order_by("-created_at")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -534,12 +538,12 @@ class CommentListCreateView(generics.ListCreateAPIView):
         return {"request": self.request}
 
     def get_queryset(self):
-        return (Comment.objects
-                       .select_related("author")
-                       .filter(post_id=self.kwargs["pk"],
-                               is_deleted=False,
-                               parent=None)
-                       .order_by("-created_at"))
+        qs = (Comment.objects
+                     .select_related("author")
+                     .filter(post_id=self.kwargs["pk"],
+                             is_deleted=False,
+                             parent=None))
+        return filter_blocked_users(qs, self.request.user).order_by("-created_at")
 
     def perform_create(self, serializer):
         post = filter_posts_by_role(Post.objects, self.request.user).get(pk=self.kwargs["pk"])
