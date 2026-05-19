@@ -69,8 +69,6 @@ Future<void> _initLocalNotifications() async {
 
 Future<void> _initFcm() async {
   // Permission prompt (iOS + Android 13+)
-  await FirebaseMessaging.instance.requestPermission(
-      alert: true, badge: true, sound: true);
 
   // Background handler MUST be registered before any other listeners
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
