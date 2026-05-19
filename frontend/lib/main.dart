@@ -68,8 +68,6 @@ Future<void> _initLocalNotifications() async {
 }
 
 Future<void> _initFcm() async {
-  // Permission prompt (iOS + Android 13+)
-
   // Background handler MUST be registered before any other listeners
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 

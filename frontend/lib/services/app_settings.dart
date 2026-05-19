@@ -2,6 +2,7 @@
 // Singleton ChangeNotifier — drives BOTH theme and locale for the entire app.
 // Listen to this in main.dart and rebuild MaterialApp when it changes.
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,9 +15,9 @@ class AppSettings extends ChangeNotifier {
   // ── State ─────────────────────────────────────────────────
   bool   _dark          = false;
   String _lang          = 'en';
-  bool   _pushEnabled   = true;
-  bool   _announcements = true;
-  bool   _groupActivity = true;
+  bool   _pushEnabled   = false;  // Apple 4.5.4 — opt-in required
+  bool   _announcements = false;
+  bool   _groupActivity = false;
   bool   _showOnline    = true;
   bool   _discoverable  = true;
 
@@ -40,11 +41,25 @@ class AppSettings extends ChangeNotifier {
     final p = await SharedPreferences.getInstance();
     _dark          = p.getBool('dark_mode')      ?? false;
     _lang          = p.getString('language')      ?? 'en';
-    _pushEnabled   = p.getBool('push_notifs')     ?? true;
-    _announcements = p.getBool('announcements')   ?? true;
-    _groupActivity = p.getBool('group_activity')  ?? true;
+    _pushEnabled   = p.getBool('push_notifs')     ?? false;
+    _announcements = p.getBool('announcements')   ?? false;
+    _groupActivity = p.getBool('group_activity')  ?? false;
     _showOnline    = p.getBool('show_online')     ?? true;
     _discoverable  = p.getBool('discoverable')    ?? true;
+
+    // Apple 4.5.4 — if the OS hasn't authorized notifications, the toggle
+    // MUST appear off, regardless of any stored preference.
+    try {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      final granted = settings.authorizationStatus == AuthorizationStatus.authorized
+          || settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (!granted) {
+        _pushEnabled = false;
+        _announcements = false;
+        _groupActivity = false;
+      }
+    } catch (_) {}
+
     notifyListeners();
   }
 
@@ -64,13 +79,37 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setPush(bool v) async {
-    _pushEnabled = v;
+  /// Returns the FINAL granted state. If [v] is true but the OS denies
+  /// permission, this returns false and persists everything as off.
+  Future<bool> setPush(bool v) async {
     final p = await SharedPreferences.getInstance();
+    if (v) {
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true, badge: true, sound: true,
+      );
+      final granted = settings.authorizationStatus == AuthorizationStatus.authorized
+          || settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (!granted) {
+        _pushEnabled = false;
+        _announcements = false;
+        _groupActivity = false;
+        p.setBool('push_notifs', false);
+        p.setBool('announcements', false);
+        p.setBool('group_activity', false);
+        notifyListeners();
+        return false;
+      }
+    }
+    _pushEnabled = v;
     p.setBool('push_notifs', v);
-    if (!v) { _announcements = false; _groupActivity = false;
-      p.setBool('announcements', false); p.setBool('group_activity', false); }
+    if (!v) {
+      _announcements = false;
+      _groupActivity = false;
+      p.setBool('announcements', false);
+      p.setBool('group_activity', false);
+    }
     notifyListeners();
+    return v;
   }
 
   Future<void> setAnnouncements(bool v) async {

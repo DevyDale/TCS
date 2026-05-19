@@ -475,14 +475,20 @@ _group([
                   value: _pushEnabled,
                   onChanged: (v) async {
                     HapticFeedback.lightImpact();
+                    final granted = await _s.setPush(v);
+                    if (!mounted) return;
                     setState(() {
-                      _pushEnabled = v;
-                      if (!v) { _announcements = false; _groupActivity = false; }
+                      _pushEnabled = granted;
+                      if (!granted) { _announcements = false; _groupActivity = false; }
                     });
-                    await _s.setPush(v);
+                    if (v && !granted) {
+                      _snack('Enable notifications in iOS Settings',
+                          color: Colors.orange.shade700);
+                      return;
+                    }
                     await syncFcmTopics(); // re-subscribe / unsubscribe FCM
-                    _snack(v ? '🔔 ${l.settingsPushOn}' : '🔕 ${l.settingsPushOff}',
-                        color: v ? Colors.green.shade600 : Colors.grey.shade600);
+                    _snack(granted ? '🔔 ${l.settingsPushOn}' : '🔕 ${l.settingsPushOff}',
+                        color: granted ? Colors.green.shade600 : Colors.grey.shade600);
                   },
                 ),
                 _divLine(),
