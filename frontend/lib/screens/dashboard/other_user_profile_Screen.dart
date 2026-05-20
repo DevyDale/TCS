@@ -34,6 +34,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
+import '../../services/moderation_service.dart';
+import '../../widgets/moderation/report_sheet.dart';
 import '../profile/share_profile_screen.dart';
 
 
@@ -266,9 +268,20 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
               )),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              _snack('Reported. Thanks for letting us know.');
+              if (_user == null) return;
+              final uuid = (_user!['id'] ?? '').toString();
+              if (uuid.isEmpty) return;
+              final label = (_user?['name'] as String?)?.trim().isNotEmpty == true
+                  ? (_user!['name'] as String).trim()
+                  : '@${(_user?['user_id'] as String?) ?? widget.userId}';
+              await ReportSheet.show(
+                context,
+                contentType: 'user',
+                objectId: uuid,
+                targetLabel: label,
+              );
             },
           ),
           ListTile(
@@ -277,9 +290,9 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
               )),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              _snack('Block coming soon.');
+              await _confirmAndBlock();
             },
           ),
           const SizedBox(height: 8),
