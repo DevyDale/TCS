@@ -302,9 +302,25 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
   }
 
   Future<void> _confirmAndBlock() async {
-    if (_user == null) return;
-    final uuid = (_user!['id'] ?? '').toString();
-    if (uuid.isEmpty) return;
+    debugPrint('🚫 _confirmAndBlock called, _user=$_user');
+    if (_user == null) {
+      debugPrint('🚫 _user is null, aborting');
+      _snack('Profile not loaded yet - try again in a sec.', isError: true);
+      return;
+    }
+    // Try _user['id'] (UUID) first, fall back to widget.userId (user_id string).
+    // The backend accepts either format and resolves to a User internally.
+    String uuid = (_user!['id'] ?? '').toString();
+    if (uuid.isEmpty) {
+      uuid = widget.userId;
+      debugPrint('🚫 UUID missing, falling back to user_id: $uuid');
+    } else {
+      debugPrint('🚫 using UUID: $uuid');
+    }
+    if (uuid.isEmpty) {
+      _snack('Cannot block - missing user identifier.', isError: true);
+      return;
+    }
     final name = (_user?['name'] as String?)?.trim().isNotEmpty == true
         ? (_user!['name'] as String).trim()
         : '@${(_user?['user_id'] as String?) ?? widget.userId}';

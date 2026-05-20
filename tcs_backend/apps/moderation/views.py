@@ -48,8 +48,20 @@ class BlockDestroyView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, user_id):
+        # Accept either UUID or user_id string. Resolve to User first.
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        target = None
+        try:
+            target = User.objects.filter(pk=user_id).first()
+        except (ValueError, Exception):
+            pass
+        if target is None:
+            target = User.objects.filter(user_id=user_id).first()
+        if target is None:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         deleted, _ = Block.objects.filter(
-            blocker=request.user, blocked_id=user_id,
+            blocker=request.user, blocked=target,
         ).delete()
         if deleted == 0:
             return Response({"detail": "Not blocked."}, status=status.HTTP_404_NOT_FOUND)

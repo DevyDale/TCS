@@ -658,10 +658,15 @@ class _SearchScreenState extends State<SearchScreen> {
                              u['username'] ??
                              u['user_id'] ??
                              'Unknown').toString();
-        final userId = (u['user_id'] ?? u['id'] ?? '').toString();
+        final userId = (u['user_id'] ?? u['userId'] ?? u['id'] ?? '').toString();
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
-            if (userId.isEmpty) return;
+            debugPrint('🔍 Person card tapped, userId="$userId", keys=${u.keys.toList()}');
+            if (userId.isEmpty) {
+              debugPrint('🔍 userId is empty, navigation aborted. Raw u=$u');
+              return;
+            }
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => OtherUserProfileScreen(
                 userId: userId,

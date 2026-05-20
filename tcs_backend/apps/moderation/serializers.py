@@ -25,6 +25,13 @@ class ReportCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ct = validated_data.pop("content_type_model")
+        # If reporting a user, resolve user_id string to User UUID PK.
+        if ct.model == "user":
+            oid = validated_data.get("object_id", "")
+            if oid and "-" not in str(oid):
+                u = User.objects.filter(user_id=oid).first()
+                if u:
+                    validated_data["object_id"] = str(u.id)
         return Report.objects.create(
             reporter=self.context["request"].user,
             content_type=ct,
@@ -47,9 +54,15 @@ class BlockCreateSerializer(serializers.Serializer):
     reason  = serializers.ChoiceField(choices=REASON_CHOICES, required=False, allow_blank=True)
 
     def validate_blocked(self, value):
+        # Accept either UUID (User.pk) or user_id string like '3005177'.
+        user = None
         try:
-            user = User.objects.get(pk=value)
-        except User.DoesNotExist:
+            user = User.objects.filter(pk=value).first()
+        except (ValueError, Exception):
+            pass
+        if user is None:
+            user = User.objects.filter(user_id=value).first()
+        if user is None:
             raise serializers.ValidationError("User not found.")
         if user == self.context["request"].user:
             raise serializers.ValidationError("Cannot block yourself.")
