@@ -279,7 +279,6 @@ class FeedView(generics.ListAPIView):
                     .exclude(is_flagged=True))
         base = filter_posts_by_role(base, me)
         base = filter_blocked_users(base, me)
-        base = filter_blocked_users(base, me)
 
         if feed_type == "announcements":
             return base.filter(post_type="announcement").order_by("-created_at")
