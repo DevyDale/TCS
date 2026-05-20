@@ -17,6 +17,7 @@ import 'package:tcs_app/main.dart'; // for syncFcmTopics()
 import 'package:tcs_app/screens/about_application_screen.dart';
 import 'package:tcs_app/screens/about_developer_screen.dart';
 import 'package:tcs_app/screens/auth/role_selection_screen.dart';
+import 'package:tcs_app/screens/settings/blocked_users_screen.dart';
 import 'package:tcs_app/screens/privacy_policy_screen.dart';
 import 'package:tcs_app/screens/terms_of_service_screen.dart';
 import 'package:tcs_app/services/auth_service.dart';
@@ -561,6 +562,13 @@ _group([
                     'When enabled, other students can find your profile by '
                     'searching your name or username. Disabling this means '
                     'only people who already follow you can view your profile.'),
+                ),
+                _divLine(),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const BlockedUsersScreen())),
+                  child: _info(Icons.block_rounded, 'Blocked users',
+                      'Manage ›', _kG4),
                 ),
               ]),
 
