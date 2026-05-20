@@ -9,11 +9,16 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../screens/auth/session_keys.dart';
-import 'api_service.dart';
 
 class ModerationService {
   ModerationService._();
   static final instance = ModerationService._();
+
+  static const String _baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://tcs-nsw.duckdns.org',
+  );
+  static String get _api => '$_baseUrl/api';
 
   Future<Map<String, String>> _authHeaders() async {
     final p = await SharedPreferences.getInstance();
@@ -45,7 +50,7 @@ class ModerationService {
     required String reason,
     String description = '',
   }) async {
-    final url = Uri.parse('${ApiService.api}/moderation/reports/');
+    final url = Uri.parse('$_api/moderation/reports/');
     final body = jsonEncode({
       'content_type_model': contentType,
       'object_id':          objectId,
@@ -58,20 +63,20 @@ class ModerationService {
 
   /// [blockedUuid] is the target user's UUID (the `id` field, NOT user_id).
   Future<bool> blockUser(String blockedUuid) async {
-    final url = Uri.parse('${ApiService.api}/moderation/blocks/');
+    final url = Uri.parse('$_api/moderation/blocks/');
     final body = jsonEncode({'blocked': blockedUuid});
     final res = await http.post(url, headers: await _authHeaders(), body: body);
     return res.statusCode >= 200 && res.statusCode < 300;
   }
 
   Future<bool> unblockUser(String blockedUuid) async {
-    final url = Uri.parse('${ApiService.api}/moderation/blocks/$blockedUuid/');
+    final url = Uri.parse('$_api/moderation/blocks/$blockedUuid/');
     final res = await http.delete(url, headers: await _authHeaders());
     return res.statusCode >= 200 && res.statusCode < 300;
   }
 
   Future<List<Map<String, dynamic>>> listBlockedUsers() async {
-    final url = Uri.parse('${ApiService.api}/moderation/blocks/');
+    final url = Uri.parse('$_api/moderation/blocks/');
     final res = await http.get(url, headers: await _authHeaders());
     if (res.statusCode != 200) return const [];
     final decoded = jsonDecode(res.body);
