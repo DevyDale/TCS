@@ -37,6 +37,7 @@ import '../../services/api_service.dart';
 import '../../services/moderation_service.dart';
 import '../../widgets/moderation/report_sheet.dart';
 import '../profile/share_profile_screen.dart';
+import '../profile/media_item_view.dart';
 
 
 const _kG1  = Color(0xFF6DD5FA);
@@ -1130,7 +1131,23 @@ class _MiniPostCard extends StatelessWidget {
     final created   = (post['created_at'] ?? '') as String;
     final likes     = (post['likes_count'] ?? 0) as int;
     final comments  = (post['comments_count'] ?? 0) as int;
-    final mediaUrl  = (post['media_url'] ?? '') as String;
+    // Build a media list with fallbacks for every serializer variant:
+    //   own profile  → 'media'
+    //   feed         → 'media_files'
+    //   legacy single image → 'media_url'
+    final rawMedia = (post['media'] as List?) ??
+                     (post['media_files'] as List?) ??
+                     const [];
+    final mediaList = <Map<String, dynamic>>[];
+    for (final m in rawMedia) {
+      if (m is Map) mediaList.add(Map<String, dynamic>.from(m));
+    }
+    if (mediaList.isEmpty) {
+      final legacyUrl = (post['media_url'] ?? '') as String;
+      if (legacyUrl.isNotEmpty) {
+        mediaList.add({'url': legacyUrl, 'media_type': 'image'});
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1143,19 +1160,11 @@ class _MiniPostCard extends StatelessWidget {
         )],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (mediaUrl.isNotEmpty)
+        if (mediaList.isNotEmpty)
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(16)),
-            child: CachedNetworkImage(
-              imageUrl: mediaUrl, fit: BoxFit.cover,
-              width: double.infinity, height: 180,
-              errorWidget: (_, __, ___) => Container(
-                height: 180, color: Colors.grey.shade100,
-                child: Icon(Icons.broken_image_rounded,
-                    color: Colors.grey.shade400),
-              ),
-            ),
+            child: MediaItemView(item: mediaList.first, height: 200),
           ),
         if (content.isNotEmpty)
           Padding(
