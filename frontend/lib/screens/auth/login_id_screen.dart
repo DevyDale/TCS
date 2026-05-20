@@ -28,6 +28,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _idCtrl = TextEditingController();
+  final _dobCtrl = TextEditingController();
   final _idFocus = FocusNode();
   DateTime? _selectedDate;
   bool _isLoading = false;
@@ -91,6 +92,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
     _entryCtrl.dispose();
     _floatCtrl.dispose();
     _idCtrl.dispose();
+    _dobCtrl.dispose();
     _idFocus.dispose();
     super.dispose();
   }
@@ -131,7 +133,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2000),
+      initialDate: _selectedDate ?? DateTime(_isStudent ? 2006 : 1990),
       firstDate: DateTime(1950),
       lastDate: now,
       builder: (ctx, child) => Theme(
@@ -144,7 +146,98 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dobCtrl.text =
+            '${picked.day.toString().padLeft(2, '0')}'
+            '/${picked.month.toString().padLeft(2, '0')}'
+            '/${picked.year}';
+      });
+    }
+  }
+
+  // ── DOB input — typeable DD/MM/YYYY with calendar fallback ─
+  Widget _buildDobField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+      ),
+      child: TextFormField(
+        controller: _dobCtrl,
+        keyboardType: TextInputType.number,
+        inputFormatters: [_DobInputFormatter()],
+        style: const TextStyle(
+          fontFamily: 'Momo',
+          fontSize: 15,
+          color: Color(0xFF1A1A2E),
+        ),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          hintText: 'DD/MM/YYYY',
+          hintStyle: TextStyle(
+            color: Colors.grey.shade400,
+            fontFamily: 'Momo',
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(10),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: _roleGradient),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.cake_rounded,
+                color: Colors.white, size: 18),
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.calendar_month_rounded,
+                color: _accentColor, size: 22),
+            onPressed: _selectDate,
+            tooltip: 'Pick from calendar',
+          ),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          errorStyle: const TextStyle(fontFamily: 'Momo'),
+        ),
+        onChanged: (v) {
+          final parsed = _parseDob(v);
+          if (parsed != _selectedDate) {
+            setState(() => _selectedDate = parsed);
+          }
+        },
+        validator: (v) {
+          if (v == null || v.isEmpty) return 'Enter your date of birth';
+          if (_parseDob(v) == null) {
+            return 'Enter a valid date (DD/MM/YYYY)';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  /// Parses a DD/MM/YYYY string into a DateTime. Returns null if
+  /// malformed, if any component is out of range, if the day doesn't
+  /// exist in that month (e.g. 31/02), or if the date is in the future.
+  DateTime? _parseDob(String text) {
+    final m = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(text);
+    if (m == null) return null;
+    final day = int.tryParse(m.group(1)!);
+    final month = int.tryParse(m.group(2)!);
+    final year = int.tryParse(m.group(3)!);
+    if (day == null || month == null || year == null) return null;
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+    if (year < 1900 || year > DateTime.now().year) return null;
+    final dt = DateTime(year, month, day);
+    if (dt.year != year || dt.month != month || dt.day != day) return null;
+    if (dt.isAfter(DateTime.now())) return null;
+    return dt;
   }
 
   Future<void> _handleLogin() async {
@@ -437,14 +530,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                                 label: 'Date of Birth',
                                 color: _accentColor),
                             const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: _selectDate,
-                              child: _DateField(
-                                date: _selectedDate,
-                                accentColor: _accentColor,
-                                gradient: _roleGradient,
-                              ),
-                            ),
+                            _buildDobField(),
 
                             const SizedBox(height: 20),
 
@@ -821,6 +907,27 @@ class _LoginButton extends StatelessWidget {
                 ),
         ),
       ),
+    );
+  }
+}
+
+
+class _DobInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final truncated =
+        digits.length > 8 ? digits.substring(0, 8) : digits;
+    final buf = StringBuffer();
+    for (var i = 0; i < truncated.length; i++) {
+      if (i == 2 || i == 4) buf.write('/');
+      buf.write(truncated[i]);
+    }
+    final formatted = buf.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
