@@ -7,6 +7,7 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import 'session_keys.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../terms_of_service_screen.dart';
 
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -30,6 +31,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
   final _idFocus = FocusNode();
   DateTime? _selectedDate;
   bool _isLoading = false;
+  bool _eulaAccepted = false;
 
   late final AnimationController _entryCtrl;
   late final AnimationController _floatCtrl;
@@ -146,6 +148,13 @@ class _LoginIdScreenState extends State<LoginIdScreen>
   }
 
   Future<void> _handleLogin() async {
+    if (!_eulaAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please accept the Terms of Service and EULA to continue.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDate == null) {
       _showSnack('Please select your date of birth', isError: true);
@@ -437,7 +446,67 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                               ),
                             ),
 
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 20),
+
+                            // EULA acceptance (Apple 1.2)
+                            GestureDetector(
+                              onTap: () => setState(() => _eulaAccepted = !_eulaAccepted),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: 22, height: 22,
+                                      decoration: BoxDecoration(
+                                        color: _eulaAccepted ? _accentColor : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: _eulaAccepted ? _accentColor : Colors.grey.shade400,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: _eulaAccepted
+                                          ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text.rich(TextSpan(
+                                          style: TextStyle(
+                                            fontFamily: 'Momo',
+                                            fontSize: 12.5,
+                                            color: Colors.grey.shade700,
+                                            height: 1.4,
+                                          ),
+                                          children: [
+                                            const TextSpan(text: 'I agree to the '),
+                                            TextSpan(
+                                              text: 'Terms of Service & EULA',
+                                              style: TextStyle(color: _accentColor, fontWeight: FontWeight.bold),
+                                            ),
+                                            const TextSpan(text: '.'),
+                                          ],
+                                        )),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey.shade500),
+                                      onPressed: () => Navigator.push(context, MaterialPageRoute(
+                                        builder: (_) => const TermsOfServiceScreen(),
+                                      )),
+                                      tooltip: 'View Terms & EULA',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
 
                             // Login button
                             _LoginButton(
