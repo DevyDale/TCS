@@ -35,7 +35,7 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
                 child: Icon(Icons.arrow_back_rounded, size: 20, color: _text)),
             ),
             const SizedBox(width: 12),
-            Text('Terms of Service', style: TextStyle(
+            Text('Terms of Service & EULA', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 22, color: _text)),
           ]),
         ),
@@ -97,6 +97,84 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
             _h('11. Contact'),
             _p('Questions about these Terms can be directed to the Taylors '
               'College Sydney IT Helpdesk at helpdesk@taylorscollege.edu.au.'),
+
+            const SizedBox(height: 28),
+            _h('End User License Agreement (EULA)'),
+            _p('This End User License Agreement ("EULA") governs your use '
+              'of the TCS mobile application. By tapping "I agree" on the '
+              'sign-in screen, or by otherwise using the App, you accept '
+              'the terms set out below in addition to the Terms of Service '
+              'above.'),
+            _h('A. Licence Grant'),
+            _p('Taylors College Sydney (the "Licensor") grants you a '
+              'limited, non-transferable, non-exclusive, revocable licence '
+              'to install and use the App on any Apple-branded or Android '
+              'device that you own or control, solely for your personal, '
+              'non-commercial use as a current student, staff member, or '
+              'authorised guest of Taylors College Sydney.'),
+            _h('B. Restrictions'),
+            _p('You may not copy, modify, reverse engineer, decompile, or '
+              'disassemble the App, attempt to derive its source code, or '
+              'create derivative works of it. You may not redistribute, '
+              'sub-licence, lease, lend, or sell the App, or remove any '
+              'proprietary notices.'),
+            _h('C. Acceptable Conduct (UGC)'),
+            _p('There is zero tolerance for objectionable, abusive, '
+              'harassing, hateful, sexually explicit, or threatening '
+              'content. The App provides in-app tools to report content '
+              'and to block users; reports are reviewed and acted upon '
+              'within 24 hours, with content removal and account '
+              'suspension where appropriate.'),
+            _h('D. Data and Privacy'),
+            _p('You consent to the collection and use of technical and '
+              'related information as described in our Privacy Policy, '
+              'gathered periodically to facilitate software updates, '
+              'product support, and other services related to the App.'),
+            _h('E. No Warranty'),
+            _p('The App is provided on an "AS IS" and "AS AVAILABLE" '
+              'basis, without warranty of any kind, express or implied. '
+              'To the maximum extent permitted by law, the Licensor '
+              'disclaims all warranties, including merchantability, '
+              'fitness for a particular purpose, accuracy, and '
+              'non-infringement.'),
+            _h('F. Limitation of Liability'),
+            _p('To the maximum extent permitted by law, in no event shall '
+              'the Licensor be liable for any incidental, special, '
+              'indirect, or consequential damages whatsoever, including '
+              'loss of data, lost profits, or business interruption, '
+              'arising out of or related to your use of the App.'),
+            _h('G. Termination'),
+            _p('This licence is effective until terminated. Your rights '
+              'under this licence will terminate automatically without '
+              'notice if you fail to comply with any of its terms, or if '
+              'you cease to be a current student, staff member, or '
+              'authorised guest of Taylors College Sydney. Upon '
+              'termination, you must cease all use of the App and delete '
+              'all copies from your device.'),
+            _h('H. Apple-Specific Terms'),
+            _p('You acknowledge that this EULA is between you and the '
+              'Licensor only, and not with Apple, and that Apple is not '
+              'responsible for the App or its content. Apple has no '
+              'obligation to provide maintenance or support services for '
+              'the App. In the event of any failure of the App to conform '
+              'to any applicable warranty, you may notify Apple, and '
+              'Apple will refund the purchase price (if any) for the App; '
+              'to the maximum extent permitted by law, Apple has no other '
+              'warranty obligation with respect to the App. Apple and '
+              'Apple\'s subsidiaries are third-party beneficiaries of '
+              'this EULA and have the right to enforce it against you.'),
+            _h('I. Export Compliance'),
+            _p('You represent that you are not located in a country that '
+              'is subject to a U.S. Government embargo, and that you are '
+              'not on any U.S. Government list of prohibited or '
+              'restricted parties. You will comply with all applicable '
+              'export laws and regulations.'),
+            _h('J. Governing Law'),
+            _p('This EULA is governed by the laws of New South Wales, '
+              'Australia, without regard to its conflict-of-law '
+              'provisions. Disputes will be subject to the exclusive '
+              'jurisdiction of the courts of New South Wales.'),
+
             const SizedBox(height: 40),
           ],
         )),
