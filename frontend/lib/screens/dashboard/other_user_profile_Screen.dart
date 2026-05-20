@@ -301,6 +301,45 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
     );
   }
 
+  Future<void> _confirmAndBlock() async {
+    if (_user == null) return;
+    final uuid = (_user!['id'] ?? '').toString();
+    if (uuid.isEmpty) return;
+    final name = (_user?['name'] as String?)?.trim().isNotEmpty == true
+        ? (_user!['name'] as String).trim()
+        : '@${(_user?['user_id'] as String?) ?? widget.userId}';
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Block this user?'),
+        content: Text(
+            'You will no longer see posts or messages from $name, and they '
+            'will not see yours. You can unblock anytime in Settings.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _kG4),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Block')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final success = await ModerationService.instance.blockUser(uuid);
+    if (!mounted) return;
+    _snack(success ? '$name blocked.' : 'Could not block. Try again.',
+        isError: !success);
+    if (success) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
   void _snack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
