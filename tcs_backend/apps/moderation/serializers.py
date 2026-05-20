@@ -40,13 +40,43 @@ class ReportCreateSerializer(serializers.ModelSerializer):
 
 
 class BlockSerializer(serializers.ModelSerializer):
+    blocked      = serializers.SerializerMethodField()
+    # Flat fields kept for backwards compatibility with older clients.
     blocked_id   = serializers.CharField(source="blocked.id", read_only=True)
     blocked_name = serializers.CharField(source="blocked.name", read_only=True)
 
     class Meta:
         model  = Block
-        fields = ["id", "blocked_id", "blocked_name", "reason", "created_at"]
+        fields = ["id", "blocked", "blocked_id", "blocked_name", "reason", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+    def get_blocked(self, obj):
+        u = obj.blocked
+        # Prefer the main UserSerializer so the blocked object includes
+        # avatar_url, display_name, role etc. Fall back to a minimal
+        # hand-built dict if the import or serialization fails.
+        try:
+            from apps.accounts.serializers import UserSerializer
+            return UserSerializer(u, context=self.context).data
+        except Exception:
+            pass
+        avatar = None
+        try:
+            v = getattr(u, "avatar_url", None)
+            if callable(v):
+                v = v()
+            if v:
+                avatar = str(v)
+        except Exception:
+            pass
+        return {
+            "id": str(u.id),
+            "user_id": getattr(u, "user_id", "") or "",
+            "name": getattr(u, "name", "") or "",
+            "role": getattr(u, "role", "") or "",
+            "preferred_name": getattr(u, "preferred_name", "") or "",
+            "avatar_url": avatar,
+        }
 
 
 class BlockCreateSerializer(serializers.Serializer):
