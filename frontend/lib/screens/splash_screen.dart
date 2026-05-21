@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'legal/eula_screen.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
