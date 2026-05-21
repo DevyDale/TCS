@@ -29,7 +29,7 @@ class _Reason {
 
 const List<_Reason> _reasons = [
   _Reason('harassment', 'Harassment or bullying'),
-  _Reason('hate',       'Hate speech'),
+  _Reason('hate_speech',       'Hate speech'),
   _Reason('violence',   'Violence or threats'),
   _Reason('sexual',     'Sexual or explicit content'),
   _Reason('spam',       'Spam or scam'),

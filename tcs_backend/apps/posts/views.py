@@ -1,7 +1,25 @@
 from apps.accounts.role_filter import filter_posts_by_role, cross_role_post_404
-from apps.safety.utils import blocked_user_ids
-from apps.safety.filters import scan as scan_objectionable
-from apps.safety.models import Report
+from apps.moderation.models import Block as _ModBlock, BlockedKeyword as _ModKeyword
+
+def blocked_user_ids(user):
+    """User PKs hidden from `user`'s feed: blocked + blocked-by."""
+    if not user or not getattr(user, "is_authenticated", False):
+        return set()
+    made = _ModBlock.objects.filter(blocker=user).values_list("blocked_id", flat=True)
+    recv = _ModBlock.objects.filter(blocked=user).values_list("blocker_id", flat=True)
+    return set(made) | set(recv)
+
+def scan_objectionable(text):
+    """Returns (flagged, matches) using the moderation BlockedKeyword list."""
+    if not text or not text.strip():
+        return False, []
+    low = text.lower(); hits = []
+    for kw in _ModKeyword.objects.values_list("keyword", flat=True):
+        k = (kw or "").lower()
+        if k and k in low and k not in hits:
+            hits.append(k)
+    return (len(hits) > 0), hits
+
 from apps.moderation.utils import filter_blocked_users
 """
 apps/posts/views.py
@@ -138,19 +156,11 @@ class PostListCreateView(generics.ListCreateAPIView):
         ser = CreatePostSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
         post = ser.save(author=request.user)
-        # -- Objectionable-content filter (Apple G1.2) --
+        # -- Objectionable-content filter (Apple G1.2, moderation keywords) --
         _flagged, _matches = scan_objectionable(post.content)
         if _flagged:
             post.is_flagged = True
             post.save(update_fields=["is_flagged"])
-            Report.objects.create(
-                reporter=None,
-                target_type=Report.Target.POST,
-                target_id=str(post.id),
-                offender=request.user,
-                reason=Report.Reason.AUTO_FILTER,
-                detail="Auto-flagged. Matched: " + ", ".join(_matches),
-            )
 
         # Pull #hashtags out of the body and attach. Idempotent —
         # if the same tag appears twice in content it's only counted
