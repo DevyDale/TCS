@@ -10,6 +10,7 @@ api_v1 = [
     path("users/",         include("apps.accounts.user_urls")),
     path("dataentry/",     include("apps.dataentry.urls")),
     path("posts/",         include("apps.posts.urls")),
+    path("safety/",       include("apps.safety.urls")),
     path("highlights/",    include("apps.highlights.urls")),
     path("hashtags/",      include("apps.posts.hashtag_urls")),
     path("feelings/",      include("apps.posts.feeling_urls")),

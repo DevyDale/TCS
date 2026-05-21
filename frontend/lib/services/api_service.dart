@@ -541,6 +541,25 @@ Future<dynamic> delete(String path,
       get('/posts/bookmarks/', query: {'page': '$page'});
   Future<dynamic> flagPost(String id, {String reason = 'other'}) =>
       post('/posts/$id/flag/', body: {'reason': reason});
+
+  // -- SAFETY / MODERATION --
+  Future<dynamic> blockUser(String userId, {String reason = ''}) =>
+      post('/safety/block/$userId/', body: {'reason': reason});
+  Future<dynamic> unblockUser(String userId) =>
+      delete('/safety/block/$userId/');
+  Future<dynamic> getBlockedUsers() => get('/safety/blocks/');
+  Future<dynamic> reportContent({
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String detail = '',
+  }) =>
+      post('/safety/report/', body: {
+        'target_type': targetType,
+        'target_id': targetId,
+        'reason': reason,
+        'detail': detail,
+      });
   Future<dynamic> getComments(String postId, {int page = 1}) =>
       get('/posts/$postId/comments/', query: {'page': '$page'});
   Future<dynamic> addComment(String postId, String text, {String? parentId}) =>
