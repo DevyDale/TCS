@@ -112,6 +112,17 @@ class _SplashScreenState extends State<SplashScreen>
 
     Widget dest;
     if (!hasSession) {
+      // App Store G1.2: EULA must be accepted before login/registration.
+      bool _eulaOk = await EulaGate.isAccepted();
+      while (!_eulaOk) {
+        if (!mounted) return;
+        final _r = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(builder: (_) => const EulaScreen()),
+        );
+        _eulaOk = _r == true;
+      }
+      if (!mounted) return;
+
       final walkthroughCompleted =
           prefs.getBool('walkthrough_completed') ?? false;
       dest = walkthroughCompleted
