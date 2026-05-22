@@ -272,8 +272,8 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             onTap: () async {
               Navigator.pop(context);
               if (_user == null) return;
-              final uuid = (_user!['id'] ?? '').toString();
-              if (uuid.isEmpty) return;
+              var uuid = (_user!['id'] ?? '').toString();
+              if (uuid.isEmpty) uuid = widget.userId;
               final label = (_user?['name'] as String?)?.trim().isNotEmpty == true
                   ? (_user!['name'] as String).trim()
                   : '@${(_user?['user_id'] as String?) ?? widget.userId}';
