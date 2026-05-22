@@ -43,7 +43,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
             'this user')
         .toString();
 
-    if (uuid.isEmpty) uuid = widget.userId;
+    if (uuid.isEmpty) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
