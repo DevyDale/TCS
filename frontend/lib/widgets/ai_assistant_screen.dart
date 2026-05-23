@@ -1,50 +1,42 @@
 // lib/screens/ai/ai_assistant_screen.dart
 //
-// Dale — TCS Campus Assistant.
-// Light gradient page + rotating SweepGradient borders on chrome.
-// Period gradient is preserved on the Lottie halo, gradient-text
-// greeting, mini AI avatar, user-message bubble fill, and send
-// button — so dawn still looks peachy, night still looks deep
-// purple, etc.
+// TCS AI Assistant — light theme, hero Lottie, time-aware greeting.
+//
+// Layout:
+//   1. Slim top bar     — back + menu (left), rate-limit chip (right)
+//   2. Hero block       — large animated Lottie + "Good morning, Name"
+//   3. Chat area        — suggestions (max 5) + message thread
+//   4. Sticky input bar — high-contrast text field + gradient send button
+//   5. Left drawer      — chat history (locally persisted), new chat
+//
+// Palette: white card, multiple grey shades, period-driven gradient
+// accent for the avatar halo, send button, user bubbles, and cursor.
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../services/api_service.dart';
+import 'package:tcs_app/services/api_service.dart';
 
 // ── Light palette ─────────────────────────────────────────────
-const _kBg1         = Color(0xFFFAFAFC);
-const _kBg2         = Color(0xFFE6E6EE);
-const _kBg3         = Color(0xFFF2F2F6);
-
-const _kCard        = Color(0xFFFFFFFF);
-const _kCardLo      = Color(0xFFF5F5F8);
-
-const _kInk         = Color(0xFF0D0D1A);
-const _kInkSoft     = Color(0xFF374151);
-const _kSlate       = Color(0xFF6B7280);
-const _kSlateLight  = Color(0xFF9CA3AF);
-const _kBorder      = Color(0xFFE5E7EB);
-const _kBorderSoft  = Color(0xFFF1F2F5);
-const _kInputBg     = Color(0xFFF7F8FB);
-const _kDanger      = Color(0xFFFF5858);
-const _kOnline      = Color(0xFF10B981);
-
-const _gradColors = <Color>[
-  Color(0xFF6DD5FA),
-  Color(0xFF7C3AED),
-  Color(0xFFF59E0B),
-  Color(0xFFFF4F6E),
-  Color(0xFF6DD5FA),
-];
+const _kBg = Color(0xFFFAFAFC);
+const _kCard = Color(0xFFFFFFFF);
+const _kInk = Color(0xFF0D0D1A);
+const _kInkSoft = Color(0xFF374151);
+const _kSlate = Color(0xFF6B7280);
+const _kSlateLight = Color(0xFF9CA3AF);
+const _kBorder = Color(0xFFE5E7EB);
+const _kBorderSoft = Color(0xFFF1F2F5);
+const _kInputBg = Color(0xFFF7F8FB);
+const _kDanger = Color(0xFFFF5858);
+const _kOnline = Color(0xFF10B981);
 
 // ─────────────────────────────────────────────────────────────
 // TIME-OF-DAY THEME
@@ -53,12 +45,12 @@ const _gradColors = <Color>[
 enum _DayPeriod { dawn, morning, afternoon, evening, night }
 
 class _PeriodTheme {
-  final String       label;
-  final String       emoji;
-  final IconData     icon;
-  final List<Color>  gradient;
-  final String       greetingHeadline;
-  final String       greetingTagline;
+  final String label;
+  final String emoji;
+  final IconData icon;
+  final List<Color> gradient;
+  final String greetingHeadline;
+  final String greetingTagline;
   final List<(String, String)> suggestions;
 
   const _PeriodTheme({
@@ -77,10 +69,10 @@ class _PeriodTheme {
         return const _PeriodTheme(
           label: 'Early',
           emoji: '🌅',
-          icon:  Icons.wb_twilight_rounded,
+          icon: Icons.wb_twilight_rounded,
           gradient: [Color(0xFFFF9A8B), Color(0xFFFF6A88)],
           greetingHeadline: 'Up early',
-          greetingTagline:  "I'm Dale · here for the quiet hours ✨",
+          greetingTagline: 'Quiet hours hit different ✨',
           suggestions: [
             ('📅', "What's on my schedule today?"),
             ('📖', 'Help me prep for class'),
@@ -93,10 +85,10 @@ class _PeriodTheme {
         return const _PeriodTheme(
           label: 'Morning',
           emoji: '☀️',
-          icon:  Icons.wb_sunny_rounded,
+          icon: Icons.wb_sunny_rounded,
           gradient: [Color(0xFFFFB75E), Color(0xFFED8F03)],
           greetingHeadline: 'Good morning',
-          greetingTagline:  "I'm Dale · ready when you are ☀️",
+          greetingTagline: "Ready to make today productive?",
           suggestions: [
             ('📅', "What's on my schedule today?"),
             ('📖', 'Help me study for an exam'),
@@ -109,10 +101,10 @@ class _PeriodTheme {
         return const _PeriodTheme(
           label: 'Afternoon',
           emoji: '🌤️',
-          icon:  Icons.wb_sunny_outlined,
+          icon: Icons.wb_sunny_outlined,
           gradient: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
           greetingHeadline: 'Good afternoon',
-          greetingTagline:  "I'm Dale · what can I help with? 🌤️",
+          greetingTagline: "What can I help you with?",
           suggestions: [
             ('📚', 'Find me a study group'),
             ('💡', 'Beat the afternoon slump'),
@@ -125,10 +117,10 @@ class _PeriodTheme {
         return const _PeriodTheme(
           label: 'Evening',
           emoji: '🌆',
-          icon:  Icons.brightness_4_rounded,
+          icon: Icons.brightness_4_rounded,
           gradient: [Color(0xFFFF6B6B), Color(0xFFFFA07A)],
           greetingHeadline: 'Good evening',
-          greetingTagline:  "I'm Dale · wind down or gear up 🌆",
+          greetingTagline: "Wind down or gear up — your call",
           suggestions: [
             ('📋', "Plan tomorrow's tasks"),
             ('📖', 'Review what I learned today'),
@@ -141,10 +133,10 @@ class _PeriodTheme {
         return const _PeriodTheme(
           label: 'Late night',
           emoji: '🌙',
-          icon:  Icons.bedtime_rounded,
+          icon: Icons.bedtime_rounded,
           gradient: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
           greetingHeadline: 'Burning the midnight oil',
-          greetingTagline:  "I'm Dale · here for the late shift 🌙",
+          greetingTagline: "Here if you need a hand 🌙",
           suggestions: [
             ('🧠', 'Quick concept review'),
             ('📖', "Help with a problem I'm stuck on"),
@@ -159,8 +151,8 @@ class _PeriodTheme {
 
 _DayPeriod _detectPeriod() {
   final h = DateTime.now().hour;
-  if (h >= 5  && h < 9)  return _DayPeriod.dawn;
-  if (h >= 9  && h < 12) return _DayPeriod.morning;
+  if (h >= 5 && h < 9) return _DayPeriod.dawn;
+  if (h >= 9 && h < 12) return _DayPeriod.morning;
   if (h >= 12 && h < 17) return _DayPeriod.afternoon;
   if (h >= 17 && h < 21) return _DayPeriod.evening;
   return _DayPeriod.night;
@@ -169,113 +161,310 @@ _DayPeriod _detectPeriod() {
 // ── Message model ─────────────────────────────────────────────
 
 class AiMessage {
-  final String   role;
-  final String   content;
-  final bool     isStreaming;
-  final bool     isError;
+  final String role;
+  final String content;
+  final bool isStreaming;
+  final bool isError;
   final DateTime createdAt;
 
   AiMessage({
     required this.role,
     required this.content,
     this.isStreaming = false,
-    this.isError     = false,
+    this.isError = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
   AiMessage copyWith({String? content, bool? isStreaming, bool? isError}) =>
       AiMessage(
-        role:        role,
-        content:     content     ?? this.content,
+        role: role,
+        content: content ?? this.content,
         isStreaming: isStreaming ?? this.isStreaming,
-        isError:     isError     ?? this.isError,
-        createdAt:   createdAt,
+        isError: isError ?? this.isError,
+        createdAt: createdAt,
       );
 
   Map<String, dynamic> toJson() => {'role': role, 'content': content};
 }
 
+// ── Conversation model + local store ──────────────────────────
+
+String _genId() => 'c${DateTime.now().microsecondsSinceEpoch}';
+
+class _Conversation {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<Map<String, String>> messages;
+
+  _Conversation({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.messages,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'messages': messages,
+  };
+
+  static _Conversation fromJson(Map<String, dynamic> j) => _Conversation(
+    id: (j['id'] ?? _genId()).toString(),
+    title: (j['title'] ?? 'New chat').toString(),
+    createdAt:
+        DateTime.tryParse((j['createdAt'] ?? '').toString()) ?? DateTime.now(),
+    updatedAt:
+        DateTime.tryParse((j['updatedAt'] ?? '').toString()) ?? DateTime.now(),
+    messages: ((j['messages'] ?? []) as List)
+        .map<Map<String, String>>(
+          (m) => {
+            'role': (m['role'] ?? 'assistant').toString(),
+            'content': (m['content'] ?? '').toString(),
+          },
+        )
+        .toList(),
+  );
+}
+
+class _ConversationStore {
+  static const _key = 'dale_ai_conversations_v1';
+
+  static Future<List<_Conversation>> loadAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_key);
+      if (raw == null || raw.isEmpty) return [];
+      final list = (jsonDecode(raw) as List).cast<dynamic>();
+      final convos = list
+          .map(
+            (e) => _Conversation.fromJson((e as Map).cast<String, dynamic>()),
+          )
+          .toList();
+      convos.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return convos;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> save(_Conversation c) async {
+    final all = await loadAll();
+    final idx = all.indexWhere((x) => x.id == c.id);
+    if (idx >= 0) {
+      all[idx] = c;
+    } else {
+      all.add(c);
+    }
+    await _write(all);
+  }
+
+  static Future<void> delete(String id) async {
+    final all = await loadAll();
+    all.removeWhere((x) => x.id == id);
+    await _write(all);
+  }
+
+  static Future<void> _write(List<_Conversation> all) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _key,
+      jsonEncode(all.map((c) => c.toJson()).toList()),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// AI ASSISTANT SCREEN
 // ═════════════════════════════════════════════════════════════
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
+
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
 }
 
 class _AiAssistantScreenState extends State<AiAssistantScreen>
     with TickerProviderStateMixin {
-  final _inputCtrl  = TextEditingController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _inputCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   final _inputFocus = FocusNode();
-  final _api        = ApiService();
+  final _api = ApiService();
 
-  late final _DayPeriod   _period;
+  late final _DayPeriod _period;
   late final _PeriodTheme _theme;
 
   final List<AiMessage> _messages = [];
-  String _userName      = '';
-  bool   _isLoading     = false;
-  int    _rateLimitUsed = 0;
-  int    _rateLimitMax  = 30;
+  String _userName = '';
+  bool _isLoading = false;
+  int _rateLimitUsed = 0;
+  int _rateLimitMax = 60;
+
+  // Chat-history (local persistence)
+  String _conversationId = _genId();
+  DateTime _conversationCreatedAt = DateTime.now();
+  List<_Conversation> _savedConversations = [];
 
   late final AnimationController _entryCtrl;
-  late final Animation<double>   _entryFade;
+  late final Animation<double> _entryFade;
   late final AnimationController _pulseCtrl;
-  late final Animation<double>   _pulse;
-  late final AnimationController _shimmerCtrl;
+  late final Animation<double> _pulse;
 
   @override
   void initState() {
     super.initState();
     _period = _detectPeriod();
-    _theme  = _PeriodTheme.of(_period);
+    _theme = _PeriodTheme.of(_period);
 
     _entryCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700))
-      ..forward();
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
     _entryFade = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
 
     _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _pulse = CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
-
-    _shimmerCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 6))
-      ..repeat();
 
     _inputCtrl.addListener(() => setState(() {}));
     _inputFocus.addListener(() => setState(() {}));
 
     _fetchUserName();
     _fetchStatus();
+    _loadConversations();
   }
 
   @override
   void dispose() {
+    // Persist whatever is on screen before tearing down (no setState here).
+    _persistCurrent(reload: false);
     _entryCtrl.dispose();
     _pulseCtrl.dispose();
-    _shimmerCtrl.dispose();
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
     _inputFocus.dispose();
     super.dispose();
   }
 
+  // ── Chat history helpers ──────────────────────────────────
+
+  Future<void> _loadConversations() async {
+    final all = await _ConversationStore.loadAll();
+    if (mounted) setState(() => _savedConversations = all);
+  }
+
+  String _deriveTitle(List<AiMessage> msgs) {
+    final firstUser = msgs.where((m) => m.role == 'user').toList();
+    if (firstUser.isEmpty) return 'New chat';
+    var t = firstUser.first.content.trim().replaceAll('\n', ' ');
+    if (t.length > 42) t = '${t.substring(0, 42)}…';
+    return t.isEmpty ? 'New chat' : t;
+  }
+
+  Future<void> _persistCurrent({bool reload = true}) async {
+    final saveable = _messages
+        .where(
+          (m) => !m.isStreaming && !m.isError && m.content.trim().isNotEmpty,
+        )
+        .toList();
+    if (!saveable.any((m) => m.role == 'user')) return;
+
+    final convo = _Conversation(
+      id: _conversationId,
+      title: _deriveTitle(saveable),
+      createdAt: _conversationCreatedAt,
+      updatedAt: DateTime.now(),
+      messages: saveable
+          .map((m) => {'role': m.role, 'content': m.content})
+          .toList(),
+    );
+    await _ConversationStore.save(convo);
+    if (reload) await _loadConversations();
+  }
+
+  Future<void> _newChat() async {
+    await _persistCurrent();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.pop(context); // close drawer
+    setState(() {
+      _conversationId = _genId();
+      _conversationCreatedAt = DateTime.now();
+      _messages.clear();
+      _isLoading = false;
+    });
+    _inputCtrl.clear();
+  }
+
+  Future<void> _openConversation(_Conversation c) async {
+    await _persistCurrent();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.pop(context); // close drawer
+    setState(() {
+      _conversationId = c.id;
+      _conversationCreatedAt = c.createdAt;
+      _isLoading = false;
+      _messages
+        ..clear()
+        ..addAll(
+          c.messages.map(
+            (m) => AiMessage(
+              role: m['role'] ?? 'assistant',
+              content: m['content'] ?? '',
+            ),
+          ),
+        );
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _deleteConversation(String id) async {
+    await _ConversationStore.delete(id);
+    if (id == _conversationId && mounted) {
+      setState(() {
+        _conversationId = _genId();
+        _conversationCreatedAt = DateTime.now();
+        _messages.clear();
+      });
+    }
+    await _loadConversations();
+  }
+
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  // ── Identity / status fetch ───────────────────────────────
+
   Future<void> _fetchUserName() async {
+    // Try the most likely user endpoints in order. Silently skip if
+    // none exist — the greeting just falls back to no name.
     for (final path in const ['/users/me/', '/me/', '/auth/me/']) {
       try {
         final data = await _api.get(path);
         if (mounted && data is Map) {
-          final name = (data['preferred_name']
-                  ?? data['first_name']
-                  ?? data['display_name']
-                  ?? data['name']
-                  ?? data['username']
-                  ?? '')
-              .toString()
-              .trim();
+          final name =
+              (data['preferred_name'] ??
+                      data['first_name'] ??
+                      data['display_name'] ??
+                      data['name'] ??
+                      data['username'] ??
+                      '')
+                  .toString()
+                  .trim();
           if (name.isNotEmpty) {
             setState(() => _userName = name.split(' ').first);
             return;
@@ -291,7 +480,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
       if (mounted && data is Map) {
         setState(() {
           _rateLimitUsed = data['messages_used'] as int? ?? 0;
-          _rateLimitMax  = data['limit']         as int? ?? 30;
+          _rateLimitMax = data['limit'] as int? ?? 60;
         });
       }
     } catch (e) {
@@ -303,6 +492,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     final base = _theme.greetingHeadline;
     return _userName.isNotEmpty ? '$base, $_userName' : base;
   }
+
+  // ── Send message — robust streaming + error reporting ────
 
   Future<void> _sendMessage(String text) async {
     final msg = text.trim();
@@ -316,15 +507,17 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
       _isLoading = true;
     });
     _scrollToBottom();
+    _persistCurrent();
 
     final aiMsgIndex = _messages.length;
     setState(() {
-      _messages.add(AiMessage(
-          role: 'assistant', content: '', isStreaming: true));
+      _messages.add(
+        AiMessage(role: 'assistant', content: '', isStreaming: true),
+      );
     });
 
     try {
-      final token   = await _api.accessToken;
+      final token = await _api.accessToken;
       final baseUrl = ApiConfig.baseUrl;
       final history = _messages
           .sublist(0, aiMsgIndex - 1)
@@ -332,23 +525,27 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           .map((m) => m.toJson())
           .toList();
 
-      final request = http.Request('POST',
-          Uri.parse('$baseUrl/api/ai/chat/'))
+      if (kDebugMode) {
+        debugPrint('🤖 POST $baseUrl/api/ai/chat/');
+        debugPrint('🤖 history len: ${history.length}, message: $msg');
+      }
+
+      final request = http.Request('POST', Uri.parse('$baseUrl/api/ai/chat/'))
         ..headers.addAll({
-          'Content-Type':  'application/json',
-          'Accept':        'text/event-stream',
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
           'Authorization': 'Bearer $token',
         })
         ..body = jsonEncode({
           'message': msg,
           'history': history,
-          'stream':  true,
+          'stream': true,
         });
 
       final streamed = await request.send().timeout(
         const Duration(seconds: 30),
-        onTimeout: () => throw TimeoutException(
-            'Dale is taking longer than usual.'),
+        onTimeout: () =>
+            throw TimeoutException('The AI is taking longer than usual.'),
       );
 
       if (streamed.statusCode != 200) {
@@ -361,61 +558,64 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen(
-        (line) {
-          if (!line.startsWith('data:')) return;
-          final data = line.substring(5).trim();
-          if (data.isEmpty) return;
-          if (data == '[DONE]') {
-            if (mounted) {
-              setState(() {
-                _messages[aiMsgIndex] =
-                    _messages[aiMsgIndex].copyWith(isStreaming: false);
-                _isLoading = false;
-                _rateLimitUsed++;
-              });
-              _scrollToBottom();
-            }
-            return;
-          }
-          try {
-            final chunk = jsonDecode(data);
-            if (chunk is Map && chunk['error'] != null) {
-              _handleError(aiMsgIndex, chunk['error'].toString());
-              return;
-            }
-            final tok = (chunk['token']
-                    ?? chunk['content']
-                    ?? chunk['delta']
-                    ?? '')
-                .toString();
-            if (tok.isNotEmpty && mounted) {
-              setState(() {
-                _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
-                    content: _messages[aiMsgIndex].content + tok);
-              });
-              _scrollToBottom();
-            }
-          } catch (e) {
-            if (kDebugMode) debugPrint('🤖 parse fail: $e for: $data');
-          }
-        },
-        onError: (e) {
-          if (kDebugMode) debugPrint('🤖 stream error: $e');
-          _handleError(aiMsgIndex, 'Connection lost. Try again.');
-        },
-        onDone: () {
-          if (mounted && _isLoading) {
-            setState(() {
-              _messages[aiMsgIndex] =
-                  _messages[aiMsgIndex].copyWith(isStreaming: false);
-              _isLoading = false;
-            });
-          }
-        },
-        cancelOnError: true,
-      );
+            (line) {
+              if (!line.startsWith('data:')) return;
+              final data = line.substring(5).trim();
+              if (data.isEmpty) return;
+              if (data == '[DONE]') {
+                if (mounted) {
+                  setState(() {
+                    _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                      isStreaming: false,
+                    );
+                    _isLoading = false;
+                    _rateLimitUsed++;
+                  });
+                  _scrollToBottom();
+                  _persistCurrent();
+                }
+                return;
+              }
+              try {
+                final chunk = jsonDecode(data);
+                if (chunk is Map && chunk['error'] != null) {
+                  _handleError(aiMsgIndex, chunk['error'].toString());
+                  return;
+                }
+                // Accept either {"token": "..."} or {"content": "..."}
+                final tok =
+                    (chunk['token'] ?? chunk['content'] ?? chunk['delta'] ?? '')
+                        .toString();
+                if (tok.isNotEmpty && mounted) {
+                  setState(() {
+                    _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                      content: _messages[aiMsgIndex].content + tok,
+                    );
+                  });
+                  _scrollToBottom();
+                }
+              } catch (e) {
+                if (kDebugMode) debugPrint('🤖 parse fail: $e for: $data');
+              }
+            },
+            onError: (e) {
+              if (kDebugMode) debugPrint('🤖 stream error: $e');
+              _handleError(aiMsgIndex, 'Connection lost. Try again.');
+            },
+            onDone: () {
+              if (mounted && _isLoading) {
+                setState(() {
+                  _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                    isStreaming: false,
+                  );
+                  _isLoading = false;
+                });
+              }
+            },
+            cancelOnError: true,
+          );
     } catch (e) {
-      if (kDebugMode) debugPrint('🚨 Dale send failed: $e');
+      if (kDebugMode) debugPrint('🚨 AI send failed: $e');
       String userMsg;
       if (e is TimeoutException) {
         userMsg = e.message ?? 'Request timed out.';
@@ -434,7 +634,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   String _humanizeStatus(int code) {
     if (code == 401 || code == 403) return 'Session expired — log in again.';
     if (code == 429) return 'Slow down a sec — too many requests.';
-    if (code >= 500) return "Dale's having issues right now.";
+    if (code >= 500) return 'The AI service is having issues.';
     return 'Server error ($code).';
   }
 
@@ -442,7 +642,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     if (!mounted) return;
     setState(() {
       _messages[index] = AiMessage(
-          role: 'assistant', content: error, isError: true);
+        role: 'assistant',
+        content: error,
+        isError: true,
+      );
       _isLoading = false;
     });
   }
@@ -466,49 +669,195 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin:  Alignment.topLeft,
-            end:    Alignment.bottomRight,
-            colors: [_kBg1, _kBg2, _kBg3],
-            stops:  [0.0, 0.55, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _buildTopBar(),
-              Expanded(
-                child: FadeTransition(
-                  opacity: _entryFade,
-                  child: ListView(
-                    controller: _scrollCtrl,
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildHero(),
-                      const SizedBox(height: 28),
-                      if (_messages.isEmpty) _buildSuggestions(),
-                      ..._messages.asMap().entries.map(
-                          (e) => _buildMessage(e.value, e.key)),
-                    ],
-                  ),
+      key: _scaffoldKey,
+      backgroundColor: _kBg,
+      drawer: _buildDrawer(),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Expanded(
+              child: FadeTransition(
+                opacity: _entryFade,
+                child: ListView(
+                  controller: _scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildHero(),
+                    const SizedBox(height: 28),
+                    if (_messages.isEmpty) _buildSuggestions(),
+                    ..._messages.asMap().entries.map(
+                      (e) => _buildMessage(e.value, e.key),
+                    ),
+                  ],
                 ),
               ),
-              _buildInputBar(),
-            ],
-          ),
+            ),
+            _buildInputBar(),
+          ],
         ),
       ),
     );
   }
 
+  // ── Drawer (chat history) ─────────────────────────────────
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: _kBg,
+      width: MediaQuery.of(context).size.width * 0.82,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 16, 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: _theme.gradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: ClipOval(
+                        child: Container(
+                          color: _kCard,
+                          padding: const EdgeInsets.all(2),
+                          child: Lottie.asset(
+                            'assets/images/robot.json',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Text('🤖', style: TextStyle(fontSize: 18)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Dale',
+                    style: TextStyle(
+                      fontFamily: 'Alfa',
+                      fontSize: 20,
+                      color: _kInk,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // New chat
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: GestureDetector(
+                onTap: _newChat,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _theme.gradient,
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _theme.gradient.last.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 6),
+                      Text(
+                        'New chat',
+                        style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+              child: Text(
+                'RECENT',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.4,
+                  color: _kSlate.withOpacity(0.8),
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: _savedConversations.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No conversations yet.\nStart chatting and it’ll show up here.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Momo',
+                            fontSize: 13,
+                            color: _kSlateLight,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                      itemCount: _savedConversations.length,
+                      itemBuilder: (_, i) {
+                        final c = _savedConversations[i];
+                        return _ConversationTile(
+                          title: c.title,
+                          subtitle: _relativeTime(c.updatedAt),
+                          active: c.id == _conversationId,
+                          accent: _theme.gradient.last,
+                          onTap: () => _openConversation(c),
+                          onDelete: () => _deleteConversation(c.id),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Top bar ───────────────────────────────────────────────
+
   Widget _buildTopBar() {
     final left = _rateLimitMax - _rateLimitUsed;
-    final low  = left < 5;
+    final low = left < 5;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
       child: Row(
@@ -518,66 +867,116 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
               HapticFeedback.lightImpact();
               Navigator.pop(context);
             },
-            child: _GradientBorderCard(
-              animation: _shimmerCtrl,
-              radius: 14,
-              borderWidth: 1.2,
-              innerColor: _kCard,
-              padding: const EdgeInsets.all(11),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: _kInkSoft, size: 16),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _kBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _kInkSoft,
+                size: 16,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Menu → opens the chat-history drawer
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _kBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.menu_rounded, color: _kInkSoft, size: 20),
             ),
           ),
           const Spacer(),
           if (_rateLimitMax > 0)
-            _GradientBorderCard(
-              animation: _shimmerCtrl,
-              radius: 14,
-              borderWidth: 1.2,
-              innerColor: _kCard,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    color: low ? _kDanger : _kOnline,
-                    shape: BoxShape.circle,
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: low ? _kDanger.withOpacity(0.3) : _kBorder,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  '$left left',
-                  style: TextStyle(
-                    fontFamily: 'Momo', fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: low ? _kDanger : _kSlate,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: low ? _kDanger : _kOnline,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-              ]),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$left left',
+                    style: TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: low ? _kDanger : _kSlate,
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
     );
   }
 
+  // ── Hero (Lottie + greeting) ──────────────────────────────
+
   Widget _buildHero() {
     return Column(
       children: [
+        // Lottie with pulsing gradient halo
         AnimatedBuilder(
           animation: _pulse,
           builder: (_, child) => Container(
-            width: 140, height: 140,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: _theme.gradient,
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
                   color: _theme.gradient.last.withOpacity(
-                      0.22 + 0.18 * _pulse.value),
+                    0.22 + 0.18 * _pulse.value,
+                  ),
                   blurRadius: 30 + 12 * _pulse.value,
                   spreadRadius: 2,
                 ),
@@ -599,8 +998,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                       errorBuilder: (_, e, __) {
                         if (kDebugMode) debugPrint('🤖 Lottie: $e');
                         return const Center(
-                          child: Text('🤖',
-                              style: TextStyle(fontSize: 60)),
+                          child: Text('🤖', style: TextStyle(fontSize: 60)),
                         );
                       },
                     ),
@@ -611,10 +1009,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           ),
         ),
         const SizedBox(height: 22),
+        // Gradient-text greeting
         ShaderMask(
           shaderCallback: (rect) => LinearGradient(
             colors: _theme.gradient,
-            begin: Alignment.centerLeft, end: Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ).createShader(rect),
           blendMode: BlendMode.srcIn,
           child: Text(
@@ -644,6 +1044,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     );
   }
 
+  // ── Suggestions (max 5) ───────────────────────────────────
+
   Widget _buildSuggestions() {
     final suggestions = _theme.suggestions.take(5).toList();
     return Padding(
@@ -651,31 +1053,36 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(_theme.icon,
+          Row(
+            children: [
+              Icon(
+                _theme.icon,
                 size: 14,
-                color: _theme.gradient.last.withOpacity(0.75)),
-            const SizedBox(width: 6),
-            Text(
-              'TRY ASKING',
-              style: TextStyle(
-                fontFamily: 'Momo',
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _kSlate.withOpacity(0.8),
-                letterSpacing: 1.4,
+                color: _theme.gradient.last.withOpacity(0.75),
               ),
-            ),
-          ]),
+              const SizedBox(width: 6),
+              Text(
+                'TRY ASKING',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: _kSlate.withOpacity(0.8),
+                  letterSpacing: 1.4,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 8, runSpacing: 8,
+            spacing: 8,
+            runSpacing: 8,
             children: suggestions.map((s) {
               return _SuggestionChip(
-                emoji:   s.$1,
-                label:   s.$2,
-                shimmer: _shimmerCtrl,
-                onTap:   () => _sendMessage(s.$2),
+                emoji: s.$1,
+                label: s.$2,
+                accent: _theme.gradient.last,
+                onTap: () => _sendMessage(s.$2),
               );
             }).toList(),
           ),
@@ -684,14 +1091,17 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     );
   }
 
+  // ── Message bubble ────────────────────────────────────────
+
   Widget _buildMessage(AiMessage msg, int index) {
     final isUser = msg.role == 'user';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
@@ -703,8 +1113,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isUser
                     ? LinearGradient(
@@ -715,13 +1124,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     : null,
                 color: isUser
                     ? null
-                    : (msg.isError
-                        ? _kDanger.withOpacity(0.06)
-                        : _kCard),
+                    : (msg.isError ? _kDanger.withOpacity(0.06) : _kCard),
                 borderRadius: BorderRadius.only(
-                  topLeft:     const Radius.circular(18),
-                  topRight:    const Radius.circular(18),
-                  bottomLeft:  Radius.circular(isUser ? 18 : 4),
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(isUser ? 18 : 4),
                   bottomRight: Radius.circular(isUser ? 4 : 18),
                 ),
                 border: isUser
@@ -729,13 +1136,17 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     : Border.all(
                         color: msg.isError
                             ? _kDanger.withOpacity(0.25)
-                            : _kBorder),
-                boxShadow: [BoxShadow(
+                            : _kBorder,
+                      ),
+                boxShadow: [
+                  BoxShadow(
                     color: isUser
                         ? _theme.gradient.last.withOpacity(0.18)
                         : Colors.black.withOpacity(0.03),
                     blurRadius: isUser ? 12 : 6,
-                    offset: const Offset(0, 3))],
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,8 +1159,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (msg.isError) ...[
-                          const Icon(Icons.error_outline_rounded,
-                              size: 15, color: _kDanger),
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: 15,
+                            color: _kDanger,
+                          ),
                           const SizedBox(width: 6),
                         ],
                         Flexible(
@@ -785,13 +1199,20 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     );
   }
 
+  // ── Input bar ─────────────────────────────────────────────
+  // Explicitly dark-text on light grey fill so typing is always
+  // readable. Cursor + focused border use the period accent.
+
   Widget _buildInputBar() {
     final hasText = _inputCtrl.text.trim().isNotEmpty;
     final canSend = hasText && !_isLoading;
+    final focused = _inputFocus.hasFocus;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        14, 10, 14,
+        14,
+        10,
+        14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: const BoxDecoration(
@@ -802,16 +1223,24 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: _GradientBorderCard(
-              animation: _shimmerCtrl,
-              radius: 22,
-              borderWidth: 1.2,
-              innerColor: _kInputBg,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              constraints: const BoxConstraints(minHeight: 48),
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: _kInputBg,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: focused
+                      ? _theme.gradient.last.withOpacity(0.5)
+                      : _kBorder,
+                  width: focused ? 1.5 : 1,
+                ),
+              ),
               child: TextField(
                 controller: _inputCtrl,
-                focusNode:  _inputFocus,
-                enabled:    !_isLoading,
+                focusNode: _inputFocus,
+                enabled: !_isLoading,
                 maxLines: 4,
                 minLines: 1,
                 cursorColor: _theme.gradient.last,
@@ -824,22 +1253,19 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   height: 1.4,
                 ),
                 decoration: InputDecoration(
-                  filled:         false,
-                  isDense:        true,
-                  border:         InputBorder.none,
-                  enabledBorder:  InputBorder.none,
-                  focusedBorder:  InputBorder.none,
+                  filled: false,
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
-                  hintText: _isLoading
-                      ? 'Dale is thinking…'
-                      : 'Ask Dale anything…',
+                  hintText: _isLoading ? 'Thinking…' : 'Ask anything…',
                   hintStyle: const TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 14,
                     color: _kSlateLight,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onSubmitted: _sendMessage,
                 textInputAction: TextInputAction.send,
@@ -849,33 +1275,36 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           const SizedBox(width: 10),
           GestureDetector(
             onTap: canSend ? () => _sendMessage(_inputCtrl.text) : null,
-            child: Container(
-              width: 48, height: 48,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
+                shape: BoxShape.circle,
                 gradient: canSend
                     ? LinearGradient(
                         colors: _theme.gradient,
                         begin: Alignment.topLeft,
-                        end:   Alignment.bottomRight,
+                        end: Alignment.bottomRight,
                       )
                     : null,
-                color: canSend ? null : _kInputBg,
-                border: Border.all(
-                  color: canSend ? Colors.transparent : _kBorder,
-                ),
+                color: canSend ? null : _kBorderSoft,
                 boxShadow: canSend
-                    ? [BoxShadow(
-                        color: _theme.gradient.last.withOpacity(0.42),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5))]
+                    ? [
+                        BoxShadow(
+                          color: _theme.gradient.last.withOpacity(0.42),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
                     : null,
               ),
               child: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
-                        color: _kSlate, strokeWidth: 2,
+                        color: _kSlate,
+                        strokeWidth: 2,
                       ),
                     )
                   : Icon(
@@ -892,18 +1321,108 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
 }
 
 // ═════════════════════════════════════════════════════════════
-// HELPERS
+// HELPER WIDGETS
 // ═════════════════════════════════════════════════════════════
 
+class _ConversationTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool active;
+  final Color accent;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  const _ConversationTile({
+    required this.title,
+    required this.subtitle,
+    required this.active,
+    required this.accent,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: active ? accent.withOpacity(0.10) : _kCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: active ? accent.withOpacity(0.35) : _kBorder,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 16,
+                  color: active ? accent : _kSlate,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _kInk,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 10,
+                          color: _kSlateLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onDelete,
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: _kSlateLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SuggestionChip extends StatefulWidget {
-  final String              emoji;
-  final String              label;
-  final Animation<double>   shimmer;
-  final VoidCallback        onTap;
+  final String emoji;
+  final String label;
+  final Color accent;
+  final VoidCallback onTap;
   const _SuggestionChip({
     required this.emoji,
     required this.label,
-    required this.shimmer,
+    required this.accent,
     required this.onTap,
   });
   @override
@@ -915,20 +1434,27 @@ class _SuggestionChipState extends State<_SuggestionChip> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) => setState(() => _pressed = false),
-      onTapCancel: ()  => setState(() => _pressed = false),
-      onTap:       widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
       child: AnimatedScale(
-        scale:    _pressed ? 0.96 : 1.0,
+        scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 120),
-        child: _GradientBorderCard(
-          animation: widget.shimmer,
-          radius: 22,
-          borderWidth: 1.2,
-          innerColor: _kCard,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _kBorder),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -956,18 +1482,24 @@ class _MiniAiAvatar extends StatelessWidget {
   const _MiniAiAvatar({required this.gradient});
   @override
   Widget build(BuildContext context) => Container(
-    width: 28, height: 28,
+    width: 28,
+    height: 28,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: LinearGradient(
-          colors: gradient,
-          begin: Alignment.topLeft, end: Alignment.bottomRight),
-      boxShadow: [BoxShadow(
+        colors: gradient,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
           color: gradient.last.withOpacity(0.25),
-          blurRadius: 6, offset: const Offset(0, 2))],
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
-    child: const Center(
-        child: Text('🤖', style: TextStyle(fontSize: 14))),
+    child: const Center(child: Text('🤖', style: TextStyle(fontSize: 14))),
   );
 }
 
@@ -978,7 +1510,8 @@ class _MiniUserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return Container(
-      width: 28, height: 28,
+      width: 28,
+      height: 28,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: _kBorderSoft,
@@ -1013,11 +1546,17 @@ class _TypingDotsState extends State<_TypingDots>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -1029,7 +1568,8 @@ class _TypingDotsState extends State<_TypingDots>
           final t = (_ctrl.value - delay).clamp(0.0, 1.0);
           final op = (t < 0.5 ? t * 2 : (1 - t) * 2).clamp(0.3, 1.0);
           return Container(
-            width: 7, height: 7,
+            width: 7,
+            height: 7,
             margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -1056,77 +1596,27 @@ class _CursorBlinkState extends State<_CursorBlink>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
   }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _ctrl,
     builder: (_, __) => Container(
-      width: 2, height: 14,
+      width: 2,
+      height: 14,
       decoration: BoxDecoration(
         color: widget.color.withOpacity(_ctrl.value),
         borderRadius: BorderRadius.circular(1),
       ),
     ),
   );
-}
-
-// ═════════════════════════════════════════════════════════════
-// _GradientBorderCard — same widget pattern as everywhere else
-// ═════════════════════════════════════════════════════════════
-
-class _GradientBorderCard extends StatelessWidget {
-  final Animation<double>   animation;
-  final Widget              child;
-  final double              radius;
-  final double              borderWidth;
-  final Color               innerColor;
-  final EdgeInsetsGeometry? padding;
-  final List<Color>         colors;
-
-  const _GradientBorderCard({
-    required this.animation,
-    required this.child,
-    this.radius = 20,
-    this.borderWidth = 1.4,
-    this.innerColor = _kCard,
-    this.padding,
-    this.colors = _gradColors,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final inner = Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          math.max(0.0, radius - borderWidth)),
-        color: innerColor,
-      ),
-      padding: padding,
-      child: child,
-    );
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (_, c) {
-        final t = animation.value * 2 * math.pi;
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
-            gradient: SweepGradient(
-              colors: colors,
-              startAngle: t,
-              endAngle: t + 2 * math.pi,
-            ),
-          ),
-          padding: EdgeInsets.all(borderWidth),
-          child: c,
-        );
-      },
-      child: inner,
-    );
-  }
 }

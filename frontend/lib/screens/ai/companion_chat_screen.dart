@@ -20,22 +20,22 @@ import 'package:tcs_app/widgets/ai_markdown.dart';
 import '../../../services/api_service.dart';
 
 // ── Light palette ─────────────────────────────────────────────
-const _kBg1         = Color(0xFFFAFAFC);
-const _kBg2         = Color(0xFFE6E6EE);
-const _kBg3         = Color(0xFFF2F2F6);
+const _kBg1 = Color(0xFFFAFAFC);
+const _kBg2 = Color(0xFFE6E6EE);
+const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard        = Color(0xFFFFFFFF);
-const _kCardLo      = Color(0xFFF5F5F8);
+const _kCard = Color(0xFFFFFFFF);
+const _kCardLo = Color(0xFFF5F5F8);
 
-const _kInk         = Color(0xFF0D0D1A);
-const _kInkSoft     = Color(0xFF374151);
-const _kSlate       = Color(0xFF6B7280);
-const _kSlateLight  = Color(0xFF9CA3AF);
-const _kBorder      = Color(0xFFE5E7EB);
-const _kBorderSoft  = Color(0xFFF1F2F5);
-const _kInputBg     = Color(0xFFF7F8FB);
-const _kDanger      = Color(0xFFFF5858);
-const _kOnline      = Color(0xFF10B981);
+const _kInk = Color(0xFF0D0D1A);
+const _kInkSoft = Color(0xFF374151);
+const _kSlate = Color(0xFF6B7280);
+const _kSlateLight = Color(0xFF9CA3AF);
+const _kBorder = Color(0xFFE5E7EB);
+const _kBorderSoft = Color(0xFFF1F2F5);
+const _kInputBg = Color(0xFFF7F8FB);
+const _kDanger = Color(0xFFFF5858);
+const _kOnline = Color(0xFF10B981);
 
 // Shared sweep-gradient palette used for animated borders on
 // chrome elements (top bar buttons, rate-limit chip, suggestion
@@ -107,29 +107,31 @@ Color _hexToColor(String hex, {Color fallback = const Color(0xFF6A11CB)}) {
 
 // ── Message model ────────────────────────────────────────────
 class CompanionMessage {
-  final String   role;
-  final String   content;
-  final bool     isStreaming;
-  final bool     isError;
+  final String role;
+  final String content;
+  final bool isStreaming;
+  final bool isError;
   final DateTime createdAt;
 
   CompanionMessage({
     required this.role,
     required this.content,
     this.isStreaming = false,
-    this.isError     = false,
+    this.isError = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  CompanionMessage copyWith(
-          {String? content, bool? isStreaming, bool? isError}) =>
-      CompanionMessage(
-        role:        role,
-        content:     content     ?? this.content,
-        isStreaming: isStreaming ?? this.isStreaming,
-        isError:     isError     ?? this.isError,
-        createdAt:   createdAt,
-      );
+  CompanionMessage copyWith({
+    String? content,
+    bool? isStreaming,
+    bool? isError,
+  }) => CompanionMessage(
+    role: role,
+    content: content ?? this.content,
+    isStreaming: isStreaming ?? this.isStreaming,
+    isError: isError ?? this.isError,
+    createdAt: createdAt,
+  );
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -150,10 +152,11 @@ class CompanionChatScreen extends StatefulWidget {
 
 class _CompanionChatScreenState extends State<CompanionChatScreen>
     with TickerProviderStateMixin {
-  final _inputCtrl  = TextEditingController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _inputCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   final _inputFocus = FocusNode();
-  final _api        = ApiService();
+  final _api = ApiService();
 
   // Persona
   late final List<Color> _gradient;
@@ -165,50 +168,56 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
 
   // Conversation state
   String? _conversationId;
-  String  _userName       = '';
-  bool    _isLoading      = false;
-  int     _rateLimitUsed  = 0;
-  int     _rateLimitMax   = 60;
+  String _userName = '';
+  bool _isLoading = false;
+  int _rateLimitUsed = 0;
+  int _rateLimitMax = 60;
 
   final List<CompanionMessage> _messages = [];
 
   late final AnimationController _entryCtrl;
-  late final Animation<double>   _entryFade;
+  late final Animation<double> _entryFade;
   late final AnimationController _pulseCtrl;
-  late final Animation<double>   _pulse;
-  late final AnimationController _shimmerCtrl; // ← shared by every animated border
+  late final Animation<double> _pulse;
+  late final AnimationController
+  _shimmerCtrl; // ← shared by every animated border
 
   @override
   void initState() {
     super.initState();
 
-    _companionId = widget.companion['id']?.toString()           ?? '';
-    _name        = widget.companion['name']?.toString()         ?? 'Companion';
-    _description = widget.companion['description']?.toString()  ?? '';
-    _category    = widget.companion['category']?.toString()     ?? 'general';
-    _emoji       = widget.companion['avatar_emoji']?.toString() ?? '✨';
+    _companionId = widget.companion['id']?.toString() ?? '';
+    _name = widget.companion['name']?.toString() ?? 'Companion';
+    _description = widget.companion['description']?.toString() ?? '';
+    _category = widget.companion['category']?.toString() ?? 'general';
+    _emoji = widget.companion['avatar_emoji']?.toString() ?? '✨';
 
     _gradient = [
       _hexToColor(widget.companion['gradient_start']?.toString() ?? '#6A11CB'),
-      _hexToColor(widget.companion['gradient_end']?.toString()   ?? '#2575FC',
-          fallback: const Color(0xFF2575FC)),
+      _hexToColor(
+        widget.companion['gradient_end']?.toString() ?? '#2575FC',
+        fallback: const Color(0xFF2575FC),
+      ),
     ];
 
     _conversationId = widget.initialConversationId;
 
     _entryCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700))
-      ..forward();
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
     _entryFade = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
 
     _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _pulse = CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
 
     _shimmerCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 6))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
 
     _inputCtrl.addListener(() => setState(() {}));
     _inputFocus.addListener(() => setState(() {}));
@@ -238,14 +247,15 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
       try {
         final data = await _api.get(path);
         if (mounted && data is Map) {
-          final name = (data['preferred_name']
-                  ?? data['first_name']
-                  ?? data['display_name']
-                  ?? data['name']
-                  ?? data['username']
-                  ?? '')
-              .toString()
-              .trim();
+          final name =
+              (data['preferred_name'] ??
+                      data['first_name'] ??
+                      data['display_name'] ??
+                      data['name'] ??
+                      data['username'] ??
+                      '')
+                  .toString()
+                  .trim();
           if (name.isNotEmpty) {
             setState(() => _userName = name.split(' ').first);
             return;
@@ -261,7 +271,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
       if (mounted && data is Map) {
         setState(() {
           _rateLimitUsed = data['messages_used'] as int? ?? 0;
-          _rateLimitMax  = data['limit']         as int? ?? 60;
+          _rateLimitMax = data['limit'] as int? ?? 60;
         });
       }
     } catch (e) {
@@ -274,10 +284,12 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
       final data = await _api.get('/ai/conversations/$convId/messages/');
       if (mounted && data is Map) {
         final msgs = (data['messages'] as List? ?? [])
-            .map((m) => CompanionMessage(
-                  role:    m['role']?.toString()    ?? '',
-                  content: m['content']?.toString() ?? '',
-                ))
+            .map(
+              (m) => CompanionMessage(
+                role: m['role']?.toString() ?? '',
+                content: m['content']?.toString() ?? '',
+              ),
+            )
             .toList();
         setState(() {
           _messages.clear();
@@ -307,26 +319,30 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
 
     final aiMsgIndex = _messages.length;
     setState(() {
-      _messages.add(CompanionMessage(
-          role: 'assistant', content: '', isStreaming: true));
+      _messages.add(
+        CompanionMessage(role: 'assistant', content: '', isStreaming: true),
+      );
     });
 
     try {
-      final token   = await _api.accessToken;
+      final token = await _api.accessToken;
       final baseUrl = ApiConfig.baseUrl;
 
-      final request = http.Request('POST',
-          Uri.parse('$baseUrl/api/ai/companions/$_companionId/chat/'))
-        ..headers.addAll({
-          'Content-Type':  'application/json',
-          'Accept':        'text/event-stream',
-          'Authorization': 'Bearer $token',
-        })
-        ..body = jsonEncode({
-          'message':         msg,
-          'conversation_id': _conversationId,
-          'stream':          true,
-        });
+      final request =
+          http.Request(
+              'POST',
+              Uri.parse('$baseUrl/api/ai/companions/$_companionId/chat/'),
+            )
+            ..headers.addAll({
+              'Content-Type': 'application/json',
+              'Accept': 'text/event-stream',
+              'Authorization': 'Bearer $token',
+            })
+            ..body = jsonEncode({
+              'message': msg,
+              'conversation_id': _conversationId,
+              'stream': true,
+            });
 
       final streamed = await request.send().timeout(
         const Duration(seconds: 30),
@@ -344,66 +360,72 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen(
-        (line) {
-          if (!line.startsWith('data:')) return;
-          final data = line.substring(5).trim();
-          if (data.isEmpty) return;
-          if (data == '[DONE]') {
-            if (mounted) {
-              setState(() {
-                _messages[aiMsgIndex] =
-                    _messages[aiMsgIndex].copyWith(isStreaming: false);
-                _isLoading = false;
-                _rateLimitUsed++;
-              });
-              _scrollToBottom();
-            }
-            return;
-          }
-          try {
-            final chunk = jsonDecode(data);
-            if (chunk is Map) {
-              if (chunk['conversation_id'] != null) {
-                setState(() =>
-                    _conversationId = chunk['conversation_id'].toString());
+            (line) {
+              if (!line.startsWith('data:')) return;
+              final data = line.substring(5).trim();
+              if (data.isEmpty) return;
+              if (data == '[DONE]') {
+                if (mounted) {
+                  setState(() {
+                    _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                      isStreaming: false,
+                    );
+                    _isLoading = false;
+                    _rateLimitUsed++;
+                  });
+                  _scrollToBottom();
+                }
                 return;
               }
-              if (chunk['error'] != null) {
-                _handleError(aiMsgIndex, chunk['error'].toString());
-                return;
+              try {
+                final chunk = jsonDecode(data);
+                if (chunk is Map) {
+                  if (chunk['conversation_id'] != null) {
+                    setState(
+                      () =>
+                          _conversationId = chunk['conversation_id'].toString(),
+                    );
+                    return;
+                  }
+                  if (chunk['error'] != null) {
+                    _handleError(aiMsgIndex, chunk['error'].toString());
+                    return;
+                  }
+                  final tok =
+                      (chunk['token'] ??
+                              chunk['content'] ??
+                              chunk['delta'] ??
+                              '')
+                          .toString();
+                  if (tok.isNotEmpty && mounted) {
+                    setState(() {
+                      _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                        content: _messages[aiMsgIndex].content + tok,
+                      );
+                    });
+                    _scrollToBottom();
+                  }
+                }
+              } catch (e) {
+                if (kDebugMode) debugPrint('🤖 parse fail: $e for: $data');
               }
-              final tok = (chunk['token']
-                      ?? chunk['content']
-                      ?? chunk['delta']
-                      ?? '')
-                  .toString();
-              if (tok.isNotEmpty && mounted) {
+            },
+            onError: (e) {
+              if (kDebugMode) debugPrint('🤖 stream error: $e');
+              _handleError(aiMsgIndex, 'Connection lost. Try again.');
+            },
+            onDone: () {
+              if (mounted && _isLoading) {
                 setState(() {
                   _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
-                      content: _messages[aiMsgIndex].content + tok);
+                    isStreaming: false,
+                  );
+                  _isLoading = false;
                 });
-                _scrollToBottom();
               }
-            }
-          } catch (e) {
-            if (kDebugMode) debugPrint('🤖 parse fail: $e for: $data');
-          }
-        },
-        onError: (e) {
-          if (kDebugMode) debugPrint('🤖 stream error: $e');
-          _handleError(aiMsgIndex, 'Connection lost. Try again.');
-        },
-        onDone: () {
-          if (mounted && _isLoading) {
-            setState(() {
-              _messages[aiMsgIndex] =
-                  _messages[aiMsgIndex].copyWith(isStreaming: false);
-              _isLoading = false;
-            });
-          }
-        },
-        cancelOnError: true,
-      );
+            },
+            cancelOnError: true,
+          );
     } catch (e) {
       if (kDebugMode) debugPrint('🚨 $_name send failed: $e');
       String userMsg;
@@ -432,7 +454,10 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
     if (!mounted) return;
     setState(() {
       _messages[index] = CompanionMessage(
-          role: 'assistant', content: error, isError: true);
+        role: 'assistant',
+        content: error,
+        isError: true,
+      );
       _isLoading = false;
     });
   }
@@ -457,25 +482,35 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
     });
   }
 
-  Future<void> _openHistory() async {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _HistorySheet(
+  Widget _buildHistoryDrawer() {
+    return Drawer(
+      backgroundColor: _kBg1,
+      width: MediaQuery.of(context).size.width * 0.82,
+      child: _HistoryDrawer(
         companionId: _companionId,
-        gradient:    _gradient,
+        gradient: _gradient,
+        emoji: _emoji,
+        name: _name,
+        activeConversationId: _conversationId,
         onSelect: (convId) {
-          Navigator.pop(context);
+          _scaffoldKey.currentState?.closeDrawer();
           setState(() {
             _conversationId = convId;
             _messages.clear();
           });
           _loadConversation(convId);
         },
+        onNewChat: () {
+          _scaffoldKey.currentState?.closeDrawer();
+          _startNewChat();
+        },
       ),
     );
+  }
+
+  Future<void> _openHistory() async {
+    HapticFeedback.lightImpact();
+    _scaffoldKey.currentState?.openDrawer();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -496,14 +531,16 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
+      drawer: _buildHistoryDrawer(),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin:  Alignment.topLeft,
-            end:    Alignment.bottomRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [_kBg1, _kBg2, _kBg3],
-            stops:  [0.0, 0.55, 1.0],
+            stops: [0.0, 0.55, 1.0],
           ),
         ),
         child: SafeArea(
@@ -523,7 +560,8 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                       const SizedBox(height: 28),
                       if (_messages.isEmpty) _buildSuggestions(),
                       ..._messages.asMap().entries.map(
-                          (e) => _buildMessage(e.value, e.key)),
+                        (e) => _buildMessage(e.value, e.key),
+                      ),
                     ],
                   ),
                 ),
@@ -539,9 +577,9 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
   // ── Top bar ──────────────────────────────────────────────
 
   Widget _buildTopBar() {
-    final left           = _rateLimitMax - _rateLimitUsed;
-    final low            = left < 5;
-    final inSavedThread  = _conversationId != null && _messages.isNotEmpty;
+    final left = _rateLimitMax - _rateLimitUsed;
+    final low = left < 5;
+    final inSavedThread = _conversationId != null && _messages.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
@@ -573,27 +611,30 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
               radius: 14,
               borderWidth: 1.2,
               innerColor: _kCard,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    color: low ? _kDanger : _kOnline,
-                    shape: BoxShape.circle,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: low ? _kDanger : _kOnline,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '$left left',
-                  style: TextStyle(
-                    fontFamily: 'Momo',
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: low ? _kDanger : _kSlate,
+                  const SizedBox(width: 6),
+                  Text(
+                    '$left left',
+                    style: TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: low ? _kDanger : _kSlate,
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
             ),
         ],
       ),
@@ -601,13 +642,13 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
   }
 
   Widget _miniIconButton(IconData icon) => _GradientBorderCard(
-        animation: _shimmerCtrl,
-        radius: 14,
-        borderWidth: 1.2,
-        innerColor: _kCard,
-        padding: const EdgeInsets.all(11),
-        child: Icon(icon, color: _kInkSoft, size: 16),
-      );
+    animation: _shimmerCtrl,
+    radius: 14,
+    borderWidth: 1.2,
+    innerColor: _kCard,
+    padding: const EdgeInsets.all(11),
+    child: Icon(icon, color: _kInkSoft, size: 16),
+  );
 
   // ── Hero (avatar halo + greeting + tagline) ─ keeps persona
   // gradient on the halo + greeting since that's the identity.
@@ -618,17 +659,18 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
         AnimatedBuilder(
           animation: _pulse,
           builder: (_, child) => Container(
-            width: 140, height: 140,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: _gradient,
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _gradient.last.withOpacity(
-                      0.22 + 0.18 * _pulse.value),
+                  color: _gradient.last.withOpacity(0.22 + 0.18 * _pulse.value),
                   blurRadius: 30 + 12 * _pulse.value,
                   spreadRadius: 2,
                 ),
@@ -642,8 +684,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                   color: _kCard,
                 ),
                 child: Center(
-                  child: Text(_emoji,
-                      style: const TextStyle(fontSize: 60)),
+                  child: Text(_emoji, style: const TextStyle(fontSize: 60)),
                 ),
               ),
             ),
@@ -653,7 +694,8 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
         ShaderMask(
           shaderCallback: (rect) => LinearGradient(
             colors: _gradient,
-            begin: Alignment.centerLeft, end: Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ).createShader(rect),
           blendMode: BlendMode.srcIn,
           child: Text(
@@ -691,30 +733,36 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.auto_awesome_rounded,
-                size: 14, color: _gradient.last.withOpacity(0.75)),
-            const SizedBox(width: 6),
-            Text(
-              'TRY ASKING',
-              style: TextStyle(
-                fontFamily: 'Momo',
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _kSlate.withOpacity(0.8),
-                letterSpacing: 1.4,
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 14,
+                color: _gradient.last.withOpacity(0.75),
               ),
-            ),
-          ]),
+              const SizedBox(width: 6),
+              Text(
+                'TRY ASKING',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: _kSlate.withOpacity(0.8),
+                  letterSpacing: 1.4,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 8, runSpacing: 8,
+            spacing: 8,
+            runSpacing: 8,
             children: _suggestions.map((s) {
               return _SuggestionChip(
-                emoji:    s.$1,
-                label:    s.$2,
-                shimmer:  _shimmerCtrl,
-                onTap:    () => _sendMessage(s.$2),
+                emoji: s.$1,
+                label: s.$2,
+                shimmer: _shimmerCtrl,
+                onTap: () => _sendMessage(s.$2),
               );
             }).toList(),
           ),
@@ -731,8 +779,9 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
@@ -744,8 +793,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isUser
                     ? LinearGradient(
@@ -756,13 +804,11 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                     : null,
                 color: isUser
                     ? null
-                    : (msg.isError
-                        ? _kDanger.withOpacity(0.06)
-                        : _kCard),
+                    : (msg.isError ? _kDanger.withOpacity(0.06) : _kCard),
                 borderRadius: BorderRadius.only(
-                  topLeft:     const Radius.circular(18),
-                  topRight:    const Radius.circular(18),
-                  bottomLeft:  Radius.circular(isUser ? 18 : 4),
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(isUser ? 18 : 4),
                   bottomRight: Radius.circular(isUser ? 4 : 18),
                 ),
                 border: isUser
@@ -770,13 +816,17 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                     : Border.all(
                         color: msg.isError
                             ? _kDanger.withOpacity(0.25)
-                            : _kBorder),
-                boxShadow: [BoxShadow(
+                            : _kBorder,
+                      ),
+                boxShadow: [
+                  BoxShadow(
                     color: isUser
                         ? _gradient.last.withOpacity(0.18)
                         : Colors.black.withOpacity(0.03),
                     blurRadius: isUser ? 12 : 6,
-                    offset: const Offset(0, 3))],
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: _buildBubbleBody(msg, isUser),
             ),
@@ -810,8 +860,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 15, color: _kDanger),
+          const Icon(Icons.error_outline_rounded, size: 15, color: _kDanger),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -831,8 +880,8 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AiMarkdown(
-          data:           msg.content,
-          accent:         _gradient.last,
+          data: msg.content,
+          accent: _gradient.last,
           borderGradient: _gradColors,
         ),
         if (msg.isStreaming && msg.content.isNotEmpty)
@@ -853,7 +902,9 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        14, 10, 14,
+        14,
+        10,
+        14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: const BoxDecoration(
@@ -872,8 +923,8 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 controller: _inputCtrl,
-                focusNode:  _inputFocus,
-                enabled:    !_isLoading,
+                focusNode: _inputFocus,
+                enabled: !_isLoading,
                 maxLines: 4,
                 minLines: 1,
                 cursorColor: _gradient.last,
@@ -886,11 +937,11 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                   height: 1.4,
                 ),
                 decoration: InputDecoration(
-                  filled:         false,
-                  isDense:        true,
-                  border:         InputBorder.none,
-                  enabledBorder:  InputBorder.none,
-                  focusedBorder:  InputBorder.none,
+                  filled: false,
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   hintText: _isLoading
                       ? '$_name is thinking…'
@@ -900,8 +951,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                     fontSize: 14,
                     color: _kSlateLight,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onSubmitted: _sendMessage,
                 textInputAction: TextInputAction.send,
@@ -912,14 +962,15 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
           GestureDetector(
             onTap: canSend ? () => _sendMessage(_inputCtrl.text) : null,
             child: Container(
-              width: 48, height: 48,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
                 gradient: canSend
                     ? LinearGradient(
                         colors: _gradient,
                         begin: Alignment.topLeft,
-                        end:   Alignment.bottomRight,
+                        end: Alignment.bottomRight,
                       )
                     : null,
                 color: canSend ? null : _kInputBg,
@@ -927,17 +978,21 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                   color: canSend ? Colors.transparent : _kBorder,
                 ),
                 boxShadow: canSend
-                    ? [BoxShadow(
-                        color: _gradient.last.withOpacity(0.42),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5))]
+                    ? [
+                        BoxShadow(
+                          color: _gradient.last.withOpacity(0.42),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
                     : null,
               ),
               child: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
-                        color: _kSlate, strokeWidth: 2,
+                        color: _kSlate,
+                        strokeWidth: 2,
                       ),
                     )
                   : Icon(
@@ -958,10 +1013,10 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
 // ═════════════════════════════════════════════════════════════
 
 class _SuggestionChip extends StatefulWidget {
-  final String              emoji;
-  final String              label;
-  final Animation<double>   shimmer;
-  final VoidCallback        onTap;
+  final String emoji;
+  final String label;
+  final Animation<double> shimmer;
+  final VoidCallback onTap;
   const _SuggestionChip({
     required this.emoji,
     required this.label,
@@ -977,20 +1032,19 @@ class _SuggestionChipState extends State<_SuggestionChip> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) => setState(() => _pressed = false),
-      onTapCancel: ()  => setState(() => _pressed = false),
-      onTap:       widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
       child: AnimatedScale(
-        scale:    _pressed ? 0.96 : 1.0,
+        scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: _GradientBorderCard(
           animation: widget.shimmer,
           radius: 22,
           borderWidth: 1.2,
           innerColor: _kCard,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1019,19 +1073,25 @@ class _MiniCompanionAvatar extends StatelessWidget {
   const _MiniCompanionAvatar({required this.gradient, required this.emoji});
   @override
   Widget build(BuildContext context) => Container(
-        width: 28, height: 28,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft, end: Alignment.bottomRight),
-          boxShadow: [BoxShadow(
-              color: gradient.last.withOpacity(0.25),
-              blurRadius: 6, offset: const Offset(0, 2))],
+    width: 28,
+    height: 28,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: LinearGradient(
+        colors: gradient,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: gradient.last.withOpacity(0.25),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
         ),
-        child: Center(
-            child: Text(emoji, style: const TextStyle(fontSize: 14))),
-      );
+      ],
+    ),
+    child: Center(child: Text(emoji, style: const TextStyle(fontSize: 14))),
+  );
 }
 
 class _MiniUserAvatar extends StatelessWidget {
@@ -1041,7 +1101,8 @@ class _MiniUserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return Container(
-      width: 28, height: 28,
+      width: 28,
+      height: 28,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: _kBorderSoft,
@@ -1076,11 +1137,17 @@ class _TypingDotsState extends State<_TypingDots>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -1092,7 +1159,8 @@ class _TypingDotsState extends State<_TypingDots>
           final t = (_ctrl.value - delay).clamp(0.0, 1.0);
           final op = (t < 0.5 ? t * 2 : (1 - t) * 2).clamp(0.3, 1.0);
           return Container(
-            width: 7, height: 7,
+            width: 7,
+            height: 7,
             margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -1119,16 +1187,23 @@ class _CursorBlinkState extends State<_CursorBlink>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
   }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _ctrl,
     builder: (_, __) => Container(
-      width: 2, height: 14,
+      width: 2,
+      height: 14,
       decoration: BoxDecoration(
         color: widget.color.withOpacity(_ctrl.value),
         borderRadius: BorderRadius.circular(1),
@@ -1142,13 +1217,13 @@ class _CursorBlinkState extends State<_CursorBlink>
 // ═════════════════════════════════════════════════════════════
 
 class _GradientBorderCard extends StatelessWidget {
-  final Animation<double>   animation;
-  final Widget              child;
-  final double              radius;
-  final double              borderWidth;
-  final Color               innerColor;
+  final Animation<double> animation;
+  final Widget child;
+  final double radius;
+  final double borderWidth;
+  final Color innerColor;
   final EdgeInsetsGeometry? padding;
-  final List<Color>         colors;
+  final List<Color> colors;
 
   const _GradientBorderCard({
     required this.animation,
@@ -1165,7 +1240,8 @@ class _GradientBorderCard extends StatelessWidget {
     final inner = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
-          math.max(0.0, radius - borderWidth)),
+          math.max(0.0, radius - borderWidth),
+        ),
         color: innerColor,
       ),
       padding: padding,
@@ -1195,25 +1271,33 @@ class _GradientBorderCard extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════
-// HISTORY BOTTOM SHEET (unchanged structurally; uses light tones)
+// HISTORY DRAWER — per-companion chat history in a side panel
 // ═════════════════════════════════════════════════════════════
 
-class _HistorySheet extends StatefulWidget {
-  final String              companionId;
-  final List<Color>         gradient;
+class _HistoryDrawer extends StatefulWidget {
+  final String companionId;
+  final List<Color> gradient;
+  final String emoji;
+  final String name;
+  final String? activeConversationId;
   final void Function(String) onSelect;
+  final VoidCallback onNewChat;
 
-  const _HistorySheet({
+  const _HistoryDrawer({
     required this.companionId,
     required this.gradient,
+    required this.emoji,
+    required this.name,
+    required this.activeConversationId,
     required this.onSelect,
+    required this.onNewChat,
   });
 
   @override
-  State<_HistorySheet> createState() => _HistorySheetState();
+  State<_HistoryDrawer> createState() => _HistoryDrawerState();
 }
 
-class _HistorySheetState extends State<_HistorySheet> {
+class _HistoryDrawerState extends State<_HistoryDrawer> {
   final _api = ApiService();
   List<Map<String, dynamic>> _conversations = [];
   bool _loading = true;
@@ -1227,13 +1311,16 @@ class _HistorySheetState extends State<_HistorySheet> {
   Future<void> _load() async {
     try {
       final data = await _api.get(
-          '/ai/companions/${widget.companionId}/conversations/');
+        '/ai/companions/${widget.companionId}/conversations/',
+      );
       if (mounted && data is Map) {
         setState(() {
           _conversations = (data['conversations'] as List? ?? [])
               .cast<Map<String, dynamic>>();
           _loading = false;
         });
+      } else if (mounted) {
+        setState(() => _loading = false);
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -1245,30 +1332,36 @@ class _HistorySheetState extends State<_HistorySheet> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete this conversation?',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 17)),
-        content: const Text('This cannot be undone.',
-            style: TextStyle(fontFamily: 'Momo', fontSize: 13)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete this conversation?',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 17),
+        ),
+        content: const Text(
+          'This cannot be undone.',
+          style: TextStyle(fontFamily: 'Momo', fontSize: 13),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel',
-                  style: TextStyle(fontFamily: 'Momo'))),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Momo')),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete',
-                  style: TextStyle(fontFamily: 'Momo', color: _kDanger))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(fontFamily: 'Momo', color: _kDanger),
+            ),
+          ),
         ],
       ),
     );
     if (ok == true) {
       try {
         await _api.delete('/ai/conversations/$convId/');
-        setState(() {
-          _conversations.removeWhere((c) => c['id'] == convId);
-        });
+        if (mounted) {
+          setState(() => _conversations.removeWhere((c) => c['id'] == convId));
+        }
       } catch (_) {}
     }
   }
@@ -1278,8 +1371,8 @@ class _HistorySheetState extends State<_HistorySheet> {
       final diff = DateTime.now().difference(DateTime.parse(iso).toLocal());
       if (diff.inSeconds < 60) return 'Just now';
       if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours   < 24) return '${diff.inHours}h ago';
-      if (diff.inDays    < 7)  return '${diff.inDays}d ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
       return '${(diff.inDays / 7).floor()}w ago';
     } catch (_) {
       return '';
@@ -1288,92 +1381,176 @@ class _HistorySheetState extends State<_HistorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
-      maxChildSize: 0.92,
-      builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: _kBorder,
-              borderRadius: BorderRadius.circular(2),
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 16, 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: widget.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      widget.emoji,
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Alfa',
+                          fontSize: 18,
+                          color: _kInk,
+                        ),
+                      ),
+                      const Text(
+                        'Chat history',
+                        style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 11,
+                          color: _kSlate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-            child: Row(children: [
-              ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  colors: widget.gradient,
-                ).createShader(rect),
-                blendMode: BlendMode.srcIn,
-                child: const Icon(Icons.history_rounded,
-                    color: Colors.white, size: 22),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+            child: GestureDetector(
+              onTap: widget.onNewChat,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: widget.gradient,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.gradient.last.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_comment_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'New chat',
+                      style: TextStyle(
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 10),
-              const Text('Past Conversations',
-                  style: TextStyle(
-                      fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
-            ]),
+            ),
           ),
-          Divider(height: 1, color: _kBorder.withOpacity(0.6)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+            child: Text(
+              'RECENT',
+              style: TextStyle(
+                fontFamily: 'Momo',
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.4,
+                color: _kSlate.withOpacity(0.8),
+              ),
+            ),
+          ),
           Expanded(
             child: _loading
-                ? Center(child: CircularProgressIndicator(
-                    color: widget.gradient.last))
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: widget.gradient.last,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : _conversations.isEmpty
-                    ? _emptyState()
-                    : ListView.builder(
-                        controller: scrollCtrl,
-                        padding:
-                            const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                        itemCount: _conversations.length,
-                        itemBuilder: (_, i) =>
-                            _conversationTile(_conversations[i]),
-                      ),
+                ? _emptyState()
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    itemCount: _conversations.length,
+                    itemBuilder: (_, i) => _conversationTile(_conversations[i]),
+                  ),
           ),
-        ]),
+        ],
       ),
     );
   }
 
   Widget _emptyState() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.chat_bubble_outline_rounded,
-                  size: 48, color: _kBorder),
-              const SizedBox(height: 12),
-              const Text('No past conversations yet',
-                  style: TextStyle(
-                      fontFamily: 'Alfa',
-                      fontSize: 15,
-                      color: _kSlate)),
-              const SizedBox(height: 6),
-              const Text('Your saved chats will appear here',
-                  style: TextStyle(
-                      fontFamily: 'Momo',
-                      fontSize: 12,
-                      color: _kSlateLight)),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: 44,
+            color: _kBorder,
           ),
-        ),
-      );
+          const SizedBox(height: 12),
+          const Text(
+            'No past conversations yet',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 14, color: _kSlate),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Your saved chats will appear here',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Momo',
+              fontSize: 12,
+              color: _kSlateLight,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _conversationTile(Map<String, dynamic> c) {
-    final id        = c['id']?.toString()         ?? '';
-    final title     = c['title']?.toString()      ?? 'Untitled';
+    final id = c['id']?.toString() ?? '';
+    final title = c['title']?.toString() ?? 'Untitled';
     final updatedAt = c['updated_at']?.toString() ?? '';
-    final msgCount  = c['message_count'] as int?  ?? 0;
+    final msgCount = c['message_count'] as int? ?? 0;
+    final active = id == widget.activeConversationId;
 
     return Dismissible(
       key: ValueKey(id),
@@ -1390,59 +1567,73 @@ class _HistorySheetState extends State<_HistorySheet> {
           color: _kDanger.withOpacity(0.12),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.delete_outline_rounded,
-            color: _kDanger, size: 22),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: _kDanger,
+          size: 22,
+        ),
       ),
       child: GestureDetector(
         onTap: () => widget.onSelect(id),
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: _kCard,
+            color: active ? widget.gradient.last.withOpacity(0.10) : _kCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _kBorder),
-          ),
-          child: Row(children: [
-            Container(
-              width: 38, height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(colors: widget.gradient),
-              ),
-              child: const Center(
-                child: Icon(Icons.chat_bubble_rounded,
-                    color: Colors.white, size: 16),
-              ),
+            border: Border.all(
+              color: active ? widget.gradient.last.withOpacity(0.35) : _kBorder,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: widget.gradient),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.chat_bubble_rounded,
+                    color: Colors.white,
+                    size: 15,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13,
                         color: _kInk,
-                      )),
-                  const SizedBox(height: 2),
-                  Text(
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
                       '$msgCount message${msgCount == 1 ? '' : 's'} · ${_timeAgo(updatedAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Momo',
-                        fontSize: 11,
+                        fontSize: 10,
                         color: _kSlate,
-                      )),
-                ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: _kSlateLight),
-          ]),
+            ],
+          ),
         ),
       ),
     );

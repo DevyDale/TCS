@@ -3,7 +3,19 @@
 // Full-page form for creating a Chat Bubble. Pushed from the chat
 // list's app-bar bubble button. On Create:
 //   • POST /chat/bubbles/    (members ⇒ pending RoomInvites)
+//   • If a picture was picked, upload it to the new room
 //   • Pop this screen, push ChatRoomScreen for the new bubble
+//
+// CHANGE LOG (this revision):
+//   • The bubble picture the creator picks is now actually persisted.
+//     Previously `_avatarFile` was picked but never sent anywhere, so a
+//     new bubble always rendered the generic 👥 icon in the chat list.
+//     Now, once createBubble() returns the room id, we upload the file via
+//     ApiService.uploadBubbleAvatar(roomId, file). The upload is
+//     best-effort: a failure won't block the bubble from being created or
+//     opened. After it succeeds the room's avatar_url is returned by
+//     /chat/rooms/ and the chat-list tile shows the picture
+//     (see chat_list_screen _buildChatTile).
 //
 // Backend behaviour to keep in mind:
 //   • Creator is automatically added as admin + member.
@@ -112,11 +124,28 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
       if (room == null || room['id'] == null) {
         throw Exception('Bubble created but the server didn\'t return its id.');
       }
+      final roomId = room['id'] as String;
 
+      // If the creator picked a bubble picture, upload it now that the room
+      // exists. Best-effort: a failed upload must not stop the bubble from
+      // being created/opened. Once stored, the room's avatar_url is returned
+      // by /chat/rooms/ and renders in the chat-list tile.
+      if (_avatarFile != null) {
+        try {
+          await _api.uploadBubbleAvatar(roomId, _avatarFile!);
+        } catch (_) {
+          if (mounted) {
+            _snack('Bubble created — but the picture didn\'t upload. '
+                'You can set it again from the bubble.');
+          }
+        }
+      }
+
+      if (!mounted) return;
       // Replace this screen with the bubble's room — back goes to chat list.
       await Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (_) => ChatRoomScreen(
-          roomId:   room['id']  as String,
+          roomId:   roomId,
           roomName: room['name'] as String? ?? name,
           userName: 'You',
           roomType: 'group',

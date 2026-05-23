@@ -32,6 +32,7 @@ import '../../highlight_story_viewer.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
 import '../dashboard/suggestion_box_screen.dart';
 import '../dashboard/full_screen_video_player.dart';
+import '../dashboard/other_user_profile_Screen.dart';
 
 
 // ─────────────────────────────────────────────────────────────
@@ -58,6 +59,14 @@ const _kG4     = Color(0xFFFF4F6E);
 
 Color _fweetTextColor(Color bg) =>
     bg.computeLuminance() > 0.179 ? const Color(0xFF1A1A2E) : Colors.white;
+
+/// Returns 'student', 'staff', or 'other' for a role string.
+String _groupOf(String role) {
+  final r = role.toLowerCase();
+  if (r == 'student') return 'student';
+  if (r == 'teaching_staff' || r == 'non_teaching_staff') return 'staff';
+  return 'other';
+}
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -842,15 +851,16 @@ class _FeedScreenState extends State<FeedScreen>
                           size: 19,
                         ),
 
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 2),
 
                         Expanded(
                           child: Text(
-                            'Search posts, people, clubs...',
+                            'Looking for something....',
                             style: TextStyle(
                               fontFamily: 'Momo',
-                              color: _kSlate.withOpacity(0.5),
-                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              fontSize: 15,
                             ),
                           ),
                         ),
@@ -1174,6 +1184,44 @@ class _PostCardState extends State<_PostCard>
     if (mounted) setState(() => _bookmarked = was);
   }
 }
+
+  String _authorId() {
+    final p = widget.post;
+    return (p['author_id'] ??
+            p['author_user_id'] ??
+            (p['author'] is Map
+                ? (p['author']['user_id'] ?? p['author']['id'])
+                : null) ??
+            p['user_id'] ??
+            '')
+        .toString();
+  }
+
+  Future<void> _openAuthor() async {
+    HapticFeedback.selectionClick();
+    final p = widget.post;
+    final uid = _authorId();
+    if (!mounted) return;
+    if (uid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Couldn't open this author's profile."),
+        behavior: SnackBarBehavior.floating));
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => OtherUserProfileScreen(
+        userId: uid,
+        initialData: {
+          'user_id': uid,
+          'name': p['author_name'],
+          'display_name': p['author_name'],
+          'avatar_url': p['author_avatar'],
+          'role': p['author_role'],
+        },
+      ),
+    ));
+  }
+
   static List<Color> _roleGrad(String role) {
     switch (role.toLowerCase()) {
       case 'student':            return [const Color(0xFF10B981), const Color(0xFF6DD5FA)];
@@ -1248,17 +1296,27 @@ class _PostCardState extends State<_PostCard>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: _kCard,
         borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [_kG1, _kG2, _kG4],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06),
-              blurRadius: 20, offset: const Offset(0, 6)),
-          BoxShadow(color: Colors.black.withOpacity(0.03),
+          BoxShadow(color: _kG2.withOpacity(0.12),
+              blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 4, offset: const Offset(0, 2)),
-        ]),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ],
+      ),
+      padding: const EdgeInsets.all(1.6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(22.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22.5),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
           _buildAuthorRow(avatar, initial, name, role, grad, isFweet, timeAgo),
 
@@ -1341,6 +1399,7 @@ class _PostCardState extends State<_PostCard>
             ]),
           ),
         ]),
+        ),
       ),
     );
   }
@@ -1350,7 +1409,10 @@ class _PostCardState extends State<_PostCard>
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(children: [
-        Stack(children: [
+        GestureDetector(
+          onTap: _openAuthor,
+          behavior: HitTestBehavior.opaque,
+          child: Stack(children: [
           Container(width: 44, height: 44,
             decoration: BoxDecoration(shape: BoxShape.circle,
               gradient: LinearGradient(colors: grad,
@@ -1374,9 +1436,12 @@ class _PostCardState extends State<_PostCard>
             decoration: BoxDecoration(color: _kMint,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2)))),
-        ]),
+        ])),
         const SizedBox(width: 11),
-        Expanded(child: Column(
+        Expanded(child: GestureDetector(
+          onTap: _openAuthor,
+          behavior: HitTestBehavior.opaque,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
@@ -1401,7 +1466,7 @@ class _PostCardState extends State<_PostCard>
               Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
                   fontSize: 11, color: _kSlate)),
             ],
-          ])),
+          ]))),
         if (role.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -1525,19 +1590,28 @@ class _PostCardState extends State<_PostCard>
       );
     }
 
-    return Container(
-      color: Colors.grey.shade100,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        placeholder: (_, __) => Center(child: SizedBox(
-          width: 28, height: 28,
-          child: CircularProgressIndicator(
-              color: _kViolet.withOpacity(0.5), strokeWidth: 2.5))),
-        errorWidget: (_, __, ___) => _mediaPlaceholder(
-            Icons.broken_image_rounded, "Couldn't load image"),
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => _FullScreenImage(url: url),
+        ));
+      },
+      child: Container(
+        color: Colors.grey.shade100,
+        child: CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          placeholder: (_, __) => Center(child: SizedBox(
+            width: 28, height: 28,
+            child: CircularProgressIndicator(
+                color: _kViolet.withOpacity(0.5), strokeWidth: 2.5))),
+          errorWidget: (_, __, ___) => _mediaPlaceholder(
+              Icons.broken_image_rounded, "Couldn't load image"),
+        ),
       ),
     );
   }
@@ -1862,217 +1936,347 @@ class _ShareSheet extends StatefulWidget {
     required this.post,
     this.isEvent = false,
   });
-  @override State<_ShareSheet> createState() => _ShareSheetState();
+  @override
+  State<_ShareSheet> createState() => _ShareSheetState();
 }
 
 class _ShareSheetState extends State<_ShareSheet> {
-  List<Map<String, dynamic>> _people   = [];
-  final Set<String>          _selected = {};
-  bool _loading = true, _sharing = false;
+  final _ctrl = TextEditingController();
+  Timer? _debounce;
 
-  @override void initState() { super.initState(); _loadTargets(); }
+  String _myGroup = 'other';
+  bool   _loading = true;
+  bool   _sending = false;
+  String _query   = '';
 
-  Future<void> _loadTargets() async {
-    try {
-      final results = await Future.wait([
-        widget.api.getStudyBuddies(),
-        widget.api.getSuggestedUsers()]);
-      final seen = <String>{}; final all = <Map<String, dynamic>>[];
-      final buddiesRaw = results[0];
-      final buddies = buddiesRaw is List
-          ? buddiesRaw.cast<Map<String, dynamic>>()
-          : ((buddiesRaw as Map<String, dynamic>?)?['results'] as List? ?? [])
-              .cast<Map<String, dynamic>>();
-      final suggested = (results[1] as List? ?? []).cast<Map<String, dynamic>>();
-      for (final u in [...buddies, ...suggested]) {
-        final id = u['user_id']?.toString() ?? u['id']?.toString() ?? '';
-        if (id.isNotEmpty && seen.add(id)) all.add(u);
-      }
-      setState(() { _people = all; _loading = false; });
-    } catch (_) { setState(() => _loading = false); }
-  }
-Future<void> _share() async {
-  if (_selected.isEmpty || _sharing) return;
-
-  HapticFeedback.mediumImpact();
-  setState(() => _sharing = true);
-
-  try {
-    final id = widget.post['id']?.toString() ?? '';
-
-    if (widget.isEvent) {
-      await widget.api.post(
-        '/events/$id/share/',
-        body: {'user_ids': _selected.toList()},           // ← Fixed
-      );
-    } else {
-      await widget.api.sharePost(id, _selected.toList());
-    }
-
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Shared with ${_selected.length} people ✓',
-            style: const TextStyle(fontFamily: 'Momo'),
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: _kMint,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-    }
-  } catch (_) {
-    if (mounted) setState(() => _sharing = false);
-  }
-}
+  List<Map<String, dynamic>> _directory = [];
+  List<Map<String, dynamic>> _people    = [];
+  final Set<String> _selected = {};
 
   @override
-  Widget build(BuildContext context) => DraggableScrollableSheet(
-    initialChildSize: 0.65, maxChildSize: 0.9, minChildSize: 0.4,
-    builder: (_, ctrl) => Container(
-      decoration: const BoxDecoration(color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      child: Column(children: [
-        const SizedBox(height: 12),
-        Container(width: 36, height: 4, decoration: BoxDecoration(
-            color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 16),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
-            Text(widget.isEvent ? 'Share Event' : 'Share Post',
-                style: const TextStyle(
-                    fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
-            const Spacer(),
-            if (_selected.isNotEmpty)
-              Text('${_selected.length} selected',
-                style: const TextStyle(fontFamily: 'Arch', fontSize: 12,
-                    color: _kViolet, fontWeight: FontWeight.bold)),
-          ])),
-        const SizedBox(height: 4),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-              widget.isEvent
-                  ? 'Send this event to people on campus'
-                  : 'Share with followers or study buddies',
-              style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate))),
-        const SizedBox(height: 12),
-        Divider(color: Colors.grey.shade100),
-        Expanded(child: _loading
-            ? const Center(child: CircularProgressIndicator(color: _kViolet))
-            : _people.isEmpty
-                ? Center(child: Text('Nobody to share with yet',
+  void initState() {
+    super.initState();
+    _bootstrap();
+    _ctrl.addListener(() {
+      final q = _ctrl.text.trim();
+      if (q == _query) return;
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 350), () => _runSearch(q));
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _bootstrap() async {
+    try {
+      final me = await ApiService.instance.cachedUser;
+      _myGroup = _groupOf((me?['role'] as String?) ?? '');
+    } catch (_) {/* default 'other' -> no role filter */}
+    await _loadDirectory();
+  }
+
+  List<Map<String, dynamic>> _extractUsers(dynamic res) {
+    if (res is List) return res.cast<Map<String, dynamic>>();
+    if (res is Map) {
+      final r = (res['results'] as List?) ?? (res['users'] as List?) ?? const [];
+      return r.cast<Map<String, dynamic>>();
+    }
+    return const [];
+  }
+
+  bool _inMyGroup(Map<String, dynamic> u) =>
+      _myGroup == 'other' ||
+      _groupOf((u['role'] ?? '').toString()) == _myGroup;
+
+  String _idOf(Map<String, dynamic> u) =>
+      (u['user_id'] ?? u['id'] ?? '').toString();
+
+  Future<void> _loadDirectory() async {
+    setState(() => _loading = true);
+    final acc = <String, Map<String, dynamic>>{};
+    try {
+      final results = await Future.wait([
+        widget.api.getSuggestedUsers(limit: 100).catchError((_) => const []),
+        widget.api.searchUsers('a').catchError((_) => const {}),
+        widget.api.searchUsers('e').catchError((_) => const {}),
+        widget.api.searchUsers('i').catchError((_) => const {}),
+        widget.api.searchUsers('o').catchError((_) => const {}),
+      ]);
+      for (final res in results) {
+        for (final u in _extractUsers(res)) {
+          final id = _idOf(u);
+          if (id.isEmpty || !_inMyGroup(u)) continue;
+          acc.putIfAbsent(id, () => u);
+        }
+      }
+    } catch (_) {/* show whatever we got */}
+
+    final list = acc.values.toList()
+      ..sort((a, b) => (a['name'] ?? a['display_name'] ?? '')
+          .toString().toLowerCase()
+          .compareTo((b['name'] ?? b['display_name'] ?? '')
+              .toString().toLowerCase()));
+    if (!mounted) return;
+    setState(() {
+      _directory = list;
+      _people    = list;
+      _loading   = false;
+    });
+  }
+
+  Future<void> _runSearch(String q) async {
+    _query = q;
+    if (q.isEmpty) {
+      setState(() => _people = _directory);
+      return;
+    }
+    if (q.length < 2) return;
+    setState(() => _loading = true);
+    try {
+      final res   = await widget.api.searchUsers(q);
+      final users = _extractUsers(res).where(_inMyGroup).toList();
+      if (!mounted) return;
+      setState(() { _people = users; _loading = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  void _toggle(Map<String, dynamic> u) {
+    final id = _idOf(u);
+    if (id.isEmpty) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (!_selected.add(id)) _selected.remove(id);
+    });
+  }
+
+  Future<void> _doShare() async {
+    if (_selected.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    HapticFeedback.lightImpact();
+    try {
+      final id = widget.post['id']?.toString() ?? '';
+      if (widget.isEvent) {
+        await widget.api.post('/events/$id/share/',
+            body: {'user_ids': _selected.toList()});
+      } else {
+        await widget.api.sharePost(id, _selected.toList());
+      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Shared with ${_selected.length} '
+            '${_selected.length == 1 ? "person" : "people"} \u2713',
+            style: const TextStyle(fontFamily: 'Momo')),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: _kMint,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not share. Try again.'),
+        behavior: SnackBarBehavior.floating));
+    }
+  }
+
+  String _prettyRole(String r) {
+    switch (r.toLowerCase()) {
+      case 'student':            return 'Student';
+      case 'teaching_staff':     return 'Teaching staff';
+      case 'non_teaching_staff': return 'Non-teaching staff';
+      default: return r.isEmpty ? '' : r[0].toUpperCase() + r.substring(1);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.78,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(widget.isEvent ? 'Share Event' : 'Share Post',
+                    style: const TextStyle(
+                        fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                    color: _kBg, borderRadius: BorderRadius.circular(14)),
+                child: TextField(
+                  controller: _ctrl,
+                  style: const TextStyle(
+                      fontFamily: 'Momo', fontSize: 14, color: _kInk),
+                  decoration: InputDecoration(
+                    hintText: 'Search people...',
+                    hintStyle: TextStyle(
+                        fontFamily: 'Momo', color: _kSlate.withOpacity(0.7)),
+                    prefixIcon: const Icon(Icons.search_rounded, color: _kViolet),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _kViolet))
+                  : _people.isEmpty
+                      ? Center(
+                          child: Text('No people found',
+                              style: TextStyle(
+                                  fontFamily: 'Momo', color: _kSlate)))
+                      : ListView.builder(
+                          controller: scrollCtrl,
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                          itemCount: _people.length,
+                          itemBuilder: (_, i) => _personRow(_people[i]),
+                        ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: GestureDetector(
+                  onTap: _selected.isEmpty ? null : _doShare,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: _selected.isEmpty ? 0.5 : 1,
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient:
+                            const LinearGradient(colors: [_kViolet, _kBlue]),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: _kViolet.withOpacity(0.30),
+                              blurRadius: 12, offset: const Offset(0, 5)),
+                        ],
+                      ),
+                      child: Center(
+                        child: _sending
+                            ? const SizedBox(width: 22, height: 22,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5))
+                            : Text(
+                                _selected.isEmpty
+                                    ? 'Select people to share'
+                                    : 'Share with ${_selected.length}'
+                                        '${_selected.length == 1 ? " person" : " people"}',
+                                style: const TextStyle(
+                                    fontFamily: 'Arch',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15, color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _personRow(Map<String, dynamic> u) {
+    final id      = _idOf(u);
+    final name    = (u['name'] ?? u['display_name'] ?? 'Unknown').toString();
+    final role    = (u['role'] ?? '').toString();
+    final avatar  = (u['avatar_url'] ?? '').toString();
+    final sel     = _selected.contains(id);
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _toggle(u),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: sel ? _kViolet.withOpacity(0.07) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: sel ? _kViolet.withOpacity(0.5) : Colors.grey.shade200,
+              width: 1.4),
+        ),
+        child: Row(children: [
+          Container(width: 44, height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: [_kG1, _kViolet]),
+              image: avatar.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(avatar), fit: BoxFit.cover)
+                  : null,
+            ),
+            child: avatar.isEmpty
+                ? Center(child: Text(initial, style: const TextStyle(
+                    color: Colors.white, fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 17)))
+                : null),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
+              if (role.isNotEmpty)
+                Text(_prettyRole(role),
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 13, color: _kSlate)))
-                : ListView.builder(
-                    controller: ctrl,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _people.length,
-                    itemBuilder: (_, i) {
-                      final u   = _people[i];
-                      final id  = u['user_id']?.toString()
-                          ?? u['id']?.toString() ?? '';
-                      final sel    = _selected.contains(id);
-                      final name   = u['name']       as String? ?? '';
-                      final role   = u['role']       as String? ?? '';
-                      final avatar = u['avatar_url'] as String? ?? '';
-                      final initial = name.isNotEmpty
-                          ? name[0].toUpperCase() : '?';
-                      return GestureDetector(
-                        onTap: () => setState(() => sel
-                            ? _selected.remove(id) : _selected.add(id)),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          color: sel ? _kViolet.withOpacity(0.04)
-                              : Colors.transparent,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          child: Row(children: [
-                            Container(width: 42, height: 42,
-                              decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                      colors: [_kViolet, _kBlue])),
-                              child: ClipOval(child: avatar.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: avatar, fit: BoxFit.cover,
-                                      width: 42, height: 42,
-                                      errorWidget: (_, __, ___) =>
-                                          Center(child: Text(initial,
-                                              style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontFamily: 'Arch',
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16))))
-                                  : Center(child: Text(initial,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Arch',
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16))))),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                              Text(name, style: const TextStyle(
-                                  fontFamily: 'Arch',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14, color: _kInk)),
-                              if (role.isNotEmpty)
-                                Text(role.replaceAll('_', ' '),
-                                  style: TextStyle(fontFamily: 'Momo',
-                                      fontSize: 12, color: _kSlate)),
-                            ])),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 24, height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: sel ? const LinearGradient(
-                                    colors: [_kViolet, _kBlue]) : null,
-                                border: sel ? null : Border.all(
-                                    color: Colors.grey.shade300, width: 1.5)),
-                              child: sel ? const Icon(Icons.check_rounded,
-                                  color: Colors.white, size: 13) : null),
-                          ])));
-                    })),
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, 8, 20,
-              MediaQuery.of(context).padding.bottom + 16),
-          child: GestureDetector(
-            onTap: _selected.isEmpty ? null : _share,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: double.infinity, height: 52,
-              decoration: BoxDecoration(
-                gradient: _selected.isNotEmpty
-                    ? const LinearGradient(colors: [_kViolet, _kBlue],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight)
-                    : const LinearGradient(
-                        colors: [Color(0xFFDDDDDD), Color(0xFFCCCCCC)]),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: _selected.isNotEmpty ? [BoxShadow(
-                    color: _kViolet.withOpacity(0.35),
-                    blurRadius: 14, offset: const Offset(0, 5))] : []),
-              child: Center(child: _sharing
-                  ? const SizedBox(width: 22, height: 22,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5))
-                  : Text(
-                      _selected.isEmpty
-                          ? 'Select people to share'
-                          : 'Share with ${_selected.length} '
-                            '${_selected.length == 1 ? "person" : "people"}',
-                      style: const TextStyle(fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold, color: Colors.white,
-                          fontSize: 14)))))),
-      ]),
-    ),
-  );
+                        fontSize: 11.5, color: _kSlate)),
+            ],
+          )),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 24, height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: sel ? _kViolet : Colors.transparent,
+              border: Border.all(color: sel ? _kViolet : _kSlate, width: 2),
+            ),
+            child: sel
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                : null,
+          ),
+        ]),
+      ),
+    );
+  }
 }
 
 
@@ -2242,18 +2446,27 @@ class _EventCardState extends State<_EventCard>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: _kCard,
         borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [_kG1, _kG2, _kG4],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06),
-              blurRadius: 20, offset: const Offset(0, 6)),
-          BoxShadow(color: Colors.black.withOpacity(0.03),
+          BoxShadow(color: _kG2.withOpacity(0.12),
+              blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      padding: const EdgeInsets.all(1.6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(22.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22.5),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           AspectRatio(
             aspectRatio: 4 / 3,
             child: poster.isNotEmpty
@@ -2337,6 +2550,7 @@ class _EventCardState extends State<_EventCard>
 
           const SizedBox(height: 12),
         ]),
+        ),
       ),
     );
   }
@@ -2486,6 +2700,66 @@ class _EventPosterPlaceholder extends StatelessWidget {
                   ),
                 ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// FULL-SCREEN IMAGE VIEWER
+// Tap a feed image to open it edge-to-edge with pinch-to-zoom.
+// Tap anywhere (or the X) to dismiss.
+// ─────────────────────────────────────────────────────────────
+
+class _FullScreenImage extends StatelessWidget {
+  final String url;
+  const _FullScreenImage({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: InteractiveViewer(
+                minScale: 1.0,
+                maxScale: 5.0,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain,
+                    placeholder: (_, __) => const Center(
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2)),
+                    errorWidget: (_, __, ___) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white54, size: 64),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close_rounded,
+                    color: Colors.white, size: 22),
+              ),
             ),
           ),
         ],

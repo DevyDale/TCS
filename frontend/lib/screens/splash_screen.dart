@@ -17,6 +17,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
+const _kLogoHeroTag = 'tcs_app_logo';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -181,6 +182,7 @@ class _SplashScreenState extends State<SplashScreen>
     final res  = R(context);
     // Logo scales with screen — bigger on tablets/desktop
     final logoSize = res.logoSize + (context.isTablet ? 20 : context.isWide ? 40 : 0);
+    final titleSize = context.isPhone ? 34.0 : context.isTablet ? 42.0 : 50.0;
 
     return Scaffold(
       body: Stack(
@@ -226,37 +228,81 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     const Spacer(flex: 3),
 
-                    // Logo
+                    // Logo — soft halo behind, Hero flies to role selection
                     ScaleTransition(
                       scale: _logoScale,
                       child: FadeTransition(
                         opacity: _logoOpacity,
-                        child: _buildLogo(logoSize),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: logoSize * 1.6,
+                              height: logoSize * 1.6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    _kG2.withOpacity(0.30),
+                                    _kG1.withOpacity(0.10),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 0.55, 1.0],
+                                ),
+                              ),
+                            ),
+                            Hero(tag: _kLogoHeroTag, child: _buildLogo(logoSize)),
+                          ],
+                        ),
                       ),
                     ),
 
                     SizedBox(height: res.lg),
 
-                    // App name
+                    // Wordmark — "Taylors College" with "Sydney" stacked below
                     SlideTransition(
                       position: _titleSlide,
                       child: FadeTransition(
                         opacity: _titleFade,
-                        child: ShaderMask(
-                          shaderCallback: (b) => const LinearGradient(
-                            colors: [_kG1, _kG2, _kG3, _kG4],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ).createShader(b),
-                          blendMode: BlendMode.srcIn,
-                          child: Text(
-                            'TCS',
-                            style: TextStyle(
-                              fontFamily: 'Momo',
-                              fontSize: context.isPhone ? 44 : context.isTablet ? 54 : 64,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: ShaderMask(
+                              shaderCallback: (b) => const LinearGradient(
+                                colors: [_kG1, _kG2, _kG3, _kG4],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ).createShader(b),
+                              blendMode: BlendMode.srcIn,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Taylors College',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Alfa',
+                                      fontSize: titleSize,
+                                      color: Colors.white,
+                                      height: 1.05,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Sydney',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Alfa',
+                                      fontSize: titleSize,
+                                      color: Colors.white,
+                                      height: 1.05,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -280,18 +326,33 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const Spacer(flex: 2),
 
-                    // Progress bar
+                    // Progress bar — gradient fill
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: context.isPhone ? 48 : 80),
+                      padding: EdgeInsets.symmetric(horizontal: context.isPhone ? 64 : 100),
                       child: AnimatedBuilder(
                         animation: _progressCtrl,
-                        builder: (_, __) => ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: _progressCtrl.value,
-                            minHeight: 3,
-                            backgroundColor: Colors.white12,
-                            valueColor: const AlwaysStoppedAnimation(_kG1),
+                        builder: (_, __) => LayoutBuilder(
+                          builder: (context, c) => Stack(
+                            children: [
+                              Container(
+                                height: 4,
+                                width: c.maxWidth,
+                                decoration: BoxDecoration(
+                                  color: Colors.white12,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              Container(
+                                height: 4,
+                                width: c.maxWidth * _progressCtrl.value.clamp(0.0, 1.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  gradient: const LinearGradient(
+                                    colors: [_kG1, _kG2, _kG3],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

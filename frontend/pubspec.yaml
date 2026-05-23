@@ -115,13 +115,13 @@ flutter_launcher_icons:
 
 # ─── Android native splash (shown BEFORE Flutter boots) ───
 flutter_native_splash:
-  color: "#8E54E9"
+  color: "#0D0D1A"
   image: assets/icon/tcs-icon-1024.png
   android: true
   ios: true
   android_12:
-    color: "#8E54E9"
+    color: "#0D0D1A"
     image: assets/icon/tcs-icon-foreground.png
-    icon_background_color: "#8E54E9"
+    icon_background_color: "#0D0D1A"
   android_gravity: center
   fullscreen: true

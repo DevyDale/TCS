@@ -10,16 +10,10 @@
 //         blockquotes, and links
 //   • Code blocks inside assistant messages get rotating
 //     gradient borders automatically via AiMarkdown.
-//
-// Overflow fix:
-//   The Row at line ~359 (suggestion chip) was overflowing by
-//   70px because long suggestion labels like "Write a unit test
-//   for a Dart function that returns Future<int>" got rendered
-//   at their natural intrinsic width inside a Wrap with
-//   unbounded constraints. Fixed by:
-//     1. Constraining each chip to a sensible maxWidth.
-//     2. Wrapping the label Text in a Flexible so it soft-wraps
-//        to multiple lines instead of pushing the chip off-screen.
+//   • Left drawer  — chat history (locally persisted), new chat
+//   • Input bar    — clean _kInputBg pill with focus highlight +
+//                    circular gradient send button (matches the
+//                    AI Assistant screen).
 
 import 'dart:async';
 import 'dart:convert';
@@ -28,29 +22,32 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/widgets/ai_markdown.dart';
 
-import '../../../../services/api_service.dart';
+import 'package:tcs_app/services/api_service.dart';
 
 // ── Light palette (matches AI Hub) ───────────────────────────
-const _kBg1     = Color(0xFFFAFAFC);
-const _kBg2     = Color(0xFFE6E6EE);
-const _kBg3     = Color(0xFFF2F2F6);
+const _kBg1 = Color(0xFFFAFAFC);
+const _kBg2 = Color(0xFFE6E6EE);
+const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard    = Color(0xFFFFFFFF);
-const _kCardLo  = Color(0xFFF5F5F8);
+const _kCard = Color(0xFFFFFFFF);
+const _kCardLo = Color(0xFFF5F5F8);
+const _kInputBg = Color(0xFFF7F8FB);
 
-const _kBorder  = Color(0xFFE5E7EB);
+const _kBorder = Color(0xFFE5E7EB);
 
-const _kSlate2  = Color(0xFF9CA3AF);
-const _kSlate   = Color(0xFF6B7280);
+const _kSlate2 = Color(0xFF9CA3AF);
+const _kSlate = Color(0xFF6B7280);
 const _kInkSoft = Color(0xFF374151);
-const _kInk     = Color(0xFF0D0D1A);
+const _kInk = Color(0xFF0D0D1A);
 
 // Code-helper identity: teal/green pair used only for user
 // bubbles + the AiMarkdown accent. Everything else is mono.
-const _kCode2   = Color(0xFF11998E);
-const _kCode1   = Color(0xFF38EF7D);
+const _kCode2 = Color(0xFF11998E);
+const _kCode1 = Color(0xFF38EF7D);
 
 // Shared sweep-gradient palette for animated borders
 const _gradColors = <Color>[
@@ -64,9 +61,9 @@ const _gradColors = <Color>[
 // ── Message model ─────────────────────────────────────────────
 
 class CodeMessage {
-  final String   role;
-  final String   content;
-  final bool     isStreaming;
+  final String role;
+  final String content;
+  final bool isStreaming;
   final DateTime createdAt;
 
   CodeMessage({
@@ -77,13 +74,105 @@ class CodeMessage {
   }) : createdAt = createdAt ?? DateTime.now();
 
   CodeMessage copyWith({String? content, bool? isStreaming}) => CodeMessage(
-        role:        role,
-        content:     content ?? this.content,
-        isStreaming: isStreaming ?? this.isStreaming,
-        createdAt:   createdAt,
-      );
+    role: role,
+    content: content ?? this.content,
+    isStreaming: isStreaming ?? this.isStreaming,
+    createdAt: createdAt,
+  );
 
   Map<String, dynamic> toJson() => {'role': role, 'content': content};
+}
+
+// ── Conversation model + local store (separate from AI Assistant) ──
+
+String _genId() => 'c${DateTime.now().microsecondsSinceEpoch}';
+
+class _Conversation {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<Map<String, String>> messages;
+
+  _Conversation({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.messages,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'messages': messages,
+  };
+
+  static _Conversation fromJson(Map<String, dynamic> j) => _Conversation(
+    id: (j['id'] ?? _genId()).toString(),
+    title: (j['title'] ?? 'New chat').toString(),
+    createdAt:
+        DateTime.tryParse((j['createdAt'] ?? '').toString()) ?? DateTime.now(),
+    updatedAt:
+        DateTime.tryParse((j['updatedAt'] ?? '').toString()) ?? DateTime.now(),
+    messages: ((j['messages'] ?? []) as List)
+        .map<Map<String, String>>(
+          (m) => {
+            'role': (m['role'] ?? 'assistant').toString(),
+            'content': (m['content'] ?? '').toString(),
+          },
+        )
+        .toList(),
+  );
+}
+
+class _ConversationStore {
+  static const _key = 'dale_code_conversations_v1';
+
+  static Future<List<_Conversation>> loadAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_key);
+      if (raw == null || raw.isEmpty) return [];
+      final list = (jsonDecode(raw) as List).cast<dynamic>();
+      final convos = list
+          .map(
+            (e) => _Conversation.fromJson((e as Map).cast<String, dynamic>()),
+          )
+          .toList();
+      convos.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return convos;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> save(_Conversation c) async {
+    final all = await loadAll();
+    final idx = all.indexWhere((x) => x.id == c.id);
+    if (idx >= 0) {
+      all[idx] = c;
+    } else {
+      all.add(c);
+    }
+    await _write(all);
+  }
+
+  static Future<void> delete(String id) async {
+    final all = await loadAll();
+    all.removeWhere((x) => x.id == id);
+    await _write(all);
+  }
+
+  static Future<void> _write(List<_Conversation> all) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _key,
+      jsonEncode(all.map((c) => c.toJson()).toList()),
+    );
+  }
 }
 
 // ── Quick suggestion prompts ──────────────────────────────────
@@ -110,20 +199,26 @@ class CodeAssistantScreen extends StatefulWidget {
 
 class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     with TickerProviderStateMixin {
-  final _inputCtrl  = TextEditingController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _inputCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   final _inputFocus = FocusNode();
-  final _api        = ApiService();
+  final _api = ApiService();
 
   final List<CodeMessage> _messages = [];
-  bool _isLoading       = false;
+  bool _isLoading = false;
   bool _showSuggestions = true;
-  int  _rateLimitUsed   = 0;
-  int  _rateLimitMax    = 60;
+  int _rateLimitUsed = 0;
+  int _rateLimitMax = 60;
+
+  // Chat-history (local persistence)
+  String _conversationId = _genId();
+  DateTime _conversationCreatedAt = DateTime.now();
+  List<_Conversation> _savedConversations = [];
 
   late final AnimationController _entryCtrl;
   late final AnimationController _shimmerCtrl; // ← shared by every border
-  late final Animation<double>   _entryFade;
+  late final Animation<double> _entryFade;
 
   StreamSubscription<String>? _streamSub;
 
@@ -132,20 +227,26 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     super.initState();
 
     _entryCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600))
-      ..forward();
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
     _entryFade = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
 
     _shimmerCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 6))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
+
+    _inputFocus.addListener(() => setState(() {}));
 
     _addGreeting();
     _fetchStatus();
+    _loadConversations();
   }
 
   @override
   void dispose() {
+    _persistCurrent(reload: false);
     _streamSub?.cancel();
     _entryCtrl.dispose();
     _shimmerCtrl.dispose();
@@ -156,14 +257,17 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
   }
 
   void _addGreeting() {
-    _messages.add(CodeMessage(
-      role:    'assistant',
-      content: "Hey! 👋 I'm the **TCS Code Helper**.\n\n"
-               "Drop a coding question, paste a snippet you're stuck on, or "
-               "describe what you want to build. I'll reply with code in "
-               "Markdown — tap any block to copy it.\n\n"
-               "_Powered by Gemini 2.5 Flash._",
-    ));
+    _messages.add(
+      CodeMessage(
+        role: 'assistant',
+        content:
+            "Hey! 👋 I'm the **TCS Code Helper**.\n\n"
+            "Drop a coding question, paste a snippet you're stuck on, or "
+            "describe what you want to build. I'll reply with code in "
+            "Markdown — tap any block to copy it.\n\n"
+            "_Powered by Gemini 2.5 Flash._",
+      ),
+    );
   }
 
   Future<void> _fetchStatus() async {
@@ -172,10 +276,105 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
       if (mounted && data is Map) {
         setState(() {
           _rateLimitUsed = data['messages_used'] as int? ?? 0;
-          _rateLimitMax  = data['limit']         as int? ?? 60;
+          _rateLimitMax = data['limit'] as int? ?? 60;
         });
       }
     } catch (_) {}
+  }
+
+  // ── Chat history helpers ──────────────────────────────────
+
+  Future<void> _loadConversations() async {
+    final all = await _ConversationStore.loadAll();
+    if (mounted) setState(() => _savedConversations = all);
+  }
+
+  String _deriveTitle(List<CodeMessage> msgs) {
+    final firstUser = msgs.where((m) => m.role == 'user').toList();
+    if (firstUser.isEmpty) return 'New chat';
+    var t = firstUser.first.content.trim().replaceAll('\n', ' ');
+    if (t.length > 42) t = '${t.substring(0, 42)}…';
+    return t.isEmpty ? 'New chat' : t;
+  }
+
+  Future<void> _persistCurrent({bool reload = true}) async {
+    final saveable = _messages
+        .where((m) => !m.isStreaming && m.content.trim().isNotEmpty)
+        .toList();
+    if (!saveable.any((m) => m.role == 'user')) return;
+
+    final convo = _Conversation(
+      id: _conversationId,
+      title: _deriveTitle(saveable),
+      createdAt: _conversationCreatedAt,
+      updatedAt: DateTime.now(),
+      messages: saveable
+          .map((m) => {'role': m.role, 'content': m.content})
+          .toList(),
+    );
+    await _ConversationStore.save(convo);
+    if (reload) await _loadConversations();
+  }
+
+  Future<void> _newChat() async {
+    await _persistCurrent();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.pop(context); // close drawer
+    setState(() {
+      _conversationId = _genId();
+      _conversationCreatedAt = DateTime.now();
+      _messages.clear();
+      _addGreeting();
+      _showSuggestions = true;
+      _isLoading = false;
+    });
+    _inputCtrl.clear();
+  }
+
+  Future<void> _openConversation(_Conversation c) async {
+    await _persistCurrent();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.pop(context); // close drawer
+    setState(() {
+      _conversationId = c.id;
+      _conversationCreatedAt = c.createdAt;
+      _isLoading = false;
+      _showSuggestions = false;
+      _messages
+        ..clear()
+        ..addAll(
+          c.messages.map(
+            (m) => CodeMessage(
+              role: m['role'] ?? 'assistant',
+              content: m['content'] ?? '',
+            ),
+          ),
+        );
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _deleteConversation(String id) async {
+    await _ConversationStore.delete(id);
+    if (id == _conversationId && mounted) {
+      setState(() {
+        _conversationId = _genId();
+        _conversationCreatedAt = DateTime.now();
+        _messages.clear();
+        _addGreeting();
+        _showSuggestions = true;
+      });
+    }
+    await _loadConversations();
+  }
+
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 
   // ── Send message ──────────────────────────────────────────
@@ -191,19 +390,21 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     setState(() {
       _messages.add(CodeMessage(role: 'user', content: msg));
       _showSuggestions = false;
-      _isLoading       = true;
+      _isLoading = true;
     });
 
     _scrollToBottom();
+    _persistCurrent();
 
     final aiMsgIndex = _messages.length;
     setState(() {
       _messages.add(
-          CodeMessage(role: 'assistant', content: '', isStreaming: true));
+        CodeMessage(role: 'assistant', content: '', isStreaming: true),
+      );
     });
 
     try {
-      final token   = await _api.accessToken;
+      final token = await _api.accessToken;
       final baseUrl = ApiConfig.baseUrl;
       final history = _messages
           .sublist(0, aiMsgIndex - 1)
@@ -213,14 +414,14 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
 
       final request = http.Request('POST', Uri.parse('$baseUrl/api/ai/code/'))
         ..headers.addAll({
-          'Content-Type':  'application/json',
-          'Accept':        'text/event-stream',
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
           'Authorization': 'Bearer $token',
         })
         ..body = jsonEncode({
           'message': msg,
           'history': history,
-          'stream':  true,
+          'stream': true,
         });
 
       final streamed = await request.send();
@@ -229,49 +430,53 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen(
-        (line) {
-          if (!line.startsWith('data:')) return;
-          final data = line.substring(5).trim();
-          if (data == '[DONE]') {
-            if (mounted) {
-              setState(() {
-                _messages[aiMsgIndex] =
-                    _messages[aiMsgIndex].copyWith(isStreaming: false);
-                _isLoading = false;
-                _rateLimitUsed++;
-              });
-            }
-            _scrollToBottom();
-            return;
-          }
-          try {
-            final chunk = jsonDecode(data);
-            if (chunk['error'] != null) {
-              _handleError(aiMsgIndex, chunk['error'] as String);
-              return;
-            }
-            final tok = chunk['token'] as String? ?? '';
-            if (tok.isEmpty) return;
-            if (!mounted) return;
-            setState(() {
-              final current = _messages[aiMsgIndex];
-              _messages[aiMsgIndex] =
-                  current.copyWith(content: current.content + tok);
-            });
-            _scrollToBottom();
-          } catch (_) {}
-        },
-        onError: (e) => _handleError(aiMsgIndex, e.toString()),
-        onDone: () {
-          if (mounted && _isLoading) {
-            setState(() {
-              _messages[aiMsgIndex] =
-                  _messages[aiMsgIndex].copyWith(isStreaming: false);
-              _isLoading = false;
-            });
-          }
-        },
-      );
+            (line) {
+              if (!line.startsWith('data:')) return;
+              final data = line.substring(5).trim();
+              if (data == '[DONE]') {
+                if (mounted) {
+                  setState(() {
+                    _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                      isStreaming: false,
+                    );
+                    _isLoading = false;
+                    _rateLimitUsed++;
+                  });
+                }
+                _scrollToBottom();
+                _persistCurrent();
+                return;
+              }
+              try {
+                final chunk = jsonDecode(data);
+                if (chunk['error'] != null) {
+                  _handleError(aiMsgIndex, chunk['error'] as String);
+                  return;
+                }
+                final tok = chunk['token'] as String? ?? '';
+                if (tok.isEmpty) return;
+                if (!mounted) return;
+                setState(() {
+                  final current = _messages[aiMsgIndex];
+                  _messages[aiMsgIndex] = current.copyWith(
+                    content: current.content + tok,
+                  );
+                });
+                _scrollToBottom();
+              } catch (_) {}
+            },
+            onError: (e) => _handleError(aiMsgIndex, e.toString()),
+            onDone: () {
+              if (mounted && _isLoading) {
+                setState(() {
+                  _messages[aiMsgIndex] = _messages[aiMsgIndex].copyWith(
+                    isStreaming: false,
+                  );
+                  _isLoading = false;
+                });
+              }
+            },
+          );
     } catch (e) {
       _handleError(aiMsgIndex, e.toString());
     }
@@ -281,7 +486,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     if (!mounted) return;
     setState(() {
       _messages[idx] = _messages[idx].copyWith(
-        content:     "Sorry — ran into an error: $err",
+        content: "Sorry — ran into an error: $err",
         isStreaming: false,
       );
       _isLoading = false;
@@ -305,14 +510,16 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
+      drawer: _buildDrawer(),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin:  Alignment.topLeft,
-            end:    Alignment.bottomRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [_kBg1, _kBg2, _kBg3],
-            stops:  [0.0, 0.55, 1.0],
+            stops: [0.0, 0.55, 1.0],
           ),
         ),
         child: SafeArea(
@@ -325,9 +532,10 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                   child: ListView.builder(
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    itemCount:
-                        _messages.length + (_showSuggestions ? 1 : 0),
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    itemCount: _messages.length + (_showSuggestions ? 1 : 0),
                     itemBuilder: (ctx, i) {
                       if (_showSuggestions && i == _messages.length) {
                         return _buildSuggestions();
@@ -345,7 +553,166 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     );
   }
 
-  // ── Top bar (back + title + status chip) ──────────────────
+  // ── Drawer (chat history) ─────────────────────────────────
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: _kBg1,
+      width: MediaQuery.of(context).size.width * 0.82,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 16, 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [_kCode2, _kCode1],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: ClipOval(
+                        child: Container(
+                          color: _kCard,
+                          padding: const EdgeInsets.all(2),
+                          child: Lottie.asset(
+                            'assets/images/robot.json',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(
+                                Icons.code_rounded,
+                                color: _kCode2,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Flexible(
+                    child: Text(
+                      'Code Helper',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Alfa',
+                        fontSize: 20,
+                        color: _kInk,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // New chat
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: GestureDetector(
+                onTap: _newChat,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kCode2, _kCode1],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kCode1.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 6),
+                      Text(
+                        'New chat',
+                        style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+              child: Text(
+                'RECENT',
+                style: TextStyle(
+                  fontFamily: 'Momo',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.4,
+                  color: _kSlate.withOpacity(0.8),
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: _savedConversations.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No conversations yet.\nStart chatting and it’ll show up here.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Momo',
+                            fontSize: 13,
+                            color: _kSlate2,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                      itemCount: _savedConversations.length,
+                      itemBuilder: (_, i) {
+                        final c = _savedConversations[i];
+                        return _ConversationTile(
+                          title: c.title,
+                          subtitle: _relativeTime(c.updatedAt),
+                          active: c.id == _conversationId,
+                          accent: _kCode2,
+                          onTap: () => _openConversation(c),
+                          onDelete: () => _deleteConversation(c.id),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Top bar (back + menu + title + status chip) ───────────
 
   Widget _buildTopBar() {
     final canPop = Navigator.canPop(context);
@@ -374,6 +741,22 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
             ),
             const SizedBox(width: 10),
           ],
+          // Menu → opens the chat-history drawer
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            child: _GradientBorderCard(
+              animation: _shimmerCtrl,
+              radius: 14,
+              borderWidth: 1.2,
+              innerColor: _kCard,
+              padding: const EdgeInsets.all(11),
+              child: const Icon(Icons.menu_rounded, color: _kInk, size: 16),
+            ),
+          ),
+          const SizedBox(width: 10),
           // Title
           const Expanded(
             child: Text(
@@ -394,8 +777,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
             radius: 12,
             borderWidth: 1.2,
             innerColor: _kCard,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -404,10 +786,11 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 Text(
                   '$_rateLimitUsed / $_rateLimitMax',
                   style: const TextStyle(
-                      color: _kInk,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'monospace'),
+                    color: _kInk,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ],
             ),
@@ -423,7 +806,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 10, 2, 10),
       child: Wrap(
-        spacing:    8,
+        spacing: 8,
         runSpacing: 8,
         children: _codeSuggestions.map(_buildSuggestionChip).toList(),
       ),
@@ -443,8 +826,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
           radius: 18,
           borderWidth: 1.2,
           innerColor: _kCard,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -482,10 +864,9 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.86),
-          child: isUser
-              ? _buildUserBubble(m)
-              : _buildAssistantBubble(m),
+            maxWidth: MediaQuery.of(context).size.width * 0.86,
+          ),
+          child: isUser ? _buildUserBubble(m) : _buildAssistantBubble(m),
         ),
       ),
     );
@@ -499,20 +880,20 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [_kCode2, _kCode1],
-          begin:  Alignment.topLeft,
-          end:    Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: const BorderRadius.only(
-          topLeft:     Radius.circular(16),
-          topRight:    Radius.circular(16),
-          bottomLeft:  Radius.circular(16),
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+          bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(4),
         ),
         boxShadow: [
           BoxShadow(
-            color:      _kCode1.withOpacity(0.22),
+            color: _kCode1.withOpacity(0.22),
             blurRadius: 14,
-            offset:     const Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -529,17 +910,17 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
       decoration: BoxDecoration(
         color: _kCard,
         borderRadius: const BorderRadius.only(
-          topLeft:     Radius.circular(16),
-          topRight:    Radius.circular(16),
-          bottomLeft:  Radius.circular(4),
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+          bottomLeft: Radius.circular(4),
           bottomRight: Radius.circular(16),
         ),
         border: Border.all(color: _kBorder),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
-            offset:     const Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -552,7 +933,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Dot(delay: 0,   color: _kCode2),
+          _Dot(delay: 0, color: _kCode2),
           _Dot(delay: 150, color: _kCode2),
           _Dot(delay: 300, color: _kCode2),
         ],
@@ -561,21 +942,24 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
     // The shared AiMarkdown widget renders dark text on the white
     // bubble and gives code blocks a rotating SweepGradient border.
     return AiMarkdown(
-      data:   m.content,
+      data: m.content,
       accent: _kCode2,
       borderGradient: _gradColors,
     );
   }
 
-  // ── Input bar ─────────────────────────────────────────────
+  // ── Input bar (matches the AI Assistant screen) ───────────
 
   Widget _buildInputBar() {
     final hasText = _inputCtrl.text.trim().isNotEmpty;
     final canSend = hasText && !_isLoading;
+    final focused = _inputFocus.hasFocus;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        12, 10, 12,
+        14,
+        10,
+        14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: const BoxDecoration(
@@ -586,31 +970,38 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: _GradientBorderCard(
-              animation: _shimmerCtrl,
-              radius: 22,
-              borderWidth: 1.2,
-              innerColor: _kCardLo,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: _kInputBg,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: focused ? _kCode2.withOpacity(0.5) : _kBorder,
+                  width: focused ? 1.5 : 1,
+                ),
+              ),
               child: TextField(
                 controller: _inputCtrl,
-                focusNode:  _inputFocus,
-                minLines:   1,
-                maxLines:   5,
-                onChanged:  (_) => setState(() {}),
-                style: const TextStyle(
-                    color: _kInk, fontSize: 14, height: 1.4),
+                focusNode: _inputFocus,
+                minLines: 1,
+                maxLines: 5,
+                onChanged: (_) => setState(() {}),
                 cursorColor: _kCode2,
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
+                style: const TextStyle(color: _kInk, fontSize: 14, height: 1.4),
                 decoration: const InputDecoration(
+                  filled: false,
                   isDense: true,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
                   hintText: 'Ask for code, paste a snippet…',
                   hintStyle: TextStyle(color: _kSlate2, fontSize: 14),
-                  contentPadding: EdgeInsets.symmetric(vertical: 13),
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
                 onSubmitted: _sendMessage,
                 textInputAction: TextInputAction.send,
@@ -620,42 +1011,42 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
           const SizedBox(width: 10),
           GestureDetector(
             onTap: canSend ? () => _sendMessage(_inputCtrl.text) : null,
-            child: Container(
-              width: 44, height: 44,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
+                shape: BoxShape.circle,
                 gradient: canSend
                     ? const LinearGradient(
                         colors: [_kCode2, _kCode1],
                         begin: Alignment.topLeft,
-                        end:   Alignment.bottomRight,
+                        end: Alignment.bottomRight,
                       )
                     : null,
                 color: canSend ? null : _kCardLo,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: canSend ? Colors.transparent : _kBorder,
-                ),
                 boxShadow: canSend
                     ? [
                         BoxShadow(
-                          color: _kCode1.withOpacity(0.40),
+                          color: _kCode1.withOpacity(0.42),
                           blurRadius: 14,
-                          offset: const Offset(0, 4),
+                          offset: const Offset(0, 5),
                         ),
                       ]
                     : null,
               ),
               child: _isLoading
                   ? const Padding(
-                      padding: EdgeInsets.all(12),
+                      padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
-                        color: _kSlate, strokeWidth: 2,
+                        color: _kSlate,
+                        strokeWidth: 2,
                       ),
                     )
                   : Icon(
                       Icons.arrow_upward_rounded,
                       color: canSend ? Colors.white : _kSlate2,
-                      size: 20,
+                      size: 22,
                     ),
             ),
           ),
@@ -666,17 +1057,111 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
 }
 
 // ═════════════════════════════════════════════════════════════
+// _ConversationTile — chat-history row in the drawer
+// ═════════════════════════════════════════════════════════════
+
+class _ConversationTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool active;
+  final Color accent;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  const _ConversationTile({
+    required this.title,
+    required this.subtitle,
+    required this.active,
+    required this.accent,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: active ? accent.withOpacity(0.10) : _kCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: active ? accent.withOpacity(0.35) : _kBorder,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 16,
+                  color: active ? accent : _kSlate,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _kInk,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 10,
+                          color: _kSlate2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onDelete,
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: _kSlate2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
 // _GradientBorderCard — same widget pattern as in ai_hub_screen
 // ═════════════════════════════════════════════════════════════
 
 class _GradientBorderCard extends StatelessWidget {
-  final Animation<double>   animation;
-  final Widget              child;
-  final double              radius;
-  final double              borderWidth;
-  final Color               innerColor;
+  final Animation<double> animation;
+  final Widget child;
+  final double radius;
+  final double borderWidth;
+  final Color innerColor;
   final EdgeInsetsGeometry? padding;
-  final List<Color>         colors;
+  final List<Color> colors;
 
   const _GradientBorderCard({
     required this.animation,
@@ -693,7 +1178,8 @@ class _GradientBorderCard extends StatelessWidget {
     final inner = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
-          math.max(0.0, radius - borderWidth)),
+          math.max(0.0, radius - borderWidth),
+        ),
         color: innerColor,
       ),
       padding: padding,
@@ -727,7 +1213,7 @@ class _GradientBorderCard extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════
 
 class _Dot extends StatefulWidget {
-  final int   delay;
+  final int delay;
   final Color color;
   const _Dot({required this.delay, required this.color});
   @override
@@ -741,7 +1227,7 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _c = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: const Duration(milliseconds: 900),
     );
     Future.delayed(Duration(milliseconds: widget.delay), () {
@@ -750,16 +1236,19 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
   }
 
   @override
-  void dispose() { _c.dispose(); super.dispose(); }
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => FadeTransition(
-        opacity: Tween(begin: 0.3, end: 1.0).animate(_c),
-        child: Container(
-          width: 6, height: 6,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          decoration: BoxDecoration(
-              color: widget.color, shape: BoxShape.circle),
-        ),
-      );
+    opacity: Tween(begin: 0.3, end: 1.0).animate(_c),
+    child: Container(
+      width: 6,
+      height: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
+    ),
+  );
 }

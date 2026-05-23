@@ -1,6 +1,16 @@
-// lib/widgets/chat/chat_audio_player.dart
+// lib/screens/chat/chat_audio_player.dart
+// (place this where your chat_room import points — currently
+//  package:tcs_app/screens/chat/chat_audio_player.dart)
+//
+// Sage reskin only — the just_audio playback logic is unchanged.
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+
+// ── Sage palette ──
+const _kSageDk = Color(0xFF6E8159);
+const _kInk    = Color(0xFF2E3A24);
+const _kSlate  = Color(0xFF7C846F);
 
 class ChatAudioPlayer extends StatefulWidget {
   final String url;
@@ -75,7 +85,15 @@ class _ChatAudioPlayerState extends State<ChatAudioPlayer> {
   @override
   Widget build(BuildContext context) {
     final isMe = widget.isMe;
-    final fg = isMe ? Colors.white : Colors.deepPurple.shade600;
+
+    // On a sage outgoing bubble, dark controls read best; on a light
+    // incoming bubble, olive controls.
+    final accent   = isMe ? _kInk : _kSageDk;            // icon + progress fill
+    final circleBg = isMe ? Colors.white.withOpacity(0.40)
+                          : _kSageDk.withOpacity(0.12);
+    final track    = isMe ? _kInk.withOpacity(0.18) : const Color(0xFFD7D9CC);
+    final timeColor = isMe ? _kInk.withOpacity(0.70) : _kSlate;
+
     final progress = _total.inMilliseconds == 0
         ? 0.0
         : (_position.inMilliseconds / _total.inMilliseconds).clamp(0.0, 1.0);
@@ -91,11 +109,13 @@ class _ChatAudioPlayerState extends State<ChatAudioPlayer> {
               height: 38,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isMe ? Colors.white.withOpacity(0.2) : Colors.deepPurple.shade50,
+                color: circleBg,
               ),
               child: Icon(
-                _player.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: fg,
+                _failed
+                    ? Icons.error_outline_rounded
+                    : (_player.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                color: accent,
                 size: 22,
               ),
             ),
@@ -107,16 +127,30 @@ class _ChatAudioPlayerState extends State<ChatAudioPlayer> {
               children: [
                 Stack(
                   children: [
-                    Container(height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                    Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: track,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                     FractionallySizedBox(
                       widthFactor: progress,
-                      child: Container(height: 4, decoration: BoxDecoration(color: fg, borderRadius: BorderRadius.circular(2))),
+                      child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: accent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(_fmt(_position > Duration.zero ? _total - _position : _total),
-                    style: TextStyle(fontSize: 11, color: isMe ? Colors.white70 : Colors.grey.shade600)),
+                Text(
+                  _fmt(_position > Duration.zero ? _total - _position : _total),
+                  style: TextStyle(fontSize: 11, color: timeColor, fontFamily: 'Momo'),
+                ),
               ],
             ),
           ),

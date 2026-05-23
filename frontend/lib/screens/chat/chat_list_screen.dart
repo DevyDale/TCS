@@ -3,6 +3,23 @@
 // Phase 3B: WhatsApp-grade chat list + Chat Bubbles.
 //
 // CHANGE LOG (this revision):
+//   • Chat-bubble (group) tiles now show the bubble's OWN profile picture
+//     when one is set, instead of always falling back to the 👥 icon. The
+//     room's avatar is exposed at the top level of each room object as
+//     `avatar_url` by RoomSerializer (it serializes Room.avatar). For
+//     direct/study-buddy tiles the avatar still comes from `other_user`.
+//     See the change in _buildChatTile (the `avatarUrl` resolver).
+//
+// CHANGE LOG (previous revision):
+//   • Renamed the first tab from "All" to "Inbox". The Inbox tab now shows
+//     ONLY 1-on-1 direct chats (i.e. accepted chat requests). Study-buddy
+//     chats and chat-bubble (group) chats are intentionally excluded — they
+//     live in their own dedicated tabs.
+//   • The filter key passed to _buildChatsList for the first tab is now
+//     'inbox' (was 'all') and _filteredChats() keeps only room_type=='direct'
+//     rooms for it.
+//
+// CHANGE LOG (earlier revision):
 //   • Replaced the stock Material `TabBar` with `SegmentedTabControl` from
 //     the `animated_segmented_tab_control` package — a pill / segmented
 //     control with an animated sliding indicator, matching the rest of
@@ -22,9 +39,9 @@ import 'package:animated_segmented_tab_control/animated_segmented_tab_control.da
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
+import 'package:tcs_app/screens/chat/chat_requests.dart';
 import 'package:tcs_app/screens/chat/create_chat_bubble_Screen.dart';
 
-import 'chat_search_screen.dart';
 import 'chat_room_screen.dart';
 import '../../services/api_service.dart';
 
@@ -46,6 +63,8 @@ class _ChatListScreenState extends State<ChatListScreen>
     with SingleTickerProviderStateMixin {
   final _api    = ApiService();
   final _listWs = ChatListWebSocketService();
+  final _searchCtrl = TextEditingController();
+  String _chatQuery = '';
   late final TabController _tabCtrl;
   StreamSubscription? _wsSub;
 
@@ -68,7 +87,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     // We still listen so the badge / any tab-aware UI re-renders on swipe.
     _tabCtrl.addListener(() => setState(() {}));
     _loadChats();
@@ -79,6 +98,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   @override
   void dispose() {
+    _searchCtrl.dispose();
     _tabCtrl.dispose();
     _wsSub?.cancel();
     _listWs.dispose();
@@ -259,59 +279,6 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   // ── Requests / Invites tab actions ───────────────────────
 
-  Future<void> _acceptRequest(String reqId, int index) async {
-    try {
-      final res = await _api.post('/chat/requests/$reqId/accept/') as Map<String, dynamic>;
-      setState(() => _requests.removeAt(index));
-      final room = res['room'] as Map<String, dynamic>?;
-      if (room != null && mounted) {
-        await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ChatRoomScreen(
-            roomId:   room['id']   as String? ?? '',
-            roomName: room['name'] as String? ?? 'Chat',
-            userName: 'You',
-          ),
-        ));
-        _loadChats();
-      }
-    } catch (e) { _snack('Failed: $e'); }
-  }
-
-  Future<void> _declineRequest(String reqId, int index) async {
-    try {
-      await _api.post('/chat/requests/$reqId/decline/');
-      setState(() => _requests.removeAt(index));
-    } catch (e) { _snack('Failed: $e'); }
-  }
-
-  Future<void> _acceptBubbleInvite(String inviteId, int index) async {
-    try {
-      final res = await _api.acceptBubbleInvite(inviteId) as Map<String, dynamic>;
-      setState(() => _bubbleInvites.removeAt(index));
-      final room = res['room'] as Map<String, dynamic>?;
-      if (room != null && mounted) {
-        await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ChatRoomScreen(
-            roomId:   room['id']   as String? ?? '',
-            roomName: room['name'] as String? ?? 'Bubble',
-            userName: 'You',
-            roomType: 'group',
-          ),
-        ));
-        _loadChats();
-      } else if (mounted) {
-        _loadChats();
-      }
-    } catch (e) { _snack('Couldn\'t accept: $e'); }
-  }
-
-  Future<void> _declineBubbleInvite(String inviteId, int index) async {
-    try {
-      await _api.declineBubbleInvite(inviteId);
-      setState(() => _bubbleInvites.removeAt(index));
-    } catch (e) { _snack('Couldn\'t decline: $e'); }
-  }
-
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -333,24 +300,18 @@ class _ChatListScreenState extends State<ChatListScreen>
       body: SafeArea(
         child: Column(children: [
           _buildAppBar(),
+          _buildSearchField(),
           _buildTabBar(),
           Expanded(
-  child: Container(
-    margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.white, width: 3),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: TabBarView(
-      controller: _tabCtrl,
-      children: [
-        _buildChatsTab(),
-        _buildRequestsTab(),
-      ],
-    ),
-  ),
-),
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _buildChatsList('inbox'),
+                _buildChatsList('study_buddy'),
+                _buildChatsList('group'),
+              ],
+            ),
+          ),
         ]),
       ),
     );
@@ -362,25 +323,33 @@ class _ChatListScreenState extends State<ChatListScreen>
       decoration: const BoxDecoration(color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
       child: Row(children: [
-        Container(width: 40, height: 40,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [_kG1, _kG2],
-                begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 20)),
-        const SizedBox(width: 12),
         const Expanded(child: Text('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
-        // Search button
+        // Requests button (opens the Requests page) with pending badge
         GestureDetector(
-          onTap: _openSearch,
-          child: Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.search_rounded, color: Colors.grey.shade600, size: 20)),
+          onTap: _openRequests,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Container(width: 40, height: 40,
+                decoration: BoxDecoration(color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.mark_email_unread_rounded,
+                    color: Colors.grey.shade600, size: 20)),
+            if (_totalRequests > 0)
+              Positioned(top: -4, right: -4, child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                decoration: BoxDecoration(color: _kG4,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: Colors.white, width: 1.5)),
+                child: Center(child: Text(
+                    _totalRequests > 99 ? '99+' : '$_totalRequests',
+                    style: const TextStyle(color: Colors.white, fontSize: 10,
+                        fontWeight: FontWeight.bold, fontFamily: 'Momo'))),
+              )),
+          ]),
         ),
         const SizedBox(width: 8),
-        // Bubble create button (took the notification icon's spot)
+        // Bubble create button
         GestureDetector(
           onTap: () { HapticFeedback.lightImpact(); _openCreateBubble(); },
           child: Container(width: 40, height: 40,
@@ -403,10 +372,6 @@ class _ChatListScreenState extends State<ChatListScreen>
   // The package wires itself to our existing TabController, so the rest of
   // the screen (TabBarView, swipe, badge updates) keeps working unchanged.
   Widget _buildTabBar() {
-    final requestsLabel = _totalRequests == 0
-        ? 'Requests'
-        : 'Requests ($_totalRequests)';
-
     return Container(
       // White surround so the segmented bar sits cleanly under the app bar.
       color: Colors.white,
@@ -466,22 +431,158 @@ class _ChatListScreenState extends State<ChatListScreen>
           splashColor: _kG2.withOpacity(0.10),
           splashHighlightColor: _kG2.withOpacity(0.06),
 
-          // The two segments. Per-tab overrides aren't needed because we
-          // already styled the bar/indicator above globally.
-          tabs: [
-            const SegmentTab(label: 'All Chats'),
-            SegmentTab(label: requestsLabel),
+          // Three segments — Inbox (direct chats), study buddies, bubbles.
+          tabs: const [
+            SegmentTab(label: 'Inbox'),
+            SegmentTab(label: 'Study Buddies'),
+            SegmentTab(label: 'Chat Bubbles'),
           ],
         ),
       ),
     );
   }
 
-  // ── Chats tab ─────────────────────────────────────────────
+  // ── Search field ──────────────────────────────────────────
+  Widget _buildSearchField() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: SizedBox(
+        height: 46,
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (v) =>
+              setState(() => _chatQuery = v.trim().toLowerCase()),
+          style: const TextStyle(
+            fontFamily: 'Momo',
+            fontSize: 14,
+            color: _kInk,
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade100,
 
-  Widget _buildChatsTab() {
-    if (_loadingChats) return const Center(child: CircularProgressIndicator(color: _kG2));
-    if (_chats.isEmpty) {
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              color: Colors.grey.shade500,
+              size: 20,
+            ),
+
+            suffixIcon: _chatQuery.isNotEmpty
+                ? IconButton(
+                    splashRadius: 18,
+                    icon: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: Colors.grey.shade500,
+                    ),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _chatQuery = '');
+                    },
+                  )
+                : null,
+
+            hintText: 'Search your chats…',
+            hintStyle: TextStyle(
+              fontFamily: 'Momo',
+              fontSize: 13,
+              color: Colors.grey.shade500,
+            ),
+
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: Colors.grey.shade200,
+              ),
+            ),
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: Colors.grey.shade200,
+              ),
+            ),
+
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: _kG2,
+                width: 1.2,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Chats list (filtered by tab type + search query) ──────
+
+  List<Map<String, dynamic>> _filteredChats(String filter) {
+    Iterable<Map<String, dynamic>> list = _chats;
+    if (filter == 'study_buddy') {
+      list = list.where((c) => (c['room_type'] as String?) == 'study_buddy');
+    } else if (filter == 'group') {
+      list = list.where((c) => (c['room_type'] as String?) == 'group');
+    } else if (filter == 'inbox') {
+      // Inbox = 1-on-1 direct chats only (i.e. accepted chat requests).
+      // Study-buddy and group/bubble chats have their own tabs and must
+      // never appear here.
+      list = list.where((c) => ((c['room_type'] as String?) ?? 'direct') == 'direct');
+    }
+    if (_chatQuery.isNotEmpty) {
+      list = list.where((c) {
+        final isGroup = (c['room_type'] as String?) == 'group';
+        final name = (isGroup
+                    ? (c['name'] as String?)
+                    : ((c['other_user'] as Map<String, dynamic>?)?['name']
+                        as String?))
+                ?.toLowerCase() ??
+            '';
+        final last = ((c['last_message'] as Map<String, dynamic>?)?['text']
+                    as String?)
+                ?.toLowerCase() ??
+            '';
+        return name.contains(_chatQuery) || last.contains(_chatQuery);
+      });
+    }
+    return list.toList();
+  }
+
+  Widget _buildChatsList(String filter) {
+    if (_loadingChats) {
+      return const Center(child: CircularProgressIndicator(color: _kG2));
+    }
+    final items = _filteredChats(filter);
+    if (items.isEmpty) {
+      final searching = _chatQuery.isNotEmpty;
+      final title = searching
+          ? 'No matches'
+          : filter == 'study_buddy'
+              ? 'No study buddy chats'
+              : filter == 'group'
+                  ? 'No chat bubbles yet'
+                  : 'No Messages Yet';
+      final sub = searching
+          ? 'Try a different name'
+          : filter == 'group'
+              ? 'Join or create a bubble to get started'
+              : filter == 'study_buddy'
+                  ? 'Pair up with a study buddy to chat'
+                  : 'Accepted chat requests show up here';
+      final icon = searching
+          ? Icons.search_off_rounded
+          : filter == 'group'
+              ? Icons.bubble_chart_outlined
+              : filter == 'study_buddy'
+                  ? Icons.menu_book_rounded
+                  : Icons.chat_bubble_outline_rounded;
       return RefreshIndicator(
         color: _kG2, onRefresh: _loadChats,
         child: ListView(
@@ -489,13 +590,14 @@ class _ChatListScreenState extends State<ChatListScreen>
           children: [
             const SizedBox(height: 100),
             Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.chat_bubble_outline_rounded, size: 52, color: Colors.grey.shade300),
+              Icon(icon, size: 52, color: Colors.grey.shade300),
               const SizedBox(height: 16),
-              const Text('No Messages Yet', style: TextStyle(fontFamily: 'Alfa',
+              Text(title, style: const TextStyle(fontFamily: 'Alfa',
                   fontSize: 20, color: _kInk)),
               const SizedBox(height: 8),
-              Text('Start a conversation!',
-                  style: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500)),
+              Text(sub, textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontFamily: 'Momo', color: Colors.grey.shade500)),
             ]),
           ],
         ),
@@ -507,8 +609,8 @@ class _ChatListScreenState extends State<ChatListScreen>
       child: ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        itemCount: _chats.length,
-        itemBuilder: (_, i) => _buildChatTile(_chats[i]),
+        itemCount: items.length,
+        itemBuilder: (_, i) => _buildChatTile(items[i]),
       ),
     );
   }
@@ -524,7 +626,12 @@ class _ChatListScreenState extends State<ChatListScreen>
     final name      = isGroup
         ? (c['name'] as String? ?? 'Group')
         : (other?['name'] as String? ?? 'Unknown');
-    final avatarUrl = isGroup ? null : other?['avatar_url'] as String?;
+    // For a chat bubble (group) the picture is the ROOM's own avatar, which
+    // RoomSerializer returns as the top-level `avatar_url`. For direct /
+    // study-buddy rooms it's the other person's avatar.
+    final avatarUrl = isGroup
+        ? (c['avatar_url'] as String?)
+        : (other?['avatar_url'] as String?);
     final isOnline  = isGroup ? false : (other?['is_online'] as bool? ?? false);
     final lastActiveIso = (other?['last_active_at'] as String?) ?? '';
     final unread    = c['unread_count'] as int? ?? 0;
@@ -580,7 +687,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         ));
         _loadChats();
       },
-      onLongPress: () => _showChatTileMenu(c),
+      onLongPress: () => _confirmDeleteChat(c),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -727,359 +834,10 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   // ── Requests tab (DM requests + bubble invites) ──────────
 
-  Widget _buildRequestsTab() {
-    if (_loadingRequests) return const Center(child: CircularProgressIndicator(color: _kG2));
-    if (_requests.isEmpty && _outgoingRequests.isEmpty && _bubbleInvites.isEmpty) {
-      return RefreshIndicator(
-        color: _kG2, onRefresh: _loadRequestsAndInvites,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 100),
-            Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.mail_outline_rounded, size: 52, color: Colors.grey.shade300),
-              const SizedBox(height: 16),
-              const Text('No Pending Requests', style: TextStyle(fontFamily: 'Alfa',
-                  fontSize: 20, color: _kInk)),
-              const SizedBox(height: 8),
-              Text('Chat requests and bubble invites will appear here',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500)),
-            ]),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      color: _kG2, onRefresh: _loadRequestsAndInvites,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        children: [
-          if (_bubbleInvites.isNotEmpty) ...[
-            _sectionHeader('Bubble invites', _bubbleInvites.length),
-            const SizedBox(height: 8),
-            for (var i = 0; i < _bubbleInvites.length; i++)
-              _buildBubbleInviteCard(_bubbleInvites[i], i),
-            const SizedBox(height: 8),
-          ],
-          if (_requests.isNotEmpty) ...[
-            _sectionHeader('Chat requests', _requests.length),
-            const SizedBox(height: 8),
-            for (var i = 0; i < _requests.length; i++)
-              _buildChatRequestCard(_requests[i], i),
-          ],
-
-          if (_outgoingRequests.isNotEmpty) ...[
-            _sectionHeader('Sent requests', _outgoingRequests.length),
-            for (var i = 0; i < _outgoingRequests.length; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Colors.grey.shade200,
-                      backgroundImage: (((_outgoingRequests[i]['receiver_avatar'] as String?) ?? '').isNotEmpty)
-                          ? NetworkImage(_outgoingRequests[i]['receiver_avatar'] as String)
-                          : null,
-                      child: (((_outgoingRequests[i]['receiver_avatar'] as String?) ?? '').isEmpty)
-                          ? Text(
-                              ((_outgoingRequests[i]['receiver_name'] as String? ?? '?').isNotEmpty
-                                  ? (_outgoingRequests[i]['receiver_name'] as String)[0].toUpperCase()
-                                  : '?'),
-                              style: const TextStyle(fontFamily: 'Alfa', fontSize: 18))
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _outgoingRequests[i]['receiver_name'] as String? ?? 'Unknown',
-                          style: const TextStyle(fontFamily: 'Alfa', fontSize: 14)),
-                        const SizedBox(height: 2),
-                        Text('Awaiting response',
-                          style: TextStyle(
-                            fontFamily: 'Momo', fontSize: 12,
-                            color: Colors.grey.shade600)),
-                      ],
-                    )),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3CD),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text('Pending',
-                        style: TextStyle(
-                          fontFamily: 'Momo', fontSize: 11,
-                          color: Color(0xFF856404),
-                          fontWeight: FontWeight.w700)),
-                    ),
-                  ]),
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String label, int count) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-    child: Row(children: [
-      Text(label.toUpperCase(),
-          style: TextStyle(fontFamily: 'Arch', fontSize: 11,
-              fontWeight: FontWeight.bold, color: Colors.grey.shade500,
-              letterSpacing: 0.6)),
-      const SizedBox(width: 6),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        decoration: BoxDecoration(
-            color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-        child: Text('$count', style: const TextStyle(fontFamily: 'Momo',
-            fontSize: 10, fontWeight: FontWeight.bold, color: _kInk)),
-      ),
-    ]),
-  );
-
-  Widget _buildBubbleInviteCard(Map<String, dynamic> r, int index) {
-    final reqId        = r['id']            as String? ?? '';
-    final inviter      = r['inviter_name']  as String? ?? r['inviter']?['name']?.toString() ?? 'Someone';
-    final bubbleName   = r['room_name']     as String? ?? r['room']?['name']?.toString()    ?? 'Bubble';
-    final bubbleAbout  = r['room_about']    as String? ?? r['room']?['about']?.toString()   ?? '';
-    final isPublic     = (r['room_is_public'] as bool?)
-                       ?? (r['room']?['is_public'] as bool?) ?? false;
-    final memberCount  = (r['room_member_count'] as int?)
-                       ?? (r['room']?['member_count'] as int?) ?? 0;
-    final message      = r['message']       as String? ?? '';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kG4.withOpacity(0.3)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-            blurRadius: 10, offset: const Offset(0, 3))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 52, height: 52,
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_kG3, _kG4]),
-                borderRadius: BorderRadius.circular(14)),
-            child: const Icon(Icons.bubble_chart_rounded,
-                color: Colors.white, size: 26)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(bubbleName, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 15, color: _kInk)),
-            const SizedBox(height: 3),
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              _miniTag(isPublic ? 'Public' : 'Private',
-                  isPublic ? _kG1 : _kG2),
-              if (memberCount > 0)
-                Text('· $memberCount member${memberCount == 1 ? '' : 's'}',
-                    style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                        color: Colors.grey.shade500)),
-            ]),
-          ])),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: _kG4.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6)),
-            child: const Text('Bubble', style: TextStyle(fontFamily: 'Momo',
-                fontSize: 10, fontWeight: FontWeight.bold, color: _kG4))),
-        ]),
-        const SizedBox(height: 10),
-        Text('$inviter invited you to join.',
-            style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                color: Colors.grey.shade700)),
-        if (bubbleAbout.isNotEmpty || message.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10)),
-            child: Text(message.isNotEmpty ? message : bubbleAbout,
-                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    color: Colors.grey.shade700, height: 1.4))),
-        ],
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: GestureDetector(
-            onTap: () => _declineBubbleInvite(reqId, index),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300)),
-              child: const Center(child: Text('Decline', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)))),
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: GestureDetector(
-            onTap: () => _acceptBubbleInvite(reqId, index),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kG3, _kG4]),
-                  borderRadius: BorderRadius.circular(12)),
-              child: const Center(child: Text('Join', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)))),
-          )),
-        ]),
-      ]),
-    );
-  }
-
-  Widget _buildChatRequestCard(Map<String, dynamic> r, int i) {
-    final reqId     = r['id'] as String? ?? '';
-    final name      = r['sender_name']   as String? ?? 'Unknown';
-    final role      = r['sender_role']   as String? ?? '';
-    final avatarUrl = r['sender_avatar'] as String? ?? '';
-    final message   = r['message']       as String? ?? '';
-    final initial   = name.isNotEmpty ? name[0].toUpperCase() : '?';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kG3.withOpacity(0.3)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-              blurRadius: 10, offset: const Offset(0, 3))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 48, height: 48,
-            decoration: BoxDecoration(shape: BoxShape.circle,
-              gradient: const LinearGradient(colors: [_kG3, _kG4]),
-              image: avatarUrl.isNotEmpty
-                  ? DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover) : null),
-            child: avatarUrl.isEmpty ? Center(child: Text(initial, style: const TextStyle(
-                color: Colors.white, fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 20))) : null),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                fontSize: 15, color: _kInk)),
-            Text(role, style: TextStyle(fontFamily: 'Momo',
-                fontSize: 12, color: Colors.grey.shade500)),
-          ])),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: _kG3.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6)),
-            child: const Text('Chat Request', style: TextStyle(fontFamily: 'Momo',
-                fontSize: 10, fontWeight: FontWeight.bold, color: _kG3))),
-        ]),
-        if (message.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10)),
-            child: Text(message, style: TextStyle(fontFamily: 'Momo',
-                fontSize: 13, color: Colors.grey.shade700, height: 1.4))),
-        ],
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: GestureDetector(
-            onTap: () => _declineRequest(reqId, i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300)),
-              child: const Center(child: Text('Decline', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)))),
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: GestureDetector(
-            onTap: () => _acceptRequest(reqId, i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_kG1, _kG2]),
-                borderRadius: BorderRadius.circular(12)),
-              child: const Center(child: Text('Accept', style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)))),
-          )),
-        ]),
-      ]),
-    );
-  }
 
   // ══════════════════════════════════════════════════════════
   // Long-press delete (chat tile menu)
   // ══════════════════════════════════════════════════════════
-
-  void _showChatTileMenu(Map<String, dynamic> c) {
-    HapticFeedback.mediumImpact();
-    final isGroup = c['room_type'] == 'group';
-    final name = isGroup
-        ? (c['name'] as String? ?? 'Chat')
-        : ((c['other_user'] as Map?)?['name'] as String? ?? 'Chat');
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(name,
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Arch',
-                  fontSize: 16, fontWeight: FontWeight.bold, color: _kInk,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: _kG4),
-              title: const Text('Delete chat',
-                style: TextStyle(
-                  fontFamily: 'Momo', fontSize: 14, color: _kG4,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmDeleteChat(c);
-              },
-            ),
-            const SizedBox(height: 8),
-          ]),
-        ),
-      ),
-    );
-  }
 
   Future<void> _confirmDeleteChat(Map<String, dynamic> c) async {
     final isGroup = c['room_type'] == 'group';
@@ -1148,19 +906,15 @@ class _ChatListScreenState extends State<ChatListScreen>
   // Navigation
   // ══════════════════════════════════════════════════════════
 
-  Future<void> _openSearch() async {
-    final result = await Navigator.of(context).push<Map<String, dynamic>>(
-        MaterialPageRoute(builder: (_) => const ChatSearchScreen()));
-    if (result != null && result['action'] == 'open_room') {
-      final roomId   = result['room_id']   as String? ?? '';
-      final userName = result['user_name'] as String? ?? 'Chat';
-      if (!mounted) return;
-      await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ChatRoomScreen(
-            roomId: roomId, roomName: userName, userName: 'You'),
-      ));
-      _loadChats();
-    }
+  Future<void> _openRequests() async {
+    HapticFeedback.lightImpact();
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const ChatRequestsScreen(),
+    ));
+    // Coming back: refresh the badge and chats (a request may have become
+    // a room).
+    _loadRequestsAndInvites();
+    _loadChats();
   }
 
   Future<void> _openCreateBubble() async {

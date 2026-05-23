@@ -1,5 +1,11 @@
 // lib/screens/chat/chat_audio_recorder.dart
-// CLEAN STABLE VERSION - NO LAYOUT CRASHES
+//
+// Compact recorder: TAP to start, the button pulsates and shows a STOP icon
+// while recording, TAP again to stop + send. No expanding bar (so it can't
+// crush the text field). Sage themed.
+//
+// New: optional onRecordingChanged(bool) so the chat room can broadcast a
+// "recording…" status to the peer (wire it to a WS event when ready).
 
 import 'dart:async';
 import 'dart:io';
@@ -10,6 +16,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
+const _kSageDk = Color(0xFF6E8159);
+
 class AudioRecording {
   final String filePath;
   final int durationSeconds;
@@ -19,30 +27,51 @@ class AudioRecording {
 class ChatAudioRecorderButton extends StatefulWidget {
   final void Function(AudioRecording recording) onRecorded;
   final VoidCallback? onTooShort;
+  final void Function(bool recording)? onRecordingChanged;
 
   const ChatAudioRecorderButton({
     super.key,
     required this.onRecorded,
     this.onTooShort,
+    this.onRecordingChanged,
   });
 
   @override
   State<ChatAudioRecorderButton> createState() => _ChatAudioRecorderButtonState();
 }
 
-class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton> {
+class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton>
+    with SingleTickerProviderStateMixin {
   final _recorder = AudioRecorder();
   Timer? _timer;
+  late final AnimationController _pulse;
 
   bool _isRecording = false;
   int _seconds = 0;
   String? _filePath;
 
   @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 850))
+      ..repeat(reverse: true);
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
+    _pulse.dispose();
     _recorder.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    if (_isRecording) {
+      await _stopRecording();
+    } else {
+      await _startRecording();
+    }
   }
 
   Future<void> _startRecording() async {
@@ -54,18 +83,21 @@ class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton> {
 
     try {
       final tempDir = await getTemporaryDirectory();
-      final path = '${tempDir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${tempDir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.aacLc),
         path: path,
       );
 
+      HapticFeedback.lightImpact();
       setState(() {
         _isRecording = true;
         _seconds = 0;
         _filePath = path;
       });
+      widget.onRecordingChanged?.call(true);
 
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() => _seconds++);
@@ -87,12 +119,16 @@ class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton> {
 
     if (!mounted) return;
     setState(() => _isRecording = false);
+    widget.onRecordingChanged?.call(false);
+    HapticFeedback.lightImpact();
 
     if (path != null && duration >= 1) {
       widget.onRecorded(AudioRecording(filePath: path, durationSeconds: duration));
     } else if (path != null) {
       widget.onTooShort?.call();
-      try { File(path).delete(); } catch (_) {}
+      try {
+        File(path).delete();
+      } catch (_) {}
     }
   }
 
@@ -106,60 +142,48 @@ class _ChatAudioRecorderButtonState extends State<ChatAudioRecorderButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isRecording) {
-      return _buildRecordingUI();
+    if (!_isRecording) {
+      // Idle — sage mic.
+      return GestureDetector(
+        onTap: _toggle,
+        child: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: _kSageDk.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.mic_rounded, color: _kSageDk, size: 24),
+        ),
+      );
     }
 
+    // Recording — pulsating sage button with a STOP icon. Tap to stop + send.
     return GestureDetector(
-      onLongPress: _startRecording,
-      onLongPressEnd: (_) => _stopRecording(),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.purple.shade50,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.mic_rounded, color: Colors.purple, size: 24),
-      ),
-    );
-  }
-
-  Widget _buildRecordingUI() {
-    return Container(
-      width: 260,
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)]),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.mic_rounded, color: Colors.white, size: 26),
-          const SizedBox(width: 12),
-          Text(
-            _formatDuration(_seconds),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _stopRecording,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.stop_rounded, color: Color(0xFF7C3AED), size: 24),
+      onTap: _toggle,
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (_, child) {
+          final t = _pulse.value; // 0..1
+          return Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _kSageDk,
+              boxShadow: [
+                BoxShadow(
+                  color: _kSageDk.withOpacity(0.20 + 0.30 * t),
+                  blurRadius: 6 + 12 * t,
+                  spreadRadius: 1 + 5 * t,
+                ),
+              ],
             ),
-          ),
-        ],
+            child: child,
+          );
+        },
+        child: const Icon(Icons.stop_rounded, color: Colors.white, size: 24),
       ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final min = (seconds ~/ 60).toString().padLeft(2, '0');
-    final sec = (seconds % 60).toString().padLeft(2, '0');
-    return '$min:$sec';
   }
 }

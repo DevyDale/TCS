@@ -686,6 +686,20 @@ Future<dynamic> delete(String path,
     required File   file,
     required String mimeType,
   }) => _upload('/chat/upload/', {'room_id': roomId}, 'file', file, mimeType);
+
+  /// Upload a Chat Bubble's profile picture. Call AFTER createBubble()
+  /// since the room must already exist. Routes through uploadFile() so
+  /// auth + MIME formatting match every other Cloudinary upload.
+  Future<dynamic> uploadBubbleAvatar(String roomId, File file) {
+    final ext = file.path.split('.').last.toLowerCase();
+    final mime = switch (ext) {
+      'png'  => 'image/png',
+      'webp' => 'image/webp',
+      _      => 'image/jpeg',
+    };
+    return uploadFile('/chat/rooms/$roomId/avatar/',
+        filePath: file.path, field: 'avatar', mimeType: mime);
+  }
   Future<dynamic> searchGifs(String query, {int limit = 20}) =>
       get('/chat/gifs/search/', query: {'q': query, 'limit': '$limit'});
   Future<dynamic> getTrendingGifs({int limit = 16}) =>
