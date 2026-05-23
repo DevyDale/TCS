@@ -961,3 +961,25 @@ def gif_trending(request):
 def sticker_packs(request):
     packs = StickerPack.objects.prefetch_related("stickers").all()
     return Response(StickerPackSerializer(packs, many=True, context={"request": request}).data)
+
+# - Bubble (group) avatar -------------------------------------
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def upload_bubble_avatar(request, room_id):
+    """POST /api/chat/rooms/<room_id>/avatar/ - set a bubble's picture."""
+    file = request.FILES.get("avatar")
+    if not file:
+        return Response({"error": "No file provided."}, status=400)
+    try:
+        room = Room.objects.get(id=room_id, members=request.user)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found."}, status=404)
+    if room.created_by_id != request.user.id and \
+       not room.admins.filter(id=request.user.id).exists():
+        return Response({"error": "Only an admin can change the picture."}, status=403)
+
+    room.avatar = file
+    room.save(update_fields=["avatar"])
+    url = request.build_absolute_uri(room.avatar.url) if room.avatar else None
+    return Response({"avatar_url": url})

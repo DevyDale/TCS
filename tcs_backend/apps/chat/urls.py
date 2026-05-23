@@ -8,6 +8,7 @@ urlpatterns = [
     path("rooms/<uuid:room_id>/",                 views.RoomDetailView.as_view(),      name="room-detail"),
     path("rooms/<uuid:room_id>/messages/",        views.message_history,               name="msg-history"),
     path("rooms/<uuid:room_id>/read/",            views.mark_room_read,                name="mark-read"),
+    path("rooms/<uuid:room_id>/avatar/", views.upload_bubble_avatar, name="bubble-avatar"),
     path("recent/",                               views.recent_chats,                  name="recent-chats"),
 
     # DMs
