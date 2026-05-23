@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:tcs_app/widgets/uploading_delay.dart';
 import '../../services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -29,9 +30,12 @@ class _GroupScreenState extends State<GroupScreen>
   final Set<String> _myIds   = <String>{};
   final Set<String> _myNames = <String>{};   // lowercase, trimmed
   bool _isCreator = false;
+  String? _myDisplayName;   // proper-case name for labelling our own messages
 
   final _msgCtrl = TextEditingController();
   final _addCtrl = TextEditingController();
+  final _memberSearchCtrl = TextEditingController();
+  String _memberQuery = '';
 
   List<Map<String, dynamic>> _messages   = [];
   List<Map<String, dynamic>> _members    = [];
@@ -93,6 +97,12 @@ class _GroupScreenState extends State<GroupScreen>
     for (final k in nameKeys) {
       final v = (me[k] as String?)?.trim().toLowerCase();
       if (v != null && v.isNotEmpty) _myNames.add(v);
+    }
+
+    // Proper-case display name (first non-empty) for our own message labels
+    for (final k in nameKeys) {
+      final v = (me[k] as String?)?.trim();
+      if (v != null && v.isNotEmpty) { _myDisplayName = v; break; }
     }
 
     if (mounted) setState(() {});
@@ -181,6 +191,7 @@ class _GroupScreenState extends State<GroupScreen>
     _tabCtrl.dispose();
     _msgCtrl.dispose();
     _addCtrl.dispose();
+    _memberSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -265,6 +276,8 @@ class _GroupScreenState extends State<GroupScreen>
         created['content'] = text;
       }
       created['is_me'] = true; // we just sent it, force alignment right
+      // Make sure our own name renders even before a reload.
+      created['author_name'] ??= _myDisplayName;
 
       setState(() {
         _messages.insert(0, created);
@@ -382,7 +395,6 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   // ── Upload photo / video ──────────────────────────────────
-
   Future<void> _uploadMedia() async {
     final action = await _showMediaPickerSheet();
     if (action == null) return;
@@ -421,9 +433,11 @@ class _GroupScreenState extends State<GroupScreen>
         ? 'video/$ext'
         : (ext == 'png' ? 'image/png'
            : ext == 'gif' ? 'image/gif' : 'image/jpeg');
+    final fileName = path.split('/').last;
 
+    showUploadingDialog(context,
+        message: 'Uploading ${isVideo ? 'video' : 'photo'}…');
     try {
-      final fileName = path.split('/').last;
       final result = await _api.uploadFile(
         '/groups/$_groupId/materials/',
         filePath:    path,
@@ -441,9 +455,10 @@ class _GroupScreenState extends State<GroupScreen>
       }
     } catch (e) {
       _snack('Upload failed: $e');
+    } finally {
+      if (mounted) dismissUploadingDialog(context);
     }
   }
-
   Future<String?> _showMediaPickerSheet() {
     return showModalBottomSheet<String>(
       context: context,
@@ -485,7 +500,6 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   // ── Upload document ───────────────────────────────────────
-
   Future<void> _uploadDocument() async {
     final cat = await _showDocPickerSheet();
     if (cat == null) return;
@@ -522,6 +536,7 @@ class _GroupScreenState extends State<GroupScreen>
     else if (ext == 'txt')                     mime = 'text/plain';
     else if (ext == 'csv')                     mime = 'text/csv';
 
+    showUploadingDialog(context, message: 'Uploading document…');
     try {
       final result = await _api.uploadFile(
         '/groups/$_groupId/materials/',
@@ -540,9 +555,10 @@ class _GroupScreenState extends State<GroupScreen>
       }
     } catch (e) {
       _snack('Upload failed: $e');
+    } finally {
+      if (mounted) dismissUploadingDialog(context);
     }
   }
-
   Future<String?> _showDocPickerSheet() {
     return showModalBottomSheet<String>(
       context: context,
@@ -1081,6 +1097,8 @@ class _GroupScreenState extends State<GroupScreen>
     );
   }
 
+  // Each message: shows the sender's name + time, swipe right to reply,
+  // long-press for the reply / copy menu.
   Widget _buildMessageBubble(Map<String, dynamic> m, bool isMe) {
     final reply = m['reply_to'] as Map?;
 
@@ -1090,75 +1108,122 @@ class _GroupScreenState extends State<GroupScreen>
       if (breakIdx > 0) content = content.substring(breakIdx + 2);
     }
 
-    return GestureDetector(
+    // Sender label — shown on EVERY message, both sides.
+    final rawName = (m['author_name'] as String?)?.trim();
+    final senderName = isMe
+        ? ((rawName != null && rawName.isNotEmpty)
+            ? rawName
+            : (_myDisplayName ?? 'You'))
+        : ((rawName != null && rawName.isNotEmpty) ? rawName : 'Unknown');
+
+    final bubble = GestureDetector(
       onLongPress: () => _showMessageActions(m),
       child: Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: EdgeInsets.only(
-            bottom: 12,
-            left:  isMe ? 64 : 0,
-            right: isMe ? 0  : 64,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isMe ? _indigo : Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft:     const Radius.circular(16),
-              topRight:    const Radius.circular(16),
-              bottomLeft:  Radius.circular(isMe ? 16 : 4),
-              bottomRight: Radius.circular(isMe ? 4  : 16),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+        child: Column(
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // Sender name — OUTSIDE the bubble, on top, in black
+            Padding(
+              padding: EdgeInsets.only(
+                left:   isMe ? 0 : 4,
+                right:  isMe ? 4 : 0,
+                bottom: 3,
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment:
-                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              if (!isMe)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    m['author_name'] as String? ?? 'Unknown',
-                    style: const TextStyle(
-                      fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: _indigo,
+              child: Text(
+                senderName,
+                style: const TextStyle(
+                  fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+
+            // The message bubble itself
+            Container(
+              margin: EdgeInsets.only(
+                bottom: 12,
+                left:  isMe ? 64 : 0,
+                right: isMe ? 0  : 64,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isMe ? _indigo : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft:     const Radius.circular(16),
+                  topRight:    const Radius.circular(16),
+                  bottomLeft:  Radius.circular(isMe ? 16 : 4),
+                  bottomRight: Radius.circular(isMe ? 4  : 16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  if (reply != null) _buildQuotedBlock(reply, isMe),
+                  Text(
+                    content,
+                    style: TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 15,
+                      height: 1.4,
+                      color: isMe ? Colors.white : const Color(0xFF1A1A2E),
                     ),
                   ),
-                ),
-              if (reply != null) _buildQuotedBlock(reply, isMe),
-              Text(
-                content,
-                style: TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 15,
-                  height: 1.4,
-                  color: isMe ? Colors.white : const Color(0xFF1A1A2E),
-                ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _timeAgo(m['created_at'] as String? ?? ''),
+                    style: TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: 10,
+                      color: isMe
+                          ? Colors.white.withOpacity(0.85)
+                          : Colors.grey.shade400,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                _timeAgo(m['created_at'] as String? ?? ''),
-                style: TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 10,
-                  color: isMe
-                      ? Colors.white.withOpacity(0.85)
-                      : Colors.grey.shade400,
-                ),
-              ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Swipe a message to the right to reply to it directly. confirmDismiss
+    // returns false so the bubble snaps back instead of being dismissed.
+    return Dismissible(
+      key: ValueKey('msg_${m['id'] ?? identityHashCode(m)}'),
+      direction: DismissDirection.startToEnd,
+      dismissThresholds: const {DismissDirection.startToEnd: 0.22},
+      confirmDismiss: (_) async {
+        HapticFeedback.lightImpact();
+        setState(() => _replyingTo = m);
+        return false;
+      },
+      background: Padding(
+        padding: const EdgeInsets.only(left: 6, bottom: 12),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: _indigo.withOpacity(0.12),
+              shape: BoxShape.circle),
+            child: const Icon(Icons.reply_rounded, color: _indigo, size: 20),
           ),
         ),
       ),
+      child: bubble,
     );
   }
 
@@ -1251,7 +1316,50 @@ class _GroupScreenState extends State<GroupScreen>
   // ── Members tab ───────────────────────────────────────────
 
   Widget _buildMembersTab() {
+    // Filter the current group's members by the search query (name or role).
+    final q = _memberQuery.trim().toLowerCase();
+    final visibleMembers = q.isEmpty
+        ? _members
+        : _members.where((m) {
+            final name = (m['name'] as String? ?? '').toLowerCase();
+            final role = (m['role'] as String? ?? '').toLowerCase();
+            return name.contains(q) || role.contains(q);
+          }).toList();
+
     return Column(children: [
+      // Search through the members of this group
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200)),
+          child: TextField(
+            controller: _memberSearchCtrl,
+            enableSuggestions: false,
+            autocorrect: false,
+            onChanged: (v) => setState(() => _memberQuery = v),
+            style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Search members...',
+              hintStyle: TextStyle(
+                  fontFamily: 'Momo', color: Colors.grey.shade400),
+              prefixIcon: const Icon(Icons.search_rounded, color: _indigo),
+              suffixIcon: _memberQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18),
+                      color: Colors.grey,
+                      onPressed: () {
+                        _memberSearchCtrl.clear();
+                        setState(() => _memberQuery = '');
+                      }),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14)),
+          ),
+        ),
+      ),
       if (_isAdmin) ...[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
@@ -1336,17 +1444,18 @@ class _GroupScreenState extends State<GroupScreen>
           ),
       ],
       Expanded(
-        child: _members.isEmpty
+        child: visibleMembers.isEmpty
             ? Center(
-                child: Text('No members yet',
+                child: Text(
+                    q.isEmpty ? 'No members yet' : 'No members match',
                     style: TextStyle(
                         fontFamily: 'Momo',
                         color: Colors.grey.shade400)))
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                itemCount: _members.length,
+                itemCount: visibleMembers.length,
                 itemBuilder: (_, i) {
-                  final m       = _members[i];
+                  final m       = visibleMembers[i];
                   final name    = m['name'] as String? ?? '';
                   final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
                   final isAdm   = m['is_admin'] as bool? ?? false;

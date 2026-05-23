@@ -30,6 +30,9 @@ import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
 import '../../highlight_story_viewer.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
+import '../profile/createpostspage.dart';
+import '../profile/fweetspage.dart';
+import '../profile/create_highlight_page.dart';
 import '../dashboard/suggestion_box_screen.dart';
 import '../dashboard/full_screen_video_player.dart';
 import '../dashboard/other_user_profile_Screen.dart';
@@ -446,6 +449,136 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  // ── Quick-create dialog (orange + button in the header) ──────
+  void _showQuickCreateSheet() {
+    HapticFeedback.mediumImpact();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.45),
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 36),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                    color: _kAmber.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.add_rounded,
+                    color: _kAmber, size: 22)),
+              const SizedBox(width: 12),
+              const Expanded(
+                  child: Text('Create',
+                      style: TextStyle(
+                          fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
+              GestureDetector(
+                  onTap: () => Navigator.of(dialogCtx).pop(),
+                  child: const Icon(Icons.close_rounded,
+                      color: _kSlate, size: 22)),
+            ]),
+            const SizedBox(height: 18),
+            _quickCreateOption(dialogCtx,
+                icon: Icons.edit_note_rounded,
+                gradient: const [_kViolet, _kBlue],
+                title: 'Make a Post',
+                subtitle: 'Share an update with campus',
+                onTap: _quickMakePost),
+            const SizedBox(height: 10),
+            _quickCreateOption(dialogCtx,
+                icon: Icons.bolt_rounded,
+                gradient: const [_kCoral, _kAmber],
+                title: 'Make a Fweet',
+                subtitle: 'A quick thought, your way',
+                onTap: _quickMakeFweet),
+            const SizedBox(height: 10),
+            _quickCreateOption(dialogCtx,
+                icon: Icons.auto_awesome_rounded,
+                gradient: const [_kG1, _kViolet],
+                title: 'Add a Highlight',
+                subtitle: 'Post a story to your highlights',
+                onTap: _quickAddHighlight),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _quickCreateOption(
+    BuildContext dialogCtx, {
+    required IconData icon,
+    required List<Color> gradient,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(dialogCtx).pop();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(children: [
+          Container(
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(13)),
+              child: Icon(icon, color: Colors.white, size: 24)),
+          const SizedBox(width: 14),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: _kInk)),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontFamily: 'Momo', fontSize: 11.5, color: _kSlate)),
+              ])),
+          const Icon(Icons.chevron_right_rounded, color: _kSlate, size: 22),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _quickMakePost() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreatePostPage()));
+    if (mounted) _loadFeed(refresh: true);
+  }
+
+  Future<void> _quickMakeFweet() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreateFweetPage()));
+    if (mounted) _loadFeed(refresh: true);
+  }
+
+  Future<void> _quickAddHighlight() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreateHighlightPage()));
+    if (mounted) _loadStoryHighlights();
+  }
+
   String get _greeting {
     final h = DateTime.now().hour;
     if (h < 12) return '🤓Good morning';
@@ -785,32 +918,26 @@ class _FeedScreenState extends State<FeedScreen>
 
         Row(
           children: [
+            // Orange add button — opens the quick-create dialog.
             GestureDetector(
-              onTap: _onHeaderRefreshTap,
+              onTap: _showQuickCreateSheet,
               child: Container(
-                padding: const EdgeInsets.all(1.5),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_kViolet, _kBlue],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: _kAmber,
                   borderRadius: BorderRadius.circular(12),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _kBg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: RotationTransition(
-                    turns: _refreshSpinCtrl,
-                    child: const Icon(
-                      Icons.refresh_rounded,
-                      size: 20,
-                      color: _kViolet,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kAmber.withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  size: 20,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -865,6 +992,39 @@ class _FeedScreenState extends State<FeedScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // Refresh moved to the end of the row.
+            GestureDetector(
+              onTap: _onHeaderRefreshTap,
+              child: Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_kViolet, _kBlue],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: RotationTransition(
+                    turns: _refreshSpinCtrl,
+                    child: const Icon(
+                      Icons.refresh_rounded,
+                      size: 20,
+                      color: _kViolet,
                     ),
                   ),
                 ),

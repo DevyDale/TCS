@@ -7,18 +7,25 @@
 // on every card surface. ONE shared AnimationController drives every
 // border via AnimatedBuilder + child param.
 //
-// Sizing calibrated for comfortable mobile readability:
-//   • Body text 13–14pt, captions 11–12pt, titles 18–20pt
-//   • Touch targets 40–44px, icons 16–22px
-//   • Card aspect 0.78 with consistent 12px gutter
+// The All / Subject / Group / Date tab row has been removed — the page
+// now shows a single flat grid of everything, still filterable by the
+// file-type chips and the search bar.
+//
+// Upload button (in the FAB stack) lets the user pick a document
+// straight from their phone and push it into the library (and quiz on
+// it). It posts a multipart file to /chat/saved/upload/ — that backend
+// endpoint must store the file (Cloudinary) and create a SavedMaterial
+// so the quiz engine can read it.
 
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/screens/ai/quiz_generator_Screen.dart';
 import 'package:tcs_app/screens/ai/saved_quizzes_screen.dart';
+import 'package:tcs_app/widgets/uploading_delay.dart';
 import '../../../services/api_service.dart';
 
 
@@ -54,8 +61,6 @@ const _kTypeColors = {
   'other': Color(0xFF64748B),
 };
 
-enum _LibTab { all, subject, group, date }
-
 // ─────────────────────────────────────────────────────────────
 class SavedMaterialsScreen extends StatefulWidget {
   const SavedMaterialsScreen({super.key});
@@ -78,7 +83,6 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
 
   bool     _loading      = true;
   String   _typeFilter   = 'All';
-  _LibTab  _tab          = _LibTab.all;
 
   static const _typeFilters = ['All', 'PDF', 'Doc', 'Audio', 'Image', 'Video', 'Other'];
 
@@ -188,6 +192,67 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
     )).then((_) => _load());
   }
 
+  // ─── Upload a document straight from the phone into the library ──
+  //
+  // Posts a multipart file to /chat/saved/upload/. That endpoint must
+  // store the file (Cloudinary) and create a SavedMaterial so it shows
+  // up here and can be quizzed. Until the endpoint exists this will
+  // surface "Upload failed".
+  Future<void> _uploadToLibrary() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const [
+        'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv',
+      ],
+      allowMultiple: false,
+      withData: false,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final pf = picked.files.first;
+    if (pf.path == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not read that file.')));
+      }
+      return;
+    }
+
+    final ext = (pf.extension ?? '').toLowerCase();
+    String mime = 'application/octet-stream';
+    if (ext == 'pdf')                       mime = 'application/pdf';
+    else if (ext == 'doc' || ext == 'docx') mime = 'application/msword';
+    else if (ext == 'ppt' || ext == 'pptx') mime = 'application/vnd.ms-powerpoint';
+    else if (ext == 'xls' || ext == 'xlsx') mime = 'application/vnd.ms-excel';
+    else if (ext == 'txt')                  mime = 'text/plain';
+    else if (ext == 'csv')                  mime = 'text/csv';
+
+    if (!mounted) return;
+    showUploadingDialog(context, message: 'Uploading to your library…');
+    try {
+      final result = await _api.uploadFile(
+        '/chat/saved/upload/',            // ← NEW backend endpoint (still to build)
+        filePath:    pf.path!,
+        field:       'file',
+        mimeType:    mime,
+        extraFields: {'title': pf.name, 'source_type': 'manual'},
+      );
+      if (result != null) {
+        await _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Added to your library ✓')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Upload failed: $e')));
+      }
+    } finally {
+      if (mounted) dismissUploadingDialog(context);
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // BUILD
   // ═══════════════════════════════════════════════════════════
@@ -210,7 +275,6 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             opacity: _fadeAnim,
             child: Column(children: [
               _buildHeader(),
-              _buildTabRow(),
               _buildTypeFilterRow(),
               Expanded(
                 child: _loading
@@ -218,7 +282,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                         color: _kInkSoft, strokeWidth: 2.5))
                     : _filtered.isEmpty
                         ? _buildEmpty()
-                        : _buildContent(),
+                        : _buildFlatGrid(),
               ),
             ]),
           ),
@@ -232,6 +296,24 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 4, right: 4),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // Upload document — gradient-bordered icon button
+        _GradientBorderCard(
+          animation:   _shimmerCtrl,
+          radius:      16,
+          borderWidth: 1.4,
+          innerColor:  _kCard,
+          padding:     const EdgeInsets.all(12),
+          child: Tooltip(
+            message: 'Upload a document',
+            child: GestureDetector(
+              onTap: _uploadToLibrary,
+              child: const Icon(Icons.upload_file_rounded,
+                  color: _kInkSoft, size: 22),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+
         // My quizzes — gradient-bordered icon button
         _GradientBorderCard(
           animation:   _shimmerCtrl,
@@ -288,7 +370,8 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
       ]),
     );
   }
-// ─── Header ──────────────────────────────────────────────
+
+  // ─── Header ──────────────────────────────────────────────
   Widget _buildHeader() {
     final rounded = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
@@ -423,102 +506,51 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
       ]),
     );
   }
-  // ─── Tab row ────────────────────────────────────────────
-  Widget _buildTabRow() {
-    Widget tab(_LibTab t, IconData icon, String label) {
-      final selected = _tab == t;
-      final inner = AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(11),
-          border: selected ? null : Border.all(color: _kBorder),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 16, color: selected ? _kInk : _kSlate),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.1,
-                  color: selected ? _kInk : _kSlate)),
-        ]),
-      );
 
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() => _tab = t),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: selected
-                ? _GradientBorderCard(
-                    animation:   _shimmerCtrl,
-                    radius:      12,
-                    borderWidth: 1.4,
-                    innerColor:  _kCard,
-                    child:       inner)
-                : inner,
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: Row(children: [
-        tab(_LibTab.all,     Icons.grid_view_rounded,     'All'),
-        tab(_LibTab.subject, Icons.subject_rounded,       'Subject'),
-        tab(_LibTab.group,   Icons.groups_2_rounded,      'Group'),
-        tab(_LibTab.date,    Icons.calendar_today_rounded,'Date'),
-      ]),
+  // ─── File-type filter chips ─────────────────────────────
+  Widget _buildTypeFilterRow() {
+    return SizedBox(
+      height: 65,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+        itemCount: _typeFilters.length,
+        itemBuilder: (_, i) {
+          final f = _typeFilters[i];
+          final selected = f == _typeFilter;
+          final inner = AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+            decoration: BoxDecoration(
+              color: _kCard,
+              borderRadius: BorderRadius.circular(18),
+              border: selected ? null : Border.all(color: _kBorder),
+            ),
+            child: Center(child: Text(f,
+                style: TextStyle(fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.1,
+                    color: selected ? _kInk : _kSlate))),
+          );
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: () { setState(() => _typeFilter = f); _filter(); },
+              child: selected
+                  ? _GradientBorderCard(
+                      animation:   _shimmerCtrl,
+                      radius:      19,
+                      borderWidth: 1.4,
+                      innerColor:  _kCard,
+                      child:       inner)
+                  : inner,
+            ),
+          );
+        },
+      ),
     );
   }
 
-  // ─── File-type filter chips ─────────────────────────────
-  // ─── File-type filter chips ─────────────────────────────
-Widget _buildTypeFilterRow() {
-  return SizedBox(
-    height: 65,
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-      itemCount: _typeFilters.length,
-      itemBuilder: (_, i) {
-        final f = _typeFilters[i];
-        final selected = f == _typeFilter;
-        final inner = AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-          decoration: BoxDecoration(
-            color: _kCard,
-            borderRadius: BorderRadius.circular(18),
-            border: selected ? null : Border.all(color: _kBorder),
-          ),
-          child: Center(child: Text(f,
-              style: TextStyle(fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.1,
-                  color: selected ? _kInk : _kSlate))),
-        );
-        return Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: GestureDetector(
-            onTap: () { setState(() => _typeFilter = f); _filter(); },
-            child: selected
-                ? _GradientBorderCard(
-                    animation:   _shimmerCtrl,
-                    radius:      19,
-                    borderWidth: 1.4,
-                    innerColor:  _kCard,
-                    child:       inner)
-                : inner,
-          ),
-        );
-      },
-    ),
-  );
-}
   // ─── Empty state ─────────────────────────────────────────
   Widget _buildEmpty() {
     return Center(
@@ -545,23 +577,13 @@ Widget _buildTypeFilterRow() {
           Text(
             _search.text.isNotEmpty || _typeFilter != 'All'
                 ? 'Try a different search or filter'
-                : 'Save materials from chats and groups\nto find them all here',
+                : 'Save materials from chats and groups, or tap the\nupload button to add one from your phone',
             textAlign: TextAlign.center,
             style: const TextStyle(color: _kSlate,
                 fontSize: 13, height: 1.5)),
         ]),
       ),
     );
-  }
-
-  // ─── Body switch by tab ─────────────────────────────────
-  Widget _buildContent() {
-    switch (_tab) {
-      case _LibTab.all:     return _buildFlatGrid();
-      case _LibTab.subject: return _buildGrouped(_groupBySubject(_filtered));
-      case _LibTab.group:   return _buildGrouped(_groupBySource(_filtered));
-      case _LibTab.date:    return _buildGrouped(_groupByDate(_filtered));
-    }
   }
 
   // ─── Flat grid ──────────────────────────────────────────
@@ -583,142 +605,6 @@ Widget _buildTypeFilterRow() {
           onQuiz:      () => _openQuizWizard(prefilledMaterial: _filtered[i]),
         ),
       ),
-    );
-  }
-
-  // ─── Grouped sections ───────────────────────────────────
-  Widget _buildGrouped(Map<String, List<Map<String, dynamic>>> groups) {
-    final keys = groups.keys.toList();
-    return RefreshIndicator(
-      color: _kInkSoft, backgroundColor: _kCard, onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 130),
-        physics: const BouncingScrollPhysics(),
-        itemCount: keys.length,
-        itemBuilder: (_, i) {
-          final key = keys[i];
-          final items = groups[key]!;
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _SectionHeader(label: key, count: items.length),
-            const SizedBox(height: 10),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, crossAxisSpacing: 12,
-                mainAxisSpacing: 12, childAspectRatio: 0.74),
-              itemCount: items.length,
-              itemBuilder: (_, j) => _MaterialCard(
-                material:    items[j],
-                shimmerCtrl: _shimmerCtrl,
-                resolveType: _resolveType,
-                onDelete:    () => _delete(items[j]['id'] as String),
-                onQuiz:      () => _openQuizWizard(prefilledMaterial: items[j]),
-              ),
-            ),
-            const SizedBox(height: 22),
-          ]);
-        },
-      ),
-    );
-  }
-
-  // ─── Grouping helpers ────────────────────────────────────
-  Map<String, List<Map<String, dynamic>>> _groupBySubject(
-      List<Map<String, dynamic>> items) {
-    final out = <String, List<Map<String, dynamic>>>{};
-    for (final m in items) {
-      final raw = (m['subject'] as String?)?.trim() ?? '';
-      final key = raw.isEmpty ? 'Untagged' : raw;
-      out.putIfAbsent(key, () => []).add(m);
-    }
-    final ordered = <String, List<Map<String, dynamic>>>{};
-    out.entries.where((e) => e.key != 'Untagged')
-        .forEach((e) => ordered[e.key] = e.value);
-    if (out.containsKey('Untagged')) ordered['Untagged'] = out['Untagged']!;
-    return ordered;
-  }
-
-  Map<String, List<Map<String, dynamic>>> _groupBySource(
-      List<Map<String, dynamic>> items) {
-    final out = <String, List<Map<String, dynamic>>>{};
-    for (final m in items) {
-      final src = (m['source_group_name'] as String?)?.trim() ?? '';
-      final type = (m['source_type'] as String?)?.trim() ?? '';
-      String key;
-      if (src.isNotEmpty) {
-        key = src;
-      } else if (type == 'manual') {
-        key = 'Uploaded by you';
-      } else {
-        key = 'From chats';
-      }
-      out.putIfAbsent(key, () => []).add(m);
-    }
-    return out;
-  }
-
-  Map<String, List<Map<String, dynamic>>> _groupByDate(
-      List<Map<String, dynamic>> items) {
-    final now    = DateTime.now();
-    final today  = DateTime(now.year, now.month, now.day);
-    final week   = today.subtract(const Duration(days: 7));
-    final month  = today.subtract(const Duration(days: 30));
-
-    final out = {
-      'Today':       <Map<String, dynamic>>[],
-      'This week':   <Map<String, dynamic>>[],
-      'This month':  <Map<String, dynamic>>[],
-      'Earlier':     <Map<String, dynamic>>[],
-    };
-
-    for (final m in items) {
-      final ts = DateTime.tryParse(m['created_at'] as String? ?? '')?.toLocal();
-      if (ts == null)               { out['Earlier']!.add(m); continue; }
-      if (!ts.isBefore(today))      { out['Today']!.add(m); continue; }
-      if (!ts.isBefore(week))       { out['This week']!.add(m); continue; }
-      if (!ts.isBefore(month))      { out['This month']!.add(m); continue; }
-      out['Earlier']!.add(m);
-    }
-    out.removeWhere((_, v) => v.isEmpty);
-    return out;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Section header
-// ─────────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  final int    count;
-  const _SectionHeader({required this.label, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(children: [
-        Container(width: 4, height: 18,
-            decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [Color(0xFF6DD5FA), Color(0xFF7C3AED)],
-                    begin: Alignment.topCenter, end: Alignment.bottomCenter))),
-        const SizedBox(width: 11),
-        Expanded(child: Text(label,
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: _kInk,
-                fontSize: 15, fontWeight: FontWeight.w800,
-                letterSpacing: -0.2))),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-          decoration: BoxDecoration(
-              color: _kCardLo,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _kBorder)),
-          child: Text('$count',
-              style: const TextStyle(fontSize: 12,
-                  fontWeight: FontWeight.w800, color: _kInkSoft))),
-      ]),
     );
   }
 }

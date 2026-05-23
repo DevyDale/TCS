@@ -490,15 +490,115 @@ def bookmark_toggle(request, pk):
 
 @api_view(["POST"])
 def share_post(request, pk):
-    """POST /api/posts/<pk>/share/  body: {user_ids: [...]}"""
+    """POST /api/posts/<pk>/share/  body: {user_ids: [...]}
+
+    Bumps the share counter AND delivers the post into each recipient's
+    direct chat room as a message, so a shared post actually shows up in
+    the conversation. Mirrors the create+broadcast path used by
+    chat.views.upload_chat_media.
+    """
+    from django.utils import timezone
+    from django.contrib.auth import get_user_model
+    from apps.chat.models import Room, Message
+    try:
+        from apps.accounts.role_perms import is_cross_role
+    except Exception:
+        def is_cross_role(a, b):
+            return False
+    User = get_user_model()
+
     try:
         post = filter_posts_by_role(Post.objects, request.user).get(pk=pk)
     except Post.DoesNotExist:
         return Response({"error": "Not found."}, status=404)
 
-    post.shares_count += 1
-    post.save(update_fields=["shares_count"])
-    return Response({"shared": True, "share_count": post.shares_count})
+    user_ids = request.data.get("user_ids", []) or []
+
+    # Short preview of the post for the chat message body.
+    author_name = getattr(post.author, "display_name", "") or "someone"
+    snippet = (post.content or "").strip().replace("\n", " ")
+    if len(snippet) > 140:
+        snippet = snippet[:140].rstrip() + "\u2026"
+    preview = (
+        "\U0001F4E4 Shared {a}'s post:\n\n\u201C{s}\u201D".format(a=author_name, s=snippet)
+        if snippet else
+        "\U0001F4E4 Shared {a}'s post".format(a=author_name)
+    )
+
+    def _bump_list(room_id, msg):
+        # Same chat-list broadcast chat.views uses so the recipient's chat
+        # list bumps the room + increments the unread badge live.
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+        except Exception:
+            return
+        layer = get_channel_layer()
+        if not layer:
+            return
+        try:
+            async_to_sync(layer.group_send)(f"chatlist_{room_id}", {
+                "type": "list.new_message",
+                "room_id": str(room_id),
+                "message": {
+                    "id":           str(msg.id),
+                    "room_id":      str(msg.room_id),
+                    "sender_id":    request.user.user_id,
+                    "sender_name":  request.user.display_name,
+                    "message_type": msg.message_type,
+                    "text":         msg.text or "",
+                    "media_url":    "",
+                    "file_name":    None,
+                    "file_size":    None,
+                    "duration":     None,
+                    "is_ai":        False,
+                    "is_system":    False,
+                    "is_deleted":   False,
+                    "created_at":   msg.created_at.isoformat(),
+                },
+            })
+        except Exception:
+            pass
+
+    sent = 0
+    for uid in user_ids:
+        uid = str(uid).strip()
+        if not uid:
+            continue
+        try:
+            recipient = User.objects.get(user_id=uid)
+        except User.DoesNotExist:
+            continue
+        if recipient.pk == request.user.pk:
+            continue
+        # Students and staff can't message each other.
+        if is_cross_role(request.user, recipient):
+            continue
+
+        room, _ = Room.get_or_create_direct(request.user, recipient)
+        msg = Message.objects.create(
+            room=room,
+            sender=request.user,
+            message_type=Message.MsgType.TEXT,
+            text=preview,
+        )
+        Room.objects.filter(id=room.id).update(
+            last_message_text=msg.display_text,
+            last_message_at=timezone.now(),
+            last_message_sender=request.user,
+        )
+        _bump_list(room.id, msg)
+        sent += 1
+
+    if sent:
+        post.shares_count += sent
+        post.save(update_fields=["shares_count"])
+
+    return Response({
+        "shared": True,
+        "share_count": post.shares_count,
+        "sent_to": sent,
+    })
 
 
 # ─────────────────────────────────────────────────────────────

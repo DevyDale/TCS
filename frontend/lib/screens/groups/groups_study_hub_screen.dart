@@ -1,7 +1,6 @@
 // lib/screens/groups/groups_study_hub_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
@@ -35,6 +34,9 @@ class _GroupsStudyHubScreenState
   bool _availableForStudy = false;
   String _availSubjects   = '';
 
+  final _buddySearchCtrl = TextEditingController();
+  String _buddyQuery = '';
+
   List<Map<String, dynamic>> _myGroups        = [];
   List<Map<String, dynamic>> _suggestedGroups = [];
   List<Map<String, dynamic>> _buddies         = [];
@@ -49,7 +51,7 @@ class _GroupsStudyHubScreenState
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 2, vsync: this);
     _loadAvailability();
     _loadAll();
   }
@@ -57,6 +59,7 @@ class _GroupsStudyHubScreenState
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _buddySearchCtrl.dispose();
     super.dispose();
   }
 
@@ -760,7 +763,6 @@ class _GroupsStudyHubScreenState
                 children: [
                   _buildGroupsView(),
                   _buildBuddiesView(),
-                  _buildActivityView(),
                 ],
               ),
             ),
@@ -892,25 +894,64 @@ class _GroupsStudyHubScreenState
   Widget _buildTabBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SegmentedTabControl(
-        controller: _tabCtrl,
-        barDecoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade200, width: 1.5)),
-        indicatorDecoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [_indigo, _deepPurple],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight),
-          borderRadius: BorderRadius.circular(12)),
-        tabTextColor: Colors.grey.shade500,
-        selectedTabTextColor: Colors.white,
-        tabs: const [
-          SegmentTab(label: 'Groups'),
-          SegmentTab(label: 'Study Buddies'),
-          SegmentTab(label: 'Activity'),
-        ],
+      child: AnimatedBuilder(
+        animation: _tabCtrl,
+        builder: (context, _) {
+          final index = _tabCtrl.index;
+          return Container(
+            width: double.infinity,
+            height: 46,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade200, width: 1.5)),
+            child: Stack(children: [
+              // Sliding indicator — always exactly half the bar
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                alignment:
+                    index == 0 ? Alignment.centerLeft : Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  heightFactor: 1,
+                  child: Container(
+                    margin: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [_indigo, _deepPurple],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight),
+                      borderRadius: BorderRadius.circular(11)),
+                  ),
+                ),
+              ),
+              // Labels
+              Row(children: [
+                _tabLabel('Groups', 0, index),
+                _tabLabel('Study Buddies', 1, index),
+              ]),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _tabLabel(String text, int i, int current) {
+    final selected = i == current;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _tabCtrl.animateTo(i),
+        child: Center(
+          child: Text(text,
+              style: TextStyle(
+                  fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: selected ? Colors.white : Colors.grey.shade500)),
+        ),
       ),
     );
   }
@@ -1000,6 +1041,16 @@ class _GroupsStudyHubScreenState
           child: CircularProgressIndicator(color: _indigo));
     }
 
+    final q = _buddyQuery.trim().toLowerCase();
+    final visibleBuddies = q.isEmpty
+        ? _buddies
+        : _buddies.where((b) {
+            final name = (b['name'] as String? ?? '').toLowerCase();
+            final role = (b['role'] as String? ?? '').toLowerCase();
+            final subj = (b['subjects'] as String? ?? '').toLowerCase();
+            return name.contains(q) || role.contains(q) || subj.contains(q);
+          }).toList();
+
     return RefreshIndicator(
       color: _indigo,
       onRefresh: _loadBuddies,
@@ -1030,20 +1081,57 @@ class _GroupsStudyHubScreenState
           ),
           const SizedBox(height: 12),
 
-          if (_buddies.isEmpty)
+          // Search through the available study buddies
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200)),
+            child: TextField(
+              controller: _buddySearchCtrl,
+              enableSuggestions: false,
+              autocorrect: false,
+              onChanged: (v) => setState(() => _buddyQuery = v),
+              style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Search study buddies...',
+                hintStyle: TextStyle(
+                    fontFamily: 'Momo', color: Colors.grey.shade400),
+                prefixIcon: const Icon(Icons.search_rounded, color: _indigo),
+                suffixIcon: _buddyQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        color: Colors.grey,
+                        onPressed: () {
+                          _buddySearchCtrl.clear();
+                          setState(() => _buddyQuery = '');
+                        }),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 14)),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          if (visibleBuddies.isEmpty)
             Center(child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.people_outline, size: 52,
                     color: Colors.grey.shade300),
                 const SizedBox(height: 14),
-                Text('No study buddies available right now',
+                Text(
+                    q.isEmpty
+                        ? 'No study buddies available right now'
+                        : 'No study buddies match your search',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 13, color: Colors.grey.shade400)),
               ]),
             ))
           else
-            ..._buddies.map((b) => _BuddyCard(
+            ...visibleBuddies.map((b) => _BuddyCard(
               buddy: b,
               onConnect: () => _connectBuddy(b),
             )),

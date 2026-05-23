@@ -53,6 +53,26 @@ class _Feeling {
       emoji.isNotEmpty ? '$emoji $label' : label;
 }
 
+// Built-in feelings shown when the backend list is empty or unreachable,
+// so the picker is never blank. If /api/feelings/ returns its own list,
+// that takes priority.
+const List<_Feeling> _defaultFeelings = [
+  _Feeling(slug: 'happy',       label: 'Happy',       emoji: '😊'),
+  _Feeling(slug: 'excited',     label: 'Excited',     emoji: '🤩'),
+  _Feeling(slug: 'grateful',    label: 'Grateful',    emoji: '🙏'),
+  _Feeling(slug: 'loved',       label: 'Loved',       emoji: '🥰'),
+  _Feeling(slug: 'chill',       label: 'Chill',       emoji: '😎'),
+  _Feeling(slug: 'motivated',   label: 'Motivated',   emoji: '💪'),
+  _Feeling(slug: 'focused',     label: 'Focused',     emoji: '🎯'),
+  _Feeling(slug: 'tired',       label: 'Tired',       emoji: '😴'),
+  _Feeling(slug: 'stressed',    label: 'Stressed',    emoji: '😰'),
+  _Feeling(slug: 'sad',         label: 'Sad',         emoji: '😢'),
+  _Feeling(slug: 'angry',       label: 'Angry',       emoji: '😠'),
+  _Feeling(slug: 'bored',       label: 'Bored',       emoji: '🥱'),
+  _Feeling(slug: 'sick',        label: 'Sick',        emoji: '🤒'),
+  _Feeling(slug: 'celebrating', label: 'Celebrating', emoji: '🎉'),
+];
+
 
 class CreateFweetPage extends StatefulWidget {
   const CreateFweetPage({super.key});
@@ -76,6 +96,10 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   // Backend-driven feelings.
   List<_Feeling> _backendFeelings = [];
   bool           _feelingsLoading = true;
+  // True only when feelings came from the backend, so their slugs are
+  // valid to send. When the built-in fallback is used we don't send a
+  // feeling — the backend has no matching Feeling row for those slugs.
+  bool           _feelingsFromBackend = false;
 
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
@@ -176,12 +200,17 @@ class _CreateFweetPageState extends State<CreateFweetPage>
           .toList();
       if (!mounted) return;
       setState(() {
-        _backendFeelings = list;
+        _backendFeelings = list.isNotEmpty ? list : _defaultFeelings;
+        _feelingsFromBackend = list.isNotEmpty;
         _feelingsLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _feelingsLoading = false);
+      setState(() {
+        _backendFeelings = _defaultFeelings;
+        _feelingsFromBackend = false;
+        _feelingsLoading = false;
+      });
     }
   }
 
@@ -223,7 +252,10 @@ class _CreateFweetPageState extends State<CreateFweetPage>
         visibility:      _visibility.toLowerCase(),
         location:        _locationCtrl.text.trim(),
         backgroundColor: bgHex,
-        feeling:         _feelingSlug,
+        // Only send a feeling the backend actually knows about. Built-in
+        // fallback feelings have no Feeling row, so sending their slug
+        // 400s with "Object with slug=… does not exist."
+        feeling:         _feelingsFromBackend ? _feelingSlug : null,
       );
 
       if (!mounted) return;
