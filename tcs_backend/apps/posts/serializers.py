@@ -182,6 +182,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     author_name   = serializers.CharField(source="author.display_name", read_only=True)
     author_role   = serializers.CharField(source="author.role",         read_only=True)
+    author_id     = serializers.CharField(source="author.user_id",       read_only=True)
     author_avatar = serializers.SerializerMethodField()
 
     # media is a LIST of {url, thumbnail_url, media_type, order, id}.
@@ -200,7 +201,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Post
         fields = [
-            "id", "author_name", "author_role", "author_avatar",
+            "id", "author_name", "author_role", "author_id", "author_avatar",
             "post_type", "content", "visibility",
             "media", "hashtags", "feeling",
             "background_color", "location",
