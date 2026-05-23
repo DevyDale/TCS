@@ -85,6 +85,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     location  = models.CharField(max_length=100, blank=True)
     website   = models.URLField(blank=True)
+    social_links = models.JSONField(default=dict, blank=True)
 
     xp        = models.PositiveIntegerField(default=0)
     level     = models.PositiveSmallIntegerField(default=1)

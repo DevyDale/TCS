@@ -60,7 +60,7 @@ class OtherUserProfileSerializer(serializers.ModelSerializer):
             "user_id", "role",
             "name", "full_name", "preferred_name",
             "avatar_url", "cover_url",
-            "bio", "interests",
+            "bio", "interests", "social_links",
             "bio_public", "interests_public",
             "followers_count", "following_count", "posts_count",
             "is_following", "is_self", "is_verified",

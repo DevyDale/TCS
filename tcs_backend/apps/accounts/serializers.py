@@ -65,7 +65,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "gender", "email", "username", "program", "subjects_taught",
             "year_group",
             "avatar_url", "cover_url", "arcade_avatar_url",
-            "bio", "interests", "location", "website",
+            "bio", "interests", "location", "website", "social_links",
             "xp", "level", "tokens", "gamer_tag",
             "is_online", "last_seen", "date_joined", "is_verified",
             "followers_count", "following_count", "is_following",
@@ -178,7 +178,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         fields = [
             "preferred_name", "gender", "bio", "interests",
             "interests_visibility",   # ← REQUIRED (Phase 3)
-            "location", "website", "gamer_tag",
+            "location", "website", "social_links", "gamer_tag",
             "notification_settings", "privacy_settings",
             "is_available_study",
             "study_subjects",
