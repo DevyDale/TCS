@@ -94,7 +94,32 @@ Future<void> _initFcm() async {
     );
   });
 
+  // Re-register the device token with the backend whenever FCM rotates it.
+  FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+    try { await ApiService().updateFcmToken(token); } catch (_) {}
+  });
+
   await syncFcmTopics(); // honor saved user prefs on cold start
+}
+
+/// Registers THIS device's FCM token with the backend (POST
+/// /users/me/fcm-token/) so the server can push to user.fcm_token.
+/// Must run while authenticated. Safe to call repeatedly.
+Future<void> registerFcmToken() async {
+  final fcm = FirebaseMessaging.instance;
+  try {
+    await fcm.requestPermission(alert: true, badge: true, sound: true);
+    if (Platform.isIOS) {
+      await fcm.getAPNSToken(); // FCM token only resolves after APNs issues one
+    }
+    final token = await fcm.getToken();
+    if (token != null && token.isNotEmpty) {
+      await ApiService().updateFcmToken(token);
+      debugPrint('[FCM] device token registered with backend');
+    }
+  } catch (e) {
+    debugPrint('[FCM] token registration failed: ' + e.toString());
+  }
 }
 
 AndroidNotificationChannel _pickChannel(RemoteMessage msg) {
@@ -186,6 +211,7 @@ Future<void> main() async {
   final hasSession = await AuthService.instance.isLoggedIn;
   if (hasSession) {
     await NotificationService.instance.bootstrap();
+    await registerFcmToken();
   }
 
   runApp(const TCSApp());
