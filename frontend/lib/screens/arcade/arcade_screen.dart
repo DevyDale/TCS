@@ -1,27 +1,27 @@
 // lib/screens/arcade/arcade_screen.dart
 // ignore_for_file: unused_local_variable
 //
-// Arcade — preset-avatar edition.
+// Arcade — preset-avatar edition. GAMES ONLY.
+//
+// All club-related features (gaming clubs, my clubs, trending, the club
+// activity hub) have been moved to arcade_clubs_screen.dart. The Arcade now
+// has three tabs — Games, Ranks, Stats — and a Clubs button in the header
+// that opens the dedicated Clubs page.
 //
 // Avatar system uses the shared kAvatars list (100 presets) from
-// data/avators.dart, rendered via AvatarView.preset(). The local 12-avatar
-// system has been removed entirely. _avatarId is now int? (kAvatars index)
-// instead of String.
+// data/avators.dart, rendered via AvatarView.preset(). _avatarId is int?.
 
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/avator/avator_view.dart';
 import 'package:tcs_app/data/avators.dart';
+import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
 
 import '../../services/api_service.dart';
 
-import 'club_list.dart';
-import 'club_screen.dart';
-import 'create_club_page.dart';
 import 'arcade_Effects.dart';
 import 'campus_Craft_game.dart';
 import 'memory_rush_game.dart';
@@ -113,7 +113,6 @@ const _kBlue     = Color(0xFF6DD5FA);
 const _kPurple   = Color(0xFF7C3AED);
 const _kAmber    = Color(0xFFF59E0B);
 const _kCoral    = Color(0xFFFF4F6E);
-const _kVerified = Color(0xFF1DA1F2);
 
 const _gradColors = <Color>[
   Color(0xFF6DD5FA), Color(0xFF7C3AED),
@@ -187,20 +186,13 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   bool _loadingGames  = true;
   bool _loadingStats  = true;
   bool _loadingLb     = true;
-  bool _loadingClubs  = true;
 
   int _pendingRequests = 0;
 
-  Map<String, dynamic>       _stats         = {};
-  List<Map<String, dynamic>> _games         = [];
-  List<Map<String, dynamic>> _leaderboard   = [];
-  List<Map<String, dynamic>> _topGamers     = [];
-  List<Map<String, dynamic>> _myClubs       = [];
-  List<Map<String, dynamic>> _gamingClubs   = [];
-  List<Map<String, dynamic>> _trendingClubs = [];
-
-  List<Map<String, dynamic>> _hubItems = [];
-  bool _loadingHub = false;
+  Map<String, dynamic>       _stats       = {};
+  List<Map<String, dynamic>> _games       = [];
+  List<Map<String, dynamic>> _leaderboard = [];
+  List<Map<String, dynamic>> _topGamers   = [];
 
   // Theme + avatar (persisted)
   bool _isDark   = false;
@@ -209,7 +201,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _entryCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600))
       ..forward();
@@ -266,7 +258,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _loadStats(),
         _loadGames(),
         _loadLeaderboard(),
-        _loadClubs(),
         _loadPendingRequests(),
       ]);
 
@@ -276,7 +267,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       _loadingStats = true;
       _loadingGames = true;
       _loadingLb    = true;
-      _loadingClubs = true;
     });
     _loadAll();
   }
@@ -318,92 +308,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       if (!mounted) return;
       setState(() => _pendingRequests = data.length);
     } catch (_) {}
-  }
-
-  Future<void> _loadClubs() async {
-    try {
-      final results = await Future.wait([
-        _api.getClubs(filter: 'mine'),
-        _api.getClubs(filter: 'all', category: 'gaming'),
-        _api.getClubs(filter: 'all'),
-      ]);
-      if (!mounted) return;
-      final mine     = _extractList(results[0]);
-      final gaming   = _extractList(results[1]);
-      final all      = _extractList(results[2]);
-      final gamingIds = gaming.map((c) => c['id']?.toString()).toSet();
-      final trending  = all
-          .where((c) => !gamingIds.contains(c['id']?.toString()))
-          .take(5)
-          .toList();
-      setState(() {
-        _myClubs       = mine;
-        _gamingClubs   = gaming.take(8).toList();
-        _trendingClubs = trending;
-        _loadingClubs  = false;
-      });
-      _loadActivityHub();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingClubs = false);
-    }
-  }
-
-  Future<void> _loadActivityHub() async {
-    if (_myClubs.isEmpty) {
-      if (!mounted) return;
-      setState(() { _hubItems = []; _loadingHub = false; });
-      return;
-    }
-    setState(() => _loadingHub = true);
-    try {
-      final capped = _myClubs.take(5).toList();
-      final feeds  = await Future.wait(
-        capped.map((c) async {
-          final id = c['id']?.toString();
-          if (id == null || id.isEmpty) return <String, dynamic>{};
-          try {
-            return await _api.getClubFeed(id) as Map<String, dynamic>;
-          } catch (_) { return <String, dynamic>{}; }
-        }),
-      );
-      final items = <Map<String, dynamic>>[];
-      for (var i = 0; i < capped.length; i++) {
-        final club     = capped[i];
-        final feed     = feeds[i];
-        final clubName = club['name'] as String? ?? '';
-        for (final p in (feed['posts'] as List? ?? [])) {
-          final m = (p as Map).cast<String, dynamic>();
-          items.add({...m, '_kind': 'post', '_club': club,
-              '_club_name': clubName,
-              '_sort_at': m['created_at']?.toString() ?? ''});
-        }
-        for (final e in (feed['events'] as List? ?? [])) {
-          final m = (e as Map).cast<String, dynamic>();
-          items.add({...m, '_kind': 'event', '_club': club,
-              '_club_name': clubName,
-              '_sort_at': m['start_time']?.toString() ?? ''});
-        }
-      }
-      items.sort((a, b) =>
-          (b['_sort_at'] as String).compareTo(a['_sort_at'] as String));
-      if (!mounted) return;
-      setState(() {
-        _hubItems   = items.take(20).toList();
-        _loadingHub = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingHub = false);
-    }
-  }
-
-  List<Map<String, dynamic>> _extractList(dynamic data) {
-    if (data is List) return data.cast<Map<String, dynamic>>();
-    if (data is Map && data['results'] is List) {
-      return (data['results'] as List).cast<Map<String, dynamic>>();
-    }
-    return <Map<String, dynamic>>[];
   }
 
   // ── Navigation ────────────────────────────────────────────
@@ -491,31 +395,11 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     ).then((_) { if (mounted) _loadAll(); });
   }
 
-  void _openClub(Map<String, dynamic> club) {
+  void _openClubs() {
     HapticFeedback.lightImpact();
-    Navigator.of(context)
-        .push(MaterialPageRoute(
-            builder: (_) => ClubScreen(id: club['id']?.toString(), club: club)))
-        .then((_) => _loadClubs());
-  }
-
-  void _openClubsList() {
-    HapticFeedback.lightImpact();
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const ClubsListScreen()))
-        .then((_) => _loadClubs());
-  }
-
-  Future<void> _openCreateClub() async {
-    HapticFeedback.lightImpact();
-    final created = await Navigator.of(context).push<Map<String, dynamic>>(
-        MaterialPageRoute(builder: (_) => const CreateClubPage()));
-    if (created != null && mounted) {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) =>
-              ClubScreen(id: created['id']?.toString(), club: created)));
-      await _loadClubs();
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ArcadeClubsScreen()),
+    );
   }
 
   void _showComingSoon(String name) {
@@ -621,6 +505,12 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               child: const Text('ARCADE',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
                       letterSpacing: 3, color: Colors.white)))),
+            _circleIconButton(
+              t: t,
+              icon: Icons.groups_rounded,
+              onTap: _openClubs,
+            ),
+            const SizedBox(width: 8),
             _circleIconButton(
               t: t,
               icon: t.isDark
@@ -875,7 +765,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
   // ── Tab bar ──────────────────────────────────────────────
 
   Widget _buildTabBar(_T t) {
-    const labels = ['Games', 'Ranks', 'Clubs', 'Stats'];
+    const labels = ['Games', 'Ranks', 'Stats'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Container(
@@ -889,9 +779,9 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         child: AnimatedBuilder(
           animation: _tabCtrl.animation!,
           builder: (_, __) {
-            final pos = _tabCtrl.animation!.value.clamp(0.0, 3.0);
+            final pos = _tabCtrl.animation!.value.clamp(0.0, 2.0);
             return LayoutBuilder(builder: (_, c) {
-              final segW = c.maxWidth / 4;
+              final segW = c.maxWidth / 3;
               return Stack(children: [
                 Positioned(
                   left: pos * segW,
@@ -904,7 +794,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   ),
                 ),
                 Row(children: [
-                  for (int i = 0; i < 4; i++)
+                  for (int i = 0; i < 3; i++)
                     Expanded(child: GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -942,8 +832,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       switch (_tabCtrl.index) {
         case 0:  return _buildGamesTab();
         case 1:  return _buildRanksTab();
-        case 2:  return _buildClubsTab();
-        case 3:  return _buildStatsTab();
+        case 2:  return _buildStatsTab();
         default: return const SizedBox.shrink();
       }
     });
@@ -1141,203 +1030,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     );
   }
 
-  // ── Clubs tab ─────────────────────────────────────────────
-
-  Widget _buildClubsTab() {
-    final t = _ThemeScope.of(context);
-    if (_loadingClubs) {
-      return Padding(padding: const EdgeInsets.all(40),
-        child: Center(child: CircularProgressIndicator(
-            color: t.ink, strokeWidth: 2.4)));
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (_gamingClubs.isNotEmpty) ...[
-          Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-              child: _sectionLabel(t, 'Gaming clubs')),
-          SizedBox(height: 178,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              itemCount: _gamingClubs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) => _BigClubCard(
-                club: _gamingClubs[i],
-                onTap: () => _openClub(_gamingClubs[i]),
-              ),
-            )),
-          const SizedBox(height: 22),
-        ],
-        Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-          child: Row(children: [
-            _sectionLabel(t, 'My clubs'),
-            const Spacer(),
-            if (_myClubs.isNotEmpty)
-              GestureDetector(onTap: _openClubsList,
-                child: Text('See all →',
-                    style: TextStyle(fontSize: 11,
-                        fontWeight: FontWeight.w700, color: t.inkSoft))),
-          ])),
-        if (_myClubs.isEmpty)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: _emptyMyClubsCard(t))
-        else
-          SizedBox(height: 116,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              itemCount: _myClubs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) => _SmallClubCard(
-                club: _myClubs[i],
-                onTap: () => _openClub(_myClubs[i]),
-              ),
-            )),
-        const SizedBox(height: 22),
-        if (_trendingClubs.isNotEmpty) ...[
-          Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-              child: _sectionLabel(t, 'Trending')),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(children: _trendingClubs
-                .map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _TrendingClubCard(
-                        club: c, onTap: () => _openClub(c)),
-                    )).toList())),
-          const SizedBox(height: 22),
-        ],
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(children: [
-            Expanded(child: GestureDetector(
-              onTap: _openClubsList,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                    color: t.card, borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: t.border)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.explore_rounded, color: t.inkSoft, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Browse all', style: TextStyle(
-                        fontWeight: FontWeight.w800, color: t.ink,
-                        fontSize: 13, letterSpacing: -0.2)),
-                  ])),
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: GestureDetector(
-              onTap: _openCreateClub,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: t.ink, borderRadius: BorderRadius.circular(14)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_rounded,
-                        color: t.isDark ? t.bg1 : Colors.white, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Start a club', style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: t.isDark ? t.bg1 : Colors.white,
-                        fontSize: 13, letterSpacing: -0.2)),
-                  ])),
-            )),
-          ])),
-        const SizedBox(height: 24),
-        Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
-          child: Row(children: [
-            Icon(Icons.dynamic_feed_rounded, color: t.ink, size: 16),
-            const SizedBox(width: 8),
-            _sectionLabel(t, 'Club activity hub'),
-            const Spacer(),
-            if (_loadingHub)
-              SizedBox(width: 14, height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: t.ink)),
-          ])),
-        if (!_loadingHub && _hubItems.isEmpty)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: _emptyHubCard(t)),
-        if (!_loadingHub && _hubItems.isNotEmpty)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(children: _hubItems
-                .map((it) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _HubItemRow(
-                        item: it,
-                        onTap: () {
-                          final club = it['_club'] as Map<String, dynamic>?;
-                          if (club != null) _openClub(club);
-                        },
-                      ),
-                    )).toList())),
-        if (_loadingHub && _hubItems.isEmpty)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(children: List.generate(3, (_) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ShimmerLoader(
-                  height: 64, borderRadius: BorderRadius.circular(14)),
-            )))),
-        const SizedBox(height: 8),
-      ]),
-    );
-  }
-
-  Widget _emptyMyClubsCard(_T t) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: t.card, borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: t.border)),
-    child: Column(children: [
-      Container(width: 44, height: 44,
-        decoration: BoxDecoration(
-          color: _kPurple.withOpacity(0.10),
-          borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.groups_outlined, color: _kPurple, size: 22)),
-      const SizedBox(height: 10),
-      Text('No clubs joined yet', style: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w800, color: t.ink)),
-      const SizedBox(height: 4),
-      Text('Join clubs from the Trending list above\nto get involved with campus communities.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: t.slate, height: 1.5)),
-    ]),
-  );
-
-  Widget _emptyHubCard(_T t) {
-    final hasAnyClubs = _myClubs.isNotEmpty;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: t.card, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.border)),
-      child: Row(children: [
-        Container(width: 42, height: 42,
-          decoration: BoxDecoration(
-            color: _kPurple.withOpacity(0.10),
-            borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.dynamic_feed_rounded,
-              color: _kPurple, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Nothing yet',
-              style: TextStyle(fontSize: 13,
-                  fontWeight: FontWeight.w800, color: t.ink)),
-          const SizedBox(height: 3),
-          Text(
-            hasAnyClubs
-                ? 'Posts and events from your clubs will stream here as they happen.'
-                : 'Join clubs to see their posts and events stream in here.',
-            style: TextStyle(fontSize: 11, color: t.slate, height: 1.5),
-          ),
-        ])),
-      ]),
-    );
-  }
-
   // ── Stats tab ─────────────────────────────────────────────
 
   Widget _buildStatsTab() {
@@ -1357,7 +1049,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     final winRate    = (_stats['win_rate'] as num?)?.toDouble() ?? 0.0;
     final recent     = (_stats['recent']      as List? ?? []).cast<Map<String, dynamic>>();
     final bestScores = (_stats['best_scores'] as List? ?? []).cast<Map<String, dynamic>>();
-    final clubCount  = _myClubs.length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
@@ -1379,8 +1070,8 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         ]),
         const SizedBox(height: 10),
         Row(children: [
-          _StatCard(label: 'Clubs joined', value: '$clubCount',
-              icon: Icons.groups_rounded, accent: const Color(0xFF7986CB)),
+          _StatCard(label: 'Level', value: '$level',
+              icon: Icons.military_tech_rounded, accent: const Color(0xFF7986CB)),
           const SizedBox(width: 10),
           _StatCard(label: 'Total XP', value: '$xp',
               icon: Icons.bolt_rounded, accent: _kPurple),
@@ -1878,398 +1569,6 @@ class _StatCard extends StatelessWidget {
               style: TextStyle(fontSize: 10, color: t.slate)),
         ])),
       ])));
-  }
-}
-
-// ═════════════════════════════════════════════════════════════
-// CLUB CARDS
-// ═════════════════════════════════════════════════════════════
-
-class _BigClubCard extends StatelessWidget {
-  final Map<String, dynamic> club;
-  final VoidCallback onTap;
-  const _BigClubCard({required this.club, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = _ThemeScope.of(context);
-    final name        = club['name']           as String? ?? 'Club';
-    final tagline     = club['tagline']        as String? ?? '';
-    final coverUrl    = club['cover_url']      as String?;
-    final logoUrl     = club['logo_url']       as String?;
-    final memberCount = club['members_count']  as int?    ?? 0;
-    final isVerified  = club['is_verified']    as bool?   ?? false;
-    final membership =
-        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final isMember = membership['is_member'] == true;
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
-
-    return GestureDetector(onTap: onTap,
-      child: Container(
-        width: 200,
-        decoration: BoxDecoration(
-          color: t.card, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: t.border)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(height: 70, width: double.infinity,
-            child: coverUrl != null && coverUrl.isNotEmpty
-                ? CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => _coverFallback(),
-                    placeholder: (_, __) => _coverFallback())
-                : _coverFallback()),
-          Padding(padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: 30, height: 30,
-                  decoration: BoxDecoration(
-                    color: t.card, borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: t.card, width: 2)),
-                  child: ClipRRect(borderRadius: BorderRadius.circular(7),
-                    child: logoUrl != null && logoUrl.isNotEmpty
-                        ? CachedNetworkImage(imageUrl: logoUrl, fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _logoFallback(initial),
-                            placeholder: (_, __) => _logoFallback(initial))
-                        : _logoFallback(initial))),
-                const SizedBox(width: 8),
-                Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Flexible(child: Text(name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: t.ink, letterSpacing: -0.3))),
-                    if (isVerified) ...[
-                      const SizedBox(width: 3),
-                      const Icon(Icons.verified_rounded,
-                          color: _kVerified, size: 11),
-                    ],
-                  ]),
-                  Text('$memberCount member${memberCount == 1 ? "" : "s"}',
-                      style: TextStyle(fontSize: 9, color: t.slate)),
-                ])),
-              ]),
-              if (tagline.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(tagline, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10,
-                        color: t.slate, height: 1.4)),
-              ],
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isMember
-                      ? const Color(0xFF22C55E).withOpacity(0.12)
-                      : _kPurple.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(7)),
-                child: Text(isMember ? 'JOINED' : 'GAMING',
-                    style: TextStyle(fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        color: isMember
-                            ? (t.isDark
-                                ? const Color(0xFF4ADE80)
-                                : const Color(0xFF15803D))
-                            : _kPurple,
-                        letterSpacing: 0.5)),
-              ),
-            ])),
-        ])));
-  }
-
-  Widget _coverFallback() => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [_kPurple, _kBlue],
-              begin: Alignment.topLeft, end: Alignment.bottomRight)));
-  Widget _logoFallback(String initial) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [_kPurple, _kBlue])),
-        child: Center(child: Text(initial, style: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white))));
-}
-
-class _SmallClubCard extends StatelessWidget {
-  final Map<String, dynamic> club;
-  final VoidCallback onTap;
-  const _SmallClubCard({required this.club, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = _ThemeScope.of(context);
-    final name        = club['name']          as String? ?? 'Club';
-    final logoUrl     = club['logo_url']      as String?;
-    final memberCount = club['members_count'] as int?    ?? 0;
-    final isVerified  = club['is_verified']   as bool?   ?? false;
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
-    final membership =
-        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final isAdmin = membership['is_admin'] == true;
-
-    return GestureDetector(onTap: onTap,
-      child: Container(
-        width: 96,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: t.card, borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isAdmin
-              ? _kPurple.withOpacity(0.40)
-              : t.border, width: isAdmin ? 1.4 : 1)),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 44, height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle, color: t.cardLo),
-              child: ClipOval(child: logoUrl != null && logoUrl.isNotEmpty
-                  ? CachedNetworkImage(imageUrl: logoUrl, fit: BoxFit.cover,
-                      width: 44, height: 44,
-                      errorWidget: (_, __, ___) => _logoFallback(initial),
-                      placeholder: (_, __) => _logoFallback(initial))
-                  : _logoFallback(initial))),
-            const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Flexible(child: Text(name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 10,
-                      fontWeight: FontWeight.w800, color: t.ink,
-                      letterSpacing: -0.1))),
-              if (isVerified) ...[
-                const SizedBox(width: 2),
-                const Icon(Icons.verified_rounded,
-                    color: _kVerified, size: 9),
-              ],
-            ]),
-            const SizedBox(height: 2),
-            if (isAdmin)
-              const Text('ADMIN', style: TextStyle(fontSize: 8,
-                  fontWeight: FontWeight.w900, color: _kPurple,
-                  letterSpacing: 0.5))
-            else
-              Text('$memberCount mem',
-                  style: TextStyle(fontSize: 8, color: t.slate)),
-          ]),
-      ));
-  }
-
-  Widget _logoFallback(String initial) => Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [_kPurple, _kBlue])),
-        child: Center(child: Text(initial, style: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white))));
-}
-
-class _TrendingClubCard extends StatelessWidget {
-  final Map<String, dynamic> club;
-  final VoidCallback onTap;
-  const _TrendingClubCard({required this.club, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = _ThemeScope.of(context);
-    final name        = club['name']           as String? ?? 'Club';
-    final tagline     = club['tagline']        as String? ?? '';
-    final category    = club['category']       as String? ?? '';
-    final coverUrl    = club['cover_url']      as String?;
-    final logoUrl     = club['logo_url']       as String?;
-    final memberCount = club['members_count']  as int?    ?? 0;
-    final isVerified  = club['is_verified']    as bool?   ?? false;
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
-    final membership =
-        (club['membership'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final isMember  = membership['is_member']  == true;
-    final isPending = membership['is_pending'] == true;
-
-    return GestureDetector(onTap: onTap,
-      child: Container(
-        height: 88,
-        decoration: BoxDecoration(
-          color: t.card, borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: t.border)),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(children: [
-          if (coverUrl != null && coverUrl.isNotEmpty)
-            Positioned.fill(child: Opacity(
-              opacity: t.isDark ? 0.30 : 0.18,
-              child: CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                  placeholder: (_, __) => const SizedBox.shrink()))),
-          Padding(padding: const EdgeInsets.all(12),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-              Container(width: 56, height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: t.border, width: 1.4)),
-                child: ClipRRect(borderRadius: BorderRadius.circular(13),
-                  child: logoUrl != null && logoUrl.isNotEmpty
-                      ? CachedNetworkImage(imageUrl: logoUrl, fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _logoFallback(initial),
-                          placeholder: (_, __) => _logoFallback(initial))
-                      : _logoFallback(initial))),
-              const SizedBox(width: 14),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Row(children: [
-                    Flexible(child: Text(name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: t.ink, letterSpacing: -0.3))),
-                    if (isVerified) ...[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.verified_rounded,
-                          color: _kVerified, size: 12),
-                    ],
-                  ]),
-                  const SizedBox(height: 2),
-                  Text(_meta(memberCount, category),
-                      style: TextStyle(fontSize: 10, color: t.slate)),
-                  if (tagline.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(tagline, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11,
-                            color: t.inkSoft, height: 1.3)),
-                  ],
-                ])),
-              const SizedBox(width: 8),
-              _stateBadge(t: t, isMember: isMember, isPending: isPending),
-            ])),
-        ])));
-  }
-
-  Widget _stateBadge({required _T t, required bool isMember, required bool isPending}) {
-    String label; Color bg, fg;
-    if (isMember) {
-      label = 'JOINED';
-      bg = const Color(0xFF22C55E).withOpacity(0.12);
-      fg = t.isDark
-          ? const Color(0xFF4ADE80)
-          : const Color(0xFF15803D);
-    } else if (isPending) {
-      label = 'PENDING'; bg = _kAmber.withOpacity(0.12); fg = _kAmber;
-    } else {
-      label = 'VIEW'; bg = _kPurple.withOpacity(0.10); fg = _kPurple;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(9)),
-      child: Text(label, style: TextStyle(fontSize: 9,
-          fontWeight: FontWeight.w900, color: fg, letterSpacing: 0.5)));
-  }
-
-  String _meta(int memberCount, String category) {
-    final parts = <String>[];
-    parts.add('$memberCount member${memberCount == 1 ? "" : "s"}');
-    if (category.isNotEmpty) parts.add(_titleCase(category));
-    return parts.join(' · ');
-  }
-
-  String _titleCase(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).replaceAll('_', ' ');
-
-  Widget _logoFallback(String initial) => Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [_kPurple, _kBlue])),
-        child: Center(child: Text(initial, style: const TextStyle(
-            fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white))));
-}
-
-// ═════════════════════════════════════════════════════════════
-// _HubItemRow
-// ═════════════════════════════════════════════════════════════
-
-class _HubItemRow extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final VoidCallback onTap;
-  const _HubItemRow({required this.item, required this.onTap});
-
-  bool   get _isEvent  => item['_kind'] == 'event';
-  String get _clubName => item['_club_name'] as String? ?? '';
-
-  String get _title {
-    if (_isEvent) return item['title'] as String? ?? 'Event';
-    final content = item['content'] as String? ?? '';
-    return content.isNotEmpty ? content : 'New post';
-  }
-
-  String get _whenLabel {
-    final raw = (item['_sort_at'] as String?) ?? '';
-    if (raw.isEmpty) return '';
-    try {
-      final dt = DateTime.parse(raw).toLocal();
-      if (_isEvent) {
-        const months = ['Jan','Feb','Mar','Apr','May','Jun',
-                        'Jul','Aug','Sep','Oct','Nov','Dec'];
-        final hh = dt.hour.toString().padLeft(2, '0');
-        final mm = dt.minute.toString().padLeft(2, '0');
-        return '${dt.day} ${months[dt.month - 1]} · $hh:$mm';
-      }
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1)  return 'just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours   < 24) return '${diff.inHours}h ago';
-      if (diff.inDays    < 7)  return '${diff.inDays}d ago';
-      return '${(diff.inDays / 7).floor()}w ago';
-    } catch (_) { return ''; }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = _ThemeScope.of(context);
-    final tint = _isEvent ? _kAmber : _kPurple;
-    final icon = _isEvent
-        ? Icons.event_rounded
-        : Icons.chat_bubble_outline_rounded;
-    final tag  = _isEvent ? 'EVENT' : 'POST';
-
-    return GestureDetector(onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: t.card, borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: t.border)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: 38, height: 38,
-            decoration: BoxDecoration(
-              color: tint.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, color: tint, size: 17)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, children: [
-              Row(children: [
-                Expanded(child: Text(_clubName,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: t.slate, letterSpacing: 0.5))),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: tint.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(5)),
-                  child: Text(tag, style: TextStyle(fontSize: 8,
-                      fontWeight: FontWeight.w900, color: tint,
-                      letterSpacing: 0.5))),
-              ]),
-              const SizedBox(height: 4),
-              Text(_title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12,
-                      color: t.ink, height: 1.4)),
-              if (_whenLabel.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(_whenLabel,
-                    style: TextStyle(fontSize: 10, color: t.slate2)),
-              ],
-            ])),
-        ]),
-      ));
   }
 }
 

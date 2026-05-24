@@ -881,7 +881,7 @@ class _GroupsStudyHubScreenState
           Container(width: 1, height: 40, color: Colors.white12),
           _QAction(
             icon: Icons.bookmark_rounded,
-            label: 'Saved\nMaterials',
+            label: 'My Digital\nLibrary',
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                     builder: (_) => const SavedMaterialsScreen())),

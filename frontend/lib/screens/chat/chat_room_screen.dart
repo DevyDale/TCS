@@ -1102,7 +1102,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 crossAxisAlignment:
                     isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  if (first && !isMe)
+                  if (!isMe && (widget.roomType == 'group' || first))
                     Padding(
                       padding: const EdgeInsets.only(left: 6, bottom: 4),
                       child: Text(senderName,
