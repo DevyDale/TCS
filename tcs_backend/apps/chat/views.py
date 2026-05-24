@@ -582,6 +582,12 @@ def send_chat_request(request):
     if receiver == request.user:
         return Response({"error": "Cannot send to yourself."}, status=400)
 
+    from apps.accounts.reception import can_interact
+    if not can_interact(request.user, receiver):
+        return Response(
+            {"error": "You can't send a chat request to this person."},
+            status=403)
+
     req, created = ChatRequest.objects.get_or_create(
         sender=request.user, receiver=receiver,
         defaults={"message": msg}

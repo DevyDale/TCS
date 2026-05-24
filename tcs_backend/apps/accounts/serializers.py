@@ -25,6 +25,8 @@ def _cloudinary_url(field_value, **transform_opts):
 class UserMiniSerializer(serializers.ModelSerializer):
     avatar_url    = serializers.SerializerMethodField()
     arcade_avatar_url = serializers.SerializerMethodField()
+    staff_type    = serializers.SerializerMethodField()
+    is_reception  = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
@@ -48,6 +50,14 @@ class UserMiniSerializer(serializers.ModelSerializer):
             width=200, height=200, crop="fill", gravity="face",
             fetch_format="auto", quality="auto", secure=True,
         )
+
+    def get_staff_type(self, obj):
+        from apps.accounts.reception import staff_type_of
+        return staff_type_of(obj) or None
+
+    def get_is_reception(self, obj):
+        from apps.accounts.reception import is_reception
+        return is_reception(obj)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

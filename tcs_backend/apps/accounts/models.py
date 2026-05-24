@@ -43,6 +43,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     preferred_name = models.CharField(max_length=80, blank=True)
     date_of_birth  = models.DateField()
     gender         = models.CharField(max_length=20, blank=True)
+    # Mirror of StaffRecord.staff_type for live cross-role checks.
+    # "reception" bridges students <-> staff. Resolved/backfilled lazily
+    # by apps.accounts.reception.staff_type_of().
+    staff_type     = models.CharField(max_length=20, blank=True, default="")
 
     email    = models.EmailField(unique=True, null=True, blank=True)
     username = models.CharField(max_length=50, unique=True, null=True, blank=True)

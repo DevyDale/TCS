@@ -243,7 +243,7 @@ def search_posts(request):
     else:  # 'all'
         qs = base.filter(Q(content__icontains=q) | Q(location__icontains=q))
 
-    qs = qs.order_by("-created_at")
+    qs = qs.filter(reception.feed_post_q(me)).order_by("-created_at")
 
     paginator = PostPagination()
     page      = paginator.paginate_queryset(qs, request)
@@ -280,6 +280,9 @@ class FeedView(generics.ListAPIView):
         base = filter_posts_by_role(base, me)
         base = filter_blocked_users(base, me)
 
+        from apps.accounts import reception
+        role_q = reception.feed_post_q(me)
+
         if feed_type == "announcements":
             return base.filter(post_type="announcement").order_by("-created_at")
 
@@ -303,11 +306,13 @@ class FeedView(generics.ListAPIView):
             return (base
                     .filter(author__in=following_ids,
                             visibility__in=["public", "followers"])
+                    .filter(role_q)
                     .order_by("-created_at"))
 
         if feed_type == "trending":
             return (base
                     .filter(visibility="public")
+                    .filter(role_q)
                     .order_by("-likes_count", "-created_at"))
 
         # home — own posts + following + public
@@ -317,7 +322,7 @@ class FeedView(generics.ListAPIView):
             Q(author__in=following_ids,
               visibility__in=["public", "followers"]) |
             Q(visibility="public")
-        ).distinct().order_by("-created_at"))
+        ).filter(role_q).distinct().order_by("-created_at"))
 
 
 # ─────────────────────────────────────────────────────────────

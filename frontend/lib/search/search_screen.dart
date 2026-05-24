@@ -126,6 +126,7 @@ class _SearchScreenState extends State<SearchScreen>
 
   /// Viewer's role group: 'student' | 'staff' | 'other'.
   String _myGroup = 'other';
+  bool _myReception = false;
 
   // ─── Lifecycle ─────────────────────────────────────────
 
@@ -160,7 +161,11 @@ class _SearchScreenState extends State<SearchScreen>
   Future<void> _loadMyGroup() async {
     final me = await ApiService.instance.cachedUser;
     if (!mounted) return;
-    setState(() => _myGroup = _groupOf((me?['role'] as String?) ?? ''));
+    setState(() {
+      _myGroup = _groupOf((me?['role'] as String?) ?? '');
+      _myReception =
+          ((me?['staff_type'] as String?) ?? '').toLowerCase() == 'reception';
+    });
   }
 
   String get _currentCat => _cats[_tab.index];
@@ -377,11 +382,17 @@ class _SearchScreenState extends State<SearchScreen>
   /// People with the cross-role gate applied.
   List<Map<String, dynamic>> get _people {
     Iterable<Map<String, dynamic>> b = _allPeople;
+    bool isReception(Map<String, dynamic> u) =>
+        (u['staff_type']?.toString().toLowerCase() ?? '') == 'reception';
     if (_myGroup == 'student') {
-      b = b.where((u) => _groupOf(u['role']?.toString() ?? '') != 'staff');
-    } else if (_myGroup == 'staff') {
+      // students see students + reception staff
+      b = b.where((u) =>
+          _groupOf(u['role']?.toString() ?? '') != 'staff' || isReception(u));
+    } else if (_myGroup == 'staff' && !_myReception) {
+      // non-reception staff see staff only (no students)
       b = b.where((u) => _groupOf(u['role']?.toString() ?? '') != 'student');
     }
+    // reception staff and 'other' see everyone
     return b.toList();
   }
 
@@ -1921,6 +1932,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
   Timer? _debounce;
 
   String _myGroup = 'other';
+  bool   _myReception = false;
   bool   _loading = true;
   bool   _sending = false;
   String _query   = '';
@@ -1952,6 +1964,8 @@ class _SharePostSheetState extends State<_SharePostSheet> {
     try {
       final me = await ApiService.instance.cachedUser;
       _myGroup = _groupOf((me?['role'] as String?) ?? '');
+      _myReception =
+          ((me?['staff_type'] as String?) ?? '').toLowerCase() == 'reception';
     } catch (_) {/* default 'other' → no role filter */}
     await _loadDirectory();
   }
@@ -1965,9 +1979,14 @@ class _SharePostSheetState extends State<_SharePostSheet> {
     return const [];
   }
 
-  bool _inMyGroup(Map<String, dynamic> u) =>
-      _myGroup == 'other' ||
-      _groupOf((u['role'] ?? '').toString()) == _myGroup;
+  bool _inMyGroup(Map<String, dynamic> u) {
+    if (_myGroup == 'other') return true;
+    final theirGroup = _groupOf((u['role'] ?? '').toString());
+    if (theirGroup == 'other' || theirGroup == _myGroup) return true;
+    final theirReception =
+        (u['staff_type'] ?? '').toString().toLowerCase() == 'reception';
+    return _myGroup == 'staff' ? _myReception : theirReception;
+  }
 
   String _idOf(Map<String, dynamic> u) =>
       (u['user_id'] ?? u['id'] ?? '').toString();

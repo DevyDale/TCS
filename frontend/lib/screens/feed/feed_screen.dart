@@ -2105,6 +2105,7 @@ class _ShareSheetState extends State<_ShareSheet> {
   Timer? _debounce;
 
   String _myGroup = 'other';
+  bool   _myReception = false;
   bool   _loading = true;
   bool   _sending = false;
   String _query   = '';
@@ -2136,6 +2137,8 @@ class _ShareSheetState extends State<_ShareSheet> {
     try {
       final me = await ApiService.instance.cachedUser;
       _myGroup = _groupOf((me?['role'] as String?) ?? '');
+      _myReception =
+          ((me?['staff_type'] as String?) ?? '').toLowerCase() == 'reception';
     } catch (_) {/* default 'other' -> no role filter */}
     await _loadDirectory();
   }
@@ -2149,9 +2152,16 @@ class _ShareSheetState extends State<_ShareSheet> {
     return const [];
   }
 
-  bool _inMyGroup(Map<String, dynamic> u) =>
-      _myGroup == 'other' ||
-      _groupOf((u['role'] ?? '').toString()) == _myGroup;
+  bool _inMyGroup(Map<String, dynamic> u) {
+    // Reception staff bridge students <-> staff. The only blocked pairing
+    // is student <-> non-reception staff.
+    if (_myGroup == 'other') return true;
+    final theirGroup = _groupOf((u['role'] ?? '').toString());
+    if (theirGroup == 'other' || theirGroup == _myGroup) return true;
+    final theirReception =
+        (u['staff_type'] ?? '').toString().toLowerCase() == 'reception';
+    return _myGroup == 'staff' ? _myReception : theirReception;
+  }
 
   String _idOf(Map<String, dynamic> u) =>
       (u['user_id'] ?? u['id'] ?? '').toString();
