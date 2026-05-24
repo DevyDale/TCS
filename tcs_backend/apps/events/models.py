@@ -110,3 +110,19 @@ class EventRSVP(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.event} ({self.status})"
+
+
+# >>> tcs-notify:event-club
+from django.db.models.signals import post_save as _nz_post_save
+from django.dispatch import receiver as _nz_receiver
+
+@_nz_receiver(_nz_post_save, sender=Event)
+def _nz_notify_club_event(sender, instance, created, **kwargs):
+    if not created or not getattr(instance, "club_id", None):
+        return
+    try:
+        from apps.notifications.tasks import push_club_event_notification
+        push_club_event_notification.delay(str(instance.id))
+    except Exception:
+        pass
+# <<< tcs-notify:event-club

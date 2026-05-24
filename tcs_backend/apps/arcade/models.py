@@ -372,3 +372,18 @@ class MatchMessage(models.Model):
         db_table = "match_messages"
         ordering = ["-created_at"]
         indexes  = [models.Index(fields=["session", "-created_at"])]
+
+# >>> tcs-notify:game-request
+from django.db.models.signals import post_save as _nz_post_save
+from django.dispatch import receiver as _nz_receiver
+
+@_nz_receiver(_nz_post_save, sender=GameRequest)
+def _nz_notify_game_request(sender, instance, created, **kwargs):
+    if not created:
+        return
+    try:
+        from apps.notifications.tasks import push_game_request_notification
+        push_game_request_notification.delay(str(instance.id))
+    except Exception:
+        pass
+# <<< tcs-notify:game-request

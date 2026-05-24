@@ -222,6 +222,14 @@ def add_group_member(request, group_id):
     if created:
         Group.objects.filter(pk=group.pk).update(
             members_count=group.memberships.filter(status="active").count())
+        try:
+            # tcs-notify:group-add
+            from apps.notifications.tasks import push_group_add_notification
+            push_group_add_notification.delay(
+                str(user.id), str(request.user.id), group.name,
+                "group", str(group.id))
+        except Exception:
+            pass
     return Response({"success": True})
 
 

@@ -331,6 +331,15 @@ class RoomListCreateView(generics.GenericAPIView):
         all_members = set(members) | {request.user}
         RoomMember.objects.bulk_create([RoomMember(room=room, user=u) for u in all_members])
         room.admins.add(request.user)
+        try:
+            # tcs-notify:room-add
+            from apps.notifications.tasks import push_group_add_notification
+            for _u in members:
+                push_group_add_notification.delay(
+                    str(_u.id), str(request.user.id), name or "Group chat",
+                    "room", str(room.id))
+        except Exception:
+            pass
         return Response(RoomSerializer(room, context={"request": request}).data,
                         status=status.HTTP_201_CREATED)
 
@@ -617,6 +626,13 @@ def accept_chat_request(request, req_id):
     req.status = "accepted"
     req.room   = room
     req.save(update_fields=["status", "room"])
+    try:
+        # tcs-notify:accept
+        from apps.notifications.tasks import push_chat_request_response_notification
+        push_chat_request_response_notification.delay(
+            str(req.sender_id), str(request.user.id), True, str(room.id))
+    except Exception:
+        pass
     return Response({
         "success": True,
         "room":    RoomSerializer(room, context={"request": request}).data,
@@ -630,7 +646,14 @@ def decline_chat_request(request, req_id):
         req = ChatRequest.objects.get(id=req_id, receiver=request.user, status="pending")
     except ChatRequest.DoesNotExist:
         return Response({"error": "Request not found."}, status=404)
+    _tcs_sender_id = str(req.sender_id)  # tcs-notify:decline
     req.delete()
+    try:
+        from apps.notifications.tasks import push_chat_request_response_notification
+        push_chat_request_response_notification.delay(
+            _tcs_sender_id, str(request.user.id), False)
+    except Exception:
+        pass
     return Response({"success": True})
 
 

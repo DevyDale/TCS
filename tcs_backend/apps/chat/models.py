@@ -314,3 +314,18 @@ class RoomInvite(models.Model):
 
     def __str__(self):
         return f"{self.inviter} → {self.invitee} [{self.room.name}] ({self.status})"
+
+# >>> tcs-notify:chat-request
+from django.db.models.signals import post_save as _nz_post_save
+from django.dispatch import receiver as _nz_receiver
+
+@_nz_receiver(_nz_post_save, sender=ChatRequest)
+def _nz_notify_chat_request(sender, instance, created, **kwargs):
+    if instance.status != "pending":
+        return
+    try:
+        from apps.notifications.tasks import push_chat_request_notification
+        push_chat_request_notification.delay(str(instance.id))
+    except Exception:
+        pass
+# <<< tcs-notify:chat-request

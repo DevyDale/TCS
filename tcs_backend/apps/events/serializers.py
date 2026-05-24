@@ -121,7 +121,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Event
         fields = [
-            "title", "description", "category", "group",
+            "title", "description", "category", "group", "club",
             "location", "is_online", "meeting_url",
             "start_time", "end_time",
             "max_attendees", "is_featured",

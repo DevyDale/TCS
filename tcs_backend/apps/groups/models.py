@@ -175,3 +175,18 @@ class GroupMaterial(models.Model):
             "pdf" in ft or "doc" in ft or "wordprocessingml" in ft
             or fn.endswith(".pdf") or fn.endswith(".docx")
         )
+
+# >>> tcs-notify:group-material
+from django.db.models.signals import post_save as _nz_post_save
+from django.dispatch import receiver as _nz_receiver
+
+@_nz_receiver(_nz_post_save, sender=GroupMaterial)
+def _nz_notify_group_material(sender, instance, created, **kwargs):
+    if not created:
+        return
+    try:
+        from apps.notifications.tasks import push_group_material_notification
+        push_group_material_notification.delay(str(instance.id))
+    except Exception:
+        pass
+# <<< tcs-notify:group-material

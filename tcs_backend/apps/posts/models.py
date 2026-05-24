@@ -284,3 +284,38 @@ def attach_hashtags(post, content):
             posts_count=models.F("posts_count") + 1,
             last_used_at=timezone.now(),
         )
+
+# >>> tcs-notify:posts
+from django.db.models.signals import post_save as _nz_post_save
+from django.dispatch import receiver as _nz_receiver
+
+@_nz_receiver(_nz_post_save, sender=Like)
+def _nz_notify_like(sender, instance, created, **kwargs):
+    if not created:
+        return
+    try:
+        from apps.notifications.tasks import push_like_notification
+        push_like_notification.delay(str(instance.post_id), str(instance.user_id))
+    except Exception:
+        pass
+
+@_nz_receiver(_nz_post_save, sender=Comment)
+def _nz_notify_comment(sender, instance, created, **kwargs):
+    if not created:
+        return
+    try:
+        from apps.notifications.tasks import push_comment_notification
+        push_comment_notification.delay(str(instance.id))
+    except Exception:
+        pass
+
+@_nz_receiver(_nz_post_save, sender=Post)
+def _nz_notify_group_post(sender, instance, created, **kwargs):
+    if not created or not getattr(instance, "group_id", None):
+        return
+    try:
+        from apps.notifications.tasks import push_group_post_notification
+        push_group_post_notification.delay(str(instance.id))
+    except Exception:
+        pass
+# <<< tcs-notify:posts

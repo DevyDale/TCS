@@ -50,6 +50,7 @@ class EventSerializer(serializers.ModelSerializer):
             "image",            # write
             "image_url",        # read
             "location",
+            "club",  # tcs-club-field
             "is_online", "meeting_url", "start_time", "end_time",
             "max_attendees", "attendees_count", "is_featured",
             "is_full", "is_rsvped", "can_manage", "created_at",

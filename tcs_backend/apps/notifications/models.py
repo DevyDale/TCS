@@ -5,26 +5,29 @@ from django.conf import settings
 
 class Notification(models.Model):
     class Type(models.TextChoices):
-        LIKE                = "like",                "Like"
-        COMMENT             = "comment",             "Comment"
-        FOLLOW              = "follow",              "Follow"
-        MENTION             = "mention",             "Mention"
-        CHAT_MESSAGE        = "chat_message",        "Chat Message"
-        CHAT_REQUEST        = "chat_request",        "Chat Request"
-        GAME_REQUEST        = "game_request",        "Game Request"
-        EVENT_REMINDER      = "event_reminder",      "Event Reminder"
-        HIGHLIGHT           = "highlight",           "New Highlight"
-        STUDY_BUDDY_REQUEST = "study_buddy_request", "Study Buddy Request"
-        STUDY_GROUP_INVITE  = "study_group_invite",  "Study Group Invite"
-        ACHIEVEMENT         = "achievement",         "Achievement"
-        SYSTEM              = "system",              "System"
+        LIKE             = "like",             "Like"
+        COMMENT          = "comment",          "Comment"
+        FOLLOW           = "follow",           "Follow"
+        MENTION          = "mention",          "Mention"
+        CHAT_MESSAGE     = "chat_message",     "Chat Message"
+        CHAT_REQUEST     = "chat_request",     "Chat Request"
+        REQUEST_ACCEPTED = "request_accepted", "Request Accepted"
+        REQUEST_DECLINED = "request_declined", "Request Declined"
+        GROUP_ADD        = "group_add",        "Added to Group"
+        GROUP_MESSAGE    = "group_message",    "Group Message"
+        GROUP_MATERIAL   = "group_material",   "Group Material"
+        CLUB_EVENT       = "club_event",       "Club Event"
+        GAME_REQUEST     = "game_request",     "Game Request"
+        EVENT_REMINDER   = "event_reminder",   "Event Reminder"
+        ACHIEVEMENT      = "achievement",      "Achievement"
+        SYSTEM           = "system",           "System"
 
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recipient   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                     related_name="notifications")
     actor       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                     null=True, blank=True, related_name="+")
-    notif_type  = models.CharField(max_length=30, choices=Type.choices)
+    notif_type  = models.CharField(max_length=20, choices=Type.choices)
     title       = models.CharField(max_length=200)
     body        = models.TextField()
     target_type = models.CharField(max_length=30, blank=True)
