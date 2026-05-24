@@ -8,7 +8,7 @@ User   = get_user_model()
 # ── Firebase (lazy init) ──────────────────────────────────────
 _firebase_app = None
 
-def _fcm_send(token, title, body, data=None):
+def _fcm_send(token, title, body, data=None, badge=None):
     """Send FCM push — silently skips if Firebase not configured."""
     if not token:
         return
@@ -29,11 +29,21 @@ def _fcm_send(token, title, body, data=None):
             token=token,
             android=messaging.AndroidConfig(priority="high"),
             apns=messaging.APNSConfig(
-                payload=messaging.APNSPayload(aps=messaging.Aps(sound="default"))
+                payload=messaging.APNSPayload(aps=messaging.Aps(sound="default", badge=badge))
             ),
         ))
     except Exception as e:
         logger.debug(f"FCM skipped: {e}")
+
+
+def _unread(user_id):
+    """Unread notification count for the app-icon badge."""
+    from .models import Notification
+    try:
+        return Notification.objects.filter(
+            recipient_id=user_id, is_read=False).count()
+    except Exception:
+        return None
 
 
 def _create(recipient_id, actor_id, notif_type, title, body,
@@ -89,7 +99,7 @@ def push_like_notification(post_id, liker_id):
         notif = _create(str(post.author.id), liker_id, "like", title, body,
                         "post", post_id)
         if notif:
-            _fcm_send(post.author.fcm_token, title, body, {"type": "like", "post_id": str(post_id)})
+            _fcm_send(post.author.fcm_token, title, body, {"type": "like", "post_id": str(post_id)}, badge=_unread(post.author.id))
     except Exception as e:
         logger.error(f"push_like_notification: {e}")
 
@@ -107,7 +117,7 @@ def push_comment_notification(comment_id):
                         title, body, "post", str(c.post.id))
         if notif:
             _fcm_send(c.post.author.fcm_token, title, body,
-                      {"type": "comment", "post_id": str(c.post.id)})
+                      {"type": "comment", "post_id": str(c.post.id)}, badge=_unread(c.post.author.id))
     except Exception as e:
         logger.error(f"push_comment_notification: {e}")
 
@@ -123,7 +133,7 @@ def push_follow_notification(follower_id, target_id):
                         "user", follower_id)
         if notif:
             _fcm_send(target.fcm_token, title, body,
-                      {"type": "follow", "user_id": str(follower_id)})
+                      {"type": "follow", "user_id": str(follower_id)}, badge=_unread(target.id))
     except Exception as e:
         logger.error(f"push_follow_notification: {e}")
 
@@ -145,7 +155,7 @@ def push_chat_notification(message_id, room_id):
                     "chat_message", title, body, "room", str(room_id))
             _fcm_send(m.user.fcm_token, title, body,
                       {"type": "chat", "room_id": str(room_id),
-                       "message_id": str(message_id)})
+                       "message_id": str(message_id)}, badge=_unread(m.user.id))
     except Exception as e:
         logger.error(f"push_chat_notification: {e}")
 
@@ -328,4 +338,4 @@ def push_event_reminders():
         _create(str(rsvp.user.id), None, "event_reminder", title, body,
                 "event", str(rsvp.event.id))
         _fcm_send(rsvp.user.fcm_token, title, body,
-                  {"type": "event_reminder", "event_id": str(rsvp.event.id)})
+                  {"type": "event_reminder", "event_id": str(rsvp.event.id)}, badge=_unread(rsvp.user.id))
