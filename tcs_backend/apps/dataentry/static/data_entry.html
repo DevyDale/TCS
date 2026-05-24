@@ -18,6 +18,8 @@
       --muted: rgba(238,238,255,0.40);
       --muted2: rgba(238,238,255,0.22);
       --input-bg: #181728;
+      --focus: rgba(142,84,233,.55);
+      --focus-ring: rgba(142,84,233,.12);
       --radius: 14px; --radius-lg: 22px; --radius-xl: 28px;
     }
 
@@ -61,7 +63,6 @@
       overflow-y: auto;
     }
 
-    /* logo */
     .sb-logo { display: flex; align-items: center; gap: 14px; }
 
     .sb-monogram {
@@ -86,10 +87,8 @@
     }
     .sb-sub { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .3px; }
 
-    /* divider */
     .sb-divider { height: 1px; background: var(--border); }
 
-    /* steps */
     .sb-steps-label {
       font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
       text-transform: uppercase; color: var(--muted2); margin-bottom: 16px;
@@ -122,7 +121,6 @@
     .sb-step-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .sb-step-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
 
-    /* note */
     .sb-note {
       background: rgba(109,213,250,.05);
       border: 1px solid rgba(109,213,250,.12);
@@ -135,7 +133,6 @@
     }
     .sb-note p { font-size: 12px; color: rgba(109,213,250,.55); line-height: 1.7; }
 
-    /* lumora */
     .sb-lumora { text-align: center; margin-top: auto; }
     .sb-lumora-word {
       font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800;
@@ -159,7 +156,6 @@
 
     .main-inner { width: 100%; max-width: 560px; }
 
-    /* ── Mobile header ── */
     .mob-header {
       text-align: center;
       padding-bottom: 36px;
@@ -189,7 +185,6 @@
     }
     .mob-site-sub { font-size: .85rem; color: var(--muted); font-weight: 500; line-height: 1.5; }
 
-    /* ── Progress bar (mobile) ── */
     .progress-wrap {
       display: flex; align-items: center; gap: 8px;
       margin-bottom: 28px;
@@ -213,7 +208,6 @@
     .prog-step.active .prog-step-fill  { width: 100%; }
     .prog-step.done   .prog-step-fill  { width: 100%; background: linear-gradient(90deg,#1D9E75,#5DCAA5); }
 
-    /* ── Card ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -227,7 +221,6 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* section head */
     .sec-head {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 28px;
@@ -301,26 +294,43 @@
     .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.06); }
     .divider-label { font-size: .72rem; font-weight: 700; color: var(--muted2); letter-spacing: .8px; text-transform: uppercase; }
 
-    /* ── FORM FIELDS ── */
-    .form-grid { display: flex; flex-direction: column; gap: 16px; }
+    /* ════════════════════════════
+       FORM FIELDS  — unified system
+    ════════════════════════════ */
+    .form-grid { display: flex; flex-direction: column; gap: 18px; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field { display: flex; flex-direction: column; gap: 8px; }
 
     .field label {
-      font-size: .72rem; font-weight: 700;
+      font-size: .7rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: .7px;
       color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
     }
-    .field label.c1 { color: rgba(109,213,250,.7); }
-    .field label.c2 { color: rgba(142,84,233,.85); }
-    .field label.c3 { color: rgba(247,151,30,.8); }
-    .field label.c4 { color: rgba(255,88,88,.8); }
+    .field label .req { color: var(--g4); font-weight: 800; font-size: .8rem; line-height: 1; }
+    .field label .opt {
+      margin-left: auto; font-size: .62rem; font-weight: 600; letter-spacing: .2px;
+      text-transform: none; color: var(--muted2);
+    }
 
+    /* icon-in-field wrapper — every field shares this */
+    .input-wrap { position: relative; display: block; }
+
+    .field-ico {
+      position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+      width: 17px; height: 17px;
+      fill: none; stroke: var(--muted2); stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+      pointer-events: none; transition: stroke .2s; z-index: 2;
+    }
+
+    /* the three control types share ONE base look */
     .field input,
-    .field select {
+    .field select,
+    .datefield-trigger {
       width: 100%;
-      padding: 13px 16px;
+      padding: 14px 16px 14px 44px;
       background: var(--input-bg);
       border: 1.5px solid rgba(255,255,255,.07);
       border-radius: var(--radius);
@@ -331,30 +341,128 @@
       transition: border-color .2s, box-shadow .2s, background .2s;
       appearance: none; -webkit-appearance: none;
     }
+
     .field select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 14px center;
       padding-right: 40px;
+      cursor: pointer;
     }
     .field select option { background: #1A1930; color: #EEEEFF; }
-    .field input::placeholder { color: rgba(238,238,255,.18); }
+    .field input::placeholder { color: rgba(238,238,255,.20); }
+
     .field input:focus,
     .field select:focus {
-      border-color: rgba(142,84,233,.55);
+      border-color: var(--focus);
       background: #1D1C33;
-      box-shadow: 0 0 0 4px rgba(142,84,233,.12);
+      box-shadow: 0 0 0 4px var(--focus-ring);
     }
-    .field input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(1) opacity(.3); cursor: pointer;
+    .input-wrap:focus-within .field-ico { stroke: var(--g1); }
+
+    /* ── CUSTOM DATE FIELD ── */
+    .datefield { position: relative; }
+    .datefield-trigger {
+      text-align: left; cursor: pointer;
+      padding-right: 40px;
+      display: flex; align-items: center;
     }
+    .datefield-text { color: rgba(238,238,255,.20); font-weight: 500; }
+    .datefield.has-value .datefield-text { color: var(--text); }
+
+    .df-chev {
+      position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px;
+      fill: none; stroke: var(--muted2); stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+      pointer-events: none; transition: transform .25s, stroke .2s; z-index: 2;
+    }
+    .datefield.open .datefield-trigger {
+      border-color: var(--focus); background: #1D1C33;
+      box-shadow: 0 0 0 4px var(--focus-ring);
+    }
+    .datefield.open .field-ico { stroke: var(--g1); }
+    .datefield.open .df-chev { transform: translateY(-50%) rotate(180deg); stroke: var(--g1); }
+    .datefield.open { z-index: 60; }
+
+    /* calendar popover */
+    .dp-pop {
+      position: absolute; top: calc(100% + 10px); left: 0;
+      width: min(330px, 100%);
+      background: var(--card3);
+      border: 1px solid var(--border-hi);
+      border-radius: 18px; padding: 14px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.55);
+      display: none; z-index: 5;
+    }
+    .datefield.open .dp-pop { display: block; animation: dpIn .22s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes dpIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+
+    .dp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .dp-nav {
+      width: 32px; height: 32px; flex-shrink: 0; border-radius: 10px;
+      background: var(--card2); border: 1px solid var(--border);
+      color: var(--text); font-size: 18px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s;
+    }
+    .dp-nav:hover { border-color: var(--g2); background: rgba(142,84,233,.12); }
+    .dp-selects { flex: 1; display: flex; gap: 8px; }
+    .dp-month, .dp-year {
+      padding: 8px 26px 8px 10px; border-radius: 10px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); font-family: inherit; font-size: .82rem; font-weight: 600;
+      outline: none; appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2.2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center;
+    }
+    .dp-month { flex: 1.4; }
+    .dp-year { flex: 1; }
+    .dp-month option, .dp-year option { background: #1A1930; color: #EEEEFF; }
+    .dp-month:focus, .dp-year:focus { border-color: var(--focus); }
+
+    .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .dp-week { margin-bottom: 6px; }
+    .dp-week span {
+      text-align: center; font-size: .6rem; font-weight: 700;
+      color: var(--muted2); text-transform: uppercase; letter-spacing: .3px;
+      padding: 4px 0;
+    }
+    .dp-day {
+      aspect-ratio: 1; border: none; border-radius: 10px;
+      background: transparent; color: var(--text);
+      font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+    }
+    .dp-day:hover:not(.sel):not(:disabled) { background: rgba(255,255,255,.06); }
+    .dp-day.today { box-shadow: inset 0 0 0 1.5px rgba(109,213,250,.4); color: var(--g1); }
+    .dp-day.sel {
+      background: linear-gradient(135deg, var(--g2), var(--g1));
+      color: #fff; font-weight: 800;
+      box-shadow: 0 6px 16px rgba(142,84,233,.40);
+    }
+    .dp-day:disabled { opacity: .20; cursor: default; }
+    .dp-empty { background: transparent !important; cursor: default; pointer-events: none; }
+
+    .dp-foot { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .dp-foot button {
+      flex: 1; padding: 9px; border-radius: 10px; font-family: inherit;
+      font-size: .76rem; font-weight: 700; cursor: pointer; transition: all .18s;
+    }
+    .dp-clear { background: var(--card2); border: 1px solid var(--border); color: var(--muted); }
+    .dp-clear:hover { border-color: var(--g4); color: #FCA5A5; }
+    .dp-today { background: rgba(109,213,250,.10); border: 1px solid rgba(109,213,250,.25); color: var(--g1); }
+    .dp-today:hover { background: rgba(109,213,250,.18); }
 
     /* ── STAFF TYPE PILLS ── */
     .staff-pills-label {
-      font-size: .72rem; font-weight: 700;
+      font-size: .7rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: .7px;
-      color: rgba(247,151,30,.8); margin-bottom: 10px;
+      color: var(--muted); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
     }
+    .staff-pills-label .req { color: var(--g4); font-weight: 800; font-size: .8rem; }
 
     .staff-pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
 
@@ -415,7 +523,6 @@
     .submit-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
     .submit-btn svg { width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 2; flex-shrink: 0; }
 
-    /* info note */
     .info-note {
       display: flex; align-items: flex-start; gap: 10px;
       padding: 12px 14px;
@@ -517,7 +624,6 @@
     /* ════════════════════════════
        BREAKPOINTS
     ════════════════════════════ */
-
     @media (max-width: 420px) {
       .main { padding: 28px 14px 60px; }
       .card { padding: 24px 18px; border-radius: 20px; }
@@ -648,11 +754,11 @@
 
           <div class="sec-head">
             <div class="sec-accent"></div>
-            <div class="sec-title">Who are you?</div>
+            <div class="sec-title" id="secTitle">Who are you?</div>
           </div>
 
           <!-- Role selection -->
-          <div class="role-grid">
+          <div class="role-grid" id="roleGrid">
             <div class="role-card" id="role-student" onclick="selectRole('student')">
               <div class="role-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
               <div class="role-icon-wrap student">🎓</div>
@@ -675,40 +781,76 @@
               <div class="divider-line"></div>
             </div>
             <div class="form-grid">
+
               <div class="field">
-                <label class="c1">Full Legal Name</label>
-                <input type="text" id="fullName" placeholder="As it appears on your ID card" autocomplete="name">
+                <label for="fullName">Full Legal Name <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <svg class="field-ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <input type="text" id="fullName" placeholder="As it appears on your ID card" autocomplete="name">
+                </div>
               </div>
+
               <div class="row-2">
                 <div class="field">
-                  <label class="c2">Preferred Name</label>
-                  <input type="text" id="preferredName" placeholder="What we call you">
+                  <label for="preferredName">Preferred Name <span class="opt">optional</span></label>
+                  <div class="input-wrap">
+                    <svg class="field-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    <input type="text" id="preferredName" placeholder="What we call you">
+                  </div>
                 </div>
                 <div class="field">
-                  <label class="c2">Student ID</label>
-                  <input type="text" id="studentId" placeholder="e.g. 0123456">
+                  <label for="studentId">Student ID <span class="req">*</span></label>
+                  <div class="input-wrap">
+                    <svg class="field-ico" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                    <input type="text" id="studentId" placeholder="e.g. 0123456" inputmode="numeric">
+                  </div>
                 </div>
               </div>
+
               <div class="field">
-                <label class="c3">Date of Birth</label>
-                <input type="date" id="dob">
+                <label>Date of Birth <span class="req">*</span></label>
+                <div class="input-wrap datefield" data-target="dob" data-nofuture data-minyear="1940" data-defaultyear="2005">
+                  <svg class="field-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <button type="button" class="datefield-trigger"><span class="datefield-text" data-placeholder="Select your date of birth">Select your date of birth</span></button>
+                  <svg class="df-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  <input type="hidden" id="dob">
+                </div>
               </div>
+
               <div class="field">
-                <label class="c3">Type of Course</label>
-                <select id="courseType">
-                  <option value="">Select your programme…</option>
-                  <option value="standard">📚 Standard Programme</option>
-                  <option value="intensive">⚡ Intensive Programme</option>
-                </select>
+                <label for="courseType">Type of Course <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <svg class="field-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <select id="courseType">
+                    <option value="">Select your programme…</option>
+                    <option value="standard">📚 Standard Programme</option>
+                    <option value="intensive">⚡ Intensive Programme</option>
+                    <option value="high_achievers">🏆 High Achievers Preparation Program</option>
+                  </select>
+                </div>
               </div>
-              <div class="field">
-                <label class="c4">Date of Commencement</label>
-                <input type="date" id="commencement">
+
+              <div class="row-2">
+                <div class="field">
+                  <label>Date of Commencement <span class="req">*</span></label>
+                  <div class="input-wrap datefield" data-target="commencement" data-min-rel="-6" data-max-rel="1">
+                    <svg class="field-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <button type="button" class="datefield-trigger"><span class="datefield-text" data-placeholder="Start date">Start date</span></button>
+                    <svg class="df-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                    <input type="hidden" id="commencement">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Date of Finishing <span class="req">*</span></label>
+                  <div class="input-wrap datefield" data-target="finishingDate" data-min-rel="-1" data-max-rel="8">
+                    <svg class="field-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <button type="button" class="datefield-trigger"><span class="datefield-text" data-placeholder="End date">End date</span></button>
+                    <svg class="df-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                    <input type="hidden" id="finishingDate">
+                  </div>
+                </div>
               </div>
-              <div class="field">
-                <label class="c4">Date of Finishing</label>
-                <input type="date" id="finishingDate">
-              </div>
+
             </div>
           </div>
 
@@ -719,7 +861,7 @@
               <div class="divider-label">Staff Details</div>
               <div class="divider-line"></div>
             </div>
-            <div class="staff-pills-label">Department / Role</div>
+            <div class="staff-pills-label">Department / Role <span class="req">*</span></div>
             <div class="staff-pills">
               <div class="s-pill" onclick="selectStaffType(this,'teaching')">
                 <span class="s-pill-ico">👨‍🏫</span>
@@ -744,22 +886,41 @@
             </div>
             <input type="hidden" id="staffType">
             <div class="form-grid">
+
               <div class="field">
-                <label class="c1">Staff ID</label>
-                <input type="text" id="staffId" placeholder="Your staff identification number">
+                <label for="staffId">Staff ID <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <svg class="field-ico" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                  <input type="text" id="staffId" placeholder="Your staff identification number">
+                </div>
               </div>
+
               <div class="field">
-                <label class="c2">Full Legal Name</label>
-                <input type="text" id="staffFullName" placeholder="As it appears on your ID card" autocomplete="name">
+                <label for="staffFullName">Full Legal Name <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <svg class="field-ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <input type="text" id="staffFullName" placeholder="As it appears on your ID card" autocomplete="name">
+                </div>
               </div>
+
               <div class="field">
-                <label class="c2">Preferred Name</label>
-                <input type="text" id="staffPreferredName" placeholder="What we call you">
+                <label for="staffPreferredName">Preferred Name <span class="opt">optional</span></label>
+                <div class="input-wrap">
+                  <svg class="field-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                  <input type="text" id="staffPreferredName" placeholder="What we call you">
+                </div>
               </div>
+
               <div class="field">
-                <label class="c3">Date of Birth</label>
-                <input type="date" id="staffDob">
+                <label>Date of Birth <span class="req">*</span></label>
+                <div class="input-wrap datefield" data-target="staffDob" data-nofuture data-minyear="1940" data-defaultyear="1990">
+                  <svg class="field-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <button type="button" class="datefield-trigger"><span class="datefield-text" data-placeholder="Select your date of birth">Select your date of birth</span></button>
+                  <svg class="df-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  <input type="hidden" id="staffDob">
+                </div>
               </div>
+
             </div>
           </div>
 
@@ -806,17 +967,169 @@
   <script>
     let selectedRole = '', selectedStaffType = '';
 
+    /* ════════════════════════════
+       CUSTOM DATE PICKER
+    ════════════════════════════ */
+    const MON_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MON_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const WEEKDAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function sameDay(a, b) {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+    function closeAllPickers() {
+      document.querySelectorAll('.datefield.open').forEach(x => x.classList.remove('open'));
+    }
+
+    function setupDatePicker(df) {
+      const hidden  = df.querySelector('input[type=hidden]');
+      const trigger = df.querySelector('.datefield-trigger');
+      const textEl  = df.querySelector('.datefield-text');
+      const placeholder = textEl.dataset.placeholder;
+      const noFuture = df.hasAttribute('data-nofuture');
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const cy = today.getFullYear();
+
+      const minYear = df.dataset.minyear ? +df.dataset.minyear
+                    : (df.dataset.minRel ? cy + (+df.dataset.minRel) : cy - 80);
+      const maxYear = noFuture ? cy
+                    : (df.dataset.maxyear ? +df.dataset.maxyear
+                    : (df.dataset.maxRel ? cy + (+df.dataset.maxRel) : cy + 10));
+
+      let defYear = df.dataset.defaultyear ? +df.dataset.defaultyear : cy;
+      if (defYear < minYear) defYear = minYear;
+      if (defYear > maxYear) defYear = maxYear;
+
+      let selected = null;
+      let view = { y: defYear, m: today.getMonth() };
+
+      const pop = document.createElement('div');
+      pop.className = 'dp-pop';
+      pop.setAttribute('role', 'dialog');
+      df.appendChild(pop);
+
+      function open() {
+        closeAllPickers();
+        if (selected) view = { y: selected.getFullYear(), m: selected.getMonth() };
+        df.classList.add('open');
+        render();
+      }
+      function close() { df.classList.remove('open'); }
+
+      function setValue(d) {
+        selected = d;
+        hidden.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        textEl.textContent = d.getDate() + ' ' + MON_SHORT[d.getMonth()] + ' ' + d.getFullYear();
+        df.classList.add('has-value');
+        close();
+      }
+      function clearValue() {
+        selected = null;
+        hidden.value = '';
+        textEl.textContent = placeholder;
+        df.classList.remove('has-value');
+        if (df.classList.contains('open')) render();
+      }
+      df.__reset = function () {
+        selected = null; hidden.value = ''; textEl.textContent = placeholder;
+        df.classList.remove('has-value'); df.classList.remove('open');
+        view = { y: defYear, m: today.getMonth() };
+      };
+
+      function shift(dir) {
+        view.m += dir;
+        if (view.m < 0)  { view.m = 11; view.y--; }
+        if (view.m > 11) { view.m = 0;  view.y++; }
+        if (view.y < minYear) { view.y = minYear; view.m = 0; }
+        if (view.y > maxYear) { view.y = maxYear; view.m = 11; }
+        render();
+      }
+
+      function render() {
+        if (view.y < minYear) view.y = minYear;
+        if (view.y > maxYear) view.y = maxYear;
+
+        let monthOpts = '';
+        for (let i = 0; i < 12; i++)
+          monthOpts += '<option value="' + i + '"' + (i === view.m ? ' selected' : '') + '>' + MON_FULL[i] + '</option>';
+
+        let yearOpts = '';
+        for (let y = maxYear; y >= minYear; y--)
+          yearOpts += '<option value="' + y + '"' + (y === view.y ? ' selected' : '') + '>' + y + '</option>';
+
+        const first = (new Date(view.y, view.m, 1).getDay() + 6) % 7;  // Mon-first offset
+        const dim   = new Date(view.y, view.m + 1, 0).getDate();
+
+        let cells = '';
+        for (let i = 0; i < first; i++) cells += '<span class="dp-day dp-empty"></span>';
+        for (let d = 1; d <= dim; d++) {
+          const dt = new Date(view.y, view.m, d); dt.setHours(0, 0, 0, 0);
+          const dis    = noFuture && dt > today;
+          const isSel  = selected && sameDay(dt, selected);
+          const isTod  = sameDay(dt, today);
+          cells += '<button type="button" class="dp-day' + (isSel ? ' sel' : '') + (isTod ? ' today' : '') + '"'
+                 + ' data-d="' + d + '"' + (dis ? ' disabled' : '') + '>' + d + '</button>';
+        }
+
+        let week = '';
+        WEEKDAYS.forEach(w => { week += '<span>' + w + '</span>'; });
+
+        pop.innerHTML =
+          '<div class="dp-head">' +
+            '<button type="button" class="dp-nav" data-nav="-1" aria-label="Previous month">\u2039</button>' +
+            '<div class="dp-selects">' +
+              '<select class="dp-month" aria-label="Month">' + monthOpts + '</select>' +
+              '<select class="dp-year" aria-label="Year">' + yearOpts + '</select>' +
+            '</div>' +
+            '<button type="button" class="dp-nav" data-nav="1" aria-label="Next month">\u203A</button>' +
+          '</div>' +
+          '<div class="dp-grid dp-week">' + week + '</div>' +
+          '<div class="dp-grid dp-days">' + cells + '</div>' +
+          '<div class="dp-foot">' +
+            '<button type="button" class="dp-clear">Clear</button>' +
+            '<button type="button" class="dp-today">Today</button>' +
+          '</div>';
+
+        pop.querySelector('.dp-month').onchange = e => { view.m = +e.target.value; render(); };
+        pop.querySelector('.dp-year').onchange  = e => { view.y = +e.target.value; render(); };
+        pop.querySelectorAll('.dp-nav').forEach(b => { b.onclick = () => shift(+b.dataset.nav); });
+        pop.querySelectorAll('.dp-day').forEach(b => {
+          if (b.classList.contains('dp-empty') || b.disabled) return;
+          b.onclick = () => setValue(new Date(view.y, view.m, +b.dataset.d));
+        });
+        pop.querySelector('.dp-clear').onclick = clearValue;
+        pop.querySelector('.dp-today').onclick = () => {
+          view = { y: today.getFullYear(), m: today.getMonth() };
+          setValue(new Date(today));
+        };
+      }
+
+      trigger.addEventListener('click', () => {
+        df.classList.contains('open') ? close() : open();
+      });
+    }
+
+    function initDatePickers() {
+      document.querySelectorAll('.datefield').forEach(setupDatePicker);
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.datefield')) closeAllPickers();
+      });
+    }
+
+    /* ════════════════════════════
+       STEPS / ROLE / SUBMIT
+    ════════════════════════════ */
     function setStep(step) {
-      // sidebar circles
       ['sc1','sc2','sc3'].forEach((id, i) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.className = 'sb-step-num';
-        if (i + 1 < step)       { el.classList.add('done');   el.textContent = '✓'; }
+        if (i + 1 < step)        { el.classList.add('done');   el.textContent = '✓'; }
         else if (i + 1 === step) { el.classList.add('active'); el.textContent = i + 1; }
-        else                      { el.textContent = i + 1; }
+        else                     { el.textContent = i + 1; }
       });
-      // mobile progress bars
       ['p1','p2','p3'].forEach((id, i) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -826,14 +1139,16 @@
       });
     }
 
-    function selectRole(role) {
+    function selectRole(role, skipScroll) {
       selectedRole = role;
       document.getElementById('role-student').classList.toggle('selected', role === 'student');
       document.getElementById('role-staff').classList.toggle('selected', role === 'staff');
       document.getElementById('studentFields').classList.toggle('visible', role === 'student');
       document.getElementById('staffFields').classList.toggle('visible', role === 'staff');
       document.getElementById('submitWrap').style.display = 'block';
+      closeAllPickers();
       setStep(2);
+      if (skipScroll) return;
       setTimeout(() => {
         const panel = document.getElementById(role === 'student' ? 'studentFields' : 'staffFields');
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -923,21 +1238,57 @@
       selectedRole = ''; selectedStaffType = '';
       document.getElementById('main-card').style.display = 'block';
       document.getElementById('successScreen').classList.remove('show');
-      document.getElementById('role-student').classList.remove('selected');
-      document.getElementById('role-staff').classList.remove('selected');
-      document.getElementById('studentFields').classList.remove('visible');
-      document.getElementById('staffFields').classList.remove('visible');
-      document.getElementById('submitWrap').style.display = 'none';
       document.getElementById('submitBtn').disabled = false;
       document.getElementById('staffType').value = '';
       document.querySelectorAll('.s-pill').forEach(p => p.classList.remove('selected'));
-      document.querySelectorAll('input[type="text"], input[type="date"]').forEach(el => el.value = '');
+      document.querySelectorAll('input[type="text"]').forEach(el => el.value = '');
       document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
-      setStep(1);
+      document.querySelectorAll('.datefield').forEach(df => { if (df.__reset) df.__reset(); });
+      closeAllPickers();
+
+      if (LOCKED_ROLE) {
+        // QR-locked page: stay on the same role, just clear the form
+        selectRole(LOCKED_ROLE, true);
+      } else {
+        document.getElementById('role-student').classList.remove('selected');
+        document.getElementById('role-staff').classList.remove('selected');
+        document.getElementById('studentFields').classList.remove('visible');
+        document.getElementById('staffFields').classList.remove('visible');
+        document.getElementById('submitWrap').style.display = 'none';
+        setStep(1);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    /* ════════════════════════════
+       ROLE LOCK  —  ?role=student | ?role=staff   (also #student / #staff)
+       Each QR code points to one of these URLs so a scan opens straight
+       into that form with no role picker.
+    ════════════════════════════ */
+    function getLockedRole() {
+      let r = '';
+      try { r = new URLSearchParams(location.search).get('role') || ''; } catch (e) {}
+      if (!r && location.hash) r = location.hash.replace('#', '');
+      r = (r || '').toLowerCase();
+      return (r === 'student' || r === 'staff') ? r : '';
+    }
+    const LOCKED_ROLE = getLockedRole();
+
+    function applyRoleLock() {
+      if (!LOCKED_ROLE) return;
+      const grid = document.getElementById('roleGrid');
+      if (grid) grid.style.display = 'none';
+      const title = document.getElementById('secTitle');
+      if (title) title.textContent = LOCKED_ROLE === 'student' ? 'Student Registration' : 'Staff Registration';
+      const sub = document.querySelector('.mob-site-sub');
+      if (sub) sub.textContent = (LOCKED_ROLE === 'student' ? 'Student' : 'Staff') + ' · Self-Service Registration';
+      document.title = 'TCS — ' + (LOCKED_ROLE === 'student' ? 'Student' : 'Staff') + ' Registration';
+      selectRole(LOCKED_ROLE, true);
+    }
+
     setStep(1);
+    initDatePickers();
+    applyRoleLock();
   </script>
 </body>
 </html>
