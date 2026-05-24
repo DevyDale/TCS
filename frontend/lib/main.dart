@@ -109,7 +109,17 @@ Future<void> registerFcmToken() async {
   try {
     await fcm.requestPermission(alert: true, badge: true, sound: true);
     if (Platform.isIOS) {
-      await fcm.getAPNSToken(); // FCM token only resolves after APNs issues one
+      // APNs delivers its token asynchronously after registration; poll
+      // briefly so getToken() doesn't throw apns-token-not-set on first launch.
+      String? apns = await fcm.getAPNSToken();
+      for (var i = 0; i < 10 && apns == null; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        apns = await fcm.getAPNSToken();
+      }
+      if (apns == null) {
+        debugPrint('[FCM] APNs token not ready yet - onTokenRefresh will register later');
+        return;
+      }
     }
     final token = await fcm.getToken();
     if (token != null && token.isNotEmpty) {

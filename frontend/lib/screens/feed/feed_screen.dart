@@ -982,7 +982,7 @@ class _FeedScreenState extends State<FeedScreen>
 
                         Expanded(
                           child: Text(
-                            'Looking for something....',
+                            'Searching...',
                             style: TextStyle(
                               fontFamily: 'Momo',
                               fontWeight: FontWeight.bold,
