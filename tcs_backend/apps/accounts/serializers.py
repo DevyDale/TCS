@@ -30,7 +30,7 @@ class UserMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = User
-        fields = ["id", "user_id", "display_name", "role",
+        fields = [ "staff_type", "is_reception","id", "user_id", "display_name", "role",
                   "avatar_url", "arcade_avatar_url", "is_online", "level", "xp",
             "is_available_study",
             "study_subjects",

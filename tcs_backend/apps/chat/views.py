@@ -368,6 +368,10 @@ def start_dm(request):
             status=403,
         )
 
+    from apps.accounts.reception import can_interact
+    if not can_interact(request.user, other):
+        return Response(
+            {"error": "You cannot message this person."}, status=403)
     room, _ = Room.get_or_create_direct(request.user, other)
     return Response(RoomSerializer(room, context={"request": request}).data)
 
