@@ -26,6 +26,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
@@ -856,34 +857,41 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             GestureDetector(
               onTap: _handleDaleTap,
               child: Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: _aiEnabled
-                      ? const LinearGradient(
-                          colors: [_kSage, _kSageDk],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight)
-                      : null,
-                  color: _aiEnabled ? null : _kSageDk.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                      colors: [_kSage, _kSageDk],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight),
                   boxShadow: _aiEnabled
                       ? [
                           BoxShadow(
-                              color: _kSageDk.withOpacity(0.30),
+                              color: _kSageDk.withOpacity(0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 4))
                         ]
                       : null,
                 ),
                 child: _aiBusy
-                    ? Padding(
-                        padding: const EdgeInsets.all(11),
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
                         child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: _aiEnabled ? Colors.white : _kSageDk))
-                    : Icon(Icons.auto_awesome_rounded,
-                        color: _aiEnabled ? Colors.white : _kSageDk, size: 20),
+                            strokeWidth: 2, color: Colors.white))
+                    : Opacity(
+                        opacity: _aiEnabled ? 1.0 : 0.55,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Lottie.asset(
+                            'assets/images/robot.json',
+                            errorBuilder: (context, error, stack) => const Icon(
+                                Icons.smart_toy_rounded,
+                                color: Colors.white,
+                                size: 22),
+                          ),
+                        ),
+                      ),
               ),
             ),
           ]),
