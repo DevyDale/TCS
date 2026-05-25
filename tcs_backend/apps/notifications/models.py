@@ -21,6 +21,7 @@ class Notification(models.Model):
         EVENT_REMINDER   = "event_reminder",   "Event Reminder"
         ACHIEVEMENT      = "achievement",      "Achievement"
         SYSTEM           = "system",           "System"
+        BIRTHDAY         = "birthday",         "Birthday"
 
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recipient   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

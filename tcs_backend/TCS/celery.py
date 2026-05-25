@@ -17,6 +17,10 @@ app.conf.beat_schedule = {
         "task": "expire_game_requests",
         "schedule": crontab(hour=2, minute=0),
     },
+    "birthday-greetings-daily": {
+        "task": "push_birthday_notifications",
+        "schedule": crontab(hour=8, minute=0),
+    },
     "update-active-counts": {
         "task": "update_group_active_counts",
         "schedule": crontab(minute="*/5"),
