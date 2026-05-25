@@ -3,21 +3,19 @@
 // Theme: LIGHT gradient page (white → soft grey → white) with
 // animated SweepGradient borders on every card surface.
 //
-// Visual rules:
-//   • Page background:      diagonal gradient of off-whites/greys
-//   • Card surfaces:        pure white (_kCard)
-//   • Text:                 dark ink → mid slate → light slate
-//   • Borders:              animated SweepGradient (the only place
-//                           saturated color exists on this page)
-//   • Back button:          renders in the header iff there's a
-//                           previous route to pop to
+// LAYOUT (this revision): single-screen, NO scrolling. Everything is
+// visible at first glance:
+//   • Compact header   — back button (if poppable) + Dale brand + greeting
+//   • Sage             — wide featured tile (your personal mentor)
+//   • 2×2 grid         — AI Assistant · Code Helper · Companions · Image Gen
+//   • Usage footer     — hourly quota bar pinned to the bottom
+// The body is a fixed Column with Expanded tool regions, so the tiles
+// scale to fill the available height on any device without overflowing.
 //
 // Performance note:
-//   ONE shared AnimationController (_shimmerCtrl) drives every
-//   gradient border. Each _GradientBorderCard listens via
-//   AnimatedBuilder and uses the `child` param so the static
-//   interior subtree is built once — only the outer
-//   BoxDecoration is recomputed per frame.
+//   ONE shared AnimationController (_shimmerCtrl) drives every gradient
+//   border. Each _GradientBorderCard listens via AnimatedBuilder and uses
+//   the `child` param so the static interior is built once.
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -45,9 +43,7 @@ const _kSlate    = Color(0xFF6B7280); // secondary text
 const _kInkSoft  = Color(0xFF374151); // mid text / icons
 const _kInk      = Color(0xFF0D0D1A); // primary text
 
-// Sweep gradient colors used for ALL animated borders on this
-// page — same palette as the dark version, looks just as good
-// against white surfaces.
+// Sweep gradient colors used for ALL animated borders on this page.
 const _gradColors = <Color>[
   Color(0xFF6DD5FA), // G1 — light blue
   Color(0xFF7C3AED), // G2 — violet
@@ -180,6 +176,14 @@ class _AiHubScreenState extends State<AiHubScreen>
     return 'Good evening';
   }
 
+  void _open(_Tool tool) {
+    HapticFeedback.lightImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => tool.builder()),
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────
 
   @override
@@ -197,32 +201,12 @@ class _AiHubScreenState extends State<AiHubScreen>
           ),
         ),
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _fetchStatus,
-            color: _kInkSoft,
-            backgroundColor: _kCard,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: _buildHeader()),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing:  12,
-                      childAspectRatio: 0.95,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _buildTile(_tools[i], _tileAnims[i]),
-                      childCount: _tools.length,
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(child: _buildFooter()),
-              ],
-            ),
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(child: _buildToolsArea()),
+              _buildFooter(),
+            ],
           ),
         ),
       ),
@@ -232,46 +216,45 @@ class _AiHubScreenState extends State<AiHubScreen>
   Widget _buildHeader() {
     final canPop = Navigator.canPop(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Back button ─────────────────────────────────────
-          if (canPop)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  width:  42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color:        _kCard,
-                    borderRadius: BorderRadius.circular(14),
-                    border:       Border.all(color: _kBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color:      Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset:     const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: _kInk,
-                    size:  16,
-                  ),
-                ),
-              ),
-            ),
-
-          // ── Brand row ───────────────────────────────────────
+          // ── Brand row (back button inline) ──────────────────
           Row(
             children: [
+              if (canPop) ...[
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width:  38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color:        _kCard,
+                      borderRadius: BorderRadius.circular(12),
+                      border:       Border.all(color: _kBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color:      Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset:     const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: _kInk,
+                      size:  15,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+
               // Robot Lottie chip with gradient border
               _GradientBorderCard(
                 animation: _shimmerCtrl,
@@ -286,7 +269,6 @@ class _AiHubScreenState extends State<AiHubScreen>
               ),
               const SizedBox(width: 10),
 
-              // Brand title
               const Flexible(
                 child: Text(
                   'Dale',
@@ -294,83 +276,161 @@ class _AiHubScreenState extends State<AiHubScreen>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _kInk,
-                    fontSize: 30,
+                    fontSize: 28,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.6,
                   ),
                 ),
               ),
-
               const Spacer(),
-
-              // Trailing AI badge with gradient border
-             
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           Text(
             _userName != null
                 ? '$_greeting, $_userName 👋'
                 : '$_greeting 👋',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: _kInkSoft,
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 2),
           const Text(
             'What can I help with today?',
-            style: TextStyle(color: _kSlate, fontSize: 13),
+            style: TextStyle(color: _kSlate, fontSize: 12.5),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTile(_Tool tool, Animation<double> entryAnim) {
-    return AnimatedBuilder(
-      animation: entryAnim,
-      builder: (_, child) => Opacity(
-        opacity: entryAnim.value,
-        child: Transform.translate(
-          offset: Offset(0, 30 * (1 - entryAnim.value)),
-          child: child,
-        ),
-      ),
-      child: _ToolTile(
-        tool: tool,
-        animation: _shimmerCtrl,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => tool.builder()),
-          );
-        },
+  /// Fixed, non-scrolling tool region. Expanded flexes let the tiles fill
+  /// the height the header + footer leave behind, so nothing scrolls.
+  Widget _buildToolsArea() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Column(
+        children: [
+          // Featured — Sage (wide)
+          Expanded(
+            flex: 18,
+            child: _animatedTile(
+              0,
+              _ToolTile(
+                tool: _tools[0],
+                wide: true,
+                animation: _shimmerCtrl,
+                onTap: () => _open(_tools[0]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Row 1 — AI Assistant · Code Helper
+          Expanded(
+            flex: 26,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _animatedTile(
+                    1,
+                    _ToolTile(
+                      tool: _tools[1],
+                      animation: _shimmerCtrl,
+                      onTap: () => _open(_tools[1]),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _animatedTile(
+                    2,
+                    _ToolTile(
+                      tool: _tools[2],
+                      animation: _shimmerCtrl,
+                      onTap: () => _open(_tools[2]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Row 2 — Companions · Image Generator
+          Expanded(
+            flex: 26,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _animatedTile(
+                    3,
+                    _ToolTile(
+                      tool: _tools[3],
+                      animation: _shimmerCtrl,
+                      onTap: () => _open(_tools[3]),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _animatedTile(
+                    4,
+                    _ToolTile(
+                      tool: _tools[4],
+                      animation: _shimmerCtrl,
+                      onTap: () => _open(_tools[4]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _animatedTile(int i, Widget child) {
+    final anim = _tileAnims[i];
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (_, c) {
+        final v = anim.value.clamp(0.0, 1.0);
+        return Opacity(
+          opacity: v,
+          child: Transform.translate(
+            offset: Offset(0, 18 * (1 - v)),
+            child: c,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
   Widget _buildFooter() {
-    final pct = (_used / _limit).clamp(0.0, 1.0);
+    final pct = (_limit == 0 ? 0.0 : _used / _limit).clamp(0.0, 1.0);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
       child: _GradientBorderCard(
         animation: _shimmerCtrl,
         radius: 16,
         borderWidth: 1.2,
         innerColor: _kCard,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 const Icon(Icons.bolt_rounded,
-                    color: _kInkSoft, size: 16),
+                    color: _kInkSoft, size: 15),
                 const SizedBox(width: 6),
                 const Text('Hourly usage',
                     style: TextStyle(
@@ -385,7 +445,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                         fontFamily: 'monospace')),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             // Mono progress bar — dark fill on light grey track.
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -396,15 +456,17 @@ class _AiHubScreenState extends State<AiHubScreen>
                 valueColor: const AlwaysStoppedAnimation(_kInkSoft),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const Row(
               children: [
                 Icon(Icons.info_outline_rounded,
-                    color: _kSlate2, size: 12),
+                    color: _kSlate2, size: 11),
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Free for every TCS student. Powered by Gemini & FLUX.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: _kSlate2, fontSize: 10),
                   ),
                 ),
@@ -446,16 +508,20 @@ class _SafeRobotLottie extends StatelessWidget {
 
 // ═════════════════════════════════════════════════════════════
 // _ToolTile — white card, gradient border, dark icon
+//   wide == true  → horizontal featured layout (Sage)
+//   wide == false → compact vertical layout (grid tiles)
 // ═════════════════════════════════════════════════════════════
 
 class _ToolTile extends StatefulWidget {
   final _Tool             tool;
   final VoidCallback      onTap;
   final Animation<double> animation;
+  final bool              wide;
   const _ToolTile({
     required this.tool,
     required this.onTap,
     required this.animation,
+    this.wide = false,
   });
   @override
   State<_ToolTile> createState() => _ToolTileState();
@@ -463,6 +529,72 @@ class _ToolTile extends StatefulWidget {
 
 class _ToolTileState extends State<_ToolTile> {
   bool _pressed = false;
+
+  Widget _iconChip(IconData icon, double box, double glyph) => Container(
+        width: box,
+        height: box,
+        decoration: BoxDecoration(
+          color: _kInk.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: _kInk.withOpacity(0.08), width: 1),
+        ),
+        child: Icon(icon, color: _kInk, size: glyph),
+      );
+
+  Widget _wideContent(_Tool t) => Row(
+        children: [
+          _iconChip(t.icon, 50, 26),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: _kInk,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3)),
+                const SizedBox(height: 3),
+                Text(t.tagline,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: _kSlate, fontSize: 12.5, height: 1.3)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Icon(Icons.arrow_forward_rounded,
+              color: _kInkSoft, size: 18),
+        ],
+      );
+
+  Widget _compactContent(_Tool t) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _iconChip(t.icon, 40, 21),
+          const Spacer(),
+          Text(t.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: _kInk,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2)),
+          const SizedBox(height: 3),
+          Text(t.tagline,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: _kSlate, fontSize: 11, height: 1.3)),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -478,58 +610,11 @@ class _ToolTileState extends State<_ToolTile> {
         curve: Curves.easeOut,
         child: _GradientBorderCard(
           animation: widget.animation,
-          radius: 20,
+          radius: widget.wide ? 22 : 18,
           borderWidth: 1.4,
           innerColor: _kCard,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon "glass chip" — soft dark tint on white.
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _kInk.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(
-                    color: _kInk.withOpacity(0.08),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(t.icon, color: _kInk, size: 22),
-              ),
-              const Spacer(),
-              Text(t.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: _kInk,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2)),
-              const SizedBox(height: 4),
-              Text(t.tagline,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: _kSlate,
-                      fontSize: 11.5,
-                      height: 1.35)),
-              const SizedBox(height: 10),
-              const Row(
-                children: [
-                  Text('Open',
-                      style: TextStyle(
-                          color: _kInkSoft,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded,
-                      color: _kInkSoft, size: 13),
-                ],
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.all(14),
+          child: widget.wide ? _wideContent(t) : _compactContent(t),
         ),
       ),
     );
@@ -537,17 +622,7 @@ class _ToolTileState extends State<_ToolTile> {
 }
 
 // ═════════════════════════════════════════════════════════════
-// _GradientBorderCard
-// ─────────────────────────────────────────────────────────────
-// Animated SweepGradient border around any child widget.
-// Implementation:
-//   1. Outer Container has the SweepGradient as its background
-//      and the full radius.
-//   2. EdgeInsets.all(borderWidth) padding pushes the inner
-//      container in by exactly the border width on every side.
-//   3. Inner Container has a slightly smaller radius
-//      (radius - borderWidth) so the inner corner stays
-//      concentric with the outer one — no corner gaps.
+// _GradientBorderCard — animated SweepGradient border around a child.
 // ═════════════════════════════════════════════════════════════
 
 class _GradientBorderCard extends StatelessWidget {
