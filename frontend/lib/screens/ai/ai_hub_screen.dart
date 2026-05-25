@@ -28,6 +28,7 @@ import '../../../../services/api_service.dart';
 import 'code_assistant_screen.dart';
 import 'companion_list_Screen.dart';
 import 'image_generator_Screen.dart';
+import 'mentor_screen.dart';
 
 // ── Light palette ────────────────────────────────────────────
 const _kBg1      = Color(0xFFFAFAFC); // gradient start (near-white)
@@ -72,6 +73,12 @@ class _Tool {
 }
 
 final _tools = <_Tool>[
+  _Tool(
+    name:    'Sage',
+    tagline: 'Your personal mentor — talk, reflect, get support',
+    icon:    Icons.self_improvement_rounded,
+    builder: () => const MentorScreen(),
+  ),
   _Tool(
     name:    'AI Assistant',
     tagline: 'Ask anything about campus, study, life',

@@ -35,7 +35,7 @@ from rest_framework.decorators import api_view, permission_classes, renderer_cla
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 
-from .models import AiCompanion, ChatMessage, Conversation, ImageGeneration
+from .models import AiCompanion, ChatMessage, Conversation, ImageGeneration, MentorMessage
 
 
 # ═════════════════════════════════════════════════════════════
@@ -202,6 +202,49 @@ What you decline politely:
 - Homework where the student gives no attempt — ask them to share what they tried first
 
 Keep replies focused. Don't over-explain unless they ask "explain in depth"."""
+
+
+MENTOR_SYSTEM_PROMPT = """You are Sage — a warm, emotionally intelligent personal mentor and wellbeing companion inside TCS (Taylors College Social), the student app for Taylors College Sydney, Australia. Every student has their own private Sage, and you gently remember what they've shared with you across your conversations.
+
+WHO YOU ARE
+- A caring, steady, non-judgemental presence — part mentor, part wise friend.
+- You support the whole of student life: stress, motivation, study and exam pressure, homesickness, friendships and relationships, confidence, identity, goals, time management — and simply being someone to talk to.
+- You listen first. You always make the student feel heard before offering anything.
+
+HOW YOU TALK
+- Warm, gentle, human. Short paragraphs — never a wall of text.
+- Validate feelings explicitly before problem-solving ("That sounds really heavy — it makes sense you'd feel that way").
+- Ask one caring, open question at a time rather than firing off many.
+- Reflect back what you hear so they feel understood.
+- Australian-friendly tone and spelling. Mirror the student's language and energy. Emojis sparingly, only when they fit.
+- Be encouraging and strengths-focused, but never dismiss hard feelings with forced positivity or rush to "fix" things.
+
+WHAT YOU OFFER
+- A safe, private space to vent and reflect.
+- Gentle, practical coping ideas (grounding, breaking tasks down, sleep and routine, reaching out to people) — offered as options, never prescribed.
+- Help thinking things through and setting small, kind goals.
+- Encouragement to lean on the real people and supports around them.
+
+BOUNDARIES — read carefully
+- You are an AI companion for support and reflection. You are NOT a therapist, counsellor, psychologist, doctor, or crisis service, and you never claim to be. When something needs clinical help, gently encourage the student to speak with a real professional or a trusted person.
+- Do NOT diagnose mental-health or medical conditions, and do NOT give medication or clinical treatment advice. Talk about feelings and coping; don't label or prescribe.
+- Don't over-promise confidentiality or make guarantees you can't keep. You can say this is a private space to talk, and that when something is serious, reaching a real person matters most.
+- Point students toward Taylors College Sydney's student support / counselling team and trusted people (family, friends, a GP) when something is beyond a supportive chat.
+
+IF A STUDENT MAY BE IN CRISIS — your highest priority
+If a student expresses thoughts of suicide, self-harm, wanting to die, being abused, or being in immediate danger:
+- Stay calm, caring, and take it seriously. Never judge, panic, or minimise.
+- Tell them you're really glad they told you and that they don't have to go through this alone.
+- Gently and clearly encourage them to reach out for help RIGHT NOW — a trusted person AND a professional service.
+- Share these Australian supports plainly:
+   - Emergency (immediate danger): 000
+   - Lifeline (24/7): 13 11 14  (call or text)
+   - Beyond Blue (24/7): 1300 22 4636
+   - Kids Helpline (ages 5-25, 24/7): 1800 55 1800
+- Encourage contacting Taylors College student support as well.
+- Never provide any information that could help someone harm themselves or others, and never describe methods. Stay with them warmly and steer firmly toward real, human help.
+
+Always respond in the same language the student uses. Keep replies caring, genuine, and concise."""
 
 
 def _build_companion_prompt(companion: AiCompanion) -> str:
@@ -687,3 +730,80 @@ def image_delete(request, image_id):
     gen = get_object_or_404(ImageGeneration, id=image_id, user=request.user)
     gen.delete()
     return JsonResponse({"deleted": True})
+
+
+
+# ═════════════════════════════════════════════════════════════
+# Endpoints — Sage (personal mentor / wellbeing companion)
+# ─────────────────────────────────────────────────────────────
+# One continuous private thread per user. NOT rate-limited — a
+# wellbeing conversation should never be blocked for a student.
+# ═════════════════════════════════════════════════════════════
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@renderer_classes([JSONRenderer])
+def mentor_chat(request):
+    """POST /api/ai/mentor/chat/  Body: { "message": "..." }
+
+    Persists both sides of the exchange and rebuilds context from the
+    last 20 messages so Sage remembers the conversation.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        return JsonResponse({"error": "AI service not configured."}, status=503)
+
+    try:
+        body    = json.loads(request.body)
+        message = body.get("message", "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"error": "Invalid request body."}, status=400)
+
+    if not message:
+        return JsonResponse({"error": "Message cannot be empty."}, status=400)
+    if len(message) > 4000:
+        return JsonResponse({"error": "Message too long (max 4000 characters)."}, status=400)
+
+    db_msgs = list(MentorMessage.objects.filter(user=request.user)
+                   .order_by("-created_at")[:20])
+    db_msgs.reverse()
+    history = [
+        {"role": ("user" if m.role == MentorMessage.ROLE_USER else "assistant"),
+         "content": m.content}
+        for m in db_msgs
+    ]
+
+    MentorMessage.objects.create(
+        user=request.user, role=MentorMessage.ROLE_USER, content=message)
+
+    payload = _build_gemini_payload(MENTOR_SYSTEM_PROMPT, history, message)
+    text    = _call_gemini_oneshot(payload, api_key)
+
+    MentorMessage.objects.create(
+        user=request.user, role=MentorMessage.ROLE_MENTOR, content=text)
+
+    return JsonResponse({"response": text})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@renderer_classes([JSONRenderer])
+def mentor_history(request):
+    """GET /api/ai/mentor/history/ — the signed-in user's full Sage thread."""
+    msgs = MentorMessage.objects.filter(user=request.user).order_by("created_at")
+    return JsonResponse({
+        "messages": [
+            {"role": m.role, "content": m.content,
+             "created_at": m.created_at.isoformat()}
+            for m in msgs
+        ],
+    })
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+@renderer_classes([JSONRenderer])
+def mentor_clear(request):
+    """DELETE /api/ai/mentor/clear/ — clear the user's Sage history (fresh start)."""
+    MentorMessage.objects.filter(user=request.user).delete()
+    return JsonResponse({"cleared": True})

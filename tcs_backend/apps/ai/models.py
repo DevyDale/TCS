@@ -147,3 +147,37 @@ class ImageGeneration(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes  = [models.Index(fields=["user", "-created_at"])]
+
+
+
+# ═════════════════════════════════════════════════════════════
+# Sage — personal mentor / wellbeing companion (per-user thread)
+# ═════════════════════════════════════════════════════════════
+
+class MentorMessage(models.Model):
+    """One message in a user's ongoing private thread with Sage, their
+    personal mentor. There is no separate conversation row — each user has
+    exactly one continuous mentor thread, and the thread IS the ordered set
+    of that user's MentorMessage rows. This keeps "one personal mentor per
+    user" simple and lets history persist indefinitely until the user clears it.
+    """
+
+    ROLE_USER   = "user"
+    ROLE_MENTOR = "mentor"
+    ROLE_CHOICES = [(ROLE_USER, "User"), (ROLE_MENTOR, "Mentor")]
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   on_delete=models.CASCADE,
+                                   related_name="mentor_messages")
+    role       = models.CharField(max_length=12, choices=ROLE_CHOICES)
+    content    = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes  = [models.Index(fields=["user", "created_at"],
+                                 name="ai_mentor_user_created_idx")]
+
+    def __str__(self):
+        return f"{self.role} @ {self.created_at:%Y-%m-%d %H:%M}"

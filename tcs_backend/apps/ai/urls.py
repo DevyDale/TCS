@@ -18,6 +18,11 @@ urlpatterns = [
     path("conversations/<uuid:conversation_id>/messages/", views.conversation_messages, name="ai-conversation-messages"),
     path("conversations/<uuid:conversation_id>/",          views.conversation_delete,   name="ai-conversation-delete"),
 
+    # Sage — personal mentor / wellbeing companion
+    path("mentor/chat/",    views.mentor_chat,    name="ai-mentor-chat"),
+    path("mentor/history/", views.mentor_history, name="ai-mentor-history"),
+    path("mentor/clear/",   views.mentor_clear,   name="ai-mentor-clear"),
+
     # Image generation
     path("image/",                  views.image_generate, name="ai-image-generate"),
     path("images/",                 views.image_history,  name="ai-image-history"),
