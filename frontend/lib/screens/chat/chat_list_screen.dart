@@ -3,14 +3,6 @@
 // Phase 3B: WhatsApp-grade chat list + Chat Bubbles.
 //
 // CHANGE LOG (this revision):
-//   • Chat-bubble (group) tiles now show the bubble's OWN profile picture
-//     when one is set, instead of always falling back to the 👥 icon. The
-//     room's avatar is exposed at the top level of each room object as
-//     `avatar_url` by RoomSerializer (it serializes Room.avatar). For
-//     direct/study-buddy tiles the avatar still comes from `other_user`.
-//     See the change in _buildChatTile (the `avatarUrl` resolver).
-//
-// CHANGE LOG (previous revision):
 //   • Renamed the first tab from "All" to "Inbox". The Inbox tab now shows
 //     ONLY 1-on-1 direct chats (i.e. accepted chat requests). Study-buddy
 //     chats and chat-bubble (group) chats are intentionally excluded — they
@@ -19,7 +11,7 @@
 //     'inbox' (was 'all') and _filteredChats() keeps only room_type=='direct'
 //     rooms for it.
 //
-// CHANGE LOG (earlier revision):
+// CHANGE LOG (previous revision):
 //   • Replaced the stock Material `TabBar` with `SegmentedTabControl` from
 //     the `animated_segmented_tab_control` package — a pill / segmented
 //     control with an animated sliding indicator, matching the rest of
@@ -443,86 +435,84 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   // ── Search field ──────────────────────────────────────────
-  Widget _buildSearchField() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      child: SizedBox(
-        height: 46,
-        child: TextField(
-          controller: _searchCtrl,
-          onChanged: (v) =>
-              setState(() => _chatQuery = v.trim().toLowerCase()),
-          style: const TextStyle(
-            fontFamily: 'Momo',
-            fontSize: 14,
-            color: _kInk,
+Widget _buildSearchField() {
+  return Container(
+    color: Colors.white,
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+    child: SizedBox(
+      height: 46,
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (v) =>
+            setState(() => _chatQuery = v.trim().toLowerCase()),
+        style: const TextStyle(
+          fontFamily: 'Momo',
+          fontSize: 14,
+          color: _kInk,
+        ),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.grey.shade100,
+
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: Colors.grey.shade500,
+            size: 20,
           ),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade100,
 
-            prefixIcon: Icon(
-              Icons.search_rounded,
-              color: Colors.grey.shade500,
-              size: 20,
+          suffixIcon: _chatQuery.isNotEmpty
+              ? IconButton(
+                  splashRadius: 18,
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Colors.grey.shade500,
+                  ),
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    setState(() => _chatQuery = '');
+                  },
+                )
+              : null,
+
+          hintText: 'Search your chats…',
+          hintStyle: TextStyle(
+            fontFamily: 'Momo',
+            fontSize: 13,
+            color: Colors.grey.shade500,
+          ),
+
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: Colors.grey.shade200,
             ),
+          ),
 
-            suffixIcon: _chatQuery.isNotEmpty
-                ? IconButton(
-                    splashRadius: 18,
-                    icon: Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: Colors.grey.shade500,
-                    ),
-                    onPressed: () {
-                      _searchCtrl.clear();
-                      setState(() => _chatQuery = '');
-                    },
-                  )
-                : null,
-
-            hintText: 'Search your chats…',
-            hintStyle: TextStyle(
-              fontFamily: 'Momo',
-              fontSize: 13,
-              color: Colors.grey.shade500,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: Colors.grey.shade200,
             ),
+          ),
 
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: Colors.grey.shade200,
-              ),
-            ),
-
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: Colors.grey.shade200,
-              ),
-            ),
-
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: _kG2,
-                width: 1.2,
-              ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(
+              color: _kG2,
+              width: 1.2,
             ),
           ),
         ),
       ),
-    );
-  }
-
-  // ── Chats list (filtered by tab type + search query) ──────
+    ),
+  );
+}  // ── Chats list (filtered by tab type + search query) ──────
 
   List<Map<String, dynamic>> _filteredChats(String filter) {
     Iterable<Map<String, dynamic>> list = _chats;
@@ -626,12 +616,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final name      = isGroup
         ? (c['name'] as String? ?? 'Group')
         : (other?['name'] as String? ?? 'Unknown');
-    // For a chat bubble (group) the picture is the ROOM's own avatar, which
-    // RoomSerializer returns as the top-level `avatar_url`. For direct /
-    // study-buddy rooms it's the other person's avatar.
-    final avatarUrl = isGroup
-        ? (c['avatar_url'] as String?)
-        : (other?['avatar_url'] as String?);
+    final avatarUrl = isGroup ? null : other?['avatar_url'] as String?;
     final isOnline  = isGroup ? false : (other?['is_online'] as bool? ?? false);
     final lastActiveIso = (other?['last_active_at'] as String?) ?? '';
     final unread    = c['unread_count'] as int? ?? 0;
