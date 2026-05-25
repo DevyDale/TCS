@@ -29,6 +29,16 @@ api_v1 = [
     path("redoc/",         SpectacularRedocView.as_view(url_name="schema"),     name="redoc"),
 ]
 
+# ── Admin MFA enforcement (django-otp) ───────────────────────
+# When OTP_ADMIN_ENFORCED is on, swap the default admin site for the OTP-gated
+# one so the /admin/ login requires a TOTP code alongside the password. Gated
+# by the flag so the package can ship un-enforced first (enroll-first). The
+# import lives inside the conditional so the project still loads if django_otp
+# isn't installed yet. Instant rollback: set OTP_ADMIN_ENFORCED=False, restart.
+if getattr(settings, "OTP_ADMIN_ENFORCED", False):
+    from django_otp.admin import OTPAdminSite
+    admin.site.__class__ = OTPAdminSite
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/",   include(api_v1)),

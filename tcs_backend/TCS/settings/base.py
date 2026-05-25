@@ -23,6 +23,9 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -63,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
     "apps.accounts.middleware.UpdateLastSeenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -107,6 +111,16 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
     "django.contrib.auth.hashers.ScryptPasswordHasher",
 ]
+
+# ── MFA (django-otp) for the Django admin ─────────────────────
+# OTPMiddleware (added above) annotates request.user with .is_verified();
+# it has no effect on the JWT API (DRF sets request.user in-view, and nothing
+# there checks verification). Enforcement is gated by OTP_ADMIN_ENFORCED so the
+# package ships un-enforced first: deploy it, enroll a device with
+# `manage.py setup_totp <user_id>`, confirm a code works, THEN set the flag to
+# True (see TCS/urls.py). Setting it back to False is an instant rollback.
+OTP_TOTP_ISSUER    = "TCS Admin"
+OTP_ADMIN_ENFORCED = env.bool("OTP_ADMIN_ENFORCED", default=False)
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE     = "Australia/Sydney"
