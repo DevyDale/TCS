@@ -17,10 +17,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 
-const _kG1   = Color(0xFF6DD5FA);
-const _kG2   = Color(0xFF8E54E9);
-const _kInk  = Color(0xFF1A1A2E);
+// Sage palette — matches the chat room (chat_room_screen.dart) so the
+// Ask-Dale sheet blends with the conversation instead of AI-Hub purple.
+const _kG1   = Color(0xFFA9BC95); // sage
+const _kG2   = Color(0xFF6E8159); // sage dark
+const _kInk  = Color(0xFF2E3A24);
 const _kSlate = Color(0xFF64687A);
 const _kRed  = Color(0xFFFF4F6E);
 
@@ -154,8 +157,18 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                       end: Alignment.bottomRight,
                     ),
                   ),
-                  child: const Icon(Icons.smart_toy_rounded,
-                      color: Colors.white, size: 20),
+                  child: ClipOval(
+                    child: Lottie.asset(
+                      'assets/images/robot.json',
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) => const Icon(
+                          Icons.smart_toy_rounded,
+                          color: Colors.white,
+                          size: 20),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(child: Column(
@@ -180,15 +193,16 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
               // Text field
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FA),
+                  color: const Color(0xFFF6F8F2),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: _kG1.withOpacity(0.5)),
                 ),
                 child: TextField(
                   controller: _ctrl,
                   autofocus: true,
                   enableSuggestions: true,
                   maxLines: 3, minLines: 1,
+                  cursorColor: _kG2,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _ask(),
                   style: const TextStyle(
@@ -200,6 +214,8 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                         color: Colors.grey.shade400,
                         fontSize: 13),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                   ),
