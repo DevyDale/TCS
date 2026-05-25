@@ -13,7 +13,7 @@ from rest_framework.response import Response
 import cloudinary.uploader
 
 from .models import (
-    Feeling, Hashtag, Post, PostMedia, Like, Comment, Bookmark, PostFlag,
+    Feeling, Hashtag, Post, PostMedia, Like, Comment, CommentLike, Bookmark, PostFlag,
     attach_hashtags,
 )
 from .serializers import (
@@ -631,6 +631,29 @@ def flag_post(request, pk):
 # COMMENTS
 # ─────────────────────────────────────────────────────────────
 
+def _safe_notify(*, recipient, actor, notif_type, title, body,
+                 target_type="", target_id=""):
+    """Best-effort in-app notification. Never let a notify failure break the
+    underlying action (commenting / liking). Skips self-notifications."""
+    try:
+        if recipient is None or actor is None:
+            return
+        if getattr(recipient, "id", None) == getattr(actor, "id", None):
+            return
+        from apps.notifications.models import Notification
+        Notification.objects.create(
+            recipient=recipient,
+            actor=actor,
+            notif_type=notif_type,
+            title=title,
+            body=body,
+            target_type=target_type,
+            target_id=str(target_id),
+        )
+    except Exception:
+        pass
+
+
 class CommentListCreateView(generics.ListCreateAPIView):
     """
     GET  /api/posts/<pk>/comments/
@@ -644,18 +667,85 @@ class CommentListCreateView(generics.ListCreateAPIView):
         return {"request": self.request}
 
     def get_queryset(self):
+        # ?parent=<comment_id> lists that comment's replies (oldest-first,
+        # natural thread order). Otherwise: top-level comments, newest-first.
+        parent_id = self.request.query_params.get("parent")
         qs = (Comment.objects
                      .select_related("author")
-                     .filter(post_id=self.kwargs["pk"],
-                             is_deleted=False,
-                             parent=None))
-        return filter_blocked_users(qs, self.request.user).order_by("-created_at")
+                     .filter(post_id=self.kwargs["pk"], is_deleted=False))
+        if parent_id:
+            qs = filter_blocked_users(qs.filter(parent_id=parent_id),
+                                      self.request.user)
+            return qs.order_by("created_at")
+        qs = filter_blocked_users(qs.filter(parent=None), self.request.user)
+        return qs.order_by("-created_at")
 
     def perform_create(self, serializer):
         post = filter_posts_by_role(Post.objects, self.request.user).get(pk=self.kwargs["pk"])
-        serializer.save(author=self.request.user, post=post)
+        comment = serializer.save(author=self.request.user, post=post)
         post.comments_count += 1
         post.save(update_fields=["comments_count"])
+
+        # Notify: a reply pings the parent comment's author; a top-level
+        # comment pings the post's author.
+        actor = self.request.user
+        actor_name = (getattr(actor, "display_name", "") or
+                      getattr(actor, "username", "") or "Someone")
+        snippet = (comment.text or "").strip().replace("\n", " ")
+        if len(snippet) > 80:
+            snippet = snippet[:79] + "\u2026"
+        if comment.parent_id:
+            _safe_notify(
+                recipient=comment.parent.author, actor=actor,
+                notif_type="comment", title="New reply",
+                body=f"{actor_name} replied: {snippet}",
+                target_type="post", target_id=post.id)
+        else:
+            _safe_notify(
+                recipient=post.author, actor=actor,
+                notif_type="comment", title="New comment",
+                body=f"{actor_name} commented: {snippet}",
+                target_type="post", target_id=post.id)
+
+
+@api_view(["POST"])
+def comment_like_toggle(request, pk):
+    """POST /api/posts/comments/<pk>/like/ — toggle a like on a comment."""
+    try:
+        comment = Comment.objects.select_related("post").get(
+            pk=pk, is_deleted=False)
+    except Comment.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    # Respect role-based visibility: you can only like a comment on a post
+    # you're allowed to see.
+    if not filter_posts_by_role(Post.objects, request.user)\
+            .filter(pk=comment.post_id).exists():
+        return Response({"error": "Not found."}, status=404)
+
+    like, created = CommentLike.objects.get_or_create(
+        comment=comment, user=request.user)
+    if not created:
+        like.delete()
+        comment.likes_count = max(0, comment.likes_count - 1)
+        liked = False
+    else:
+        comment.likes_count += 1
+        liked = True
+
+    comment.save(update_fields=["likes_count"])
+
+    if liked:
+        actor = request.user
+        actor_name = (getattr(actor, "display_name", "") or
+                      getattr(actor, "username", "") or "Someone")
+        _safe_notify(
+            recipient=comment.author, actor=actor,
+            notif_type="like", title="Comment liked",
+            body=f"{actor_name} liked your comment.",
+            target_type="post", target_id=comment.post_id)
+
+    return Response({"liked": liked, "like_count": comment.likes_count})
 
 
 # ─────────────────────────────────────────────────────────────

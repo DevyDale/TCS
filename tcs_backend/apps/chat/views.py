@@ -715,6 +715,21 @@ def decline_chat_request(request, req_id):
     return Response({"success": True})
 
 
+@api_view(["POST"])
+def cancel_chat_request(request, req_id):
+    """POST /api/chat/requests/<id>/cancel/ — the SENDER cancels their own
+    pending request. Deleting the row also removes it from the receiver's
+    incoming list (that list only shows status='pending')."""
+    try:
+        req = ChatRequest.objects.get(
+            id=req_id, sender=request.user, status="pending")
+    except ChatRequest.DoesNotExist:
+        return Response({"error": "Request not found or already handled."},
+                        status=404)
+    req.delete()
+    return Response({"success": True})
+
+
 # ── Study Buddy Chat ──────────────────────────────────────────
 
 @api_view(["GET"])

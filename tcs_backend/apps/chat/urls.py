@@ -31,6 +31,7 @@ urlpatterns = [
     path("requests/send/",                        views.send_chat_request,             name="chat-request-send"),
     path("requests/<uuid:req_id>/accept/",        views.accept_chat_request,           name="chat-request-accept"),
     path("requests/<uuid:req_id>/decline/",       views.decline_chat_request,          name="chat-request-decline"),
+    path("requests/<uuid:req_id>/cancel/",        views.cancel_chat_request,           name="chat-request-cancel"),
 
     # Study buddy
     path("study-buddy/",                          views.study_buddy_list,              name="study-buddy-list"),

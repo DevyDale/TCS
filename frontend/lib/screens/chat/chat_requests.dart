@@ -37,6 +37,12 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
   final _api = ApiService();
   late final TabController _tabCtrl;
 
+  // Per-tab search.
+  final _incSearchCtrl = TextEditingController();
+  final _outSearchCtrl = TextEditingController();
+  String _incQuery = '';
+  String _outQuery = '';
+
   List<Map<String, dynamic>> _requests         = []; // chat requests TO me
   List<Map<String, dynamic>> _bubbleInvites     = []; // bubble invites TO me
   List<Map<String, dynamic>> _outgoingRequests  = []; // requests I sent
@@ -56,6 +62,8 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _incSearchCtrl.dispose();
+    _outSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -85,11 +93,12 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
 
   // ── Actions ───────────────────────────────────────────────
 
-  Future<void> _acceptRequest(String reqId, int index) async {
+  Future<void> _acceptRequest(String reqId) async {
     try {
       final res =
           await _api.post('/chat/requests/$reqId/accept/') as Map<String, dynamic>;
-      setState(() => _requests.removeAt(index));
+      setState(() =>
+          _requests.removeWhere((e) => e['id']?.toString() == reqId));
       final room = res['room'] as Map<String, dynamic>?;
       if (room != null && mounted) {
         await Navigator.of(context).push(MaterialPageRoute(
@@ -106,20 +115,81 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     }
   }
 
-  Future<void> _declineRequest(String reqId, int index) async {
+  Future<void> _declineRequest(String reqId) async {
     try {
       await _api.post('/chat/requests/$reqId/decline/');
-      setState(() => _requests.removeAt(index));
+      setState(() =>
+          _requests.removeWhere((e) => e['id']?.toString() == reqId));
     } catch (e) {
       _snack('Failed: $e');
     }
   }
 
-  Future<void> _acceptBubbleInvite(String inviteId, int index) async {
+  Future<void> _cancelRequest(String reqId) async {
+    final idx =
+        _outgoingRequests.indexWhere((r) => r['id']?.toString() == reqId);
+    if (idx == -1) return;
+    final removed = _outgoingRequests[idx];
+    setState(() => _outgoingRequests.removeAt(idx));
+    try {
+      await _api.post('/chat/requests/$reqId/cancel/');
+      _snack('Request cancelled');
+    } catch (e) {
+      setState(() => _outgoingRequests.insert(idx, removed));
+      _snack('Couldn\'t cancel: $e');
+    }
+  }
+
+  Future<void> _confirmCancel(Map<String, dynamic> r) async {
+    final reqId = r['id'] as String? ?? '';
+    if (reqId.isEmpty) return;
+    final name = r['receiver_name'] as String? ?? 'this person';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+        title: const Text('Cancel request?',
+            style:
+                TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
+        content: Text(
+          'Your chat request to $name will be withdrawn and will disappear '
+          'from their requests.',
+          style: TextStyle(
+              fontFamily: 'Momo',
+              fontSize: 13,
+              color: Colors.grey.shade700,
+              height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Keep',
+                style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade600)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel request',
+                style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    color: _kG4)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _cancelRequest(reqId);
+  }
+
+  Future<void> _acceptBubbleInvite(String inviteId) async {
     try {
       final res =
           await _api.acceptBubbleInvite(inviteId) as Map<String, dynamic>;
-      setState(() => _bubbleInvites.removeAt(index));
+      setState(() =>
+          _bubbleInvites.removeWhere((e) => e['id']?.toString() == inviteId));
       final room = res['room'] as Map<String, dynamic>?;
       if (room != null && mounted) {
         await Navigator.of(context).push(MaterialPageRoute(
@@ -137,10 +207,11 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     }
   }
 
-  Future<void> _declineBubbleInvite(String inviteId, int index) async {
+  Future<void> _declineBubbleInvite(String inviteId) async {
     try {
       await _api.declineBubbleInvite(inviteId);
-      setState(() => _bubbleInvites.removeAt(index));
+      setState(() =>
+          _bubbleInvites.removeWhere((e) => e['id']?.toString() == inviteId));
     } catch (e) {
       _snack('Couldn\'t decline: $e');
     }
@@ -169,6 +240,71 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       margin: const EdgeInsets.all(16),
     ));
+  }
+
+  String _timeAgo(String iso) {
+    if (iso.isEmpty) return '';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final d = DateTime.now().difference(dt.toLocal());
+    if (d.inSeconds < 60) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours   < 24) return '${d.inHours}h ago';
+    if (d.inDays    < 7)  return '${d.inDays}d ago';
+    if (d.inDays    < 30) return '${d.inDays ~/ 7}w ago';
+    return '${d.inDays ~/ 30}mo ago';
+  }
+
+  Widget _timeChip(String iso) {
+    final label = _timeAgo(iso);
+    if (label.isEmpty) return const SizedBox.shrink();
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.schedule_rounded, size: 11, color: Colors.grey.shade400),
+      const SizedBox(width: 3),
+      Text(label,
+          style: TextStyle(
+              fontFamily: 'Momo', fontSize: 10.5, color: Colors.grey.shade500)),
+    ]);
+  }
+
+  Widget _searchField(
+      TextEditingController ctrl, String hint, ValueChanged<String> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200)),
+        child: TextField(
+          controller: ctrl,
+          onChanged: onChanged,
+          style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+          decoration: InputDecoration(
+            isDense: true,
+            prefixIcon:
+                Icon(Icons.search_rounded, color: Colors.grey.shade500, size: 20),
+            suffixIcon: ctrl.text.isNotEmpty
+                ? IconButton(
+                    splashRadius: 18,
+                    icon: Icon(Icons.close_rounded,
+                        size: 18, color: Colors.grey.shade500),
+                    onPressed: () {
+                      ctrl.clear();
+                      onChanged('');
+                    },
+                  )
+                : null,
+            hintText: hint,
+            hintStyle: TextStyle(
+                fontFamily: 'Momo', fontSize: 13, color: Colors.grey.shade500),
+            border: InputBorder.none,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+      ),
+    );
   }
 
   // ══════════════════════════════════════════════════════════
@@ -292,29 +428,58 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         sub: 'Chat requests and bubble invites sent to you appear here',
       );
     }
-    return RefreshIndicator(
-      color: _kG2,
-      onRefresh: _load,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        children: [
-          if (_bubbleInvites.isNotEmpty) ...[
-            _sectionHeader('Bubble invites', _bubbleInvites.length),
-            const SizedBox(height: 8),
-            for (var i = 0; i < _bubbleInvites.length; i++)
-              _buildBubbleInviteCard(_bubbleInvites[i], i),
-            const SizedBox(height: 8),
-          ],
-          if (_requests.isNotEmpty) ...[
-            _sectionHeader('Chat requests', _requests.length),
-            const SizedBox(height: 8),
-            for (var i = 0; i < _requests.length; i++)
-              _buildChatRequestCard(_requests[i], i),
-          ],
-        ],
+
+    final q = _incQuery.toLowerCase();
+    bool matchReq(Map<String, dynamic> r) =>
+        q.isEmpty || (r['sender_name'] as String? ?? '').toLowerCase().contains(q);
+    bool matchInv(Map<String, dynamic> r) =>
+        q.isEmpty ||
+        (((r['inviter_name'] as String?) ?? (r['room_name'] as String?) ?? '')
+                .toLowerCase())
+            .contains(q);
+    final reqs      = _requests.where(matchReq).toList();
+    final invites   = _bubbleInvites.where(matchInv).toList();
+    final noMatches = reqs.isEmpty && invites.isEmpty;
+
+    return Column(children: [
+      _searchField(_incSearchCtrl, 'Search incoming by name…',
+          (v) => setState(() => _incQuery = v.trim())),
+      Expanded(
+        child: RefreshIndicator(
+          color: _kG2,
+          onRefresh: _load,
+          child: noMatches
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 80),
+                    Center(
+                        child: Text('No matches',
+                            style: TextStyle(
+                                fontFamily: 'Momo',
+                                color: Colors.grey.shade500))),
+                  ],
+                )
+              : ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  children: [
+                    if (invites.isNotEmpty) ...[
+                      _sectionHeader('Bubble invites', invites.length),
+                      const SizedBox(height: 8),
+                      for (final inv in invites) _buildBubbleInviteCard(inv),
+                      const SizedBox(height: 8),
+                    ],
+                    if (reqs.isNotEmpty) ...[
+                      _sectionHeader('Chat requests', reqs.length),
+                      const SizedBox(height: 8),
+                      for (final r in reqs) _buildChatRequestCard(r),
+                    ],
+                  ],
+                ),
+        ),
       ),
-    );
+    ]);
   }
 
   // ── Outgoing tab (requests I sent) ────────────────────────
@@ -330,20 +495,44 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         sub: 'Requests you send to others appear here while pending',
       );
     }
-    return RefreshIndicator(
-      color: _kG2,
-      onRefresh: _load,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        children: [
-          _sectionHeader('Sent requests', _outgoingRequests.length),
-          const SizedBox(height: 8),
-          for (var i = 0; i < _outgoingRequests.length; i++)
-            _buildOutgoingCard(_outgoingRequests[i]),
-        ],
+    final q = _outQuery.toLowerCase();
+    final sent = q.isEmpty
+        ? _outgoingRequests
+        : _outgoingRequests
+            .where((r) =>
+                (r['receiver_name'] as String? ?? '').toLowerCase().contains(q))
+            .toList();
+    return Column(children: [
+      _searchField(_outSearchCtrl, 'Search outgoing by name…',
+          (v) => setState(() => _outQuery = v.trim())),
+      Expanded(
+        child: RefreshIndicator(
+          color: _kG2,
+          onRefresh: _load,
+          child: sent.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 80),
+                    Center(
+                        child: Text('No matches',
+                            style: TextStyle(
+                                fontFamily: 'Momo',
+                                color: Colors.grey.shade500))),
+                  ],
+                )
+              : ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  children: [
+                    _sectionHeader('Sent requests', sent.length),
+                    const SizedBox(height: 8),
+                    for (final r in sent) _buildOutgoingCard(r),
+                  ],
+                ),
+        ),
       ),
-    );
+    ]);
   }
 
   Widget _emptyState({
@@ -423,7 +612,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     );
   }
 
-  Widget _buildBubbleInviteCard(Map<String, dynamic> r, int index) {
+  Widget _buildBubbleInviteCard(Map<String, dynamic> r) {
     final reqId = r['id'] as String? ?? '';
     final inviter =
         r['inviter_name'] as String? ?? r['inviter']?['name']?.toString() ?? 'Someone';
@@ -503,6 +692,10 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         Text('$inviter invited you to join.',
             style: TextStyle(
                 fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade700)),
+        if ((r['created_at'] as String? ?? '').isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _timeChip(r['created_at'] as String? ?? ''),
+        ],
         if (bubbleAbout.isNotEmpty || message.isNotEmpty) ...[
           const SizedBox(height: 10),
           Container(
@@ -521,7 +714,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         Row(children: [
           Expanded(
               child: GestureDetector(
-            onTap: () => _declineBubbleInvite(reqId, index),
+            onTap: () => _declineBubbleInvite(reqId),
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
@@ -539,7 +732,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           const SizedBox(width: 10),
           Expanded(
               child: GestureDetector(
-            onTap: () => _acceptBubbleInvite(reqId, index),
+            onTap: () => _acceptBubbleInvite(reqId),
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
@@ -558,7 +751,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     );
   }
 
-  Widget _buildChatRequestCard(Map<String, dynamic> r, int i) {
+  Widget _buildChatRequestCard(Map<String, dynamic> r) {
     final reqId = r['id'] as String? ?? '';
     final name = r['sender_name'] as String? ?? 'Unknown';
     final role = r['sender_role'] as String? ?? '';
@@ -616,6 +809,10 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                         fontFamily: 'Momo',
                         fontSize: 12,
                         color: Colors.grey.shade500)),
+                if ((r['created_at'] as String? ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  _timeChip(r['created_at'] as String? ?? ''),
+                ],
               ])),
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -647,7 +844,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         Row(children: [
           Expanded(
               child: GestureDetector(
-            onTap: () => _declineRequest(reqId, i),
+            onTap: () => _declineRequest(reqId),
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
@@ -665,7 +862,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           const SizedBox(width: 10),
           Expanded(
               child: GestureDetector(
-            onTap: () => _acceptRequest(reqId, i),
+            onTap: () => _acceptRequest(reqId),
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
@@ -685,8 +882,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
   }
 
   Widget _buildOutgoingCard(Map<String, dynamic> r) {
-    final avatar = (r['receiver_avatar'] as String?) ?? '';
-    final name = r['receiver_name'] as String? ?? 'Unknown';
+    final avatar  = (r['receiver_avatar'] as String?) ?? '';
+    final name    = r['receiver_name'] as String? ?? 'Unknown';
+    final created = r['created_at'] as String? ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Padding(
@@ -714,6 +912,8 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style:
                         const TextStyle(fontFamily: 'Alfa', fontSize: 14)),
                 const SizedBox(height: 2),
@@ -722,7 +922,12 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                         fontFamily: 'Momo',
                         fontSize: 12,
                         color: Colors.grey.shade600)),
+                if (created.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  _timeChip(created),
+                ],
               ])),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -735,6 +940,21 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     fontSize: 11,
                     color: Color(0xFF856404),
                     fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 4),
+          // Trailing red cancel button — withdraws the sent request.
+          GestureDetector(
+            onTap: () => _confirmCancel(r),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _kG4.withOpacity(0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cancel_rounded, color: _kG4, size: 20),
+            ),
           ),
         ]),
       ),
