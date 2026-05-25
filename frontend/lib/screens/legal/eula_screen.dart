@@ -20,6 +20,8 @@
 //
 // EulaScreen pops `true` on accept and `false` on decline.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -237,7 +239,6 @@ class _EulaScreenState extends State<EulaScreen>
         child: Column(
           children: [
             _buildHeader(topInset),
-            _buildProgressBar(),
             Expanded(
               child: Stack(
                 children: [
@@ -283,7 +284,19 @@ class _EulaScreenState extends State<EulaScreen>
         opacity: _headerFade,
         child: SlideTransition(
           position: _headerSlide,
-          child: Container(
+          // The reading-progress indicator is painted ON the header's rounded
+          // bottom edge (foregroundPainter), tracing its 30px corner radius
+          // and filling left → right as the user reads.
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: _progress),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            builder: (_, value, child) => CustomPaint(
+              foregroundPainter:
+                  _HeaderCurveProgressPainter(progress: value),
+              child: child,
+            ),
+            child: Container(
             width: double.infinity,
             // Extend the gradient up behind the status bar / notch, while
             // keeping the title clear of it.
@@ -340,31 +353,9 @@ class _EulaScreenState extends State<EulaScreen>
               ],
             ),
           ),
+          ),
         ),
       ),
-    );
-  }
-
-  // ── Reading-progress bar ────────────────────────────────────────────────
-  Widget _buildProgressBar() {
-    return LayoutBuilder(
-      builder: (context, c) {
-        return SizedBox(
-          height: 4,
-          child: Stack(
-            children: [
-              Container(width: c.maxWidth, color: _kG2.withOpacity(0.10)),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                width: c.maxWidth * _progress,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [_kG1, _kG2]),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -740,4 +731,57 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Curved reading-progress indicator ───────────────────────────────────
+// Draws reading progress as a stroke that traces the header's rounded bottom
+// outline (matching its 30px bottom corner radius) and fills left → right as
+// the user scrolls through the terms. Replaces the old straight bar.
+class _HeaderCurveProgressPainter extends CustomPainter {
+  final double progress; // 0..1
+  _HeaderCurveProgressPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double r     = 30; // header bottom corner radius
+    const double inset = 3;  // keep the stroke just inside the gradient edge
+    const double rr    = r - inset;
+    final double w = size.width;
+    final double h = size.height;
+
+    final Offset blCenter = Offset(inset + rr, h - inset - rr);
+    final Offset brCenter = Offset(w - inset - rr, h - inset - rr);
+
+    // Left edge → bottom-left corner → bottom edge → bottom-right corner →
+    // right edge. One continuous contour, so PathMetrics has a single entry.
+    final Path path = Path()
+      ..moveTo(inset, h - inset - rr)
+      ..arcTo(Rect.fromCircle(center: blCenter, radius: rr),
+          math.pi, -math.pi / 2, false)
+      ..lineTo(w - inset - rr, h - inset)
+      ..arcTo(Rect.fromCircle(center: brCenter, radius: rr),
+          math.pi / 2, -math.pi / 2, false);
+
+    final Paint track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white.withOpacity(0.22);
+    canvas.drawPath(path, track);
+
+    final double p = progress.clamp(0.0, 1.0);
+    if (p <= 0) return;
+    final metric = path.computeMetrics().first;
+    final Path filled = metric.extractPath(0, metric.length * p);
+    final Paint fill = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white;
+    canvas.drawPath(filled, fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeaderCurveProgressPainter old) =>
+      old.progress != progress;
 }
