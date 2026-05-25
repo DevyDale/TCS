@@ -2,7 +2,7 @@ name: tcs_app
 description: "TCS - Taylors College Social Media & Arcade Platform"
 publish_to: 'none'
 
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: ^3.9.2
@@ -116,7 +116,7 @@ flutter_launcher_icons:
 # ─── Android native splash (shown BEFORE Flutter boots) ───
 flutter_native_splash:
   color: "#0D0D1A"
-  image: assets/icon/tcs-icon-1024.png
+  image: assets/icon/tcs-splash.png
   android: true
   ios: true
   android_12:
