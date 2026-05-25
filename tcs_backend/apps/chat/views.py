@@ -253,6 +253,82 @@ def _broadcast_to_list_group(room_id, event_type, payload):
         pass
 
 
+def _broadcast_to_room_group(room_id, payload):
+    """Live-deliver a freshly created message to everyone viewing the room
+    (mirrors the websocket consumer's chat.message broadcast)."""
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+    except Exception:
+        return
+    layer = get_channel_layer()
+    if not layer:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            f"chat_{room_id}",
+            {"type": "chat.message", "payload": payload},
+        )
+    except Exception:
+        pass
+
+
+def _create_text_message(request, room_id, member):
+    """POST /api/chat/rooms/<id>/messages/  { "text": "..." }
+
+    HTTP path for creating a text message from surfaces that aren't holding
+    the room websocket open (e.g. the Share-profile sheet). Persists the
+    message, bumps the room's last-message fields, and broadcasts to both the
+    room and chat-list groups so it appears live — exactly like a WS send.
+    """
+    text = (request.data.get("text") or "").strip()
+    if not text:
+        return Response({"error": "Text cannot be empty."}, status=400)
+    if len(text) > 5000:
+        return Response({"error": "Message too long."}, status=400)
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found."}, status=404)
+
+    msg = Message.objects.create(
+        room=room, sender=request.user,
+        message_type=Message.MsgType.TEXT, text=text,
+    )
+    Room.objects.filter(id=room_id).update(
+        last_message_text=msg.display_text,
+        last_message_at=timezone.now(),
+        last_message_sender=request.user,
+    )
+    # If the sender had cleared (deleted) this chat, sending un-hides it.
+    if member.cleared_at:
+        RoomMember.objects.filter(pk=member.pk).update(cleared_at=None)
+
+    payload = {
+        "id":            str(msg.id),
+        "room_id":       str(room_id),
+        "sender_id":     request.user.user_id,
+        "sender_name":   request.user.display_name,
+        "sender_avatar": request.build_absolute_uri(request.user.avatar.url)
+                         if getattr(request.user, "avatar", None) else None,
+        "message_type":  "text",
+        "text":          text,
+        "media_url":     None,
+        "is_ai":         False,
+        "is_system":     False,
+        "created_at":    msg.created_at.isoformat(),
+    }
+    _broadcast_to_room_group(room_id, payload)
+    _broadcast_to_list_group(room_id, "list.new_message",
+                             {"room_id": str(room_id), "message": payload})
+    try:
+        from apps.notifications.tasks import push_chat_notification
+        push_chat_notification.delay(payload["id"], str(room_id))
+    except Exception:
+        pass
+    return Response(payload, status=201)
+
+
 def _hidden_room_ids(user):
     """
     Room ids the user has 'deleted' (cleared) and which have had NO new
@@ -563,11 +639,13 @@ def connected_users(request):
     return Response({"results": results})
 
 
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 def message_history(request, room_id):
     member = RoomMember.objects.filter(room_id=room_id, user=request.user).first()
     if not member:
         return Response({"error": "Not a member."}, status=403)
+    if request.method == "POST":
+        return _create_text_message(request, room_id, member)
     before = request.query_params.get("before")
     qs = Message.objects.filter(room_id=room_id, is_deleted=False).select_related("sender").order_by("-created_at")
     # Per-user delete: hide everything before the user cleared this chat.

@@ -28,6 +28,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
+import 'package:tcs_app/screens/dashboard/other_user_profile_Screen.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
 import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
@@ -1077,8 +1078,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final last = _isLastInGroup(i);
     final time = _fmt(msg['created_at'] as String? ?? '');
 
+    // Shared-profile link → tappable card (sent from the Share-profile sheet).
+    final txt = msg['text'] as String? ?? '';
+    final sharedProfileId =
+        msgType == 'text' ? _sharedProfileId(txt) : null;
+
     final Widget bubble;
-    if (msgType == 'sticker') {
+    if (sharedProfileId != null) {
+      bubble = _profileShareCard(sharedProfileId, _sharedProfileName(txt), isMe);
+    } else if (msgType == 'sticker') {
       bubble = ChatStickerBubble(message: msg, isMe: isMe, stickerMap: _stickerById);
     } else if (msgType == 'image' || msgType == 'video') {
       bubble = ClipRRect(
@@ -1145,6 +1153,96 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Shared profile link ──────────────────────────────────
+  // Messages sent from the Share-profile sheet look like:
+  //   "Check out this profile: <Name> [profile:<user_id>]"
+  static final RegExp _profileTokenRe = RegExp(r'\[profile:([^\]]+)\]');
+
+  String? _sharedProfileId(String text) =>
+      _profileTokenRe.firstMatch(text)?.group(1)?.trim();
+
+  String _sharedProfileName(String text) {
+    var t = text.replaceAll(_profileTokenRe, '').trim();
+    const prefix = 'Check out this profile:';
+    if (t.startsWith(prefix)) t = t.substring(prefix.length).trim();
+    return t.isEmpty ? 'their profile' : t;
+  }
+
+  Widget _profileShareCard(String userId, String name, bool isMe) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => OtherUserProfileScreen(userId: userId),
+        ));
+      },
+      child: Container(
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isMe ? _kSage : _kSageLt,
+          borderRadius: BorderRadius.circular(16),
+          border: isMe ? null : Border.all(color: _kHair),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                  colors: [_kSage, _kSageDk],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+            ),
+            child: Center(
+              child: Text(initial,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5,
+                        color: isMe ? Colors.white : _kInk)),
+                const SizedBox(height: 2),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.person_rounded,
+                      size: 12,
+                      color: isMe ? Colors.white70 : _kSageDk),
+                  const SizedBox(width: 4),
+                  Text('Tap to view profile',
+                      style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 11,
+                          color: isMe ? Colors.white70 : _kSlate)),
+                ]),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded,
+              size: 18, color: isMe ? Colors.white70 : _kSlate),
+        ]),
       ),
     );
   }

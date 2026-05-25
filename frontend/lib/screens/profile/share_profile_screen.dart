@@ -149,22 +149,14 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
   }
 
   Future<void> _loadRecentChats() async {
-    // Try the lightweight purpose-built endpoint first.
-    try {
-      final res   = await _api.getRecentChats(limit: 8);
-      final rooms = _coerceRoomList(res);
-      if (!mounted) return;
-      setState(() {
-        _rooms   = rooms;
-        _loading = false;
-      });
-      return;
-    } catch (_) { /* fall through to legacy endpoint */ }
-
-    // Fallback for environments where /chat/recent/ isn't deployed.
+    // Only people the user already chats with 1-on-1 (accepted chat
+    // requests = direct rooms). Group/bubble & study-buddy rooms are
+    // intentionally excluded — you share a profile *to a person*.
     try {
       final res   = await _api.getChatRooms();
-      final rooms = _coerceRoomList(res).take(8).toList();
+      final rooms = _coerceRoomList(res)
+          .where((r) => ((r['room_type'] as String?) ?? 'direct') == 'direct')
+          .toList();
       if (!mounted) return;
       setState(() {
         _rooms   = rooms;
@@ -206,14 +198,15 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
   }
 
   String _roomLabel(Map<String, dynamic> r) {
-    final t = r['room_type'] as String? ?? 'direct';
-    if (t == 'direct') {
-      return (r['display_name']      ??
-              r['other_user_name']   ??
-              r['name']              ??
-              'them').toString();
-    }
-    return (r['name'] ?? 'group').toString();
+    final other = r['other_user'] as Map<String, dynamic>?;
+    final n = (other?['name'] ??
+            r['display_name'] ??
+            r['other_user_name'] ??
+            r['name'] ??
+            '')
+        .toString()
+        .trim();
+    return n.isNotEmpty ? n : 'them';
   }
 
   void _snack(String msg, {bool isError = false}) {
@@ -290,7 +283,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
           else if (_rooms.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No recent chats yet.',
+              child: Text('No chats yet — accept a chat request first.',
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 13,
                   color: Colors.grey.shade500,
@@ -376,8 +369,10 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
     final id        = r['id']?.toString() ?? '';
     final shared    = _shared.contains(id);
     final label     = _roomLabel(r);
-    final avatarUrl = (r['display_avatar']    ??
-                       r['other_user_avatar'] ?? '').toString();
+    final other     = r['other_user'] as Map<String, dynamic>?;
+    final avatarUrl = (other?['avatar_url']    ??
+                       r['display_avatar']     ??
+                       r['other_user_avatar']  ?? '').toString();
     final initial   = label.isNotEmpty ? label[0].toUpperCase() : '?';
 
     return GestureDetector(
