@@ -97,6 +97,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# ── Password hashing ──────────────────────────────────────────
+# Argon2 (memory-hard, current OWASP recommendation) for new and rotated
+# passwords. The PBKDF2/Scrypt hashers stay in the list so existing hashes
+# still verify and are transparently re-hashed to Argon2 on next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE     = "Australia/Sydney"
 USE_I18N      = True

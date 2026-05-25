@@ -73,3 +73,8 @@ if SENTRY_DSN:
         integrations=[DjangoIntegration()],
         traces_sample_rate=0.2,
     )
+
+# ── Logging ──────────────────────────────────────────────────────
+# Quieten verbose app logging in production so DEBUG-level detail (and any
+# PII it might contain) isn't written to container logs.
+LOGGING["loggers"]["apps"]["level"] = "INFO"

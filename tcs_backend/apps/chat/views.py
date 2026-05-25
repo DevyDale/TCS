@@ -810,7 +810,8 @@ def save_material(request):
     # ── Resolve from a chat message if given ─────────────
     if msg_id:
         try:
-            message = Message.objects.get(id=msg_id)
+            message = Message.objects.get(
+                id=msg_id, room__members=request.user)
 
             if not file_url:
                 if message.media:
@@ -842,7 +843,8 @@ def save_material(request):
     # ── Explicit group context wins ──────────────────────
     if group_id:
         try:
-            source_group = Group.objects.get(id=group_id)
+            source_group = Group.objects.get(
+                id=group_id, members=request.user)
             source_type  = "group"
             source_name  = source_group.name
             if not subject:
