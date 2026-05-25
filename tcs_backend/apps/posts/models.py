@@ -151,6 +151,18 @@ class Comment(models.Model):
         ordering = ["created_at"]
 
 
+class CommentLike(models.Model):
+    comment    = models.ForeignKey(Comment, on_delete=models.CASCADE,
+                                    related_name="likes")
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                    on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = "post_comment_likes"
+        unique_together = [("comment", "user")]
+
+
 class Bookmark(models.Model):
     post       = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="bookmarks")
     user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
