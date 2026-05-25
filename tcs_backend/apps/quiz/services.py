@@ -32,6 +32,27 @@ class FileFetchError(Exception):
     """Raised when we can't pull the source file."""
 
 
+def _sign_cloudinary(url: str) -> str:
+    """Return a signed Cloudinary URL so raw / PDF assets download even when
+    public PDF & ZIP delivery is disabled on the account. Signed URLs are
+    Cloudinary's sanctioned way to deliver restricted file types. Falls back
+    to the original url on any problem (non-Cloudinary url, bad config, etc)."""
+    if not url or "res.cloudinary.com" not in url:
+        return url
+    try:
+        import re as _re
+        import cloudinary.utils as _cu
+        m = _re.match(r"https?://res\.cloudinary\.com/[^/]+/([^/]+)/([^/]+)/(.+)$", url)
+        if not m:
+            return url
+        rtype, dtype, rest = m.group(1), m.group(2), m.group(3)
+        rest = _re.sub(r"^s--[^/]+--/", "", rest)
+        rest = _re.sub(r"^v\d+/", "", rest)
+        return _cu.private_download_url(rest, "", resource_type=rtype, type=dtype) or url
+    except Exception:
+        return url
+
+
 def download_bytes(url: str, timeout: int = 30, max_bytes: int = 25 * 1024 * 1024) -> bytes:
     """Stream a file from a URL and cap the size to avoid memory blowups.
 
@@ -39,6 +60,7 @@ def download_bytes(url: str, timeout: int = 30, max_bytes: int = 25 * 1024 * 102
     are usually well under 5 MB.
     """
     try:
+        url = _sign_cloudinary(url)
         resp = requests.get(url, stream=True, timeout=timeout)
         resp.raise_for_status()
     except requests.RequestException as e:
@@ -205,10 +227,12 @@ def _user_prompt(text: str, *, num_questions: int, difficulty: str,
 
 def _call_openai(messages: list[dict], *, model: str) -> tuple[str, int]:
     """Returns (raw_json_string, tokens_used). Uses the official SDK."""
-    api_key = getattr(settings, "OPENAI_API_KEY", None)
+    import os as _os
+    api_key = (getattr(settings, "GEMINI_API_KEY", None)
+               or _os.environ.get("GEMINI_API_KEY"))
     if not api_key:
         raise GenerationError(
-            "OPENAI_API_KEY is not configured on the server.")
+            "GEMINI_API_KEY is not configured on the server.")
 
     try:
         from openai import OpenAI
@@ -217,7 +241,10 @@ def _call_openai(messages: list[dict], *, model: str) -> tuple[str, int]:
             "`openai` package not installed. Add `openai>=1.40` to requirements.txt."
         ) from e
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
 
     try:
         resp = client.chat.completions.create(
@@ -315,7 +342,7 @@ def generate_quiz_from_material(
         raise ExtractionError(
             "Not enough readable text in this file to build a meaningful quiz.")
 
-    model = getattr(settings, "QUIZ_OPENAI_MODEL", "gpt-4o-mini")
+    model = getattr(settings, "QUIZ_OPENAI_MODEL", None) or "gemini-2.5-flash"
     raw, tokens = _call_openai(
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},

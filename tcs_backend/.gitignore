@@ -36,3 +36,4 @@ celerybeat.pid
 
 # SSL
 nginx/ssl/
+docker-compose.override.yml
