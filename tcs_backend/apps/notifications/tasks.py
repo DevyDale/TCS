@@ -365,3 +365,45 @@ def push_event_reminders():
                 "event", str(rsvp.event.id))
         _fcm_send(rsvp.user.fcm_token, title, body,
                   {"type": "event_reminder", "event_id": str(rsvp.event.id)})
+
+
+# ── Birthday greetings (periodic, once daily) ─────────────────
+
+@shared_task(name="push_birthday_notifications", ignore_result=True)
+def push_birthday_notifications():
+    """Wish every active user a happy birthday on their day.
+
+    Matches users whose date_of_birth falls on today's month/day (local time).
+    Feb-29 birthdays are greeted on Feb-28 in non-leap years. Guarded so each
+    user gets at most one birthday notification per day even if the task reruns.
+    """
+    import calendar
+    from django.db.models import Q
+    from django.utils import timezone
+    from .models import Notification
+
+    today = timezone.localdate()
+
+    match = Q(date_of_birth__month=today.month, date_of_birth__day=today.day)
+    # Leap-year safety: greet Feb-29 folks on Feb-28 when this year has no Feb-29.
+    if today.month == 2 and today.day == 28 and not calendar.isleap(today.year):
+        match |= Q(date_of_birth__month=2, date_of_birth__day=29)
+
+    users = User.objects.filter(is_active=True).filter(match)
+
+    title = "Happy Birthday! \U0001F389"
+    for u in users:
+        # Idempotent: skip if this user was already greeted today.
+        if Notification.objects.filter(
+            recipient=u, notif_type="birthday", created_at__date=today
+        ).exists():
+            continue
+
+        first = (getattr(u, "name", "") or "").split(" ")[0].strip()
+        body  = (f"Happy birthday{', ' + first if first else ''}! "
+                 "\U0001F382 A little note from Dale and the whole TCS crew \u2014 "
+                 "have an amazing day.")
+
+        notif = _create(str(u.id), None, "birthday", title, body, "user", str(u.id))
+        if notif:
+            _fcm_send(u.fcm_token, title, body, {"type": "birthday"})
