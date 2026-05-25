@@ -128,8 +128,14 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    # Fail CLOSED: every endpoint requires a valid token unless it explicitly
+    # opts out with permission_classes = [AllowAny]. The genuinely-public
+    # endpoints (login, login-password, register, token refresh, student/staff
+    # verify, dataentry registration, API docs) already set AllowAny
+    # explicitly, so they are unaffected by this default.
+    # Verify the public surface any time with:  manage.py audit_permissions
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ),
     # ── Abuse / brute-force protection ───────────────────────────
     # We sit behind exactly one proxy (nginx), which appends the real client
