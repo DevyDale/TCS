@@ -10,4 +10,5 @@ urlpatterns = [
     path("token/refresh/",  TokenRefreshView.as_view(),        name="token-refresh"),
     path("student/verify/", views.verify_student,              name="verify-student"),
     path("staff/verify/",   views.verify_staff,                name="verify-staff"),
+    path("delete/",         views.delete_account,              name="delete-account"),
 ]

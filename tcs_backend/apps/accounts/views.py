@@ -357,3 +357,36 @@ def verify_staff(request):
         })
     except StaffRecord.DoesNotExist:
         return Response({"success": False}, status=401)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def delete_account(request):
+    """
+    POST /api/accounts/delete/
+
+    Permanently deletes the requesting user's own account and everything that
+    cascades from it (profile, posts, messages, memberships, arcade progress).
+    Irreversible — the client must confirm with the user before calling this.
+    No PROTECT foreign keys reference User, so the cascade completes cleanly.
+
+    Note: ID-login accounts can sign in again with the same student/staff ID,
+    which creates a fresh, empty account — deletion removes the data, it does
+    not permanently bar the ID.
+    """
+    user = request.user
+
+    # Best-effort: blacklist outstanding refresh tokens so any other sessions
+    # die immediately. The row delete below also cascades these, and the
+    # access token stops authenticating the moment the user row is gone.
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import (
+            OutstandingToken, BlacklistedToken,
+        )
+        for tok in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=tok)
+    except Exception:
+        pass
+
+    user.delete()
+    return Response({"success": True}, status=status.HTTP_200_OK)

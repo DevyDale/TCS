@@ -21,6 +21,7 @@ import 'package:tcs_app/screens/settings/blocked_users_screen.dart';
 import 'package:tcs_app/screens/privacy_policy_screen.dart';
 import 'package:tcs_app/screens/terms_of_service_screen.dart';
 import 'package:tcs_app/services/auth_service.dart';
+import 'package:tcs_app/services/api_service.dart';
 import 'app_localisations.dart';
 import 'app_settings.dart';
 
@@ -90,6 +91,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ));
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    HapticFeedback.mediumImpact();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently deletes your account and all of your data — '
+          'profile, posts, messages, clubs, and arcade progress. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: _kG4),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await ApiService().deleteAccount();
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+    }
+    try {
+      await AuthService().clearTokens();
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // close loading
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, animation, __) => FadeTransition(
+          opacity: animation,
+          child: const RoleSelectionScreen(),
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   Future<void> _confirmLogout() async {
@@ -569,6 +628,12 @@ _group([
                       builder: (_) => const BlockedUsersScreen())),
                   child: _info(Icons.block_rounded, 'Blocked users',
                       'Manage ›', _kG4),
+                ),
+                _divLine(),
+                GestureDetector(
+                  onTap: _confirmDeleteAccount,
+                  child: _info(Icons.delete_forever_rounded, 'Delete account',
+                      'Permanent ›', _kG4),
                 ),
               ]),
 

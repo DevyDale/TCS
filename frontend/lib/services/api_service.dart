@@ -339,6 +339,9 @@ Future<http.Response> _raw(String method, Uri uri,
     {Map<String, dynamic>? body, bool auth = true}) =>
     _req('POST', path, body: body, auth: auth);
 
+  /// Permanently delete the signed-in user's account (irreversible).
+  Future<dynamic> deleteAccount() => post('/accounts/delete/');
+
   Future<dynamic> put(String path,
       {Map<String, dynamic>? body, bool auth = true}) =>
       _req('PUT', path, body: body, auth: auth);

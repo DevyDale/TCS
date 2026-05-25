@@ -1,0 +1,28 @@
+# Dependabot — weekly dependency update PRs for the backend (pip) and the
+# Flutter app (pub). Security updates are opened automatically regardless of
+# the weekly cadence. Review and merge from the GitHub "Pull requests" tab.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/tcs_backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "backend"]
+    commit-message:
+      prefix: "deps(backend)"
+
+  - package-ecosystem: "pub"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "deps(frontend)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]
