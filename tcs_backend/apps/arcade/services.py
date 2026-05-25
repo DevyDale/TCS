@@ -315,6 +315,12 @@ def accept_request(request_row: GameRequest, user) -> GameSession:
         session = _create_session(invite, [invite.sender, user])
         invite.status = "started"
         invite.save(update_fields=["status"])
+        # Nudge the challenger so their app auto-opens the live match.
+        try:
+            from apps.notifications.tasks import push_game_request_accepted_notification
+            push_game_request_accepted_notification.delay(str(gr.id), str(session.id))
+        except Exception:
+            pass
         return session
 
     elif game.invite_mode == Game.InviteMode.ROYALE:

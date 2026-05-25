@@ -323,6 +323,28 @@ def push_game_request_notification(request_id):
         logger.error(f"push_game_request_notification: {e}")
 
 
+@shared_task(name="push_game_request_accepted_notification", ignore_result=True)
+def push_game_request_accepted_notification(request_id, session_id):
+    """Notify the ORIGINAL sender that their game challenge was accepted.
+
+    Carries the new session id as target_id so the sender's app can auto-open
+    the live match (target_type='game_session').
+    """
+    from apps.arcade.models import GameRequest
+    try:
+        gr    = GameRequest.objects.select_related("sender", "receiver").get(id=request_id)
+        game  = gr.game_name or gr.game_slug
+        title = "Challenge accepted! \u2694\uFE0F"
+        body  = f"{gr.receiver.display_name} accepted your {game} challenge — tap to play!"
+        notif = _create(str(gr.sender.id), str(gr.receiver.id), "request_accepted",
+                        title, body, "game_session", str(session_id))
+        if notif:
+            _fcm_send(gr.sender.fcm_token, title, body,
+                      {"type": "request_accepted", "session_id": str(session_id)})
+    except Exception as e:
+        logger.error(f"push_game_request_accepted_notification: {e}")
+
+
 # ── Event reminders (periodic) ────────────────────────────────
 
 @shared_task(name="push_event_reminders", ignore_result=True)

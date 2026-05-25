@@ -16,7 +16,9 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'api_service.dart';
+import '../screens/arcade/versus_launcher.dart';
 
 class AppNotification {
   final String id;
@@ -73,6 +75,7 @@ class NotificationService extends ChangeNotifier {
   final _ws  = NotificationWebSocketService();
 
   StreamSubscription? _wsSub;
+  String? _openingSession; // guards against auto-opening the same match twice
   Timer? _reconnectTimer;
   int _backoffMs = 1000;
 
@@ -204,6 +207,17 @@ class NotificationService extends ChangeNotifier {
     }
 
     if (event == 'notification') {
+      final notifType  = evt['notif_type']?.toString() ?? '';
+      final targetType = evt['target_type']?.toString() ?? '';
+      final targetId   = evt['target_id']?.toString() ?? '';
+
+      // Auto-open a head-to-head match when our challenge is accepted.
+      if (notifType == 'request_accepted' && targetType == 'game_session' &&
+          targetId.isNotEmpty && _openingSession != targetId) {
+        _openingSession = targetId;
+        _autoOpenMatch(targetId);
+      }
+
       // Drop duplicates (REST may have already loaded it)
       final id = evt['id']?.toString() ?? '';
       if (id.isEmpty || _items.any((n) => n.id == id)) return;
@@ -211,6 +225,19 @@ class NotificationService extends ChangeNotifier {
       _items.insert(0, n);
       _unreadCount += 1;
       notifyListeners();
+    }
+  }
+
+  // Fetch the session and open the live match (challenger side).
+  Future<void> _autoOpenMatch(String sessionId) async {
+    try {
+      final sess = await _api.getSession(sessionId) as Map<String, dynamic>?;
+      if (sess == null) return;
+      final ctx = Get.context;
+      if (ctx == null) return;
+      await openVersusGame(ctx, sess);
+    } catch (_) {
+      // Ignore — the challenger can still open it from Live Matches.
     }
   }
 }
