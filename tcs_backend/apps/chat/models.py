@@ -89,6 +89,12 @@ class RoomMember(models.Model):
     nickname  = models.CharField(max_length=50, blank=True)
     last_read_message = models.ForeignKey("Message", on_delete=models.SET_NULL,
                                           null=True, blank=True, related_name="+")
+    # Per-user "delete chat": when set, this member has cleared the
+    # conversation. Their history before this timestamp is hidden and the room
+    # drops out of their chat list until a NEW message arrives (the other
+    # person's copy is untouched). Re-opening / a new message brings it back
+    # showing only messages after cleared_at.
+    cleared_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "chat_room_members"

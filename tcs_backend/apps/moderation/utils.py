@@ -1,6 +1,40 @@
 """Helpers used by other apps to enforce blocks + content filtering."""
 import re
+from django.db.models import Q
 from .models import Block, BlockedKeyword
+
+
+def is_blocked_between(a, b):
+    """
+    True if EITHER user has blocked the other. Blocking severs interaction in
+    both directions: a blocked person can never DM / chat-request the blocker,
+    and the blocker can't re-open a chat with them without unblocking first.
+    """
+    if not a or not b:
+        return False
+    return Block.objects.filter(
+        Q(blocker=a, blocked=b) | Q(blocker=b, blocked=a)
+    ).exists()
+
+
+def purge_chat_links(user_a, user_b):
+    """
+    Called right after a block is created. Removes any lingering ChatRequest
+    rows between the two users (both directions) so the blocker's incoming
+    requests list is clean and a stale 'declined/accepted' row can't get in
+    the way. The block itself is what enforces 'can never request again' —
+    this is just tidy-up. Imported lazily to avoid a hard chat→moderation dep.
+    """
+    if not user_a or not user_b:
+        return
+    try:
+        from apps.chat.models import ChatRequest
+        ChatRequest.objects.filter(
+            Q(sender=user_a, receiver=user_b) | Q(sender=user_b, receiver=user_a)
+        ).delete()
+    except Exception:
+        # chat app unavailable (e.g. in an isolated test) — non-fatal.
+        pass
 
 
 def get_blocked_user_ids(user):

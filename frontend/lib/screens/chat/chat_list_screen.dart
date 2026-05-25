@@ -672,7 +672,7 @@ Widget _buildSearchField() {
         ));
         _loadChats();
       },
-      onLongPress: () => _confirmDeleteChat(c),
+      onLongPress: () => _showChatTileMenu(c),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -819,6 +819,185 @@ Widget _buildSearchField() {
 
   // ── Requests tab (DM requests + bubble invites) ──────────
 
+
+  // ══════════════════════════════════════════════════════════
+  // Long-press menu (delete chat / block & delete)
+  // ══════════════════════════════════════════════════════════
+
+  Future<void> _showChatTileMenu(Map<String, dynamic> c) async {
+    HapticFeedback.lightImpact();
+    final isGroup = c['room_type'] == 'group';
+    final other   = c['other_user'] as Map<String, dynamic>?;
+    final name    = isGroup
+        ? (c['name'] as String? ?? 'this chat')
+        : (other?['name'] as String? ?? 'this chat');
+    final canBlock = !isGroup &&
+        other != null &&
+        ((other['user_id']?.toString().isNotEmpty) ?? false);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Alfa', fontSize: 16, color: _kInk),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: _kG4),
+              title: Text(
+                isGroup ? 'Leave chat' : 'Delete chat',
+                style: const TextStyle(
+                  fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                  fontSize: 14.5, color: _kInk),
+              ),
+              subtitle: Text(
+                isGroup
+                    ? "You'll stop receiving messages from this bubble."
+                    : 'Removes this conversation from your chats.',
+                style: TextStyle(
+                  fontFamily: 'Momo', fontSize: 11.5,
+                  color: Colors.grey.shade600),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteChat(c);
+              },
+            ),
+            if (canBlock)
+              ListTile(
+                leading: const Icon(Icons.block_rounded, color: _kG4),
+                title: const Text(
+                  'Block & delete',
+                  style: TextStyle(
+                    fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontSize: 14.5, color: _kInk),
+                ),
+                subtitle: Text(
+                  "$name won't be able to message you or send requests.",
+                  style: TextStyle(
+                    fontFamily: 'Momo', fontSize: 11.5,
+                    color: Colors.grey.shade600),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmBlockAndDelete(c);
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.close_rounded, color: Colors.grey.shade500),
+              title: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                  fontSize: 14.5, color: Colors.grey.shade600),
+              ),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 6),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmBlockAndDelete(Map<String, dynamic> c) async {
+    final other = c['other_user'] as Map<String, dynamic>?;
+    final name  = (other?['name'] as String?) ?? 'this user';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Block & delete?',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
+        ),
+        content: Text(
+          '$name will be blocked — they won\'t be able to message you or send '
+          'you chat requests, and this conversation will be removed. You can '
+          'unblock them anytime from Settings → Blocked users.',
+          style: TextStyle(
+            fontFamily: 'Momo', fontSize: 13,
+            color: Colors.grey.shade700, height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+              style: TextStyle(
+                fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              )),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Block',
+              style: TextStyle(
+                fontFamily: 'Arch', fontWeight: FontWeight.bold, color: _kG4,
+              )),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) await _blockAndDelete(c);
+  }
+
+  Future<void> _blockAndDelete(Map<String, dynamic> c) async {
+    final other   = c['other_user'] as Map<String, dynamic>?;
+    final otherId = (other?['user_id'] ?? '').toString();
+    if (otherId.isEmpty) {
+      _snack('Couldn\'t identify this person to block.');
+      return;
+    }
+
+    final roomId  = c['id'] as String? ?? '';
+    final idx     = _chats.indexWhere((x) => x['id'] == roomId);
+    final removed = idx == -1 ? null : _chats[idx];
+    if (idx != -1) setState(() => _chats.removeAt(idx));
+
+    try {
+      await _api.blockUser(otherId);
+      if (roomId.isNotEmpty) {
+        // Best-effort: also clear our copy of the chat. The block is the part
+        // that matters, so a delete hiccup shouldn't undo it.
+        try {
+          await _api.delete('/chat/rooms/$roomId/');
+        } catch (_) {}
+      }
+      _snack('Blocked & deleted');
+    } catch (e) {
+      if (idx != -1 && removed != null) {
+        setState(() => _chats.insert(idx, removed));
+      }
+      _snack('Couldn\'t block: $e');
+    }
+  }
 
   // ══════════════════════════════════════════════════════════
   // Long-press delete (chat tile menu)

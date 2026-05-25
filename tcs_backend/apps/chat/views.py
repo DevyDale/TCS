@@ -253,6 +253,24 @@ def _broadcast_to_list_group(room_id, event_type, payload):
         pass
 
 
+def _hidden_room_ids(user):
+    """
+    Room ids the user has 'deleted' (cleared) and which have had NO new
+    message since they cleared them — these are hidden from their chat list.
+    A new message (last_message_at > cleared_at) makes the room reappear.
+    """
+    from django.db.models import F
+    if not user or not getattr(user, "is_authenticated", False):
+        return []
+    return list(
+        RoomMember.objects
+        .filter(user=user, cleared_at__isnull=False)
+        .filter(Q(room__last_message_at__isnull=True)
+                | Q(room__last_message_at__lte=F("cleared_at")))
+        .values_list("room_id", flat=True)
+    )
+
+
 # ── Room views ────────────────────────────────────────────────
 
 @api_view(["GET"])
@@ -272,6 +290,7 @@ def recent_chats(request):
         Room.objects
         .filter(members=request.user, is_active=True)
         .exclude(room_type="channel")
+        .exclude(id__in=_hidden_room_ids(request.user))
         .prefetch_related("memberships__user")
         .order_by("-last_message_at", "-created_at")[:limit]
     )
@@ -289,6 +308,7 @@ class RoomListCreateView(generics.GenericAPIView):
         # Only direct + study_buddy + group rooms (no study group chats here)
         rooms = (Room.objects.filter(members=request.user, is_active=True)
                              .exclude(room_type="channel")
+                             .exclude(id__in=_hidden_room_ids(request.user))
                              .prefetch_related("memberships__user")
                              .order_by("-last_message_at", "-created_at"))
         return Response(RoomSerializer(rooms, many=True, context={"request": request}).data)
@@ -313,6 +333,17 @@ class RoomListCreateView(generics.GenericAPIView):
                     {"error": "Students and staff can't message each other."},
                     status=403,
                 )
+
+            # Blocking: can't open a DM with someone either of you has blocked.
+            try:
+                from apps.moderation.utils import is_blocked_between
+                if is_blocked_between(request.user, other):
+                    return Response(
+                        {"error": "You can't message this person."},
+                        status=403,
+                    )
+            except Exception:
+                pass
 
             room, _ = Room.get_or_create_direct(request.user, other)
             return Response(RoomSerializer(room, context={"request": request}).data)
@@ -355,11 +386,25 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
         return self.get_queryset().get(id=self.kwargs["room_id"])
 
     def destroy(self, request, *args, **kwargs):
+        """
+        Per-user 'delete chat' from the chat-list long-press.
+          • Group bubble  → the user LEAVES (their membership is removed; they
+            stop receiving messages). Other members are unaffected.
+          • Direct / study-buddy → soft clear: stamp cleared_at on the user's
+            membership so the conversation drops out of THEIR list and their
+            history is hidden, without touching the other person's copy.
+        """
         room = self.get_object()
-        if room.created_by != request.user:
-            return Response({"error": "Only creator can delete."}, status=403)
-        room.is_active = False
-        room.save(update_fields=["is_active"])
+        try:
+            member = RoomMember.objects.get(room=room, user=request.user)
+        except RoomMember.DoesNotExist:
+            return Response({"error": "Not a member."}, status=404)
+
+        if room.room_type == "group":
+            member.delete()
+        else:
+            member.cleared_at = timezone.now()
+            member.save(update_fields=["cleared_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(["POST"])
@@ -520,10 +565,14 @@ def connected_users(request):
 
 @api_view(["GET"])
 def message_history(request, room_id):
-    if not RoomMember.objects.filter(room_id=room_id, user=request.user).exists():
+    member = RoomMember.objects.filter(room_id=room_id, user=request.user).first()
+    if not member:
         return Response({"error": "Not a member."}, status=403)
     before = request.query_params.get("before")
     qs = Message.objects.filter(room_id=room_id, is_deleted=False).select_related("sender").order_by("-created_at")
+    # Per-user delete: hide everything before the user cleared this chat.
+    if member.cleared_at:
+        qs = qs.filter(created_at__gt=member.cleared_at)
     if before:
         try:
             pivot = Message.objects.get(id=before)
@@ -621,6 +670,15 @@ def accept_chat_request(request, req_id):
         req = ChatRequest.objects.get(id=req_id, receiver=request.user, status="pending")
     except ChatRequest.DoesNotExist:
         return Response({"error": "Request not found."}, status=404)
+
+    # If a block now exists between the two, don't open a room.
+    try:
+        from apps.moderation.utils import is_blocked_between
+        if is_blocked_between(request.user, req.sender):
+            req.delete()
+            return Response({"error": "You can't chat with this person."}, status=403)
+    except Exception:
+        pass
 
     room, _ = Room.get_or_create_direct(request.user, req.sender)
     req.status = "accepted"

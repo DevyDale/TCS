@@ -62,9 +62,21 @@ def role_group(user_or_role):
 
 
 def can_interact(a, b):
-    """Symmetric. False only for student x non-reception-staff."""
+    """
+    Symmetric. False for:
+      • student x non-reception-staff (cross-role separation), OR
+      • either user having blocked the other.
+    """
     if a is None or b is None:
         return False
+    # Blocking severs interaction both ways — a blocked person can never
+    # DM or send a chat request to the blocker again, and vice-versa.
+    try:
+        from apps.moderation.utils import is_blocked_between
+        if is_blocked_between(a, b):
+            return False
+    except Exception:
+        pass
     ga, gb = role_group(a), role_group(b)
     if {ga, gb} == {"student", "staff"}:
         staff_user = a if ga == "staff" else b

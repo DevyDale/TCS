@@ -40,6 +40,13 @@ class BlockListCreateView(generics.ListCreateAPIView):
             blocked=s.validated_data["blocked"],
             defaults={"reason": s.validated_data.get("reason", "")},
         )
+        # Tidy up any chat requests between the two so the blocker's incoming
+        # list is clean. Future requests are stopped at send-time by the block.
+        try:
+            from .utils import purge_chat_links
+            purge_chat_links(request.user, block.blocked)
+        except Exception:
+            pass
         return Response(BlockSerializer(block).data, status=status.HTTP_201_CREATED)
 
 
