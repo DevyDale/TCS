@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import ai_analyze as ai_analyze_mod
+from . import bubble_views
 
 urlpatterns = [
     # Rooms
@@ -43,4 +44,7 @@ urlpatterns = [
     path("saved/<uuid:material_id>/",             views.update_saved_material,         name="update-saved"),
     path("saved/<uuid:material_id>/delete/",      views.delete_saved_material,         name="delete-saved"),
     path("rooms/<uuid:room_id>/ai-analyze/", ai_analyze_mod.ai_analyze_room, name="chat-ai-analyze"),
+    path("rooms/<uuid:room_id>/ai/enable/",  bubble_views.enable_ai_in_room,  name="chat-ai-enable"),
+    path("rooms/<uuid:room_id>/ai/summon/",  bubble_views.summon_dale,        name="chat-ai-summon"),
+    path("rooms/<uuid:room_id>/ai/disable/", bubble_views.disable_ai_in_room, name="chat-ai-disable"),
 ]
