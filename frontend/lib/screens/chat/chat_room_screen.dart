@@ -772,9 +772,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       if (_peerRecording) return 'recording…';
       if (_peerOnline) return 'Active now';
       if (_peerLastSeen != null) return 'last seen ${_lastSeenFmt(_peerLastSeen!)}';
-      return _aiEnabled ? 'Dale ✨ is in this chat' : '';
+      return _aiEnabled ? 'Dale is in this chat' : '';
     }
-    if (_aiEnabled) return 'Dale ✨ is in this chat';
+    if (_aiEnabled) return 'Dale is in this chat';
     if (_isStudyBuddy) return 'Study Buddy Session';
     if (widget.roomType == 'group') return 'Chat Bubble';
     return '';

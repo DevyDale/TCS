@@ -12,11 +12,14 @@
 // regular media renderer.
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 
-const _kG1   = Color(0xFF6DD5FA);
-const _kG2   = Color(0xFF8E54E9);
-const _kInk  = Color(0xFF1A1A2E);
+// Sage palette — matches the chat room (chat_room_screen.dart) so Dale's
+// bubble blends with the conversation instead of using the AI-Hub purple.
+const _kG1   = Color(0xFFA9BC95); // sage
+const _kG2   = Color(0xFF6E8159); // sage dark
+const _kInk  = Color(0xFF2E3A24);
 
 class DaleMessageBubble extends StatelessWidget {
   final Map<String, dynamic> message;
@@ -72,8 +75,18 @@ class DaleMessageBubble extends StatelessWidget {
                 ],
                 border: Border.all(color: Colors.white, width: 2),
               ),
-              child: const Icon(Icons.smart_toy_rounded,
-                  color: Colors.white, size: 18),
+              child: ClipOval(
+                child: Lottie.asset(
+                  'assets/images/robot.json',
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => const Icon(
+                      Icons.smart_toy_rounded,
+                      color: Colors.white,
+                      size: 18),
+                ),
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -101,19 +114,6 @@ class DaleMessageBubble extends StatelessWidget {
                               fontSize: 13,
                               color: Colors.white,
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text('✨', style: TextStyle(fontSize: 11)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'AI',
-                          style: TextStyle(
-                            fontFamily: 'Momo',
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: _kG2.withOpacity(0.7),
-                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
