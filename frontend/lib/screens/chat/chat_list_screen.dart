@@ -670,7 +670,13 @@ Widget _buildSearchField() {
               roomId: roomId, roomName: name, userName: 'You',
               roomType: roomType),
         ));
-        _loadChats();
+        // Persist the read on the backend (advances last_read_message) BEFORE
+        // refreshing — otherwise _loadChats() refetches the stale unread count
+        // and the badge reappears.
+        if (roomId.isNotEmpty) {
+          try { await _api.markRoomRead(roomId); } catch (_) {/* non-fatal */}
+        }
+        if (mounted) _loadChats();
       },
       onLongPress: () => _showChatTileMenu(c),
       child: Container(
