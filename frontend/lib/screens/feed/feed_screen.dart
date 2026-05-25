@@ -1860,10 +1860,28 @@ class _ActionBtn extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// COMMENTS SHEET — now supports both posts and events.
-// When [isEvent] is true the sheet hits /events/<id>/comments/
-// instead of /posts/<id>/comments/, so the same UI works for both.
+// COMMENTS SHEET  —  modern, snap-point bottom sheet (posts + events)
+//
+//  • DraggableScrollableSheet with real snap stops (≈half / default /
+//    full) and a drag handle — locks into positions instead of floating.
+//  • Optional one-line preview of the post/event being commented on.
+//  • Sort chips (Newest · Top · Oldest), applied client-side.
+//  • Per-comment like ❤ and threaded replies. Likes + replies are POSTS
+//    only — the events comment API doesn't carry them, so those
+//    affordances are hidden when [isEvent] is true (the sheet still gets
+//    the full look, snap behaviour, emoji panel and keyboard handling).
+//  • Sticky input bar that floats above the keyboard, with an emoji
+//    panel that swaps in for the keyboard (only one input shows at a
+//    time, the way IG / TikTok do it).
 // ─────────────────────────────────────────────────────────────
+
+const List<String> _kEmojiQuick = [
+  '😂', '❤️', '🔥', '😍', '👏', '😮', '😢', '🙏',
+  '💯', '🎉', '😅', '😎', '🤔', '👍', '👀', '🥹',
+  '😭', '💀', '✨', '🙌', '😊', '😁', '🤣', '😘',
+  '🥰', '😏', '😤', '🤝', '💪', '🫶', '🤩', '😴',
+  '🤯', '🫠', '😇', '🤓', '🥳', '😬', '👌', '🚀',
+];
 
 class _CommentsSheet extends StatefulWidget {
   final ApiService api;
@@ -1874,29 +1892,55 @@ class _CommentsSheet extends StatefulWidget {
     required this.post,
     this.isEvent = false,
   });
-  @override State<_CommentsSheet> createState() => _CommentsSheetState();
+  @override
+  State<_CommentsSheet> createState() => _CommentsSheetState();
 }
 
 class _CommentsSheetState extends State<_CommentsSheet> {
-  final _ctrl = TextEditingController();
+  final _ctrl  = TextEditingController();
+  final _focus = FocusNode();
+
   List<Map<String, dynamic>> _comments = [];
   bool _loading = true, _posting = false;
 
-  String get _basePath {
-    final id = widget.post['id']?.toString() ?? '';
-    return widget.isEvent
-        ? '/events/$id/comments/'
-        : '/posts/$id/comments/';
+  // sort: 'new' | 'top' | 'old'
+  String _sort = 'new';
+
+  // reply state — the comment currently being replied to (null = top-level).
+  Map<String, dynamic>? _replyTo;
+
+  // replies cache + expansion, keyed by top-level comment id.
+  final Map<String, List<Map<String, dynamic>>> _replies = {};
+  final Set<String> _expanded = {};
+  final Set<String> _loadingReplies = {};
+
+  bool _emojiOpen = false;
+
+  bool   get _interactive => !widget.isEvent; // likes + replies = posts only
+  String get _postId      => widget.post['id']?.toString() ?? '';
+  String get _basePath =>
+      widget.isEvent ? '/events/$_postId/comments/' : '/posts/$_postId/comments/';
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (_focus.hasFocus && _emojiOpen) setState(() => _emojiOpen = false);
+    });
+    _load();
   }
 
-  @override void initState() { super.initState(); _load(); }
-  @override void dispose()   { _ctrl.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  // ── data ─────────────────────────────────────────────
 
   Future<void> _load() async {
     try {
-      // For events, hit the events endpoint directly. For posts, keep
-      // the long-standing getComments helper so existing behaviour is
-      // unchanged.
       if (widget.isEvent) {
         final d = await widget.api.get(_basePath);
         final results = d is Map
@@ -1908,178 +1952,669 @@ class _CommentsSheetState extends State<_CommentsSheet> {
           _loading  = false;
         });
       } else {
-        final d = await widget.api.getComments(
-            widget.post['id']?.toString() ?? '') as Map<String, dynamic>;
+        final d = await widget.api.getComments(_postId) as Map<String, dynamic>;
+        if (!mounted) return;
         setState(() {
-          _comments = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
-          _loading  = false;
+          _comments =
+              (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
+          _loading = false;
         });
       }
-    } catch (_) { setState(() => _loading = false); }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  Future<void> _post() async {
-  final t = _ctrl.text.trim();
-  if (t.isEmpty || _posting) return;
+  List<Map<String, dynamic>> get _sorted {
+    final list = [..._comments];
+    int t(Map<String, dynamic> c) =>
+        DateTime.tryParse(c['created_at']?.toString() ?? '')
+            ?.millisecondsSinceEpoch ??
+        0;
+    int likes(Map<String, dynamic> c) =>
+        (c['likes_count'] as int?) ?? (c['like_count'] as int?) ?? 0;
+    switch (_sort) {
+      case 'old':
+        list.sort((a, b) => t(a).compareTo(t(b)));
+        break;
+      case 'top':
+        list.sort((a, b) {
+          final d = likes(b).compareTo(likes(a));
+          return d != 0 ? d : t(b).compareTo(t(a));
+        });
+        break;
+      default:
+        list.sort((a, b) => t(b).compareTo(t(a)));
+    }
+    return list;
+  }
 
-  HapticFeedback.lightImpact();
-  setState(() => _posting = true);
+  Future<void> _send() async {
+    final txt = _ctrl.text.trim();
+    if (txt.isEmpty || _posting) return;
+    HapticFeedback.lightImpact();
+    setState(() => _posting = true);
 
-  try {
-    Map<String, dynamic> c;
+    final replyingTo = _replyTo;
+    try {
+      Map<String, dynamic> c;
+      if (widget.isEvent) {
+        final raw = await widget.api.post(_basePath, body: {'text': txt});
+        c = raw is Map<String, dynamic>
+            ? raw
+            : {
+                'text': txt,
+                'author_name': 'You',
+                'created_at': DateTime.now().toIso8601String(),
+              };
+      } else {
+        c = await widget.api.addComment(
+          _postId,
+          txt,
+          parentId: replyingTo?['id']?.toString(),
+        ) as Map<String, dynamic>;
+      }
 
-    if (widget.isEvent) {
-      final raw = await widget.api.post(
-        _basePath,
-        body: {'text': t},           // ← Fixed: use named parameter 'body:'
-      );
+      if (!mounted) return;
+      setState(() {
+        _ctrl.clear();
+        _posting   = false;
+        _emojiOpen = false;
+        if (replyingTo != null && _interactive) {
+          final pid = replyingTo['id']?.toString() ?? '';
+          final idx = _comments.indexWhere((e) => e['id']?.toString() == pid);
+          if (idx >= 0) {
+            final rc = (_comments[idx]['reply_count'] as int?) ?? 0;
+            _comments[idx] = {..._comments[idx], 'reply_count': rc + 1};
+          }
+          if (_expanded.contains(pid)) {
+            _replies.putIfAbsent(pid, () => []).add(c);
+          }
+          _replyTo = null;
+        } else {
+          _comments.insert(0, c);
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
 
-      c = raw is Map<String, dynamic>
-          ? raw
-          : {
-              'text': t,
-              'author_name': 'You',
-              'created_at': DateTime.now().toIso8601String(),
-            };
-    } else {
-      c = await widget.api.addComment(
-        widget.post['id']?.toString() ?? '',
-        t,
-      ) as Map<String, dynamic>;
+  Future<void> _toggleReplies(Map<String, dynamic> c) async {
+    final id = c['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    if (_expanded.contains(id)) {
+      setState(() => _expanded.remove(id));
+      return;
+    }
+    setState(() => _expanded.add(id));
+    if (_replies.containsKey(id)) return; // cached
+    setState(() => _loadingReplies.add(id));
+    try {
+      final d = await widget.api.getReplies(_postId, id);
+      final list = d is Map
+          ? ((d['results'] as List?) ?? const [])
+          : (d is List ? d : const []);
+      if (!mounted) return;
+      setState(() {
+        _replies[id] = list.cast<Map<String, dynamic>>();
+        _loadingReplies.remove(id);
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingReplies.remove(id));
+    }
+  }
+
+  Future<void> _toggleLike(Map<String, dynamic> c, {String? parentId}) async {
+    if (!_interactive) return;
+    final id = c['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    HapticFeedback.lightImpact();
+    final was = c['is_liked'] as bool? ?? false;
+    final cnt = (c['likes_count'] as int?) ?? 0;
+
+    void apply(bool liked, int n) {
+      if (!mounted) return;
+      setState(() {
+        if (parentId != null) {
+          final list = _replies[parentId];
+          if (list != null) {
+            final i = list.indexWhere((e) => e['id']?.toString() == id);
+            if (i >= 0) {
+              list[i] = {...list[i], 'is_liked': liked, 'likes_count': n};
+            }
+          }
+        } else {
+          final i = _comments.indexWhere((e) => e['id']?.toString() == id);
+          if (i >= 0) {
+            _comments[i] = {..._comments[i], 'is_liked': liked, 'likes_count': n};
+          }
+        }
+      });
     }
 
-    setState(() {
-      _comments.insert(0, c);
-      _ctrl.clear();
-      _posting = false;
-    });
-  } catch (_) {
-    if (mounted) setState(() => _posting = false);
+    apply(!was, was ? cnt - 1 : cnt + 1);
+    try {
+      final r = await widget.api.likeComment(id) as Map<String, dynamic>;
+      apply(r['liked'] as bool? ?? !was,
+          (r['like_count'] as int?) ?? (was ? cnt - 1 : cnt + 1));
+    } catch (_) {
+      apply(was, cnt);
+    }
   }
-}
+
+  void _startReply(Map<String, dynamic> c) {
+    if (!_interactive) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _replyTo   = c;
+      _emojiOpen = false;
+    });
+    _focus.requestFocus();
+  }
+
+  void _insertEmoji(String e) {
+    final sel  = _ctrl.selection;
+    final text = _ctrl.text;
+    final start = sel.start < 0 ? text.length : sel.start;
+    final end   = sel.end   < 0 ? text.length : sel.end;
+    _ctrl.text = text.replaceRange(start, end, e);
+    _ctrl.selection = TextSelection.collapsed(offset: start + e.length);
+    setState(() {});
+  }
+
+  void _toggleEmoji() {
+    setState(() => _emojiOpen = !_emojiOpen);
+    if (_emojiOpen) {
+      _focus.unfocus();
+    } else {
+      _focus.requestFocus();
+    }
+  }
+
+  // ── build ────────────────────────────────────────────
 
   @override
-  Widget build(BuildContext context) => DraggableScrollableSheet(
-    initialChildSize: 0.75, maxChildSize: 0.95, minChildSize: 0.4,
-    builder: (_, ctrl) => Container(
-      decoration: const BoxDecoration(color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      child: Column(children: [
-        const SizedBox(height: 12),
-        Container(width: 36, height: 4, decoration: BoxDecoration(
-            color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 16),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
-            Text(widget.isEvent ? 'Event Comments' : 'Comments',
-                style: const TextStyle(
-                    fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(color: _kViolet.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20)),
-              child: Text('${_comments.length}', style: const TextStyle(
-                  fontFamily: 'Arch', fontSize: 12,
-                  fontWeight: FontWeight.bold, color: _kViolet))),
-          ])),
-        const SizedBox(height: 12),
-        Divider(color: Colors.grey.shade100),
-        Expanded(child: _loading
-            ? const Center(child: CircularProgressIndicator(color: _kViolet))
-            : _comments.isEmpty
-                ? Center(child: Text('No comments yet', style: TextStyle(
-                    fontFamily: 'Momo', fontSize: 13, color: _kSlate)))
-                : ListView.separated(
-                    controller: ctrl,
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                    itemCount: _comments.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey.shade100),
-                    itemBuilder: (_, i) => _CommentTile(
-                        comment: _comments[i]))),
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      minChildSize: 0.45,
+      maxChildSize: 0.95,
+      snap: true,
+      snapSizes: const [0.7],
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(children: [
+          const SizedBox(height: 10),
+          Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 12),
+          _header(),
+          _preview(),
+          Divider(height: 1, color: Colors.grey.shade100),
+          Expanded(child: _list(scrollCtrl)),
+          if (_replyTo != null) _replyBanner(),
+          if (_emojiOpen) _emojiPanel(),
+          _inputBar(),
+        ]),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
+      child: Row(children: [
+        Text(widget.isEvent ? 'Event Comments' : 'Comments',
+            style: const TextStyle(
+                fontFamily: 'Alfa', fontSize: 19, color: _kInk)),
+        const SizedBox(width: 9),
         Container(
-          padding: EdgeInsets.fromLTRB(16, 10, 16,
-              MediaQuery.of(context).viewInsets.bottom + 16),
-          decoration: BoxDecoration(color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade100))),
-          child: Row(children: [
-            Expanded(child: Container(
-              decoration: BoxDecoration(color: _kBg,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.grey.shade200)),
-              child: TextField(
-                controller: _ctrl,
-                enableSuggestions: false, autocorrect: false,
-                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Add a comment...',
-                  hintStyle: TextStyle(fontFamily: 'Momo',
-                      color: _kSlate.withOpacity(0.4), fontSize: 13),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 12)),
-                onChanged: (_) => setState(() {})))),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: _post,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 44, height: 44,
-                decoration: BoxDecoration(shape: BoxShape.circle,
-                  gradient: _ctrl.text.trim().isNotEmpty
-                      ? const LinearGradient(colors: [_kViolet, _kBlue])
-                      : const LinearGradient(
-                          colors: [Color(0xFFDDDDDD), Color(0xFFCCCCCC)])),
-                child: _posting
-                    ? const Padding(padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.send_rounded,
-                        color: Colors.white, size: 19))),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+                color: _kViolet.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20)),
+            child: Text('${_comments.length}',
+                style: const TextStyle(
+                    fontFamily: 'Arch',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _kViolet))),
+        const Spacer(),
+        _sortChip('new', 'Newest'),
+        if (_interactive) _sortChip('top', 'Top'),
+        _sortChip('old', 'Oldest'),
+      ]),
+    );
+  }
+
+  Widget _sortChip(String key, String label) {
+    final active = _sort == key;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _sort = key);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(left: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? _kViolet : _kBg,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontFamily: 'Arch',
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: active ? Colors.white : _kSlate)),
+      ),
+    );
+  }
+
+  Widget _preview() {
+    final name = (widget.post['author_name'] ??
+            widget.post['club_name'] ??
+            '')
+        .toString()
+        .trim();
+    final text = (widget.isEvent
+                ? (widget.post['title'] ?? widget.post['description'])
+                : widget.post['content'])
+            ?.toString()
+            .trim() ??
+        '';
+    if (name.isEmpty && text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(widget.isEvent ? Icons.event_rounded : Icons.chat_bubble_rounded,
+            size: 14, color: _kSlate.withOpacity(0.6)),
+        const SizedBox(width: 8),
+        Expanded(
+            child: RichText(
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          text: TextSpan(children: [
+            if (name.isNotEmpty)
+              TextSpan(
+                  text: '$name  ',
+                  style: const TextStyle(
+                      fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: _kInk)),
+            TextSpan(
+                text: text,
+                style: TextStyle(
+                    fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
           ]),
+        )),
+      ]),
+    );
+  }
+
+  Widget _list(ScrollController scrollCtrl) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: _kViolet));
+    }
+    final items = _sorted;
+    if (items.isEmpty) {
+      return ListView(controller: scrollCtrl, children: [
+        const SizedBox(height: 60),
+        Center(
+            child: Column(children: [
+          Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                  color: _kViolet.withOpacity(0.06), shape: BoxShape.circle),
+              child:
+                  const Center(child: Text('💬', style: TextStyle(fontSize: 28)))),
+          const SizedBox(height: 14),
+          const Text('No comments yet',
+              style: TextStyle(
+                  fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: _kInk)),
+          const SizedBox(height: 6),
+          Text('Be the first to say something',
+              style: TextStyle(
+                  fontFamily: 'Momo', fontSize: 12.5, color: _kSlate)),
+        ])),
+      ]);
+    }
+    return ListView.builder(
+      controller: scrollCtrl,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _commentBlock(items[i]),
+    );
+  }
+
+  Widget _commentBlock(Map<String, dynamic> c) {
+    final id  = c['id']?.toString() ?? '';
+    final rc  = (c['reply_count'] as int?) ?? 0;
+    final exp = _expanded.contains(id);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _CommentTile(
+        comment: c,
+        interactive: _interactive,
+        onLike: () => _toggleLike(c),
+        onReply: () => _startReply(c),
+      ),
+      if (_interactive && rc > 0)
+        Padding(
+          padding: const EdgeInsets.only(left: 46, bottom: 2),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _toggleReplies(c),
+            child: Row(children: [
+              Container(width: 22, height: 1, color: Colors.grey.shade300),
+              const SizedBox(width: 8),
+              Text(
+                  exp
+                      ? 'Hide replies'
+                      : 'View $rc ${rc == 1 ? "reply" : "replies"}',
+                  style: const TextStyle(
+                      fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11.5,
+                      color: _kViolet)),
+              if (_loadingReplies.contains(id)) ...[
+                const SizedBox(width: 8),
+                const SizedBox(
+                    width: 11,
+                    height: 11,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 1.6, color: _kViolet)),
+              ],
+            ]),
+          ),
+        ),
+      if (exp)
+        ...(_replies[id] ?? const []).map((r) => Padding(
+              padding: const EdgeInsets.only(left: 34),
+              child: _CommentTile(
+                comment: r,
+                interactive: _interactive,
+                dense: true,
+                onLike: () => _toggleLike(r, parentId: id),
+                onReply: () => _startReply(c), // reply attaches to thread root
+              ),
+            )),
+    ]);
+  }
+
+  Widget _replyBanner() {
+    final name = (_replyTo?['author_name'] ?? 'comment').toString();
+    return Container(
+      color: _kViolet.withOpacity(0.06),
+      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+      child: Row(children: [
+        const Icon(Icons.reply_rounded, size: 15, color: _kViolet),
+        const SizedBox(width: 8),
+        Expanded(
+            child: Text('Replying to $name',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: 'Momo',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: _kViolet))),
+        GestureDetector(
+          onTap: () => setState(() => _replyTo = null),
+          child: const Icon(Icons.close_rounded, size: 18, color: _kSlate),
         ),
       ]),
-    ),
-  );
+    );
+  }
+
+  Widget _emojiPanel() {
+    return Container(
+      height: 220,
+      color: _kBg,
+      child: GridView.count(
+        crossAxisCount: 8,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        children: _kEmojiQuick
+            .map((e) => GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _insertEmoji(e);
+                  },
+                  child:
+                      Center(child: Text(e, style: const TextStyle(fontSize: 24))),
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _inputBar() {
+    final canSend = _ctrl.text.trim().isNotEmpty && !_posting;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          12,
+          8,
+          12,
+          (_emojiOpen ? 12 : MediaQuery.of(context).viewInsets.bottom + 12)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade100))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        GestureDetector(
+          onTap: _toggleEmoji,
+          behavior: HitTestBehavior.opaque,
+          child: SizedBox(
+            width: 40,
+            height: 44,
+            child: Icon(
+                _emojiOpen
+                    ? Icons.keyboard_rounded
+                    : Icons.emoji_emotions_outlined,
+                color: _kViolet,
+                size: 24),
+          ),
+        ),
+        Expanded(
+            child: Container(
+          decoration: BoxDecoration(
+              color: _kBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.shade200)),
+          child: TextField(
+            controller: _ctrl,
+            focusNode: _focus,
+            minLines: 1,
+            maxLines: 4,
+            enableSuggestions: false,
+            autocorrect: false,
+            style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+            decoration: InputDecoration(
+                hintText: _replyTo != null ? 'Add a reply…' : 'Add a comment…',
+                hintStyle: TextStyle(
+                    fontFamily: 'Momo',
+                    color: _kSlate.withOpacity(0.45),
+                    fontSize: 13),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 11)),
+            onChanged: (_) => setState(() {}),
+          ),
+        )),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: canSend ? _send : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: canSend
+                    ? const LinearGradient(colors: [_kViolet, _kBlue])
+                    : const LinearGradient(
+                        colors: [Color(0xFFDDDDDD), Color(0xFFCCCCCC)])),
+            child: _posting
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.send_rounded, color: Colors.white, size: 19),
+          ),
+        ),
+      ]),
+    );
+  }
 }
 
 class _CommentTile extends StatelessWidget {
   final Map<String, dynamic> comment;
-  const _CommentTile({required this.comment});
+  final bool interactive;
+  final bool dense;
+  final VoidCallback? onLike;
+  final VoidCallback? onReply;
+  const _CommentTile({
+    required this.comment,
+    this.interactive = true,
+    this.dense = false,
+    this.onLike,
+    this.onReply,
+  });
+
+  static String _ago(String iso) {
+    if (iso.isEmpty) return '';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final d = DateTime.now().difference(dt.toLocal());
+    if (d.inMinutes < 1)  return 'now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m';
+    if (d.inHours   < 24) return '${d.inHours}h';
+    if (d.inDays    < 7)  return '${d.inDays}d';
+    return '${d.inDays ~/ 7}w';
+  }
+
   @override
   Widget build(BuildContext context) {
     final name    = comment['author_name']   as String? ?? '';
     final text    = comment['text']          as String? ?? '';
     final avatar  = comment['author_avatar'] as String? ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final when    = _ago((comment['created_at'] ?? '').toString());
+    final liked   = comment['is_liked'] as bool? ?? false;
+    final likes   = (comment['likes_count'] as int?) ?? 0;
+    final av      = dense ? 28.0 : 34.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.symmetric(vertical: dense ? 7 : 10),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 34, height: 34,
-          decoration: const BoxDecoration(shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [_kViolet, _kBlue])),
-          child: ClipOval(child: avatar.isNotEmpty
-              ? CachedNetworkImage(imageUrl: avatar, fit: BoxFit.cover,
-                  width: 34, height: 34,
-                  errorWidget: (_, __, ___) => Center(child: Text(initial,
-                      style: const TextStyle(color: Colors.white,
-                          fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                          fontSize: 13))))
-              : Center(child: Text(initial, style: const TextStyle(
-                  color: Colors.white, fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13))))),
+        Container(
+            width: av, height: av,
+            decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [_kViolet, _kBlue])),
+            child: ClipOval(
+                child: avatar.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatar,
+                        fit: BoxFit.cover,
+                        width: av,
+                        height: av,
+                        errorWidget: (_, __, ___) => Center(
+                            child: Text(initial,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Arch',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: dense ? 11 : 13))))
+                    : Center(
+                        child: Text(initial,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Arch',
+                                fontWeight: FontWeight.bold,
+                                fontSize: dense ? 11 : 13))))),
         const SizedBox(width: 10),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Text(name, style: const TextStyle(fontFamily: 'Arch',
-              fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
-          const SizedBox(height: 3),
-          Text(text, style: TextStyle(fontFamily: 'Momo',
-              fontSize: 13, color: _kSlate, height: 1.45)),
-        ])),
-      ]));
+        Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              Row(children: [
+                Flexible(
+                    child: Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold,
+                            fontSize: dense ? 12 : 13,
+                            color: _kInk))),
+                if (when.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text(when,
+                      style: TextStyle(
+                          fontFamily: 'Momo',
+                          fontSize: 10.5,
+                          color: Colors.grey.shade400)),
+                ],
+              ]),
+              const SizedBox(height: 3),
+              Text(text,
+                  style: TextStyle(
+                      fontFamily: 'Momo',
+                      fontSize: dense ? 12.5 : 13,
+                      color: _kSlate,
+                      height: 1.45)),
+              if (interactive && onReply != null) ...[
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: onReply,
+                  behavior: HitTestBehavior.opaque,
+                  child: const Text('Reply',
+                      style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11.5,
+                          color: _kSlate)),
+                ),
+              ],
+            ])),
+        if (interactive && onLike != null)
+          GestureDetector(
+            onTap: onLike,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, top: 2),
+              child: Column(children: [
+                Icon(
+                    liked
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_outline_rounded,
+                    size: 17,
+                    color: liked ? _kCoral : _kSlate),
+                if (likes > 0) ...[
+                  const SizedBox(height: 2),
+                  Text('$likes',
+                      style: TextStyle(
+                          fontFamily: 'Arch',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: liked ? _kCoral : _kSlate)),
+                ],
+              ]),
+            ),
+          ),
+      ]),
+    );
   }
 }
 

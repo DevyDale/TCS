@@ -570,6 +570,11 @@ Future<dynamic> delete(String path,
         'text': text,
         if (parentId != null) 'parent_id': parentId,
       });
+  Future<dynamic> getReplies(String postId, String commentId, {int page = 1}) =>
+      get('/posts/$postId/comments/',
+          query: {'parent': commentId, 'page': '$page'});
+  Future<dynamic> likeComment(String commentId) =>
+      post('/posts/comments/$commentId/like/');
 
   Future<dynamic> uploadPostMedia(
     String postId,
