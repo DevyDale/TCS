@@ -131,6 +131,30 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
+    # ── Abuse / brute-force protection ───────────────────────────
+    # We sit behind exactly one proxy (nginx), which appends the real client
+    # IP as the LAST hop of X-Forwarded-For. NUM_PROXIES=1 makes DRF read that
+    # last hop, so throttles key on the actual user — not nginx, and not a
+    # client-spoofed XFF prefix.
+    "NUM_PROXIES": 1,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        # Authenticated traffic is keyed per-user (NAT-safe) — kept generous
+        # so active students never hit it during normal use.
+        "user":     "300/min",
+        # Unauthenticated traffic is keyed per-IP. Tuned to tolerate campus
+        # NAT (many students behind one public IP) while still capping a
+        # single abusive script.
+        "anon":     "240/min",
+        # Scoped rates applied explicitly to the auth endpoints (per-IP).
+        # The real brute-force defense is the per-account lockout in
+        # PasswordLoginView, which is NAT-safe; these are a backstop.
+        "login":    "120/min",
+        "register": "30/min",
+    },
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",

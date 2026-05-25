@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.throttling import ScopedRateThrottle
+from django.core.cache import cache
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .role_perms import is_cross_role, visible_user_qs, STUDENT_ROLES, STAFF_ROLES
@@ -33,6 +35,8 @@ class IDLoginView(generics.GenericAPIView):
     serializer_class       = IDLoginSerializer
     permission_classes     = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes       = [ScopedRateThrottle]
+    throttle_scope         = "login"
 
     def post(self, request):
         ser = self.get_serializer(data=request.data)
@@ -61,6 +65,21 @@ class PasswordLoginView(generics.GenericAPIView):
     serializer_class       = PasswordLoginSerializer
     permission_classes     = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes       = [ScopedRateThrottle]
+    throttle_scope         = "login"
+
+    # Native per-account lockout. This fits our manual check_password flow
+    # (django-axes hooks into authenticate(), which we don't call) and is
+    # NAT-safe — it keys on the account, so one attacker can't lock out a
+    # whole campus sharing a public IP, and locking one account doesn't
+    # affect anyone else. All cache calls fail OPEN: a cache hiccup must
+    # never block a legitimate login.
+    LOCKOUT_THRESHOLD = 8          # failed attempts before lock
+    LOCKOUT_SECONDS   = 15 * 60    # lock window
+
+    @staticmethod
+    def _fail_key(identifier):
+        return f"login_fail:{(identifier or '').strip().lower()}"
 
     def post(self, request):
         ser = self.get_serializer(data=request.data)
@@ -68,16 +87,39 @@ class PasswordLoginView(generics.GenericAPIView):
         identifier = ser.validated_data["identifier"]
         password   = ser.validated_data["password"]
 
+        key = self._fail_key(identifier)
+
+        # Locked out? (fail open if cache is unavailable)
+        try:
+            if (cache.get(key) or 0) >= self.LOCKOUT_THRESHOLD:
+                return Response(
+                    {"success": False,
+                     "error": "Too many failed attempts. Try again in about 15 minutes."},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except Exception:
+            pass
+
         user = User.objects.filter(
             Q(email=identifier) | Q(username=identifier)
         ).first()
 
         if not user or not user.check_password(password):
+            # Count this failure (fail open)
+            try:
+                cache.set(key, (cache.get(key) or 0) + 1, self.LOCKOUT_SECONDS)
+            except Exception:
+                pass
             return Response({"success": False, "error": "Invalid credentials."},
                             status=status.HTTP_401_UNAUTHORIZED)
         if not user.is_active:
             return Response({"success": False, "error": "Account suspended."},
                             status=status.HTTP_403_FORBIDDEN)
+
+        # Successful login clears the failure counter (fail open)
+        try:
+            cache.delete(key)
+        except Exception:
+            pass
 
         user.mark_online()
         return Response(_tokens(user))
@@ -87,6 +129,8 @@ class RegisterView(generics.CreateAPIView):
     serializer_class       = RegisterSerializer
     permission_classes     = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes       = [ScopedRateThrottle]
+    throttle_scope         = "register"
 
     def create(self, request, *args, **kwargs):
         ser = self.get_serializer(data=request.data)
