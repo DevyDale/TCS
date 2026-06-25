@@ -111,6 +111,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    # Moderation suspension — kept separate from is_active so account
+    # disabling for other reasons stays orthogonal. Enforced at login.
+    is_suspended     = models.BooleanField(default=False)
+    suspended_reason = models.CharField(max_length=255, blank=True, default="")
+    suspended_at     = models.DateTimeField(null=True, blank=True)
     is_available_study  = models.BooleanField(default=False)
     study_subjects      = models.CharField(max_length=200, blank=True, default="")
     is_online   = models.BooleanField(default=False)

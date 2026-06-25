@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
+import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -38,6 +39,9 @@ class StaffConsoleScreen extends StatelessWidget {
     switch (p.title) {
       case 'Announcements':
         destination = const StaffAnnouncementsScreen();
+        break;
+      case 'Moderation':
+        destination = const StaffModerationScreen();
         break;
       default:
         destination = _StaffSection(pillar: p);

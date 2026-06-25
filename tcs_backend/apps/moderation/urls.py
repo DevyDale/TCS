@@ -1,8 +1,13 @@
 from django.urls import path
 from .views import ReportCreateView, BlockListCreateView, BlockDestroyView
+from .staff_views import report_queue, report_action
 
 urlpatterns = [
     path("reports/",              ReportCreateView.as_view(),    name="moderation-report"),
     path("blocks/",               BlockListCreateView.as_view(), name="moderation-blocks"),
     path("blocks/<str:user_id>/", BlockDestroyView.as_view(),    name="moderation-unblock"),
+
+    # Staff moderation (reports queue + triage actions)
+    path("staff/reports/",                  report_queue,  name="moderation-staff-queue"),
+    path("staff/reports/<uuid:pk>/action/", report_action, name="moderation-staff-action"),
 ]

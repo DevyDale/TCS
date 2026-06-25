@@ -57,6 +57,14 @@ class IDLoginView(generics.GenericAPIView):
             user.is_verified = True
             user.save(update_fields=["is_verified"])
 
+        # Moderation: suspended accounts cannot obtain new tokens.
+        if user.is_suspended:
+            return Response(
+                {"detail": "Your account has been suspended.",
+                 "reason": user.suspended_reason or ""},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         user.mark_online()
         return Response(_tokens(user))
 
