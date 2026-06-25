@@ -24,6 +24,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
+import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import '../../../../services/api_service.dart';
 import 'code_assistant_screen.dart';
 import 'companion_list_Screen.dart';
@@ -120,6 +121,7 @@ class _AiHubScreenState extends State<AiHubScreen>
   late final List<Animation<double>> _tileAnims;
 
   String? _userName;
+  bool _isStaff = false;
   int _used  = 0;
   int _limit = 60;
 
@@ -164,8 +166,13 @@ class _AiHubScreenState extends State<AiHubScreen>
       });
       try {
         final me = await _api.get('/auth/me/');
-        if (mounted && me is Map && me['name'] != null) {
-          setState(() => _userName = me['name'] as String);
+        if (mounted && me is Map) {
+          final role = (me['role'] as String? ?? '').toLowerCase().trim();
+          setState(() {
+            if (me['name'] != null) _userName = me['name'] as String;
+            _isStaff = const {'teaching_staff', 'non_teaching_staff', 'admin'}
+                .contains(role);
+          });
         }
       } catch (_) {}
     } catch (_) {}
@@ -207,6 +214,7 @@ class _AiHubScreenState extends State<AiHubScreen>
             children: [
               _buildHeader(),
               Expanded(child: _buildToolsArea()),
+              if (_isStaff) _buildTrainDaleButton(),
               _buildFooter(),
             ],
           ),
@@ -412,6 +420,51 @@ class _AiHubScreenState extends State<AiHubScreen>
         );
       },
       child: child,
+    );
+  }
+
+  // Staff only: train Dale on real course material (RAG knowledge base).
+  Widget _buildTrainDaleButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const StaffKnowledgeScreen()));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
+                begin: Alignment.centerLeft, end: Alignment.centerRight),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(
+                color: const Color(0xFF8E54E9).withOpacity(0.30),
+                blurRadius: 12, offset: const Offset(0, 5))]),
+          child: Row(children: [
+            const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                T('Train Dale',
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold, fontSize: 14,
+                        color: Colors.white)),
+                Text('Feed Dale your course material so it tutors students from it',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
+                        color: Colors.white70)),
+              ],
+            )),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 18),
+          ]),
+        ),
+      ),
     );
   }
 

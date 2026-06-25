@@ -1,9 +1,45 @@
 # apps/feedback/views.py
+import logging
+
+from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Suggestion, Category
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
+
+_STAFF_ROLES = ("teaching_staff", "non_teaching_staff", "admin")
+
+
+def _notify_staff_of_school_suggestion(student, suggestion):
+    """In-app + push notify every staff member about a new school suggestion.
+
+    Non-anonymous by design: the student's name is in the body and the staff
+    reading page shows who sent it.
+    """
+    student_name = getattr(student, "display_name", "") or getattr(
+        student, "name", "") or "A student"
+    title = "New suggestion to the school \U0001F4DD"
+    body  = f"{student_name}: {suggestion.title}"
+    try:
+        from apps.notifications.tasks import _create, _fcm_send
+    except Exception:
+        logger.exception("could not import notification helpers")
+        return
+
+    staff = User.objects.filter(role__in=_STAFF_ROLES, is_active=True)
+    for s in staff:
+        try:
+            _create(str(s.id), str(student.id), "suggestion", title, body,
+                    "suggestion", str(suggestion.id))
+            _fcm_send(getattr(s, "fcm_token", "") or "", title, body,
+                      {"type": "suggestion",
+                       "suggestion_id": str(suggestion.id)})
+        except Exception:
+            logger.exception("failed to notify staff %s", getattr(s, "id", "?"))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -85,6 +121,10 @@ def submit_suggestion(request):
         category=cat,
     )
 
+    # "To the School" suggestions are never anonymous and ping every staffer.
+    if cat.key == "school":
+        _notify_staff_of_school_suggestion(request.user, suggestion)
+
     return Response({
         'success':    True,
         'id':         str(suggestion.id),
@@ -118,6 +158,39 @@ def my_suggestions(request):
             'status':     s.status,
             'admin_note': s.admin_note,
             'created_at': s.created_at.isoformat(),
+        }
+        for s in qs
+    ])
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def school_suggestions(request):
+    """
+    GET /api/feedback/school/  (staff only)
+
+    All "To the School" suggestions from students, newest first, with the
+    sender's name (these are never anonymous) so staff can read and act on them.
+    """
+    if (getattr(request.user, "role", "") or "") not in _STAFF_ROLES:
+        return Response({'error': 'Staff only.'}, status=403)
+
+    qs = (Suggestion.objects
+                    .select_related('category', 'user')
+                    .filter(category__key='school')
+                    .order_by('-created_at'))
+    return Response([
+        {
+            'id':            str(s.id),
+            'title':         s.title,
+            'message':       s.message,
+            'status':        s.status,
+            'student_name':  getattr(s.user, 'display_name', '') or
+                             getattr(s.user, 'name', '') or 'Student',
+            'student_id':    getattr(s.user, 'user_id', ''),
+            'avatar_url':    request.build_absolute_uri(s.user.avatar.url)
+                             if getattr(s.user, 'avatar', None) else None,
+            'created_at':    s.created_at.isoformat(),
         }
         for s in qs
     ])

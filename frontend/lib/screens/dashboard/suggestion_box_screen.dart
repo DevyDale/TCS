@@ -457,6 +457,29 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
             // the form is locked.
             if (!_formEnabled) _buildLockedHint(card, sub),
 
+            // School suggestions go to every staff member and are NOT
+            // anonymous — make that crystal clear before they send.
+            if (_selectedCatKey == 'school') ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: const Color(0xFF4F46E5).withOpacity(0.25))),
+                child: Row(children: [
+                  const Text('🏫', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(
+                    'This goes to every staff member and is NOT anonymous — '
+                    'your name will be shown with it.',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                        height: 1.4, color: AppC.text))),
+                ]),
+              ),
+            ],
+
             // Title
             _label('Title', sub),
             const SizedBox(height: 8),

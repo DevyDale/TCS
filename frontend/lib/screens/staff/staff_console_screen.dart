@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
+import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -48,6 +49,9 @@ class StaffConsoleScreen extends StatelessWidget {
         break;
       case 'Dale AI':
         destination = const StaffKnowledgeScreen();
+        break;
+      case 'Suggestions':
+        destination = const StaffSuggestionsScreen();
         break;
       default:
         destination = _StaffSection(pillar: p);
@@ -181,6 +185,8 @@ const _pillars = [
       Icons.insights_rounded, [_kG1, Color(0xFF2575FC)]),
   _Pillar('Dale AI', 'Train the tutor on your notes',
       Icons.psychology_rounded, [Color(0xFF43E97B), Color(0xFF38B2AC)]),
+  _Pillar('Suggestions', 'Student ideas to the school',
+      Icons.lightbulb_rounded, [Color(0xFF4F46E5), Color(0xFF8E54E9)]),
 ];
 
 class _PillarCard extends StatelessWidget {
