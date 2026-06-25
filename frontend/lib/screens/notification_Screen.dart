@@ -41,6 +41,7 @@ import 'groups/groups_study_hub_screen.dart';
 import 'feed/post_open_screen.dart';
 import 'birthday_note_screen.dart';
 import 'staff/staff_suggestions_screen.dart';
+import 'staff/staff_wellbeing_screen.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
@@ -172,6 +173,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       // Staff: a student sent a suggestion to the school → reading page.
       case 'suggestion':
         _push(const StaffSuggestionsScreen());
+        break;
+
+      // Staff: a wellbeing concern was escalated → the wellbeing desk.
+      case 'wellbeing':
+        _push(const StaffWellbeingScreen());
         break;
 
       // ── Post engagement → open that post ───────────────────
@@ -501,6 +507,8 @@ class _NotifTile extends StatelessWidget {
         return (icon: Icons.campaign_rounded, color: _kViolet);
       case 'suggestion':
         return (icon: Icons.lightbulb_rounded, color: const Color(0xFF4F46E5));
+      case 'wellbeing':
+        return (icon: Icons.favorite_rounded, color: const Color(0xFF0EA5A4));
       case 'event_reminder':
         return (icon: Icons.event_rounded, color: const Color(0xFFF59E0B));
       case 'achievement':

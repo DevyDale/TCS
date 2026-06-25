@@ -9,10 +9,13 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+import logging
+
 from apps.accounts.permissions import IsStaff
 from .models import Report
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 _ELEVATED_ROLES = ("teaching_staff", "admin")
 
@@ -278,3 +281,92 @@ def staff_roster(request):
                           if getattr(u, "avatar", None) else None,
         } for u in users],
     })
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def wellbeing_queue(request):
+    """GET /api/moderation/staff/wellbeing/
+
+    Quiet-student signal: students who were normally active but have gone
+    silent (last seen 7–45 days ago), excluding anyone a staffer has already
+    attended to in the last 14 days. This is an early-support signal — NOT a
+    clinical assessment.
+    """
+    from datetime import timedelta
+    from .models import WellbeingAction
+
+    now = timezone.now()
+    quiet_lo = now - timedelta(days=45)   # not long-gone / graduated
+    quiet_hi = now - timedelta(days=7)    # silent at least a week
+    recent_action = now - timedelta(days=14)
+
+    handled_ids = set(WellbeingAction.objects
+        .filter(created_at__gte=recent_action)
+        .values_list("student_id", flat=True))
+
+    qs = (User.objects
+        .filter(role="student", is_active=True,
+                last_seen__gte=quiet_lo, last_seen__lt=quiet_hi)
+        .exclude(id__in=handled_ids)
+        .order_by("last_seen")[:100])
+
+    out = []
+    for u in qs:
+        days = (now - u.last_seen).days if u.last_seen else None
+        out.append({
+            "id":         str(u.id),
+            "user_id":    getattr(u, "user_id", ""),
+            "name":       getattr(u, "display_name", "") or getattr(u, "name", "")
+                          or "Student",
+            "days_quiet": days,
+            "signal":     f"Quiet for {days} days (normally active)",
+            "last_seen":  u.last_seen.isoformat() if u.last_seen else None,
+            "avatar_url": request.build_absolute_uri(u.avatar.url)
+                          if getattr(u, "avatar", None) else None,
+        })
+    return Response({"results": out})
+
+
+@api_view(["POST"])
+@permission_classes([IsStaff])
+def wellbeing_action(request, pk):
+    """POST /api/moderation/staff/wellbeing/<student_id>/action/
+       body: {action: reach_out|escalate|handled, note?}
+
+    Logs the action (so the student drops off the queue) and, for 'escalate',
+    notifies senior staff in-app. This is in-app routing, not a substitute for
+    the college's formal welfare process.
+    """
+    from .models import WellbeingAction
+
+    action = (request.data.get("action") or "").strip()
+    note   = (request.data.get("note") or "").strip()
+    if action not in ("reach_out", "escalate", "handled"):
+        return Response({"error": "Unknown action."}, status=400)
+    try:
+        student = User.objects.get(id=pk)
+    except User.DoesNotExist:
+        return Response({"error": "Student not found."}, status=404)
+
+    WellbeingAction.objects.create(
+        student=student, staff=request.user, kind=action, note=note)
+
+    if action == "escalate":
+        try:
+            from apps.notifications.tasks import _create
+            name = (getattr(student, "display_name", "") or
+                    getattr(student, "name", "") or "a student")
+            actor = (getattr(request.user, "display_name", "") or "A staff member")
+            seniors = User.objects.filter(
+                role__in=("teaching_staff", "admin"), is_active=True
+            ).exclude(id=request.user.id)
+            for s in seniors:
+                _create(str(s.id), str(request.user.id), "wellbeing",
+                        "Wellbeing escalation",
+                        f"{actor} escalated a wellbeing concern about {name}.",
+                        "user", str(student.id))
+        except Exception:
+            logger.exception("wellbeing escalate notify failed")
+
+    return Response({"ok": True, "action": action})

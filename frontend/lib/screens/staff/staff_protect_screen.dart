@@ -9,6 +9,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_tab_host.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
+import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 
 class StaffProtectScreen extends StatelessWidget {
   const StaffProtectScreen({super.key});
@@ -20,6 +21,7 @@ class StaffProtectScreen extends StatelessWidget {
       emoji: '🛡️',
       segments: [
         StaffSeg('Moderation', Icons.shield_rounded, StaffModerationScreen()),
+        StaffSeg('Wellbeing', Icons.favorite_rounded, StaffWellbeingScreen()),
         StaffSeg('Suggestions', Icons.lightbulb_rounded, StaffSuggestionsScreen()),
         StaffSeg('Scam watch', Icons.warning_rounded, _ScamOversightPanel()),
       ],

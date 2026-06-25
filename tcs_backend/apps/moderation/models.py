@@ -107,3 +107,29 @@ class BlockedKeyword(models.Model):
 
     def __str__(self):
         return self.keyword
+
+
+class WellbeingAction(models.Model):
+    """A staff action on a wellbeing signal (a quiet student). Logging these
+    lets the queue drop students who've been attended to, and gives an audit
+    trail for the duty-of-care story."""
+
+    class Kind(models.TextChoices):
+        REACH_OUT = "reach_out", "Reached out"
+        ESCALATE  = "escalate",  "Escalated to staff"
+        HANDLED   = "handled",   "Marked handled"
+
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                on_delete=models.CASCADE,
+                                related_name="wellbeing_actions")
+    staff   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="+")
+    kind    = models.CharField(max_length=16, choices=Kind.choices)
+    note    = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "moderation_wellbeing_action"
+        ordering = ["-created_at"]
+        indexes  = [models.Index(fields=["student", "-created_at"])]
