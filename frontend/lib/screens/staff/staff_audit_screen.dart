@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/csv_export.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -57,6 +58,23 @@ class _StaffAuditScreenState extends State<StaffAuditScreen> {
   void _onSearch(String _) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), _load);
+  }
+
+  Future<void> _export() async {
+    final rows = <List<String>>[
+      ['Time', 'Staff', 'Action', 'Detail', 'Target type', 'Target id'],
+      ..._events.map((e) => [
+            (e['created_at'] ?? '').toString(),
+            (e['actor_name'] ?? '').toString(),
+            (e['action'] ?? '').toString(),
+            (e['summary'] ?? '').toString(),
+            (e['target_type'] ?? '').toString(),
+            (e['target_id'] ?? '').toString(),
+          ]),
+    ];
+    try {
+      await exportCsv(filename: 'tcs_audit_log.csv', rows: rows);
+    } catch (_) {}
   }
 
   // Group actions for a friendly icon + colour.
@@ -121,6 +139,12 @@ class _StaffAuditScreenState extends State<StaffAuditScreen> {
           const Expanded(child: T('Audit Log',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 19,
                   color: Colors.white))),
+          if (_events.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.ios_share_rounded, color: Colors.white,
+                  size: 20),
+              tooltip: 'Export CSV',
+              onPressed: _export),
         ]),
         const SizedBox(height: 8),
         Container(

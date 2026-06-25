@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/csv_export.dart';
 import 'package:tcs_app/screens/dashboard/other_user_profile_Screen.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
@@ -71,6 +72,22 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
     _debounce = Timer(const Duration(milliseconds: 350), _load);
   }
 
+  Future<void> _export() async {
+    final rows = <List<String>>[
+      ['Name', 'Student ID', 'Online', 'Last seen', 'Suspended'],
+      ..._students.map((s) => [
+            (s['name'] ?? '').toString(),
+            (s['user_id'] ?? '').toString(),
+            s['is_online'] == true ? 'yes' : 'no',
+            (s['last_seen'] ?? '').toString(),
+            s['suspended'] == true ? 'yes' : 'no',
+          ]),
+    ];
+    try {
+      await exportCsv(filename: 'tcs_roster_$_filter.csv', rows: rows);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +137,12 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
           Text('$_count',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 20,
                   color: Colors.white.withOpacity(0.9))),
-          const SizedBox(width: 4),
+          if (_students.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.ios_share_rounded, color: Colors.white,
+                  size: 20),
+              tooltip: 'Export CSV',
+              onPressed: _export),
         ]),
         const SizedBox(height: 10),
         Container(
