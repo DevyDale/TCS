@@ -530,8 +530,7 @@ def companion_chat(request, companion_id):
     Body: { "message": "...", "conversation_id": "<uuid>" | null, "stream": true }
     Persists every message; rebuilds context from last 20 messages.
     """
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
+    if not ai_router.available("chat"):
         return JsonResponse({"error": "AI service not configured."}, status=503)
 
     companion = get_object_or_404(AiCompanion, id=companion_id, is_public=True)
@@ -572,14 +571,16 @@ def companion_chat(request, companion_id):
     ChatMessage.objects.create(conversation=conv,
                                role=ChatMessage.ROLE_USER, content=message)
 
-    payload = _build_gemini_payload(_build_companion_prompt(companion), history, message)
+    messages = [{"role": "system", "content": _build_companion_prompt(companion)},
+                *history, {"role": "user", "content": message}]
 
     if stream:
         def event_stream():
             yield f"data: {json.dumps({'conversation_id': str(conv.id)})}\n\n"
             full = []
             try:
-                for token in _call_gemini_stream(payload, api_key):
+                for token in ai_router.stream("chat", messages,
+                                              max_tokens=1500, temperature=0.85):
                     full.append(token)
                     yield f"data: {json.dumps({'token': token})}\n\n"
                 ChatMessage.objects.create(
@@ -597,7 +598,8 @@ def companion_chat(request, companion_id):
         resp["X-Accel-Buffering"] = "no"
         return resp
 
-    text = _call_gemini_oneshot(payload, api_key)
+    result = ai_router.complete("chat", messages, max_tokens=1500, temperature=0.85)
+    text   = result.get("text") or "Sorry, I'm having trouble connecting right now. Please try again in a moment."
     ChatMessage.objects.create(conversation=conv,
                                role=ChatMessage.ROLE_ASSISTANT, content=text)
     conv.save(update_fields=["updated_at"])
@@ -818,8 +820,10 @@ def mentor_chat(request):
     MentorMessage.objects.create(
         user=request.user, role=MentorMessage.ROLE_USER, content=message)
 
-    payload = _build_gemini_payload(MENTOR_SYSTEM_PROMPT, history, message)
-    text    = _call_gemini_oneshot(payload, api_key)
+    messages = [{"role": "system", "content": MENTOR_SYSTEM_PROMPT},
+                *history, {"role": "user", "content": message}]
+    text = (ai_router.complete("chat", messages, max_tokens=1500, temperature=0.8).get("text")
+            or "I'm having a little trouble responding right now. Try me again in a moment.")
 
     MentorMessage.objects.create(
         user=request.user, role=MentorMessage.ROLE_MENTOR, content=text)
