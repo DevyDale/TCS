@@ -28,6 +28,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
+import 'noticeboard_screen.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
@@ -98,6 +99,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         } else {
           Navigator.of(context).pushNamed('/feed');
         }
+        break;
+      case 'announcement':
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => NoticeboardScreen(highlightId: n.targetId),
+        ));
         break;
       case 'study_buddy_request':
         Navigator.of(context).pushNamed('/groups/buddies');
@@ -433,6 +439,8 @@ class _NotifTile extends StatelessWidget {
         return (icon: Icons.mode_comment_rounded, color: const Color(0xFF6366F1));
       case 'mention':
         return (icon: Icons.alternate_email_rounded, color: _kViolet);
+      case 'announcement':
+        return (icon: Icons.campaign_rounded, color: _kViolet);
       case 'event_reminder':
         return (icon: Icons.event_rounded, color: const Color(0xFFF59E0B));
       case 'achievement':
