@@ -155,7 +155,9 @@ def _openai_complete(p, key, messages, max_tokens, temperature):
                {"Authorization": f"Bearer {key}"})
     with urllib.request.urlopen(req, timeout=40) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"]
+        # Reasoning models (e.g. gpt-oss) may omit/null content if the token
+        # budget is spent reasoning — return "" so complete() fails over.
+        return data["choices"][0]["message"].get("content") or ""
 
 
 def _openai_stream(p, key, messages, max_tokens, temperature):
