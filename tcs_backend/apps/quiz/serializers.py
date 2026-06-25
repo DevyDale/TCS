@@ -9,12 +9,19 @@ class QuizListItemSerializer(serializers.ModelSerializer):
     question_count = serializers.SerializerMethodField()
     last_score     = serializers.SerializerMethodField()
     attempt_count  = serializers.SerializerMethodField()
+    # Source + settings, so the app can "redo in another format" (regenerate
+    # from the same material at a different difficulty / length).
+    material_id    = serializers.SerializerMethodField()
 
     class Meta:
         model  = GeneratedQuiz
         fields = ["id", "title", "subject", "difficulty",
                   "question_count", "last_score", "attempt_count",
+                  "material_id", "num_questions", "question_types",
                   "created_at"]
+
+    def get_material_id(self, obj):
+        return str(obj.material_id) if obj.material_id else None
 
     def get_question_count(self, obj):
         return len(obj.questions or [])

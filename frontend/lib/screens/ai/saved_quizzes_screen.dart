@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
+import 'package:tcs_app/widgets/ai_spinner.dart';
 
 import '../../../../services/api_service.dart';
 
@@ -99,6 +100,164 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
     if (!ok) return;
     try { await _api.delete('/quiz/${quiz['id']}/'); } catch (_) {}
     setState(() => _quizzes.removeWhere((q) => q['id'] == quiz['id']));
+  }
+
+  // ── Redo a quiz in another format ──────────────────────────
+  String _bumpDifficulty(String d, {required bool up}) {
+    const order = ['easy', 'medium', 'hard'];
+    var i = order.indexOf(d == 'mixed' ? 'medium' : d);
+    if (i < 0) i = 1;
+    i = (i + (up ? 1 : -1)).clamp(0, order.length - 1);
+    return order[i];
+  }
+
+  Future<void> _redo(Map<String, dynamic> quiz) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppC.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (_) => SafeArea(
+        top: false,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 10),
+          Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppC.border,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Row(children: [
+              T('Redo this quiz',
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 17, color: AppC.text)),
+            ]),
+          ),
+          _redoOption(Icons.replay_rounded, 'Same questions',
+              'Retake the exact same quiz', _kIndigo, 'same'),
+          _redoOption(Icons.trending_up_rounded, 'Make it harder',
+              'New questions, tougher', const Color(0xFFE53935), 'harder'),
+          _redoOption(Icons.trending_down_rounded, 'Make it simpler',
+              'New questions, easier', const Color(0xFF43A047), 'simpler'),
+          _redoOption(Icons.add_circle_outline_rounded, 'More questions',
+              'New questions, +5 longer', _kGold, 'more'),
+          const SizedBox(height: 10),
+        ]),
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    final quizId = quiz['id'] as String;
+    final title  = quiz['title'] as String? ?? 'Quiz';
+
+    if (choice == 'same') {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => QuizPlayScreen(quizId: quizId, quizTitle: title),
+      )).then((_) => _load());
+      return;
+    }
+
+    final materialId = quiz['material_id'] as String?;
+    if (materialId == null || materialId.isEmpty) {
+      _snack('The original material was deleted — can\'t regenerate this one.');
+      return;
+    }
+
+    final difficulty = quiz['difficulty'] as String? ?? 'medium';
+    final count = (quiz['num_questions'] as num?)?.toInt()
+        ?? (quiz['question_count'] as num?)?.toInt() ?? 10;
+    final types = (quiz['question_types'] as List?)?.cast<String>()
+        ?? const ['mcq', 'true_false', 'short'];
+
+    var newDiff = difficulty;
+    var newNum  = count;
+    switch (choice) {
+      case 'harder':  newDiff = _bumpDifficulty(difficulty, up: true);  break;
+      case 'simpler': newDiff = _bumpDifficulty(difficulty, up: false); break;
+      case 'more':    newNum  = (count + 5).clamp(3, 25);               break;
+    }
+
+    // Regenerating overlay (the AI call takes a few seconds).
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppC.card,
+            borderRadius: BorderRadius.circular(20)),
+          child: const Column(mainAxisSize: MainAxisSize.min, children: [
+            T('🧠', style: TextStyle(fontSize: 40)),
+            SizedBox(height: 16),
+            AiSpinner(color: _kIndigo),
+          ]),
+        ),
+      ),
+    );
+
+    try {
+      final newQuiz = await _api.post('/quiz/generate/', body: {
+        'material_id':    materialId,
+        'subject':        quiz['subject'] ?? '',
+        'num_questions':  newNum,
+        'difficulty':     newDiff,
+        'question_types': types,
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss overlay
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => QuizPlayScreen(
+          quizId:    newQuiz['id'] as String,
+          quizTitle: newQuiz['title'] as String? ?? title,
+          preloaded: newQuiz,
+        ),
+      )).then((_) => _load());
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss overlay
+      _snack('Couldn\'t regenerate the quiz. Please try again.');
+    }
+  }
+
+  Widget _redoOption(IconData icon, String title, String sub, Color color,
+      String value) {
+    return InkWell(
+      onTap: () => Navigator.pop(context, value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 20)),
+          const SizedBox(width: 14),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text)),
+              const SizedBox(height: 1),
+              Text(sub, style: TextStyle(fontFamily: 'Momo',
+                  fontSize: 11.5, color: AppC.sub)),
+            ])),
+          Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 20),
+        ]),
+      ),
+    );
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontFamily: 'Momo')),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: _kIndigo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.all(16),
+    ));
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -285,6 +444,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
                   ),
                 )).then((_) => _load()),
                 onDelete: () => _delete(items[i]),
+                onRedo: () => _redo(items[i]),
               ),
             ),
     );
@@ -296,11 +456,13 @@ class _QuizCard extends StatelessWidget {
   final Map<String, dynamic> quiz;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onRedo;
 
   const _QuizCard({
     required this.quiz,
     required this.onTap,
     required this.onDelete,
+    required this.onRedo,
   });
 
   Color _difficultyColor(String d) {
@@ -417,8 +579,17 @@ class _QuizCard extends StatelessWidget {
             ])),
 
             const SizedBox(width: 6),
-            Icon(Icons.chevron_right_rounded,
-                color: _kWood, size: 22),
+            // Redo this quiz in another format.
+            GestureDetector(
+              onTap: onRedo,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _kIndigo.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.refresh_rounded,
+                    color: _kIndigo, size: 18)),
+            ),
           ]),
         ),
       ),
