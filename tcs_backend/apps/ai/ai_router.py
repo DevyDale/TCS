@@ -142,16 +142,19 @@ def _req(url, body, headers):
         method="POST")
 
 
-def _openai_body(p, messages, max_tokens, temperature, stream):
-    return {
+def _openai_body(p, messages, max_tokens, temperature, stream, response_format=None):
+    body = {
         "model": p["model"], "messages": messages,
         "max_tokens": max_tokens, "temperature": temperature, "stream": stream,
     }
+    if response_format:
+        body["response_format"] = response_format
+    return body
 
 
-def _openai_complete(p, key, messages, max_tokens, temperature):
+def _openai_complete(p, key, messages, max_tokens, temperature, response_format=None):
     req = _req(f"{p['base']}/chat/completions",
-               _openai_body(p, messages, max_tokens, temperature, False),
+               _openai_body(p, messages, max_tokens, temperature, False, response_format),
                {"Authorization": f"Bearer {key}"})
     with urllib.request.urlopen(req, timeout=40) as resp:
         data = json.loads(resp.read().decode("utf-8"))
@@ -192,21 +195,20 @@ def _to_gemini(messages):
     return system.strip(), contents
 
 
-def _gemini_body(p, messages, max_tokens, temperature):
+def _gemini_body(p, messages, max_tokens, temperature, response_format=None):
     system, contents = _to_gemini(messages)
-    body = {
-        "contents": contents,
-        "generationConfig": {"temperature": temperature,
-                             "maxOutputTokens": max_tokens, "topP": 0.95},
-    }
+    gen = {"temperature": temperature, "maxOutputTokens": max_tokens, "topP": 0.95}
+    if response_format and response_format.get("type") == "json_object":
+        gen["responseMimeType"] = "application/json"
+    body = {"contents": contents, "generationConfig": gen}
     if system:
         body["system_instruction"] = {"parts": [{"text": system}]}
     return body
 
 
-def _gemini_complete(p, key, messages, max_tokens, temperature):
+def _gemini_complete(p, key, messages, max_tokens, temperature, response_format=None):
     req = _req(f"{p['base']}/{p['model']}:generateContent",
-               _gemini_body(p, messages, max_tokens, temperature),
+               _gemini_body(p, messages, max_tokens, temperature, response_format),
                {"x-goog-api-key": key})
     with urllib.request.urlopen(req, timeout=40) as resp:
         data  = json.loads(resp.read().decode("utf-8"))
@@ -236,18 +238,19 @@ def _gemini_stream(p, key, messages, max_tokens, temperature):
 
 
 # ── Public API ───────────────────────────────────────────────
-def complete(task, messages, max_tokens=1024, temperature=0.7):
+def complete(task, messages, max_tokens=1024, temperature=0.7, response_format=None):
     """Non-streaming completion with failover.
 
     Returns {"text", "provider", "error"}. Walks the task lane, returns the
     first provider that yields text; records the last error if all fail.
+    Pass response_format={"type": "json_object"} to request JSON output.
     """
     last_err = None
     for name in available(task):
         p, key = PROVIDERS[name], key_for(name)
         try:
             fn = _gemini_complete if p["kind"] == "gemini" else _openai_complete
-            text = fn(p, key, messages, max_tokens, temperature)
+            text = fn(p, key, messages, max_tokens, temperature, response_format)
             if text:
                 return {"text": text, "provider": name, "error": None}
         except urllib.error.HTTPError as e:

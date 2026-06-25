@@ -21,6 +21,8 @@ from typing import Any
 import requests
 from django.conf import settings
 
+from apps.ai import ai_router  # Phase 3: quiz generation routes through the quiz lane
+
 logger = logging.getLogger(__name__)
 
 
@@ -261,10 +263,23 @@ def _call_openai(messages: list[dict], *, model: str) -> tuple[str, int]:
     return content, tokens
 
 
+def _strip_fences(raw: str) -> str:
+    """Recover JSON when a model wraps it in ```fences``` or adds stray prose."""
+    raw = (raw or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
+        raw = re.sub(r"\n?```\s*$", "", raw).strip()
+    if not raw.startswith("{"):
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if m:
+            raw = m.group(0)
+    return raw
+
+
 def _validate_questions(raw: str, *, max_q: int) -> list[dict]:
     """Parse + sanitise the JSON we got back from the LLM."""
     try:
-        payload = json.loads(raw)
+        payload = json.loads(_strip_fences(raw))
     except json.JSONDecodeError as e:
         raise GenerationError(f"AI returned malformed JSON: {e}") from e
 
@@ -342,8 +357,8 @@ def generate_quiz_from_material(
         raise ExtractionError(
             "Not enough readable text in this file to build a meaningful quiz.")
 
-    model = getattr(settings, "QUIZ_OPENAI_MODEL", None) or "gemini-2.5-flash"
-    raw, tokens = _call_openai(
+    result = ai_router.complete(
+        "quiz",
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user",   "content": _user_prompt(
@@ -354,14 +369,19 @@ def generate_quiz_from_material(
                 subject=subject,
             )},
         ],
-        model=model,
+        max_tokens=2048,
+        temperature=0.4,
+        response_format={"type": "json_object"},
     )
+    raw = result.get("text") or ""
+    if not raw:
+        raise GenerationError(result.get("error") or "The AI returned an empty response.")
 
     questions = _validate_questions(raw, max_q=num_questions)
     return {
         "questions":   questions,
-        "tokens_used": tokens,
-        "model_name":  model,
+        "tokens_used": 0,
+        "model_name":  result.get("provider") or "router",
     }
 
 
