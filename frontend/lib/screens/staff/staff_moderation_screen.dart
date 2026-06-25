@@ -14,6 +14,7 @@ import 'package:tcs_app/services/cache_store.dart';
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kRed = Color(0xFFFF5858);
+const _kAmber = Color(0xFFF59E0B);
 Color get _bg => AppC.bg;
 Color get _card => AppC.card;
 const _kCacheKey = 'moderation:queue';
@@ -71,6 +72,8 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
   String _actionLabel(String a) => switch (a) {
         'dismiss'        => 'Report dismissed',
         'review'         => 'Marked reviewed',
+        'hide_content'   => 'Content hidden',
+        'unhide_content' => 'Content unhidden',
         'remove_content' => 'Content removed',
         'suspend_user'   => 'User suspended',
         'unsuspend_user' => 'User unsuspended',
@@ -197,6 +200,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
   void _openActions(Map<String, dynamic> r) {
     final isUser    = r['is_user_report'] == true;
     final gone      = r['content_exists'] != true;
+    final hidden    = r['content_hidden'] == true;
     final suspended = r['owner_suspended'] == true;
     final hasOwner  = (r['owner_id'] ?? '').toString().isNotEmpty;
     showModalBottomSheet(
@@ -215,6 +219,12 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
                 () => _act(r, 'dismiss')),
             _sheetAction(Icons.check_rounded, 'Mark reviewed (no action)', _kG1,
                 () => _act(r, 'review')),
+            if (!isUser && !gone && !hidden)
+              _sheetAction(Icons.visibility_off_rounded, 'Hide content (reversible)',
+                  _kAmber, () => _act(r, 'hide_content')),
+            if (!isUser && !gone && hidden)
+              _sheetAction(Icons.visibility_rounded, 'Unhide content', _kG1,
+                  () => _act(r, 'unhide_content')),
             if (!isUser && !gone)
               _sheetAction(Icons.delete_forever_rounded, 'Remove content (permanent)',
                   _kRed, () => _confirm(

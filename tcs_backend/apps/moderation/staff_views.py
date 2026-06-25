@@ -60,6 +60,9 @@ def _serialize(report):
         "object_id":       str(report.object_id),
         "preview":         _preview(obj),
         "content_exists":  obj is not None,
+        "content_hidden":  bool(getattr(obj, "is_flagged", False)
+                                or getattr(obj, "is_hidden", False))
+                           if obj is not None else False,
         "reporter_name":   getattr(report.reporter, "display_name", "") or "",
         "owner_id":        str(owner.id) if owner else "",
         "owner_name":      (getattr(owner, "display_name", "") or "") if owner else "",
@@ -104,6 +107,28 @@ def report_action(request, pk):
 
     elif action == "review":
         report.status = "reviewed"
+
+    elif action in ("hide_content", "unhide_content"):
+        # Reversible soft-hide: posts use is_flagged (the feed excludes it);
+        # other content types may expose is_hidden.
+        obj = report.content_object
+        if isinstance(obj, User):
+            return Response(
+                {"error": "Use suspend_user for a reported account."}, status=400)
+        if obj is None:
+            return Response({"error": "Content no longer exists."}, status=400)
+        hide  = action == "hide_content"
+        field = next((f for f in ("is_flagged", "is_hidden", "is_removed")
+                      if hasattr(obj, f)), None)
+        if not field:
+            return Response(
+                {"error": "This content type can't be hidden."}, status=400)
+        setattr(obj, field, hide)
+        try:
+            obj.save(update_fields=[field])
+        except Exception as e:
+            return Response({"error": f"Could not update content: {e}"}, status=400)
+        report.status = "actioned" if hide else "reviewed"
 
     elif action == "remove_content":
         obj = report.content_object
