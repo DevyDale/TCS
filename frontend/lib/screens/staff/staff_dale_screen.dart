@@ -36,7 +36,9 @@ class StaffDaleScreen extends StatelessWidget {
           Transform.translate(
             offset: const Offset(0, -22),
             child: Column(children: [
+              const SizedBox(height: 6),
               const StaffSectionLabel('What do you need?'),
+              const SizedBox(height: 2),
               _actionCard(
                 context,
                 icon: Icons.auto_awesome_rounded,
@@ -46,7 +48,7 @@ class StaffDaleScreen extends StatelessWidget {
                 gradient: const [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
                 onTap: () => _push(context, const AiAssistantScreen()),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
               _actionCard(
                 context,
                 icon: Icons.school_rounded,
@@ -56,9 +58,9 @@ class StaffDaleScreen extends StatelessWidget {
                 gradient: const [Color(0xFF2DD4BF), Color(0xFF0EA5A4)],
                 onTap: () => _push(context, const StaffKnowledgeScreen()),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               _tip(),
-              const SizedBox(height: 40),
+              const SizedBox(height: 44),
             ]),
           ),
         ],
@@ -123,11 +125,11 @@ class StaffDaleScreen extends StatelessWidget {
                       color: Colors.white, height: 1.0,
                       shadows: [Shadow(color: Colors.black26, blurRadius: 8,
                           offset: Offset(0, 3))])),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text('Your AI co-pilot — ask anything, and train it on your '
                   'own course material.',
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                      height: 1.4,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                      height: 1.55,
                       color: Colors.white.withValues(alpha: 0.88))),
             ],
           )),
@@ -149,42 +151,42 @@ class StaffDaleScreen extends StatelessWidget {
       child: GestureDetector(
         onTap: () { HapticFeedback.selectionClick(); onTap(); },
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: gradient,
                 begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [BoxShadow(
                 color: gradient.last.withValues(alpha: 0.32),
                 blurRadius: 20, offset: const Offset(0, 10))]),
-          child: Row(children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(17)),
-              child: Icon(icon, color: Colors.white, size: 28)),
-            const SizedBox(width: 16),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(children: [
-                Text(title, style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 19, color: Colors.white)),
+                Container(
+                  width: 54, height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(16)),
+                  child: Icon(icon, color: Colors.white, size: 27)),
                 const Spacer(),
                 Container(
-                  width: 30, height: 30,
+                  width: 32, height: 32,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.22),
                     shape: BoxShape.circle),
                   child: const Icon(Icons.arrow_forward_rounded,
-                      color: Colors.white, size: 16)),
+                      color: Colors.white, size: 17)),
               ]),
-              const SizedBox(height: 6),
+              const SizedBox(height: 18),
+              Text(title, style: const TextStyle(fontFamily: 'Alfa',
+                  fontSize: 21, color: Colors.white)),
+              const SizedBox(height: 10),
               Text(subtitle, style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12, height: 1.4,
+                  fontSize: 13, height: 1.6,
                   color: Colors.white.withValues(alpha: 0.92))),
-            ])),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -194,15 +196,15 @@ class StaffDaleScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: staffCard(),
-        child: Row(children: [
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('💡', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(child: T(
             'The more you upload in Train Dale, the better Dale tutors your '
             'students — it answers from your notes, not just the internet.',
-            style: TextStyle(fontFamily: 'Momo', fontSize: 11.5, height: 1.45,
+            style: TextStyle(fontFamily: 'Momo', fontSize: 12, height: 1.6,
                 color: AppC.sub))),
         ]),
       ),
