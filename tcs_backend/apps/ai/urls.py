@@ -4,6 +4,7 @@ from . import views
 from .router_views import ai_router_status
 from .knowledge_views import (knowledge_list, knowledge_upload,
                               knowledge_toggle, knowledge_delete)
+from .translate_views import ai_translate
 
 urlpatterns = [
     # Text tools
@@ -13,6 +14,9 @@ urlpatterns = [
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),
+
+    # Batch UI translation (auto-localization engine)
+    path("translate/", ai_translate, name="ai-translate"),
 
     # Phase 4 RAG knowledge base (staff-only)
     path("knowledge/",                  knowledge_list,   name="ai-knowledge-list"),
