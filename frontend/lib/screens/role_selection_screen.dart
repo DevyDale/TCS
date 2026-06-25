@@ -315,10 +315,10 @@ class _RoleCardState extends State<_RoleCard>
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Text(widget.title, style: const TextStyle(
+                      Text(widget.title, style: TextStyle(
                           fontFamily: 'Arch', fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E))),
+                          color: AppC.text)),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(

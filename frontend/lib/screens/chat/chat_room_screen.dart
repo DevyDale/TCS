@@ -44,7 +44,7 @@ import 'package:tcs_app/screens/auth/session_keys.dart';
 import '../../services/api_service.dart';
 
 // ── Sage palette ──
-const _kBg     = Color(0xFFF4F5EF);
+Color get _kBg => AppC.bg;
 const _kSage   = Color(0xFFA9BC95);
 const _kSageDk = Color(0xFF6E8159);
 const _kSageLt = Color(0xFFE7E8DD);
@@ -754,8 +754,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: _isStudyBuddy
-                    ? const [Color(0xFFFBF7EC), _kBg]
-                    : const [Color(0xFFF7F9F1), _kBg],
+                    ? [Color(0xFFFBF7EC), _kBg]
+                    : [Color(0xFFF7F9F1), _kBg],
               ),
             ),
             child: _loading

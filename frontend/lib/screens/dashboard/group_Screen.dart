@@ -323,9 +323,9 @@ class _GroupScreenState extends State<GroupScreen>
                   borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.link_rounded, color: _kG2, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: T('Share a Link',
+              Expanded(child: T('Share a Link',
                   style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+                      fontSize: 18, color: AppC.text))),
             ]),
             const SizedBox(height: 18),
             Container(
@@ -356,10 +356,10 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Cancel',
+                  child: Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
               const SizedBox(width: 10),
@@ -478,14 +478,14 @@ class _GroupScreenState extends State<GroupScreen>
               decoration: BoxDecoration(
                 color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: Row(children: [
                 Icon(Icons.photo_camera_rounded, color: _kG3, size: 22),
                 SizedBox(width: 10),
                 T('Photo or Video',
                     style: TextStyle(fontFamily: 'Alfa',
-                        fontSize: 17, color: Color(0xFF1A1A2E))),
+                        fontSize: 17, color: AppC.text)),
               ]),
             ),
             _sheetTile(ctx, 'take_photo',
@@ -578,14 +578,14 @@ class _GroupScreenState extends State<GroupScreen>
               decoration: BoxDecoration(
                 color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: Row(children: [
                 Icon(Icons.description_rounded, color: _indigo, size: 22),
                 SizedBox(width: 10),
                 T('Upload Document',
                     style: TextStyle(fontFamily: 'Alfa',
-                        fontSize: 17, color: Color(0xFF1A1A2E))),
+                        fontSize: 17, color: AppC.text)),
               ]),
             ),
             _sheetTile(ctx, 'pdf',
@@ -619,9 +619,9 @@ class _GroupScreenState extends State<GroupScreen>
             child: Icon(icon, color: color, size: 22)),
           const SizedBox(width: 14),
           Expanded(child: Text(label,
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
-                  fontSize: 14, color: Color(0xFF1A1A2E)))),
+                  fontSize: 14, color: AppC.text))),
           Icon(Icons.chevron_right_rounded,
               color: AppC.faint, size: 20),
         ]),
@@ -709,9 +709,9 @@ class _GroupScreenState extends State<GroupScreen>
                 child: const Icon(Icons.delete_forever_rounded,
                     color: _kG4, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: T('Dissolve Group',
+              Expanded(child: T('Dissolve Group',
                   style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+                      fontSize: 18, color: AppC.text))),
             ]),
             const SizedBox(height: 8),
             T(
@@ -745,10 +745,10 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Cancel',
+                  child: Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
               const SizedBox(width: 10),
@@ -1478,11 +1478,11 @@ class _GroupScreenState extends State<GroupScreen>
                                 fontWeight: FontWeight.bold,
                                 fontSize: 17)))),
                     title: Text(name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Color(0xFF1A1A2E))),
+                            color: AppC.text)),
                     subtitle: Text(m['role'] as String? ?? '',
                         style: TextStyle(
                             fontFamily: 'Momo',
@@ -1590,11 +1590,11 @@ class _GroupScreenState extends State<GroupScreen>
                               children: [
                                 Text(
                                   mat['title'] as String? ?? '',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontFamily: 'Arch',
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
-                                      color: Color(0xFF1A1A2E)),
+                                      color: AppC.text),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis),
                                 const SizedBox(height: 3),

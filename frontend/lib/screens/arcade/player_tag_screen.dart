@@ -258,7 +258,7 @@ Future<void> _pickAvatar() async {
                 // the typed gamer tag never clashes with the surrounding card.
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
+                    color: AppC.text,
                     borderRadius: BorderRadius.circular(r.radiusLg),
                     border: Border.all(
                         color: _error != null

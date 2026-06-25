@@ -29,7 +29,7 @@ const _kEmGrn  = Color(0xFF11998E);
 const _kEmGrn2 = Color(0xFF38EF7D);
 Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
-const _kBg     = Color(0xFFFAFAFC);
+Color get _kBg => AppC.bg;
 
 // ── Languages ─────────────────────────────────────────────────────
 enum Lang { en, zh, ko, ja, ms }

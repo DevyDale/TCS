@@ -20,9 +20,9 @@ import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 
 // ── Arcade palette (light) ──
-const _kBg1     = Color(0xFFFAFAFC);
-const _kBg2     = Color(0xFFE6E6EE);
-const _kBg3     = Color(0xFFF2F2F6);
+Color get _kBg1 => AppC.bg;
+Color get _kBg2 => AppC.bg;
+Color get _kBg3 => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
@@ -298,7 +298,7 @@ class _ChatSearchScreenState extends State<ChatSearchScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft, end: Alignment.bottomRight,
             colors: [_kBg1, _kBg2, _kBg3],

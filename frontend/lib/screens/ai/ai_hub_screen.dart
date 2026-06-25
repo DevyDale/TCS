@@ -31,9 +31,9 @@ import 'image_generator_Screen.dart';
 import 'mentor_screen.dart';
 
 // ── Light palette ────────────────────────────────────────────
-const _kBg1      = Color(0xFFFAFAFC); // gradient start (near-white)
-const _kBg2      = Color(0xFFE6E6EE); // gradient mid (soft grey)
-const _kBg3      = Color(0xFFF2F2F6); // gradient end (light grey)
+Color get _kBg1 => AppC.bg; // gradient start (near-white)
+Color get _kBg2 => AppC.bg; // gradient mid (soft grey)
+Color get _kBg3 => AppC.bg; // gradient end (light grey)
 
 Color get _kCard => AppC.card; // tile / footer card
 Color get _kCardLo => AppC.card2; // raised surfaces inside cards
@@ -194,7 +194,7 @@ class _AiHubScreenState extends State<AiHubScreen>
       // Transparent so our gradient Container shows through.
       backgroundColor: Colors.transparent,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin:  Alignment.topLeft,
             end:    Alignment.bottomRight,

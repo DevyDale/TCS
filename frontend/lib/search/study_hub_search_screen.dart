@@ -108,15 +108,15 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               if (_groups.isNotEmpty) ...[
-                Text('Groups (${_groups.length})', style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 16, color: Color(0xFF1A1A2E))),
+                Text('Groups (${_groups.length})', style: TextStyle(fontFamily: 'Alfa',
+                    fontSize: 16, color: AppC.text)),
                 const SizedBox(height: 10),
                 ..._groups.map((g) => _groupTile(g)),
                 const SizedBox(height: 20),
               ],
               if (_buddies.isNotEmpty) ...[
-                Text('Study Buddies (${_buddies.length})', style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 16, color: Color(0xFF1A1A2E))),
+                Text('Study Buddies (${_buddies.length})', style: TextStyle(fontFamily: 'Alfa',
+                    fontSize: 16, color: AppC.text)),
                 const SizedBox(height: 10),
                 ..._buddies.map((b) => _buddyTile(b)),
               ],
@@ -151,8 +151,8 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
           child: Center(child: Text(icon, style: const TextStyle(fontSize: 22)))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(g['name'] as String? ?? '', style: const TextStyle(fontFamily: 'Arch',
-              fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
+          Text(g['name'] as String? ?? '', style: TextStyle(fontFamily: 'Arch',
+              fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text)),
           Text('${g['members_count'] ?? 0} members · ${g['category'] ?? ''}',
               style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.faint)),
         ])),
@@ -190,8 +190,8 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
               fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 18)))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name, style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-              fontSize: 14, color: Color(0xFF1A1A2E))),
+          Text(name, style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+              fontSize: 14, color: AppC.text)),
           Text(b['subjects'] as String? ?? '', style: TextStyle(fontFamily: 'Momo',
               fontSize: 12, color: AppC.faint)),
         ])),

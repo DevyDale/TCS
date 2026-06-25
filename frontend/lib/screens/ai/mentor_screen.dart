@@ -26,7 +26,7 @@ import 'package:lottie/lottie.dart';
 import 'package:tcs_app/services/api_service.dart';
 
 // ── Light palette ─────────────────────────────────────────────
-const _kBg = Color(0xFFFAFBF8);
+Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF3C4A30);
@@ -34,7 +34,7 @@ Color get _kSlate => AppC.sub;
 Color get _kSlateLight => AppC.sub;
 Color get _kBorder => AppC.border;
 Color get _kBorderSoft => AppC.border;
-const _kInputBg = Color(0xFFF5F7F1);
+Color get _kInputBg => AppC.card2;
 const _kDanger = Color(0xFFC0563B);
 
 // Sage accent gradient — used for the halo, user bubbles, send button,

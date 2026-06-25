@@ -40,7 +40,7 @@ const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
-const _kBg     = Color(0xFFF4F5FA);
+Color get _kBg => AppC.bg;
 
 /// Convenience entry point — call this instead of constructing the
 /// widget directly.

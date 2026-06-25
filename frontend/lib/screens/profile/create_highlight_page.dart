@@ -28,7 +28,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 
 // ── Light palette (matches profile_screen.dart) ──────────────
-const _kBg1    = Color(0xFFFAFAFC);
+Color get _kBg1 => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
@@ -392,7 +392,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
           child: Stack(fit: StackFit.expand, children: [
             if (item.isVideo)
               Container(
-                color: const Color(0xFF1A1A2E),
+                color: AppC.text,
                 child: const Center(child: Icon(
                   Icons.play_circle_outline_rounded,
                   color: Colors.white, size: 30)))

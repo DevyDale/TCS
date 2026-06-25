@@ -166,12 +166,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               decoration: BoxDecoration(color: AppC.card2,
                   borderRadius: BorderRadius.circular(12)),
               child: Icon(_step == 0 ? Icons.close_rounded : Icons.arrow_back_rounded,
-                  size: 20, color: const Color(0xFF1A1A2E))),
+                  size: 20, color: AppC.text)),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const T('Create Group', style: TextStyle(fontFamily: 'Alfa',
-              fontSize: 20, color: Color(0xFF1A1A2E))),
+          T('Create Group', style: TextStyle(fontFamily: 'Alfa',
+              fontSize: 20, color: AppC.text)),
           Text(['Basics', 'Details', 'Members', 'Review'][_step],
               style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.faint)),
         ])),
@@ -345,8 +345,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           child: Row(children: [
             const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
             const SizedBox(width: 10),
-            const Expanded(child: T('Public group — anyone can join.\nYou can still add specific people below.',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: Color(0xFF1A1A2E)))),
+            Expanded(child: T('Public group — anyone can join.\nYou can still add specific people below.',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: AppC.text))),
           ]),
         ),
       const SizedBox(height: 20),
@@ -421,8 +421,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ],
       if (_selectedMembers.isNotEmpty) ...[
         const SizedBox(height: 20),
-        Text('Added (${_selectedMembers.length})', style: const TextStyle(
-            fontFamily: 'Alfa', fontSize: 15, color: Color(0xFF1A1A2E))),
+        Text('Added (${_selectedMembers.length})', style: TextStyle(
+            fontFamily: 'Alfa', fontSize: 15, color: AppC.text)),
         const SizedBox(height: 10),
         ..._selectedMembers.map((m) {
           final name = m['name'] as String? ?? '';
@@ -439,8 +439,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Center(child: Text(initial, style: const TextStyle(
                     color: _indigo, fontFamily: 'Arch', fontWeight: FontWeight.bold)))),
               const SizedBox(width: 12),
-              Expanded(child: Text(name, style: const TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1A1A2E)))),
+              Expanded(child: Text(name, style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 13, color: AppC.text))),
               GestureDetector(
                 onTap: () => setState(() => _selectedMembers.remove(m)),
                 child: Icon(Icons.remove_circle_rounded, color: _kG4.withOpacity(0.7), size: 20)),
@@ -508,8 +508,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     child: Row(children: [
       SizedBox(width: 90, child: Text(label, style: TextStyle(fontFamily: 'Momo',
           fontSize: 13, color: AppC.faint))),
-      Expanded(child: Text(value, style: const TextStyle(fontFamily: 'Arch',
-          fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1A1A2E)))),
+      Expanded(child: Text(value, style: TextStyle(fontFamily: 'Arch',
+          fontWeight: FontWeight.bold, fontSize: 13, color: AppC.text))),
     ]),
   );
 
@@ -548,9 +548,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
   }
 
-  Widget _sectionLabel(String t) => Text(t, style: const TextStyle(
+  Widget _sectionLabel(String t) => Text(t, style: TextStyle(
       fontFamily: 'Arch', fontWeight: FontWeight.bold,
-      fontSize: 14, color: Color(0xFF1A1A2E)));
+      fontSize: 14, color: AppC.text));
 
   Widget _input(TextEditingController c, String hint,
       {int maxLines = 1, int? maxLen}) => Container(
@@ -558,7 +558,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         border: Border.all(color: AppC.border)),
     child: TextField(
       controller: c, maxLines: maxLines, maxLength: maxLen,
-      style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: Color(0xFF1A1A2E)),
+      style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
       decoration: InputDecoration(
         hintText: hint, counterText: '',
         hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
@@ -576,8 +576,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         child: Row(children: [
           Icon(icon, color: value ? _indigo : AppC.faint, size: 20),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: const TextStyle(fontFamily: 'Arch',
-              fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E)))),
+          Expanded(child: Text(label, style: TextStyle(fontFamily: 'Arch',
+              fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text))),
           Switch(value: value, onChanged: onChanged,
               activeThumbColor: Colors.white, activeTrackColor: _indigo,
               inactiveThumbColor: Colors.white, inactiveTrackColor: AppC.border),

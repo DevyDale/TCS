@@ -32,13 +32,13 @@ import 'package:tcs_app/widgets/ai_markdown.dart';
 import 'package:tcs_app/services/api_service.dart';
 
 // ── Light palette (matches AI Hub) ───────────────────────────
-const _kBg1 = Color(0xFFFAFAFC);
-const _kBg2 = Color(0xFFE6E6EE);
-const _kBg3 = Color(0xFFF2F2F6);
+Color get _kBg1 => AppC.bg;
+Color get _kBg2 => AppC.bg;
+Color get _kBg3 => AppC.bg;
 
 Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
-const _kInputBg = Color(0xFFF7F8FB);
+Color get _kInputBg => AppC.card2;
 
 Color get _kBorder => AppC.border;
 
@@ -517,7 +517,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
       backgroundColor: Colors.transparent,
       drawer: _buildDrawer(),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

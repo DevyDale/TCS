@@ -23,7 +23,7 @@ const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kBg     = Color(0xFFF4F5F9);
+Color get _kBg => AppC.bg;
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
 

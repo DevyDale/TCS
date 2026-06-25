@@ -625,9 +625,9 @@ class _Label extends StatelessWidget {
   final String label;
   const _Label(this.label);
   @override
-  Widget build(BuildContext context) => Text(label, style: const TextStyle(
+  Widget build(BuildContext context) => Text(label, style: TextStyle(
     fontFamily: 'Arch', fontWeight: FontWeight.bold,
-    fontSize: 13, color: Color(0xFF1A1A2E),
+    fontSize: 13, color: AppC.text,
   ));
 }
 
@@ -667,8 +667,8 @@ class _Field extends StatelessWidget {
             child: TextField(
               controller: controller, readOnly: readOnly,
               maxLines: maxLines, maxLength: maxLength,
-              style: const TextStyle(fontFamily: 'Momo', fontSize: 14,
-                  color: Color(0xFF1A1A2E)),
+              style: TextStyle(fontFamily: 'Momo', fontSize: 14,
+                  color: AppC.text),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(color: AppC.faint, fontFamily: 'Momo'),
@@ -714,8 +714,8 @@ class _Dropdown extends StatelessWidget {
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
             hint: Text(hint, style: TextStyle(color: AppC.faint,
                 fontFamily: 'Momo', fontSize: 14)),
-            style: const TextStyle(fontFamily: 'Momo', fontSize: 14,
-                color: Color(0xFF1A1A2E)),
+            style: TextStyle(fontFamily: 'Momo', fontSize: 14,
+                color: AppC.text),
             items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
             onChanged: onChanged,
             dropdownColor: Colors.white,
@@ -790,8 +790,8 @@ class _Switch extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
+            Text(label, style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text)),
             const SizedBox(height: 2),
             Text(subtitle, style: TextStyle(fontFamily: 'Momo',
                 fontSize: 12, color: AppC.faint)),

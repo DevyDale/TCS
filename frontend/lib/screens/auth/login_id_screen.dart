@@ -18,7 +18,7 @@ const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
 
 Color get _kInk => AppC.text;
-const _kBg = Color(0xFFF5F6FA);
+Color get _kBg => AppC.bg;
 
 class LoginIdScreen extends StatefulWidget {
   final String role; // 'student' | 'teaching_staff'

@@ -273,8 +273,8 @@ class _GroupsStudyHubScreenState
                 const SizedBox(width: 10),
                 Expanded(child: Text(name,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Alfa',
-                        fontSize: 17, color: Color(0xFF1A1A2E)))),
+                    style: TextStyle(fontFamily: 'Alfa',
+                        fontSize: 17, color: AppC.text))),
               ]),
             ),
             const SizedBox(height: 4),
@@ -352,9 +352,9 @@ class _GroupsStudyHubScreenState
                 child: const Icon(Icons.delete_forever_rounded,
                     color: _kG4, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: T('Delete Group',
+              Expanded(child: T('Delete Group',
                   style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 18, color: Color(0xFF1A1A2E)))),
+                      fontSize: 18, color: AppC.text))),
             ]),
             const SizedBox(height: 10),
             T(
@@ -386,10 +386,10 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Cancel',
+                  child: Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
               const SizedBox(width: 10),
@@ -492,8 +492,8 @@ class _GroupsStudyHubScreenState
             const SizedBox(height: 14),
             Text('Leave "$name"?',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 18, color: Color(0xFF1A1A2E))),
+                style: TextStyle(fontFamily: 'Alfa',
+                    fontSize: 18, color: AppC.text)),
             const SizedBox(height: 8),
             Text(
                 "You'll stop receiving posts and materials from this group. "
@@ -510,10 +510,10 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Cancel',
+                  child: Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E), fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
               const SizedBox(width: 10),
@@ -813,9 +813,9 @@ class _GroupsStudyHubScreenState
           child: const Icon(Icons.school_rounded,
               color: Colors.white, size: 20)),
         const SizedBox(width: 12),
-        const T('Study Hub',
+        T('Study Hub',
             style: TextStyle(fontFamily: 'Alfa',
-                fontSize: 22, color: Color(0xFF1A1A2E))),
+                fontSize: 22, color: AppC.text)),
         const Spacer(),
 
         GestureDetector(
@@ -1047,9 +1047,9 @@ class _GroupsStudyHubScreenState
         Icon(Icons.groups_outlined, size: 52,
             color: AppC.border),
         const SizedBox(height: 14),
-        const T('No Groups Yet',
+        T('No Groups Yet',
             style: TextStyle(fontFamily: 'Alfa',
-                fontSize: 17, color: Color(0xFF1A1A2E))),
+                fontSize: 17, color: AppC.text)),
         const SizedBox(height: 6),
         T('Create or join a group to get started',
             style: TextStyle(fontFamily: 'Momo',
@@ -1086,9 +1086,9 @@ class _GroupsStudyHubScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const T('Available Now',
+              T('Available Now',
                   style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 18, color: Color(0xFF1A1A2E))),
+                      fontSize: 18, color: AppC.text)),
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 6),
@@ -1183,9 +1183,9 @@ class _GroupsStudyHubScreenState
                   Icon(Icons.notifications_none_rounded, size: 52,
                       color: AppC.border),
                   const SizedBox(height: 14),
-                  const T('No Recent Activity',
+                  T('No Recent Activity',
                       style: TextStyle(fontFamily: 'Alfa',
-                          fontSize: 17, color: Color(0xFF1A1A2E))),
+                          fontSize: 17, color: AppC.text)),
                   const SizedBox(height: 6),
                   T(
                     'Group events appear here — joins, materials shared,\ndissolutions, expirations and buddy requests.',
@@ -1201,11 +1201,11 @@ class _GroupsStudyHubScreenState
               itemCount: _activities.length + 1,
               itemBuilder: (_, i) {
                 if (i == 0) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: T('Recent Activity',
                         style: TextStyle(fontFamily: 'Alfa',
-                            fontSize: 18, color: Color(0xFF1A1A2E))),
+                            fontSize: 18, color: AppC.text)),
                   );
                 }
                 final a = _activities[i - 1];
@@ -1227,8 +1227,8 @@ class _GroupsStudyHubScreenState
   }
 
   Widget _sectionHeader(String label, int count) => Row(children: [
-    Text(label, style: const TextStyle(fontFamily: 'Alfa',
-        fontSize: 18, color: Color(0xFF1A1A2E))),
+    Text(label, style: TextStyle(fontFamily: 'Alfa',
+        fontSize: 18, color: AppC.text)),
     const SizedBox(width: 8),
     Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1303,11 +1303,11 @@ class _GroupCard extends StatelessWidget {
                   child: Text(name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Color(0xFF1A1A2E)))),
+                          color: AppC.text))),
                 if (!isPublic)
                   Padding(padding: const EdgeInsets.only(left: 4),
                     child: Icon(Icons.lock_outline_rounded,
@@ -1438,11 +1438,11 @@ class _BuddyCard extends StatelessWidget {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(
+                  Text(name, style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: Color(0xFF1A1A2E))),
+                      color: AppC.text)),
                   const SizedBox(height: 3),
                   Text(role, style: TextStyle(fontFamily: 'Momo',
                       fontSize: 12, color: AppC.faint)),
@@ -1582,9 +1582,9 @@ class _ActivityCard extends StatelessWidget {
                 Expanded(child: Text(headline,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
-                      fontSize: 14, color: Color(0xFF1A1A2E)))),
+                      fontSize: 14, color: AppC.text))),
                 const SizedBox(width: 6),
                 Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11, color: AppC.faint)),
@@ -1670,9 +1670,9 @@ class _StudyBuddyRequestCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('$name wants to study together',
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
-                      fontSize: 14, color: Color(0xFF1A1A2E))),
+                      fontSize: 14, color: AppC.text)),
               const SizedBox(height: 2),
               Text(role.isEmpty ? subject : '$role  ·  $subject',
                   style: TextStyle(fontFamily: 'Momo',
@@ -1706,10 +1706,10 @@ class _StudyBuddyRequestCard extends StatelessWidget {
                 color: AppC.card2,
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: AppC.border)),
-              child: const Center(child: T('Decline',
+              child: Center(child: T('Decline',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
-                      fontSize: 13, color: Color(0xFF1A1A2E)))),
+                      fontSize: 13, color: AppC.text))),
             ),
           )),
           const SizedBox(width: 10),

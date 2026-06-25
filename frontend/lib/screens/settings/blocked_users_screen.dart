@@ -10,7 +10,7 @@ import '../../services/moderation_service.dart';
 const _kG2 = Color(0xFF8E54E9);
 const _kG4 = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kBg = Color(0xFFF2F4F8);
+Color get _kBg => AppC.bg;
 
 class BlockedUsersScreen extends StatefulWidget {
   const BlockedUsersScreen({super.key});

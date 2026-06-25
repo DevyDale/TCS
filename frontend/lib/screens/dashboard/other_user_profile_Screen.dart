@@ -40,9 +40,9 @@ import '../profile/media_item_view.dart';
 import '../feed/feed_screen.dart' show deletedHighlightIds;
 
 // ── Light palette (matches own profile) ──────────────────────
-const _kBg1 = Color(0xFFFAFAFC);
-const _kBg2 = Color(0xFFE6E6EE);
-const _kBg3 = Color(0xFFF2F2F6);
+Color get _kBg1 => AppC.bg;
+Color get _kBg2 => AppC.bg;
+Color get _kBg3 => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
@@ -627,7 +627,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

@@ -29,7 +29,7 @@ import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/widgets/markdown_text.dart';
 
 // ── Light palette ─────────────────────────────────────────────
-const _kBg = Color(0xFFFAFAFC);
+Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF374151);
@@ -37,7 +37,7 @@ Color get _kSlate => AppC.sub;
 Color get _kSlateLight => AppC.sub;
 Color get _kBorder => AppC.border;
 Color get _kBorderSoft => AppC.border;
-const _kInputBg = Color(0xFFF7F8FB);
+Color get _kInputBg => AppC.card2;
 const _kDanger = Color(0xFFFF5858);
 const _kOnline = Color(0xFF10B981);
 
