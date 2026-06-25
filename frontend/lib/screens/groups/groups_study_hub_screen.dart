@@ -1138,12 +1138,6 @@ class _GroupsStudyHubScreenState
           ),
           const SizedBox(height: 14),
 
-          // Dale AI is always available to study with — pinned above the list.
-          if (q.isEmpty || 'dale ai'.contains(q)) ...[
-            _buildDaleBuddyCard(),
-            const SizedBox(height: 14),
-          ],
-
           if (visibleBuddies.isEmpty)
             Center(child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
@@ -1166,99 +1160,6 @@ class _GroupsStudyHubScreenState
               onConnect: () => _connectBuddy(b),
             )),
         ],
-      ),
-    );
-  }
-
-  // Dale AI — the study buddy who's always online. Opens the AI hub.
-  Widget _buildDaleBuddyCard() {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AiHubScreen()));
-      },
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(
-            color: const Color(0xFF8E54E9).withOpacity(0.35),
-            blurRadius: 18, offset: const Offset(0, 8))],
-        ),
-        child: Row(children: [
-          // Avatar with a live "online" dot.
-          Stack(children: [
-            Container(
-              width: 54, height: 54,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5)),
-              child: Center(
-                child: Lottie.asset('assets/images/robot.json',
-                    width: 38, height: 38, fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                        Icons.smart_toy_rounded, color: Colors.white, size: 28)),
-              ),
-            ),
-            Positioned(
-              right: 0, bottom: 0,
-              child: Container(
-                width: 14, height: 14,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF34D399),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2.5)),
-              ),
-            ),
-          ]),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(children: [
-                  const Flexible(
-                    child: Text('Dale AI',
-                        style: TextStyle(fontFamily: 'Alfa',
-                            fontSize: 17, color: Colors.white)),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.22),
-                      borderRadius: BorderRadius.circular(8)),
-                    child: const Text('ALWAYS ONLINE',
-                        style: TextStyle(fontFamily: 'Momo', fontSize: 9,
-                            fontWeight: FontWeight.bold, color: Colors.white,
-                            letterSpacing: 0.5)),
-                  ),
-                ]),
-                const SizedBox(height: 4),
-                T('Stuck? I\'ll explain anything, quiz you, and keep you going 🚀',
-                    style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                        height: 1.35, color: Colors.white.withOpacity(0.92))),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12)),
-            child: const Text('Study',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    fontWeight: FontWeight.bold, color: Color(0xFF8E54E9))),
-          ),
-        ]),
       ),
     );
   }

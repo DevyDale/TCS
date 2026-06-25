@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/widgets/uploading_delay.dart';
+import 'package:tcs_app/widgets/ai_assistant_screen.dart';
+import 'package:lottie/lottie.dart';
 import '../../services/api_service.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -1097,6 +1099,33 @@ class _GroupScreenState extends State<GroupScreen>
           color: AppC.card,
           border: Border(top: BorderSide(color: AppC.card2))),
         child: Row(children: [
+          // Dale AI — right here in the chat room. Tap to ask Dale anything.
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const AiAssistantScreen()));
+            },
+            child: Container(
+              width: 44, height: 44,
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(
+                    color: const Color(0xFF8E54E9).withOpacity(0.30),
+                    blurRadius: 8, offset: const Offset(0, 2))]),
+              child: Center(
+                child: Lottie.asset('assets/images/robot.json',
+                    width: 30, height: 30, fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.smart_toy_rounded, color: Colors.white, size: 22)),
+              ),
+            ),
+          ),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
