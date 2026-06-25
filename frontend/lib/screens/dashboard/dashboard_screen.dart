@@ -21,7 +21,6 @@
 //   • Welcome banner, animations, and routing logic are untouched.
 
 import 'dart:async';
-import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
@@ -33,7 +32,11 @@ import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
-import '../staff/staff_console_screen.dart';
+import '../staff/staff_home_screen.dart';
+import '../staff/staff_protect_screen.dart';
+import '../staff/staff_connect_screen.dart';
+import '../staff/staff_campus_screen.dart';
+import '../staff/staff_dale_screen.dart';
 import '../../utils/responsive_helper.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
@@ -112,18 +115,39 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  List<Widget> get _screens => [
-        const FeedScreen(),
-        const GroupsStudyHubScreen(),
-        const ChatListScreen(),
-        ProfileScreen(
-          fullName:      widget.fullName,
-          preferredName: widget.preferredName,
-          role:          widget.role,
-        ),
-      ];
+  List<Widget> get _screens => _isStaff
+      ? [
+          StaffHomeScreen(
+            fullName:      widget.fullName,
+            preferredName: widget.preferredName,
+            role:          widget.role,
+          ),
+          const StaffProtectScreen(),
+          const StaffConnectScreen(),
+          const StaffCampusScreen(),
+          const StaffDaleScreen(),
+        ]
+      : [
+          const FeedScreen(),
+          const GroupsStudyHubScreen(),
+          const ChatListScreen(),
+          ProfileScreen(
+            fullName:      widget.fullName,
+            preferredName: widget.preferredName,
+            role:          widget.role,
+          ),
+        ];
 
   Future<void> _onTabTap(int index) async {
+    // Staff nav: all 5 slots (incl. the centre 'Connect') are real tabs.
+    if (_isStaff) {
+      if (index == _currentIndex) return;
+      HapticFeedback.selectionClick();
+      await _tabSwitchCtrl.reverse();
+      setState(() => _currentIndex = index);
+      _tabSwitchCtrl.forward();
+      return;
+    }
     if (index == 2) {
       HapticFeedback.mediumImpact();
       await Navigator.of(context).push(
@@ -155,7 +179,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     _tabSwitchCtrl.forward();
   }
 
-  int  get _navIndex => _currentIndex >= 2 ? _currentIndex + 1 : _currentIndex;
+  // Staff have 5 real tabs (centre included) → nav position == screen index.
+  // Students map 4 screens onto 5 slots, skipping the centre Arcade push.
+  int  get _navIndex => _isStaff
+      ? _currentIndex
+      : (_currentIndex >= 2 ? _currentIndex + 1 : _currentIndex);
 
   // Staff-only: additive entry point to the command-center console. Students
   // never see it; staff keep the normal dashboard as home.
@@ -177,34 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       // can show through near the bar's rounded top edge.
       extendBody: true,
       backgroundColor: Colors.transparent,
-      floatingActionButton: _isStaff ? _buildStaffConsoleFab(context) : null,
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
-
-  // ── Staff console entry (staff only) ──────────────────────
-  Widget _buildStaffConsoleFab(BuildContext context) {
-    return FloatingActionButton.extended(
-      heroTag: 'staff_console_fab',
-      backgroundColor: const Color(0xFF8E54E9),
-      icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
-      label: const T('Staff Console',
-          style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-              color: Colors.white)),
-      onPressed: () {
-        HapticFeedback.mediumImpact();
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => StaffConsoleScreen(
-            fullName:      widget.fullName,
-            preferredName: widget.preferredName,
-            role:          widget.role,
-          ),
-        ));
-      },
-    );
-  }
-
-  // ── Welcome banner (preserved) ────────────────────────────
 
     // ── Flush-bottom nav bar (responsive via R helpers) ───────
   //
@@ -274,8 +277,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 height: slotsH,
                 child: Row(children: [
                   _NavSlot(
-                    icon: Icons.home_rounded,
-                    label: l.navFeed,
+                    icon: _isStaff ? Icons.dashboard_rounded : Icons.home_rounded,
+                    label: _isStaff ? 'Home' : l.navFeed,
                     selected: _navIndex == 0,
                     onTap: () => _onTabTap(0),
                     iconSize: slotIcon,
@@ -283,8 +286,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     pillRadius: pillRadius,
                   ),
                   _NavSlot(
-                    icon: Icons.groups_rounded,
-                    label: l.navGroups,
+                    icon: _isStaff ? Icons.shield_rounded : Icons.groups_rounded,
+                    label: _isStaff ? 'Protect' : l.navGroups,
                     selected: _navIndex == 1,
                     onTap: () => _onTabTap(1),
                     iconSize: slotIcon,
@@ -294,8 +297,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   // Spacer beneath the centre arcade button.
                   const Expanded(child: SizedBox.shrink()),
                   _NavSlot(
-                    icon: Icons.chat_bubble_rounded,
-                    label: l.navChat,
+                    icon: _isStaff ? Icons.gps_fixed_rounded : Icons.chat_bubble_rounded,
+                    label: _isStaff ? 'Campus' : l.navChat,
                     selected: _navIndex == 3,
                     onTap: () => _onTabTap(3),
                     iconSize: slotIcon,
@@ -303,8 +306,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     pillRadius: pillRadius,
                   ),
                   _NavSlot(
-                    icon: Icons.person_rounded,
-                    label: l.navProfile,
+                    icon: _isStaff ? Icons.smart_toy_rounded : Icons.person_rounded,
+                    label: _isStaff ? 'Dale' : l.navProfile,
                     selected: _navIndex == 4,
                     onTap: () => _onTabTap(4),
                     iconSize: slotIcon,
@@ -324,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: GestureDetector(
                   onTap: () => _onTabTap(2),
                   child: Tooltip(
-                    message: l.navArcade,
+                    message: _isStaff ? 'Connect' : l.navArcade,
                     child: AnimatedBuilder(
                       animation: _shimmerCtrl,
                       builder: (_, child) => Container(
@@ -358,7 +361,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                       // Icon scales with the slot icons so the centre
                       // button stays in proportion across screen sizes.
                       child: Icon(
-                        Icons.sports_esports_rounded,
+                        _isStaff
+                            ? Icons.forum_rounded
+                            : Icons.sports_esports_rounded,
                         color: Colors.white,
                         size: slotIcon + 4, // a touch larger than slot icons
                       ),

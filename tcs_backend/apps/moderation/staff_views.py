@@ -151,3 +151,26 @@ def report_action(request, pk):
     report.reviewed_by = request.user
     report.save(update_fields=["status", "reviewed_at", "reviewed_by"])
     return Response(_serialize(report))
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def staff_overview(request):
+    """GET /api/moderation/staff/overview/
+
+    Cohort pulse for the Staff Home command center.
+    """
+    from apps.events.models import Event
+
+    now   = timezone.now()
+    today = timezone.localdate()
+
+    active_today    = User.objects.filter(last_seen__date=today).count()
+    flags_pending   = Report.objects.filter(status="pending").count()
+    upcoming_events = Event.objects.filter(start_time__gte=now).count()
+
+    return Response({
+        "active_today":    active_today,
+        "flags_pending":   flags_pending,
+        "upcoming_events": upcoming_events,
+    })
