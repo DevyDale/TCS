@@ -31,6 +31,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
@@ -45,7 +46,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kTyping     = Color(0xFF10B981);   // green
 const _kRecording  = Color(0xFFF59E0B);   // amber
 
@@ -330,7 +331,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       decoration: const BoxDecoration(color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
       child: Row(children: [
-        const Expanded(child: T('Messages', style: TextStyle(fontFamily: 'Alfa',
+        Expanded(child: T('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
         // Requests button (opens the Requests page) with pending badge
         GestureDetector(
@@ -460,7 +461,7 @@ Widget _buildSearchField() {
         controller: _searchCtrl,
         onChanged: (v) =>
             setState(() => _chatQuery = v.trim().toLowerCase()),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Momo',
           fontSize: 14,
           color: _kInk,
@@ -597,7 +598,7 @@ Widget _buildSearchField() {
             Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, size: 52, color: Colors.grey.shade300),
               const SizedBox(height: 16),
-              Text(title, style: const TextStyle(fontFamily: 'Alfa',
+              Text(title, style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 20, color: _kInk)),
               const SizedBox(height: 8),
               Text(sub, textAlign: TextAlign.center,
@@ -900,7 +901,7 @@ Widget _buildSearchField() {
                 child: Text(
                   name,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 16, color: _kInk),
                 ),
               ),
@@ -910,7 +911,7 @@ Widget _buildSearchField() {
               leading: const Icon(Icons.delete_outline_rounded, color: _kG4),
               title: Text(
                 isGroup ? 'Leave chat' : 'Delete chat',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Arch', fontWeight: FontWeight.bold,
                   fontSize: 14.5, color: _kInk),
               ),
@@ -930,7 +931,7 @@ Widget _buildSearchField() {
             if (canBlock)
               ListTile(
                 leading: const Icon(Icons.block_rounded, color: _kG4),
-                title: const T(
+                title: T(
                   'Block & delete',
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
@@ -972,7 +973,7 @@ Widget _buildSearchField() {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const T('Block & delete?',
+        title: T('Block & delete?',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
         ),
         content: Text(
@@ -1052,7 +1053,7 @@ Widget _buildSearchField() {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const T('Delete chat?',
+        title: T('Delete chat?',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
         ),
         content: Text(

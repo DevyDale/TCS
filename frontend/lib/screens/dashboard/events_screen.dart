@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:gradient_borders/gradient_borders.dart';
 import 'package:intl/intl.dart';
@@ -25,7 +26,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -625,7 +626,7 @@ class _EmptyState extends StatelessWidget {
           children: [
             const T('📭', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
-            const T(
+            T(
               'No events to show',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
             ),

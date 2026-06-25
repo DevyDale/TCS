@@ -18,6 +18,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/profile/share_profile_screen.dart';
 
@@ -27,13 +28,13 @@ import '../../services/api_service.dart';
 const _kBg1     = Color(0xFFFAFAFC);
 const _kBg2     = Color(0xFFE6E6EE);
 const _kBg3     = Color(0xFFF2F2F6);
-const _kCard    = Color(0xFFFFFFFF);
-const _kCardLo  = Color(0xFFF5F5F8);
-const _kBorder  = Color(0xFFE5E7EB);
-const _kSlate2  = Color(0xFF9CA3AF);
-const _kSlate   = Color(0xFF6B7280);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk     = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 const _kBlue   = Color(0xFF6DD5FA);
 const _kPurple = Color(0xFF7C3AED);
@@ -222,19 +223,19 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Widget _buildLoadingOrError() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(
+      return Center(child: CircularProgressIndicator(
           color: _kInk, strokeWidth: 2.4));
     }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.person_off_rounded, size: 56, color: _kSlate2),
+          Icon(Icons.person_off_rounded, size: 56, color: _kSlate2),
           const SizedBox(height: 14),
           Text(
             _error ?? 'Profile not available.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: _kSlate),
+            style: TextStyle(fontSize: 14, color: _kSlate),
           ),
           const SizedBox(height: 16),
           GestureDetector(
@@ -296,7 +297,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   boxShadow: [BoxShadow(
                       color: Colors.black.withOpacity(0.06),
                       blurRadius: 8, offset: const Offset(0, 2))]),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: _kInk, size: 18)))),
 
         // Share (top-right)
@@ -386,7 +387,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         // Name + verified
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Flexible(child: Text(name, textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w900,
                 color: _kInk, letterSpacing: -0.5))),
           if (isVerified) ...[
@@ -411,7 +412,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
         const SizedBox(height: 6),
         Text(_roleLabel(role),
-          style: const TextStyle(
+          style: TextStyle(
               fontWeight: FontWeight.w800, fontSize: 12,
               color: _kSlate, letterSpacing: 0.4)),
 
@@ -448,11 +449,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Widget _stat(int value, String label) => Expanded(
     child: Column(children: [
-      Text(_fmt(value), style: const TextStyle(
+      Text(_fmt(value), style: TextStyle(
           fontSize: 19, fontWeight: FontWeight.w900,
           color: _kInk, letterSpacing: -0.3)),
       const SizedBox(height: 2),
-      Text(label, style: const TextStyle(
+      Text(label, style: TextStyle(
           fontSize: 11, color: _kSlate, fontWeight: FontWeight.w600)),
     ]),
   );
@@ -473,10 +474,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 borderRadius: BorderRadius.circular(14)),
               child: Center(
                 child: _busyFollow
-                  ? const SizedBox(width: 18, height: 18,
+                  ? SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: _kInk))
-                  : const Row(mainAxisAlignment: MainAxisAlignment.center,
+                  : Row(mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                       Icon(Icons.check_rounded, size: 16, color: _kInk),
                       SizedBox(width: 6),
@@ -515,10 +516,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             border: Border.all(color: _kBorder, width: 1.5),
             borderRadius: BorderRadius.circular(14)),
           child: Center(child: _busyChat
-              ? const SizedBox(width: 18, height: 18,
+              ? SizedBox(width: 18, height: 18,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: _kInk))
-              : const Row(mainAxisAlignment: MainAxisAlignment.center,
+              : Row(mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                   Icon(Icons.chat_bubble_outline_rounded,
                       size: 16, color: _kInkSoft),
@@ -563,7 +564,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             fontWeight: FontWeight.w900, fontSize: 11,
             color: _kPurple, letterSpacing: 1.2)),
         const SizedBox(height: 8),
-        Text(bio, style: const TextStyle(
+        Text(bio, style: TextStyle(
             fontSize: 14, color: _kInk, height: 1.55)),
       ]),
     );
@@ -627,11 +628,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title.toUpperCase(), style: const TextStyle(
+            Text(title.toUpperCase(), style: TextStyle(
                 fontWeight: FontWeight.w900, fontSize: 11,
                 color: _kSlate, letterSpacing: 1.2)),
             const SizedBox(height: 2),
-            Text(message, style: const TextStyle(
+            Text(message, style: TextStyle(
                 fontSize: 12, color: _kSlate)),
           ])),
       ]),
@@ -668,16 +669,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget              child;
   final double              radius;
   final double              borderWidth;
-  final Color               innerColor;
+  final Color?               innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color>         colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -688,7 +689,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
             math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

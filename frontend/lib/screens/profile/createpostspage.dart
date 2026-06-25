@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,7 +16,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kGradient = LinearGradient(
   colors: [_kG1, _kG2, _kG3, _kG4],
   begin: Alignment.topLeft,
@@ -548,9 +549,9 @@ class _CreatePostPageState extends State<CreatePostPage>
           child: Container(width: 40, height: 40,
             decoration: BoxDecoration(color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.close_rounded, color: _kInk, size: 20))),
+            child: Icon(Icons.close_rounded, color: _kInk, size: 20))),
         const SizedBox(width: 12),
-        const T('Create Post', style: TextStyle(
+        T('Create Post', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const Spacer(),
         if (_media.isNotEmpty)
@@ -598,7 +599,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const T('Who can see this post?',
+          T('Who can see this post?',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 16),
           ...[
@@ -669,7 +670,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               blendMode: BlendMode.srcIn,
               child: const Icon(Icons.add_photo_alternate_rounded, size: 52)),
             const SizedBox(height: 14),
-            const T('Add Media', style: TextStyle(
+            T('Add Media', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
             const SizedBox(height: 6),
             Text('Up to $_kMaxMedia items · $_kMaxImageMb MB photos · '
@@ -906,7 +907,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
-          const T('Add to your post', style: TextStyle(
+          T('Add to your post', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 6),
           Text(
@@ -961,7 +962,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             maxLines: null,
             minLines: 3,
             enableSuggestions: false,
-            style: const TextStyle(fontFamily: 'Momo', fontSize: 15,
+            style: TextStyle(fontFamily: 'Momo', fontSize: 15,
                 color: _kInk, height: 1.5),
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('Write a caption...'),
@@ -1107,7 +1108,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const T('How are you feeling?', style: TextStyle(
+          T('How are you feeling?', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 16),
           Wrap(spacing: 10, runSpacing: 10,

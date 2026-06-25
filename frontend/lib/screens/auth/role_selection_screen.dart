@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/auth/login_id_screen.dart';
 
@@ -20,13 +21,13 @@ const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate = Color(0xFF6B7280);
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 const _gradColors = <Color>[
   Color(0xFF6DD5FA), // light blue
@@ -268,7 +269,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             borderWidth: 2.5,
             innerColor: _kCard,
             padding: const EdgeInsets.all(18),
-            child: const Icon(Icons.school_rounded, color: _kInk, size: 32),
+            child: Icon(Icons.school_rounded, color: _kInk, size: 32),
           ),
         ),
         const SizedBox(height: 22),
@@ -719,16 +720,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -740,7 +741,7 @@ class _GradientBorderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth),
         ),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

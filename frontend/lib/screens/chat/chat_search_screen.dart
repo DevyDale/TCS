@@ -14,6 +14,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -22,13 +23,13 @@ import '../../services/api_service.dart';
 const _kBg1     = Color(0xFFFAFAFC);
 const _kBg2     = Color(0xFFE6E6EE);
 const _kBg3     = Color(0xFFF2F2F6);
-const _kCard    = Color(0xFFFFFFFF);
-const _kCardLo  = Color(0xFFF5F5F8);
-const _kBorder  = Color(0xFFE5E7EB);
-const _kInk     = Color(0xFF0D0D1A);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF374151);
-const _kSlate   = Color(0xFF6B7280);
-const _kSlate2  = Color(0xFF9CA3AF);
+Color get _kSlate => AppC.sub;
+Color get _kSlate2 => AppC.sub;
 
 // Gradient accents (constant across themes in arcade)
 const _kBlue   = Color(0xFF6DD5FA);
@@ -333,7 +334,7 @@ class _ChatSearchScreenState extends State<ChatSearchScreen>
             animation: _shimmerCtrl,
             radius: 14, borderWidth: 1.2, innerColor: _kCard,
             padding: const EdgeInsets.all(11),
-            child: const Icon(Icons.arrow_back_ios_new_rounded,
+            child: Icon(Icons.arrow_back_ios_new_rounded,
                 color: _kInk, size: 16),
           ),
         ),
@@ -397,13 +398,13 @@ Widget _buildSearchBar() {
             enableSuggestions: false, autocorrect: false,
             onChanged: _onChanged,
             cursorColor: _kPurple,
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: 'Momo', fontSize: 15, color: _kInk),
             decoration: InputDecoration(
               filled: true,
               fillColor: _kCard,
               hintText: TranslationService.I.tr('Search by name or student ID...'),
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                   fontFamily: 'Momo', fontSize: 14,
                   color: _kSlate2),
               prefixIcon: ShaderMask(
@@ -425,7 +426,7 @@ Widget _buildSearchBar() {
                         decoration: BoxDecoration(
                             color: _kCardLo,
                             borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.close_rounded,
+                        child: Icon(Icons.close_rounded,
                             color: _kSlate, size: 18),
                       ),
                     )
@@ -570,7 +571,7 @@ Widget _buildSearchBar() {
                     color: Colors.white, size: 30),
               ),
               const SizedBox(height: 14),
-              const T('Find someone to chat with',
+              T('Find someone to chat with',
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w900,
                       color: _kInk, letterSpacing: -0.3)),
@@ -594,7 +595,7 @@ Widget _buildSearchBar() {
         Icon(Icons.search_off_rounded,
             size: 56, color: _kSlate2.withOpacity(0.5)),
         const SizedBox(height: 14),
-        const T('No people found',
+        T('No people found',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w800, color: _kInk)),
         const SizedBox(height: 4),
@@ -632,7 +633,7 @@ Widget _buildSearchBar() {
     Icon(icon, color: _kInk, size: 16),
     const SizedBox(width: 8),
     Text(label,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 16, fontWeight: FontWeight.w900,
             color: _kInk, letterSpacing: -0.4)),
   ]);
@@ -700,7 +701,7 @@ Widget _buildSearchBar() {
             Text(name,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w800,
                     color: _kInk, letterSpacing: -0.1)),
           ],
@@ -776,7 +777,7 @@ Widget _buildSearchBar() {
           children: [
             Text(name,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Arch',
                     fontSize: 14, fontWeight: FontWeight.w900,
                     color: _kInk, letterSpacing: -0.3)),
@@ -888,16 +889,16 @@ class _GradientBorderBox extends StatelessWidget {
   final Widget              child;
   final double              radius;
   final double              borderWidth;
-  final Color               innerColor;
+  final Color?               innerColor;
   final EdgeInsetsGeometry  padding;
   final List<Color>         colors;
 
-  const _GradientBorderBox({
+  _GradientBorderBox({
     required this.animation,
     required this.child,
     this.radius = 16,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding = EdgeInsets.zero,
     this.colors = _gradColors,
   });
@@ -908,7 +909,7 @@ class _GradientBorderBox extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
             math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

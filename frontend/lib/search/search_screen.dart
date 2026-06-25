@@ -19,6 +19,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/screens/arcade/club_screen.dart';
@@ -30,9 +31,9 @@ const _kG1    = Color(0xFF6DD5FA);  // sky
 const _kG2    = Color(0xFF8E54E9);  // purple
 const _kG3    = Color(0xFFF7971E);  // amber
 const _kG4    = Color(0xFFFF5858);  // coral
-const _kInk   = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kField = Color(0xFFF1F2F6);
-const _kSlate = Color(0xFF7A8294);
+Color get _kSlate => AppC.sub;
 const _kHair  = Color(0xFFECEDF1);
 
 const _kHistoryKey = 'search_history_v1';
@@ -481,7 +482,7 @@ Widget _buildHeader() {
                   color: _kField,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_rounded,
                   color: _kInk,
                   size: 22,
@@ -489,7 +490,7 @@ Widget _buildHeader() {
               ),
             ),
             const SizedBox(width: 12),
-            const T(
+            T(
               'Search',
               style: TextStyle(
                 fontFamily: 'Alfa',
@@ -528,21 +529,21 @@ Widget _buildHeader() {
               setState(() => _pushTermHistory(_currentCat, q));
               _search(q.trim());
             },
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 15,
               color: _kInk,
             ),
             decoration: InputDecoration(
               hintText: _hint(),
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 14,
                 color: _kSlate,
               ),
 
               // PREFIX ICON (inside field)
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.search_rounded,
                 color: _kSlate,
                 size: 22,
@@ -567,7 +568,7 @@ Widget _buildHeader() {
                           color: _kSlate.withOpacity(0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
                           size: 16,
                           color: _kSlate,
@@ -612,7 +613,7 @@ Widget _buildHeader() {
             size: 17, color: _hasQuery ? _kG2 : _kSlate),
         const SizedBox(width: 7),
         Text(_hasQuery ? 'Results' : 'History',
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 fontSize: 15, color: _kInk)),
         const Spacer(),
@@ -743,7 +744,7 @@ Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: 10),
       child: Text(label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
               fontFamily: 'Arch', fontWeight: FontWeight.w800,
               fontSize: 11, letterSpacing: 0.8, color: _kSlate)),
     );
@@ -795,14 +796,14 @@ Widget _buildHeader() {
                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(title,
                           maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontFamily: 'Arch',
+                          style: TextStyle(fontFamily: 'Arch',
                               fontWeight: FontWeight.bold,
                               fontSize: 14.5, color: _kInk)),
                       const SizedBox(height: 3),
                       if (e.isPerson && (e.tag?.isNotEmpty ?? false))
                         _tagChip(e.tag!, c)
                       else
-                        const T('Recent search',
+                        T('Recent search',
                             style: TextStyle(fontFamily: 'Momo',
                                 fontSize: 11.5, color: _kSlate)),
                     ],
@@ -816,7 +817,7 @@ Widget _buildHeader() {
                     width: 34, height: 34,
                     decoration: BoxDecoration(
                         color: Colors.grey.shade100, shape: BoxShape.circle),
-                    child: const Icon(Icons.close_rounded,
+                    child: Icon(Icons.close_rounded,
                         size: 18, color: _kSlate),
                   ),
                 ),
@@ -850,13 +851,13 @@ Widget _buildHeader() {
         child: Icon(Icons.history_rounded, size: 36, color: c.withOpacity(0.5)),
       ),
       const SizedBox(height: 16),
-      const T('No recent searches',
+      T('No recent searches',
           style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: _kInk)),
       const SizedBox(height: 6),
       Text('Your ${_catLabel[cat]!.toLowerCase()} searches show up here.',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
     ]));
   }
 
@@ -869,11 +870,11 @@ Widget _buildHeader() {
         child: Icon(_catIcon[cat], size: 34, color: c.withOpacity(0.5)),
       ),
       const SizedBox(height: 16),
-      const T('No results',
+      T('No results',
           style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: _kInk)),
       const SizedBox(height: 6),
-      const T('Try different keywords.',
+      T('Try different keywords.',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
     ]));
   }
@@ -922,7 +923,7 @@ Widget _buildHeader() {
                   prog == null ? w : Container(color: _kField),
               errorBuilder: (c, e, s) => Container(
                   color: _kField,
-                  child: const Icon(Icons.image_not_supported_rounded,
+                  child: Icon(Icons.image_not_supported_rounded,
                       color: _kSlate)),
             ),
             if (isVideo)
@@ -974,7 +975,7 @@ Widget _buildHeader() {
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(p['author_name'] as String? ?? '',
-                    style: const TextStyle(fontFamily: 'Arch',
+                    style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
                 Text(p['post_type'] as String? ?? '',
                     style: TextStyle(fontFamily: 'Momo',
@@ -987,7 +988,7 @@ Widget _buildHeader() {
             const SizedBox(height: 10),
             Text(content,
                 maxLines: 3, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'Momo',
+                style: TextStyle(fontFamily: 'Momo',
                     fontSize: 14, color: _kInk, height: 1.4)),
           ],
           _postMedia(p),
@@ -1003,7 +1004,7 @@ Widget _buildHeader() {
             Text('${p['comment_count'] ?? p['comments_count'] ?? 0}',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: Colors.grey.shade400)),
             const Spacer(),
-            const Icon(Icons.chevron_right_rounded, size: 16, color: _kSlate),
+            Icon(Icons.chevron_right_rounded, size: 16, color: _kSlate),
           ]),
         ]),
       ),
@@ -1038,7 +1039,7 @@ Widget _buildHeader() {
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(displayName, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
               Text(u['role'] as String? ?? '',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 12,
@@ -1106,7 +1107,7 @@ Widget _buildHeader() {
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(g['name'] as String? ?? '',
-                style: const TextStyle(fontFamily: 'Arch',
+                style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
             Text('${g['members_count'] ?? 0} members'
                  '${g['category'] != null ? ' · ${g['category']}' : ''}',
@@ -1171,7 +1172,7 @@ Widget _buildHeader() {
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(child: Text(title,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14, color: _kInk),
                   maxLines: 1, overflow: TextOverflow.ellipsis)),
               if (cat.isNotEmpty) _pill(cat, _kG1),
@@ -1448,10 +1449,10 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
             padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
             child: Row(children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+                icon: Icon(Icons.arrow_back_rounded, color: _kInk),
                 onPressed: () => Navigator.pop(context),
               ),
-              const T('Post',
+              T('Post',
                   style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             ]),
           ),
@@ -1495,7 +1496,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(author,
                             maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontFamily: 'Arch',
+                            style: TextStyle(fontFamily: 'Arch',
                                 fontWeight: FontWeight.bold, fontSize: 15, color: _kInk)),
                         if (role.isNotEmpty)
                           Text(role,
@@ -1503,14 +1504,14 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                                   fontSize: 11.5, color: Colors.grey.shade500)),
                       ],
                     )),
-                    const Icon(Icons.chevron_right_rounded,
+                    Icon(Icons.chevron_right_rounded,
                         size: 18, color: _kSlate),
                   ]),
                 ),
                 if (content.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   Text(content,
-                      style: const TextStyle(fontFamily: 'Momo',
+                      style: TextStyle(fontFamily: 'Momo',
                           fontSize: 15, color: _kInk, height: 1.5)),
                 ],
                 if (media.isNotEmpty) ...[
@@ -1535,7 +1536,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                                         prog == null ? w : Container(color: _kField),
                                     errorBuilder: (c, e, s) => Container(
                                         color: _kField,
-                                        child: const Icon(
+                                        child: Icon(
                                             Icons.image_not_supported_rounded,
                                             color: _kSlate)))
                               else
@@ -1632,7 +1633,7 @@ class _DetailAction extends StatelessWidget {
         Icon(icon, size: 22, color: color),
         const SizedBox(width: 6),
         Text(label,
-            style: const TextStyle(fontFamily: 'Arch',
+            style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
       ]),
     );
@@ -1773,7 +1774,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2)),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 14, 20, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -1887,7 +1888,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
             Row(children: [
               Expanded(child: Text(name,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 12.5, color: _kInk))),
               if (when.isNotEmpty)
                 Text(when,
@@ -1896,7 +1897,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
             ]),
             const SizedBox(height: 3),
             Text(text,
-                style: const TextStyle(fontFamily: 'Momo', fontSize: 13,
+                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                     color: _kInk, height: 1.4)),
           ]),
         )),
@@ -2101,7 +2102,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
             Container(width: 40, height: 4,
                 decoration: BoxDecoration(
                     color: _kHair, borderRadius: BorderRadius.circular(2))),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 14, 20, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -2117,7 +2118,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
                     color: _kField, borderRadius: BorderRadius.circular(14)),
                 child: TextField(
                   controller: _ctrl,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Momo', fontSize: 14, color: _kInk),
                   decoration: InputDecoration(
                     hintText: TranslationService.I.tr('Search people…'),
@@ -2231,7 +2232,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
               if (role.isNotEmpty)
                 Text(_prettyRole(role),

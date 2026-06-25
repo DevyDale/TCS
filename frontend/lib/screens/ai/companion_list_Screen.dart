@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/ai/companion_chat_screen.dart';
 import '../../../../services/api_service.dart';
@@ -18,15 +19,15 @@ const _kBg1     = Color(0xFFFAFAFC);
 const _kBg2     = Color(0xFFE6E6EE);
 const _kBg3     = Color(0xFFF2F2F6);
 
-const _kCard    = Color(0xFFFFFFFF);
-const _kCardLo  = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 
-const _kBorder  = Color(0xFFE5E7EB);
+Color get _kBorder => AppC.border;
 
-const _kSlate2  = Color(0xFF9CA3AF);
-const _kSlate   = Color(0xFF6B7280);
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk     = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 // Shared sweep-gradient palette for animated borders
 const _gradColors = <Color>[
@@ -189,7 +190,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
                 borderWidth: 1.2,
                 innerColor: _kCard,
                 padding: const EdgeInsets.all(11),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: _kInk, size: 16,
                 ),
@@ -197,7 +198,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
             ),
             const SizedBox(width: 10),
           ],
-          const Expanded(
+          Expanded(
             child: T(
               'AI Companions',
               maxLines: 1,
@@ -216,7 +217,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
             borderWidth: 1.2,
             innerColor: _kCard,
             padding: const EdgeInsets.all(9),
-            child: const Icon(
+            child: Icon(
               Icons.groups_rounded,
               color: _kInk, size: 18,
             ),
@@ -227,7 +228,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
   }
 
   Widget _buildIntro() {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: T(
         'Pick a persona to chat with. They remember your conversation.',
@@ -302,7 +303,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
 
   Widget _buildGrid() {
     if (_companions.isEmpty) {
-      return const Center(
+      return Center(
         child: T('No companions yet.',
             style: TextStyle(color: _kSlate, fontSize: 13)),
       );
@@ -350,12 +351,12 @@ class _CompanionListScreenState extends State<CompanionListScreen>
             Text(
               _error ?? 'Error',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _kSlate),
+              style: TextStyle(color: _kSlate),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: _load,
-              child: const T('Retry',
+              child: T('Retry',
                   style: TextStyle(color: _kInk)),
             ),
           ],
@@ -424,7 +425,7 @@ class _CompanionCard extends StatelessWidget {
                     companion.name,
                     maxLines:  1,
                     overflow:  TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color:      _kInk,
                       fontSize:   15,
                       fontWeight: FontWeight.w800,
@@ -436,7 +437,7 @@ class _CompanionCard extends StatelessWidget {
                     companion.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color:    _kSlate,
                       fontSize: 11,
                       height:   1.35,
@@ -479,16 +480,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget              child;
   final double              radius;
   final double              borderWidth;
-  final Color               innerColor;
+  final Color?               innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color>         colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -499,7 +500,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

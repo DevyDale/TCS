@@ -17,6 +17,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../screens/arcade/club_screen.dart';
@@ -27,7 +28,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
 const _kIndigo = Color(0xFF3F51B5);
@@ -159,7 +160,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
       child: Row(children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+          icon: Icon(Icons.arrow_back_rounded, color: _kInk),
           onPressed: () => Navigator.pop(context),
         ),
         const SizedBox(width: 4),
@@ -173,7 +174,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
               color: Colors.white, size: 18),
         ),
         const SizedBox(width: 10),
-        const T('Search Clubs',
+        T('Search Clubs',
             style: TextStyle(
               fontFamily: 'Alfa',
               fontSize: 19,
@@ -203,7 +204,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
           enableSuggestions: false,
           autocorrect: false,
           onChanged: _onChanged,
-          style: const TextStyle(
+          style: TextStyle(
               fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search clubs by name or tagline...'),
@@ -302,7 +303,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
               ),
               const SizedBox(height: 12),
               Text(isSearching ? 'No matching clubs' : 'No clubs yet',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
               const SizedBox(height: 6),
               Text(
@@ -411,7 +412,7 @@ class _ClubResultCard extends StatelessWidget {
                       child: Text(name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -447,7 +448,7 @@ class _ClubResultCard extends StatelessWidget {
                     Text(tagline,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 12,
                           color: _kInk,

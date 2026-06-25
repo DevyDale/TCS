@@ -9,6 +9,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/ai/quiz_results_Screen.dart';
 
@@ -20,7 +21,7 @@ const _kWoodLight = Color(0xFF8B5E3C);
 const _kCream     = Color(0xFFFDF6EC);
 const _kPaper     = Color(0xFFF5ECD7);
 const _kGold      = Color(0xFFD4A017);
-const _kInk       = Color(0xFF1A1209);
+Color get _kInk => AppC.text;
 const _kInkLight  = Color(0xFF4A3728);
 
 class QuizPlayScreen extends StatefulWidget {
@@ -139,7 +140,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: _kCream,
-          title: const T('Submit anyway?',
+          title: T('Submit anyway?',
               style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
           content: Text('You have $unanswered unanswered questions.',
               style: const TextStyle(fontFamily: 'Momo', color: _kInkLight)),
@@ -214,7 +215,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                         fontSize: 11, color: _kInkLight)),
                 const SizedBox(height: 8),
                 Text(q['question'] as String? ?? '',
-                    style: const TextStyle(fontFamily: 'Arch',
+                    style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 18, color: _kInk, height: 1.4)),
                 const SizedBox(height: 24),
@@ -347,7 +348,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                         fontSize: 14)))),
               const SizedBox(width: 12),
               Expanded(child: Text(options[i].toString(),
-                  style: const TextStyle(fontFamily: 'Momo',
+                  style: TextStyle(fontFamily: 'Momo',
                       fontSize: 13, color: _kInk, height: 1.4))),
               if (isSel)
                 const Icon(Icons.check_circle_rounded,
@@ -409,7 +410,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
       TextField(
         controller: _shortCtrl,
         maxLines: 3,
-        style: const TextStyle(fontFamily: 'Momo',
+        style: TextStyle(fontFamily: 'Momo',
             fontSize: 13, color: _kInk, height: 1.5),
         decoration: InputDecoration(
           hintText: TranslationService.I.tr('Type your answer here…'),
@@ -492,7 +493,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCream,
-        title: const T('Leave the quiz?',
+        title: T('Leave the quiz?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
         content: const T(
             'Your progress will be lost. The quiz itself is saved and you can retake it anytime.',
@@ -527,14 +528,14 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget _emptyBlock() => Column(mainAxisSize: MainAxisSize.min, children: [
     const T('🤷', style: TextStyle(fontSize: 60)),
     const SizedBox(height: 20),
-    const T('No questions in this quiz',
+    T('No questions in this quiz',
         style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
     const SizedBox(height: 16),
     TextButton(onPressed: () => Navigator.pop(context),
         child: const T('Back')),
   ]);
 
-  Widget _submittingBlock() => const Column(mainAxisSize: MainAxisSize.min, children: [
+  Widget _submittingBlock() => Column(mainAxisSize: MainAxisSize.min, children: [
     CircularProgressIndicator(color: _kGold),
     SizedBox(height: 20),
     T('Grading…',

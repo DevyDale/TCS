@@ -18,13 +18,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../../services/api_service.dart';
 
 const _kG1   = Color(0xFF6DD5FA);
 const _kG2   = Color(0xFF8E54E9);
-const _kInk  = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate = Color(0xFF64687A);
 
 /// Public entry point — call this to show the picker.
@@ -128,7 +129,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            const T('Stickers',
+            T('Stickers',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
             const Spacer(),
@@ -216,7 +217,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
             Icon(Icons.sentiment_dissatisfied_rounded,
                 size: 56, color: Colors.grey.shade300),
             const SizedBox(height: 12),
-            const T('No stickers available yet',
+            T('No stickers available yet',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
             const SizedBox(height: 6),

@@ -14,6 +14,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,7 +25,7 @@ import '../../services/api_service.dart';
 const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 
 const _kMyStickersKey = 'my_stickers_v1';
@@ -156,7 +157,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const T('Remove sticker?',
+        title: T('Remove sticker?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
         content: const T(
             'This will permanently remove this sticker from your saved set.',
@@ -236,7 +237,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            const T('Stickers',
+            T('Stickers',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
             const Spacer(),
@@ -402,7 +403,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
             Icon(icon, size: 56, color: Colors.grey.shade300),
             const SizedBox(height: 12),
             Text(title,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
             const SizedBox(height: 6),
             Text(message,

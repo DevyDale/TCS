@@ -28,6 +28,7 @@ import 'dart:io';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/widgets/add_members_bottom_sheet.dart';
@@ -39,7 +40,7 @@ const _kG1   = Color(0xFF6DD5FA);
 const _kG2   = Color(0xFF8E54E9);
 const _kG3   = Color(0xFFF7971E);
 const _kG4   = Color(0xFFFF5858);
-const _kInk  = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 
 class CreateChatBubbleScreen extends StatefulWidget {
@@ -199,11 +200,11 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
         border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
       child: Row(children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kInk, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: _kInk, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: 4),
-        const Expanded(child: T('Create Chat Bubble',
+        Expanded(child: T('Create Chat Bubble',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk))),
       ]),
     );
@@ -259,7 +260,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           ]),
         )),
         const SizedBox(height: 8),
-        const Center(child: T(
+        Center(child: T(
             'Build your group',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
         const SizedBox(height: 4),
@@ -329,7 +330,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
     );
   }
 
-  Widget _label(String text) => Text(text, style: const TextStyle(
+  Widget _label(String text) => Text(text, style: TextStyle(
       fontFamily: 'Arch', fontWeight: FontWeight.bold,
       fontSize: 13, color: _kInk));
 
@@ -347,7 +348,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
       child: TextField(
         controller: controller,
         maxLines:   maxLines, maxLength: maxLength,
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+        style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade400),
@@ -412,7 +413,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontFamily: 'Arch',
+            Text(title, style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
             const SizedBox(height: 2),
             Text(body, style: TextStyle(fontFamily: 'Momo',
@@ -500,7 +501,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
                   fontSize: 12))) : null,
         ),
         const SizedBox(width: 8),
-        Text(name.split(' ').first, style: const TextStyle(
+        Text(name.split(' ').first, style: TextStyle(
             fontFamily: 'Momo', fontSize: 12, color: _kInk)),
         const SizedBox(width: 6),
         GestureDetector(

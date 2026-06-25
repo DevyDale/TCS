@@ -27,6 +27,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -42,13 +43,13 @@ import '../feed/feed_screen.dart' show deletedHighlightIds;
 const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
-const _kBorder = Color(0xFFE5E7EB);
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate = Color(0xFF6B7280);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 const _kBlue = Color(0xFF6DD5FA);
 const _kPurple = Color(0xFF7C3AED);
@@ -374,7 +375,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.flag_outlined, color: _kCoral),
-              title: const T('Report user',
+              title: T('Report user',
                   style: TextStyle(fontWeight: FontWeight.w800, color: _kInk)),
               onTap: () async {
                 Navigator.pop(context);
@@ -394,8 +395,8 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.block_rounded, color: _kSlate),
-              title: const T('Block user',
+              leading: Icon(Icons.block_rounded, color: _kSlate),
+              title: T('Block user',
                   style: TextStyle(fontWeight: FontWeight.w800, color: _kInk)),
               onTap: () async {
                 Navigator.pop(context);
@@ -429,17 +430,17 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const T('Block this user?',
+        title: T('Block this user?',
             style: TextStyle(fontWeight: FontWeight.w900, color: _kInk)),
         content: Text(
           'You will no longer see posts or messages from $name, and they '
           'will not see yours. You can unblock anytime in Settings.',
-          style: const TextStyle(color: _kSlate, height: 1.5),
+          style: TextStyle(color: _kSlate, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const T('Cancel',
+            child: T('Cancel',
                 style: TextStyle(color: _kSlate, fontWeight: FontWeight.w700)),
           ),
           FilledButton(
@@ -728,7 +729,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
                                 _displayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                   color: _kInk,
@@ -816,7 +817,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             child: Text(_handleName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w600, color: _kSlate)),
           ),
         ],
@@ -831,10 +832,10 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(_fmt(_followers),
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w900, color: _kInk)),
         const SizedBox(height: 1),
-        const T('Followers',
+        T('Followers',
             style: TextStyle(
                 fontSize: 10.5, color: _kSlate, fontWeight: FontWeight.w600)),
       ],
@@ -885,7 +886,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: _kSlate)),
@@ -1094,7 +1095,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
                       color: _kPurple, size: 15),
                 ),
                 const SizedBox(width: 8),
-                const T('About Me',
+                T('About Me',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
@@ -1455,14 +1456,14 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
               ),
               const SizedBox(height: 16),
               Text(title,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                       color: _kInk)),
               const SizedBox(height: 6),
               Text('$_displayName hasn\'t shared any yet.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12.5, color: _kSlate)),
+                  style: TextStyle(fontSize: 12.5, color: _kSlate)),
             ],
           ),
         ),
@@ -1480,15 +1481,15 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.colors = _gradColors,
   });
 
@@ -1498,7 +1499,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius:
             BorderRadius.circular(math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       child: child,
     );
@@ -1539,7 +1540,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kBg1,
         border: Border(bottom: BorderSide(color: _kBorder, width: 0.5)),
       ),
@@ -1610,11 +1611,11 @@ class _PostDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
             child: Row(children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+                icon: Icon(Icons.arrow_back_rounded, color: _kInk),
                 onPressed: () => Navigator.pop(context),
               ),
               Text(isFweet ? 'Fweet' : 'Post',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w900, color: _kInk)),
             ]),
           ),
@@ -1644,7 +1645,7 @@ class _PostDetailScreen extends StatelessWidget {
                     child: Text(authorName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 15,
                             color: _kInk)),
@@ -1692,7 +1693,7 @@ class _PostDetailScreen extends StatelessWidget {
                   if (content.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(content,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 15, color: _kInk, height: 1.5)),
                   ],
                 ],
@@ -1703,11 +1704,11 @@ class _PostDetailScreen extends StatelessWidget {
                         size: 14, color: _kCoral),
                     const SizedBox(width: 4),
                     Text(location,
-                        style: const TextStyle(fontSize: 12, color: _kSlate)),
+                        style: TextStyle(fontSize: 12, color: _kSlate)),
                   ]),
                 ],
                 const SizedBox(height: 18),
-                const Divider(height: 1, color: _kBorder),
+                Divider(height: 1, color: _kBorder),
                 const SizedBox(height: 14),
                 Row(children: [
                   _stat(Icons.favorite_rounded, likes, _kCoral),
@@ -1738,7 +1739,7 @@ class _PostDetailScreen extends StatelessWidget {
           Icon(icon, size: 20, color: color),
           const SizedBox(width: 6),
           Text('$count',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w800, color: _kInk)),
         ],
       );

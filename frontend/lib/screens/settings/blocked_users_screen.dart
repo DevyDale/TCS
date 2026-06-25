@@ -3,12 +3,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 import '../../services/moderation_service.dart';
 
 const _kG2 = Color(0xFF8E54E9);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kBg = Color(0xFFF2F4F8);
 
 class BlockedUsersScreen extends StatefulWidget {
@@ -167,7 +168,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                           : null,
                     ),
                     title: Text(name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 14,

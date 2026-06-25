@@ -11,6 +11,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../../../../services/api_service.dart';
 
@@ -19,15 +20,15 @@ const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 
-const _kBorder = Color(0xFFE5E7EB);
+Color get _kBorder => AppC.border;
 
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate = Color(0xFF6B7280);
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 // Image-Gen identity (orange → red) for filled buttons & selected chips
 const _kImg1 = Color(0xFFFF5858);
@@ -289,7 +290,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: T(
                       'Your images',
                       maxLines: 1,
@@ -321,7 +322,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                         child: Text(
                           "No images yet.\nGenerate one and it'll show up here.",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 13,
                             color: _kSlate2,
@@ -361,7 +362,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                 borderWidth: 1.2,
                 innerColor: _kCard,
                 padding: const EdgeInsets.all(11),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: _kInk,
                   size: 16,
@@ -382,11 +383,11 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
               borderWidth: 1.2,
               innerColor: _kCard,
               padding: const EdgeInsets.all(11),
-              child: const Icon(Icons.menu_rounded, color: _kInk, size: 16),
+              child: Icon(Icons.menu_rounded, color: _kInk, size: 16),
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: T(
               'Image Generator',
               maxLines: 1,
@@ -405,7 +406,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
             borderWidth: 1.2,
             innerColor: _kCard,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.auto_awesome_rounded, color: _kInkSoft, size: 12),
@@ -431,7 +432,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: _kSlate,
           fontSize: 10,
           fontWeight: FontWeight.w800,
@@ -458,7 +459,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
             minLines: 3,
             maxLines: 6,
             cursorColor: _kImg1,
-            style: const TextStyle(color: _kInk, fontSize: 14, height: 1.4),
+            style: TextStyle(color: _kInk, fontSize: 14, height: 1.4),
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('Describe the image you want…'),
               hintStyle: TextStyle(color: _kSlate2),
@@ -468,7 +469,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
             ),
           ),
           const SizedBox(height: 12),
-          const T(
+          T(
             'TRY ONE',
             style: TextStyle(
               color: _kSlate,
@@ -656,7 +657,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
         ),
         child: Center(
           child: _isGenerating
-              ? const Row(
+              ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
@@ -720,7 +721,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                       shaderCallback: (rect) => LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: const [_kCardLo, Color(0xFFE8E8EE), _kCardLo],
+                        colors: [_kCardLo, Color(0xFFE8E8EE), _kCardLo],
                         stops: [
                           (_loadingCtrl.value - 0.3).clamp(0.0, 1.0),
                           _loadingCtrl.value,
@@ -732,7 +733,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                   },
                 ),
               ),
-              const Center(
+              Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -797,7 +798,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     height: 200,
                     alignment: Alignment.center,
                     color: _kCardLo,
-                    child: const T(
+                    child: T(
                       'Failed to load image',
                       style: TextStyle(color: _kSlate),
                     ),
@@ -814,7 +815,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     g.prompt,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _kInk,
                       fontSize: 13,
                       height: 1.4,
@@ -884,7 +885,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
           Expanded(
             child: Text(
               _error ?? 'Error',
-              style: const TextStyle(color: _kInk, fontSize: 12),
+              style: TextStyle(color: _kInk, fontSize: 12),
             ),
           ),
         ],
@@ -896,7 +897,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: T(
             'RECENT',
@@ -944,18 +945,18 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
       builder: (_) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const T(
+        title: T(
           'Delete this image?',
           style: TextStyle(color: _kInk, fontWeight: FontWeight.w800),
         ),
-        content: const T(
+        content: T(
           'Removes it from your history.',
           style: TextStyle(color: _kSlate),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const T('Cancel', style: TextStyle(color: _kSlate)),
+            child: T('Cancel', style: TextStyle(color: _kSlate)),
           ),
           TextButton(
             onPressed: () {
@@ -1045,16 +1046,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -1066,7 +1067,7 @@ class _GradientBorderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth),
         ),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

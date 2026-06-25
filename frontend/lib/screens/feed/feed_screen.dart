@@ -22,6 +22,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
@@ -49,10 +50,10 @@ final ValueNotifier<Set<String>> deletedHighlightIds =
 
 
 // ── Palette ───────────────────────────────────────────────────
-const _kInk    = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
-const _kCard   = Colors.white;
+Color get _kCard => AppC.card;
 const _kViolet = Color(0xFF7C3AED);
 const _kBlue   = Color(0xFF3B82F6);
 const _kCoral  = Color(0xFFFF4F6E);
@@ -504,7 +505,7 @@ class _FeedScreenState extends State<FeedScreen>
                 child: const Icon(Icons.add_rounded,
                     color: _kAmber, size: 22)),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                   child: T('Create',
                       style: TextStyle(
                           fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
@@ -577,7 +578,7 @@ class _FeedScreenState extends State<FeedScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -823,7 +824,7 @@ class _FeedScreenState extends State<FeedScreen>
           Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -844,7 +845,7 @@ class _FeedScreenState extends State<FeedScreen>
             children: [
             Text(_greeting, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 15, color: _kSlate)),
-            const T('TCS StudentHub', style: TextStyle(
+            T('TCS StudentHub', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 20, color: _kInk, height: 1.1)),
           ])),
 
@@ -1079,7 +1080,7 @@ class _FeedScreenState extends State<FeedScreen>
                 fontWeight: FontWeight.bold, fontSize: 10,
                 color: _kViolet, letterSpacing: 1.5)),
             const SizedBox(height: 2),
-            const T('Campus Feed', style: TextStyle(
+            T('Campus Feed', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
           ]),
           const Spacer(),
@@ -1174,7 +1175,7 @@ class _FeedScreenState extends State<FeedScreen>
           child: const Center(child: T('📭',
               style: TextStyle(fontSize: 34)))),
         const SizedBox(height: 20),
-        const T('No posts yet', style: TextStyle(
+        T('No posts yet', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const SizedBox(height: 8),
         T('Be the first to share something with campus',
@@ -1194,7 +1195,7 @@ class _FeedScreenState extends State<FeedScreen>
           child: const Center(child: T('🗓️',
               style: TextStyle(fontSize: 34)))),
         const SizedBox(height: 20),
-        const T('No club events yet', style: TextStyle(
+        T('No club events yet', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const SizedBox(height: 8),
         Text("When clubs create events, you'll see them here",
@@ -1639,7 +1640,7 @@ class _PostCardState extends State<_PostCard>
             Row(children: [
               Flexible(child: Text(name, maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14,
                       color: _kInk))),
               if (isFweet) ...[
@@ -2205,7 +2206,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
       child: Row(children: [
         Text(widget.isEvent ? 'Event Comments' : 'Comments',
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 19, color: _kInk)),
         const SizedBox(width: 9),
         Container(
@@ -2278,7 +2279,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             if (name.isNotEmpty)
               TextSpan(
                   text: '$name  ',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -2310,7 +2311,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               child:
                   const Center(child: T('💬', style: TextStyle(fontSize: 28)))),
           const SizedBox(height: 14),
-          const T('No comments yet',
+          T('No comments yet',
               style: TextStyle(
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
@@ -2863,7 +2864,7 @@ class _ShareSheetState extends State<_ShareSheet> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(widget.isEvent ? 'Share Event' : 'Share Post',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
               ),
             ),
@@ -2874,7 +2875,7 @@ class _ShareSheetState extends State<_ShareSheet> {
                     color: _kBg, borderRadius: BorderRadius.circular(14)),
                 child: TextField(
                   controller: _ctrl,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Momo', fontSize: 14, color: _kInk),
                   decoration: InputDecoration(
                     hintText: TranslationService.I.tr('Search people...'),
@@ -2990,7 +2991,7 @@ class _ShareSheetState extends State<_ShareSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
               if (role.isNotEmpty)
                 Text(_prettyRole(role),
@@ -3247,7 +3248,7 @@ class _EventCardState extends State<_EventCard>
               if (club.isNotEmpty) const SizedBox(height: 6),
               if (title.isNotEmpty)
                 Text(title,
-                    style: const TextStyle(fontFamily: 'Alfa',
+                    style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 18, color: _kInk, height: 1.2)),
               if (when.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -3256,7 +3257,7 @@ class _EventCardState extends State<_EventCard>
                       size: 14, color: _kViolet),
                   const SizedBox(width: 6),
                   Text(when,
-                      style: const TextStyle(fontFamily: 'Momo',
+                      style: TextStyle(fontFamily: 'Momo',
                           fontSize: 12, color: _kInk,
                           fontWeight: FontWeight.w600)),
                 ]),

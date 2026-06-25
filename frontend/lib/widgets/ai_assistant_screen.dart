@@ -19,6 +19,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
@@ -29,13 +30,13 @@ import 'package:tcs_app/widgets/markdown_text.dart';
 
 // ── Light palette ─────────────────────────────────────────────
 const _kBg = Color(0xFFFAFAFC);
-const _kCard = Color(0xFFFFFFFF);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kCard => AppC.card;
+Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF374151);
-const _kSlate = Color(0xFF6B7280);
-const _kSlateLight = Color(0xFF9CA3AF);
-const _kBorder = Color(0xFFE5E7EB);
-const _kBorderSoft = Color(0xFFF1F2F5);
+Color get _kSlate => AppC.sub;
+Color get _kSlateLight => AppC.sub;
+Color get _kBorder => AppC.border;
+Color get _kBorderSoft => AppC.border;
 const _kInputBg = Color(0xFFF7F8FB);
 const _kDanger = Color(0xFFFF5858);
 const _kOnline = Color(0xFF10B981);
@@ -752,7 +753,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const T(
+                  T(
                     'Dale',
                     style: TextStyle(
                       fontFamily: 'Alfa',
@@ -828,7 +829,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                         child: T(
                           'No conversations yet.\nStart chatting and it’ll show up here.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 13,
                             color: _kSlateLight,
@@ -991,7 +992,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
             child: Padding(
               padding: const EdgeInsets.all(6),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _kCard,
                 ),
@@ -1039,7 +1040,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         Text(
           _theme.greetingTagline,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,
             color: _kSlate,
@@ -1231,7 +1232,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kCard,
         border: Border(top: BorderSide(color: _kBorder)),
       ),
@@ -1262,7 +1263,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 cursorColor: _theme.gradient.last,
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 14,
                   color: _kInk,
@@ -1276,7 +1277,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   hintText: _isLoading ? 'Thinking…' : 'Ask anything…',
-                  hintStyle: const TextStyle(
+                  hintStyle: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 14,
                     color: _kSlateLight,
@@ -1316,7 +1317,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     : null,
               ),
               child: _isLoading
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
                         color: _kSlate,
@@ -1390,7 +1391,7 @@ class _ConversationTile extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1400,7 +1401,7 @@ class _ConversationTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 10,
                           color: _kSlateLight,
@@ -1412,7 +1413,7 @@ class _ConversationTile extends StatelessWidget {
                 GestureDetector(
                   onTap: onDelete,
                   behavior: HitTestBehavior.opaque,
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(4),
                     child: Icon(
                       Icons.delete_outline_rounded,

@@ -25,6 +25,7 @@
 //     Today/Yesterday/Earlier pills are unchanged.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -33,10 +34,10 @@ import 'noticeboard_screen.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
-const _kInk    = Color(0xFF1A1A2E);
-const _kSlate  = Color(0xFF7A8294);
+Color get _kInk => AppC.text;
+Color get _kSlate => AppC.sub;
 const _kBg     = Color(0xFFF7F8FA);
-const _kCard   = Colors.white;
+Color get _kCard => AppC.card;
 const _kRed    = Color(0xFFFF5858);
 const _kTabBg  = Color(0xFFF0F0F3); // unselected pill fill
 
@@ -157,9 +158,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const T('Notifications',
+        title: T('Notifications',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk, fontSize: 18)),
-        iconTheme: const IconThemeData(color: _kInk),
+        iconTheme: IconThemeData(color: _kInk),
         actions: [
           // Top-right: a direct "Clear All" button (replaces the 3-dot menu).
           if (all.isNotEmpty)
@@ -290,9 +291,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const T('Clear all notifications?',
+        title: T('Clear all notifications?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const T(
+        content: T(
           'This will permanently remove every notification. This action cannot be undone.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -300,7 +301,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const T('Cancel',
+            child: T('Cancel',
                 style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
           ),
           TextButton(
@@ -381,7 +382,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Alfa',
                   fontSize: 19,
                   color: _kInk,
@@ -394,7 +395,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
               Text(
                 sub,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 13.5,
                   color: _kSlate,
@@ -468,9 +469,9 @@ class _NotifTile extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const T('Delete notification?',
+        title: T('Delete notification?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const T(
+        content: T(
           'This notification will be permanently removed and will not appear again.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -478,7 +479,7 @@ class _NotifTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const T('Cancel',
+            child: T('Cancel',
                 style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
           ),
           TextButton(
@@ -592,7 +593,7 @@ class _NotifTile extends StatelessWidget {
                       Text(n.body,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: 'Momo',
                               fontSize: 12.5,
                               color: _kSlate,

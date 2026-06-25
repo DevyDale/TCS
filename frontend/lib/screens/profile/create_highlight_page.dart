@@ -21,6 +21,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -28,12 +29,12 @@ import '../../services/api_service.dart';
 
 // ── Light palette (matches profile_screen.dart) ──────────────
 const _kBg1    = Color(0xFFFAFAFC);
-const _kCard   = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
-const _kBorder = Color(0xFFE5E7EB);
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate  = Color(0xFF6B7280);
-const _kInk    = Color(0xFF0D0D1A);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
+Color get _kInk => AppC.text;
 const _kPurple = Color(0xFF7C3AED);
 const _kBlue   = Color(0xFF6DD5FA);
 const _kCoral  = Color(0xFFFF4F6E);
@@ -152,7 +153,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
           decoration: BoxDecoration(color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(11)),
           child: Icon(icon, color: color, size: 19)),
-        title: Text(label, style: const TextStyle(
+        title: Text(label, style: TextStyle(
           fontWeight: FontWeight.w800, fontSize: 14, color: _kInk)),
       );
 
@@ -234,9 +235,9 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: _kInk),
+          icon: Icon(Icons.close_rounded, color: _kInk),
           onPressed: _saving ? null : () => Navigator.pop(context)),
-        title: const T('New Highlight', style: TextStyle(
+        title: T('New Highlight', style: TextStyle(
           fontWeight: FontWeight.w900, color: _kInk,
           fontSize: 17, letterSpacing: -0.3)),
         centerTitle: true,
@@ -259,7 +260,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                             image: FileImage(_coverFile!), fit: BoxFit.cover)
                         : null),
                   child: _coverFile == null
-                      ? const Icon(Icons.add_a_photo_rounded,
+                      ? Icon(Icons.add_a_photo_rounded,
                           color: _kSlate2, size: 24)
                       : null),
               ),
@@ -268,7 +269,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 6),
-                  const T('Cover & name', style: TextStyle(
+                  T('Cover & name', style: TextStyle(
                     fontWeight: FontWeight.w800, fontSize: 12,
                     color: _kSlate, letterSpacing: 0.3)),
                   const SizedBox(height: 8),
@@ -282,7 +283,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                       enabled: !_saving,
                       maxLength: 24,
                       onChanged: (_) => setState(() {}),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14, color: _kInk),
                       decoration: InputDecoration(
@@ -302,11 +303,11 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
               _coverFile == null
                   ? 'Tap the circle to set a cover (optional).'
                   : 'Tap the circle to change the cover.',
-              style: const TextStyle(fontSize: 11.5, color: _kSlate2)),
+              style: TextStyle(fontSize: 11.5, color: _kSlate2)),
             const SizedBox(height: 24),
 
             Row(children: [
-              const T('Story items', style: TextStyle(
+              T('Story items', style: TextStyle(
                 fontWeight: FontWeight.w800, fontSize: 12,
                 color: _kInk, letterSpacing: 0.3)),
               const SizedBox(width: 8),
@@ -374,7 +375,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                 color: _kCardLo,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kBorder, width: 1.5)),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_rounded, color: _kSlate2, size: 26),

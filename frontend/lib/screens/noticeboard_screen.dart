@@ -6,6 +6,7 @@
 // Uses CacheStore so it paints instantly on repeat visits.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
@@ -14,7 +15,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _bgTop = Color(0xFF241247);
 const _bgBot = Color(0xFF130A26);
 
@@ -313,7 +314,7 @@ class _NoteCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 8),
                 Text((data['title'] ?? '').toString(),
-                    style: const TextStyle(fontFamily: 'Alfa', fontSize: 14,
+                    style: TextStyle(fontFamily: 'Alfa', fontSize: 14,
                         color: _kInk, height: 1.2)),
                 const SizedBox(height: 6),
                 Text((data['body'] ?? '').toString(),
@@ -361,7 +362,7 @@ class _DetailSheet extends StatelessWidget {
                 decoration: BoxDecoration(color: color,
                     borderRadius: BorderRadius.circular(10)),
                 child: Text((data['category_label'] ?? '').toString().toUpperCase(),
-                    style: const TextStyle(fontFamily: 'Arch',
+                    style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold, fontSize: 10,
                         letterSpacing: .8, color: _kInk)),
               ),
@@ -373,7 +374,7 @@ class _DetailSheet extends StatelessWidget {
                     errorBuilder: (_, __, ___) => const SizedBox.shrink())),
             const SizedBox(height: 14),
             Text((data['title'] ?? '').toString(),
-                style: const TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
             const SizedBox(height: 10),
             Text((data['body'] ?? '').toString(),
                 style: TextStyle(fontFamily: 'Momo', fontSize: 14,

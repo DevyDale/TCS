@@ -13,6 +13,7 @@
 // On finish, navigates to RoleSelectionScreen with a fade transition.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,7 +27,7 @@ const _kG4     = Color(0xFFFF5858);
 const _kPink   = Color(0xFFEC4899);
 const _kEmGrn  = Color(0xFF11998E);
 const _kEmGrn2 = Color(0xFF38EF7D);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFFAFAFC);
 
@@ -315,7 +316,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text(info.flag, style: const TextStyle(fontSize: 16)),
           const SizedBox(width: 8),
-          Text(info.code, style: const TextStyle(
+          Text(info.code, style: TextStyle(
             fontFamily: 'Arch', fontWeight: FontWeight.bold,
             fontSize: 12, color: _kInk, letterSpacing: 0.6)),
           const SizedBox(width: 4),
@@ -347,7 +348,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
                   borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 18),
               Text(_T.t(_lang, 'choose_lang'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
               const SizedBox(height: 16),
               for (final lang in Lang.values) ...[
@@ -459,7 +460,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
           const SizedBox(height: 48),
           Text(_T.t(_lang, page.titleKey),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Alfa', fontSize: 30,
               color: _kInk, height: 1.15)),
           const SizedBox(height: 16),

@@ -17,10 +17,11 @@
 // Returns null if the user dismisses the sheet without selecting.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 const _kG2  = Color(0xFF8E54E9);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class PrivacyOption {
   final String   value;
@@ -154,7 +155,7 @@ class PrivacyToggleSheet extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 18, color: _kInk,
                 ),
               ),

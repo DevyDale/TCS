@@ -18,6 +18,7 @@
 //   }
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -29,7 +30,7 @@ import 'avator_view.dart';
 
 const _kG1   = Color(0xFF6DD5FA);
 const _kG2   = Color(0xFF8E54E9);
-const _kInk  = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class AvatarPickerScreen extends StatefulWidget {
   final int? initialAvatarId;
@@ -118,10 +119,10 @@ class _AvatarPickerScreenState extends State<AvatarPickerScreen> {
       ),
       child: Row(children: [
         IconButton(
-          icon: const Icon(Icons.close_rounded, color: _kInk),
+          icon: Icon(Icons.close_rounded, color: _kInk),
           onPressed: () => Navigator.pop(context),
         ),
-        const Expanded(
+        Expanded(
           child: T('Choose Avatar',
               style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
@@ -168,7 +169,7 @@ class _AvatarPickerScreenState extends State<AvatarPickerScreen> {
         const SizedBox(height: 8),
         Text(
           def?.name ?? 'Pick one below',
-          style: const TextStyle(
+          style: TextStyle(
               fontFamily: 'Alfa', fontSize: 16, color: _kInk),
         ),
         if (def != null)

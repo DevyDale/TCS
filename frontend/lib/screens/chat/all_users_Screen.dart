@@ -11,6 +11,7 @@
 //     viewer-side filter still drops them.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +22,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kBg     = Color(0xFFF4F5F9);
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -374,7 +375,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                       const T('🔍', style: TextStyle(fontSize: 48)),
                       const SizedBox(height: 12),
-                      const T('No results',
+                      T('No results',
                           style: TextStyle(fontFamily: 'Alfa',
                               fontSize: 18, color: _kInk)),
                       const SizedBox(height: 6),
@@ -501,7 +502,7 @@ class _UserTile extends StatelessWidget {
             children: [
               Text(name,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 14, color: _kInk)),
               const SizedBox(height: 4),

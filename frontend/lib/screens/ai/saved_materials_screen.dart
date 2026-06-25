@@ -23,6 +23,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:lottie/lottie.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/screens/ai/quiz_generator_Screen.dart';
@@ -36,15 +37,15 @@ const _kBg1     = Color(0xFFFAFAFC);
 const _kBg2     = Color(0xFFE6E6EE);
 const _kBg3     = Color(0xFFF2F2F6);
 
-const _kCard    = Color(0xFFFFFFFF);
-const _kCardLo  = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 
-const _kBorder  = Color(0xFFE5E7EB);
+Color get _kBorder => AppC.border;
 
-const _kSlate2  = Color(0xFF9CA3AF);
-const _kSlate   = Color(0xFF6B7280);
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk     = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 const _gradColors = <Color>[
   Color(0xFF6DD5FA),
@@ -160,15 +161,15 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const T('Remove from library?',
+        title: T('Remove from library?',
             style: TextStyle(color: _kInk, fontSize: 17,
                 fontWeight: FontWeight.w800)),
-        content: const Text(
+        content: Text(
             "This won't delete the original file — just take it out of your library.",
             style: TextStyle(color: _kSlate, fontSize: 13, height: 1.45)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const T('Cancel',
+              child: T('Cancel',
                   style: TextStyle(color: _kSlate, fontSize: 13))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const T('Remove',
@@ -360,7 +361,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                   child: _SafeRobotLottie(),
                 ),
                 const SizedBox(width: 10),
-                const T('Quiz me',
+                T('Quiz me',
                     style: TextStyle(
                         color: _kInk, fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -397,7 +398,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                     color: Colors.black.withOpacity(0.04),
                     blurRadius: 8, offset: const Offset(0, 2))],
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
+              child: Icon(Icons.arrow_back_ios_new_rounded,
                   color: _kInk, size: 16),
             ),
           ),
@@ -415,7 +416,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
           const SizedBox(width: 12),
 
           // Title + tagline
-          const Expanded(child: Column(
+          Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -436,7 +437,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             innerColor:  _kCard,
             padding:     const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
             child: Text('${_all.length}',
-                style: const TextStyle(color: _kInk,
+                style: TextStyle(color: _kInk,
                     fontSize: 13, fontWeight: FontWeight.w800)),
           ),
         ]),
@@ -467,7 +468,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                     focusedBorder:  rounded,
                     disabledBorder: rounded,
                   ),
-                  textSelectionTheme: const TextSelectionThemeData(
+                  textSelectionTheme: TextSelectionThemeData(
                     cursorColor: _kInk,
                     selectionColor: Color(0x33A78BFA),
                     selectionHandleColor: _kInk,
@@ -476,22 +477,22 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                 child: TextField(
                   controller: _search,
                   cursorColor: _kInk,
-                  style: const TextStyle(color: _kInk, fontSize: 14),
+                  style: TextStyle(color: _kInk, fontSize: 14),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: _kCard,
-                    prefixIcon: const Icon(Icons.search_rounded,
+                    prefixIcon: Icon(Icons.search_rounded,
                         color: _kSlate2, size: 19),
                     prefixIconConstraints: const BoxConstraints(
                         minWidth: 42, minHeight: 42),
                     suffixIcon: _search.text.isEmpty
                         ? null
                         : IconButton(
-                            icon: const Icon(Icons.clear_rounded,
+                            icon: Icon(Icons.clear_rounded,
                                 color: _kSlate2, size: 16),
                             onPressed: () { _search.clear(); _filter(); }),
                     hintText: TranslationService.I.tr('Search title, subject, group…'),
-                    hintStyle: const TextStyle(color: _kSlate2, fontSize: 13),
+                    hintStyle: TextStyle(color: _kSlate2, fontSize: 13),
                     border:         rounded,
                     enabledBorder:  rounded,
                     focusedBorder:  rounded,
@@ -572,7 +573,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             _search.text.isNotEmpty || _typeFilter != 'All'
                 ? 'No matches found'
                 : 'Your library is empty',
-            style: const TextStyle(color: _kInk,
+            style: TextStyle(color: _kInk,
                 fontSize: 18, fontWeight: FontWeight.w800,
                 letterSpacing: -0.3)),
           const SizedBox(height: 8),
@@ -581,7 +582,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                 ? 'Try a different search or filter'
                 : 'Save materials from chats and groups, or tap the\nupload button to add one from your phone',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _kSlate,
+            style: TextStyle(color: _kSlate,
                 fontSize: 13, height: 1.5)),
         ]),
       ),
@@ -710,7 +711,7 @@ class _MaterialCard extends StatelessWidget {
                   color: _kCardLo,
                   borderRadius: BorderRadius.circular(9),
                   border: Border.all(color: _kBorder)),
-                child: const Icon(Icons.close_rounded,
+                child: Icon(Icons.close_rounded,
                     size: 16, color: _kSlate),
               ),
             ),
@@ -725,14 +726,14 @@ class _MaterialCard extends StatelessWidget {
                 children: [
               Text(title,
                   maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: _kInk,
+                  style: TextStyle(color: _kInk,
                       fontSize: 14, fontWeight: FontWeight.w800,
                       height: 1.3, letterSpacing: -0.2)),
               const SizedBox(height: 3),
               if (fileName.isNotEmpty && fileName != title)
                 Text(fileName,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: _kSlate2,
+                    style: TextStyle(color: _kSlate2,
                         fontSize: 11, fontFamily: 'monospace')),
               const Spacer(),
               Wrap(spacing: 4, runSpacing: 4, children: [
@@ -741,11 +742,11 @@ class _MaterialCard extends StatelessWidget {
               ]),
               const SizedBox(height: 6),
               Row(children: [
-                const Icon(Icons.schedule_rounded,
+                Icon(Icons.schedule_rounded,
                     size: 11, color: _kSlate2),
                 const SizedBox(width: 4),
                 Text(savedAt,
-                    style: const TextStyle(color: _kSlate2,
+                    style: TextStyle(color: _kSlate2,
                         fontSize: 11, fontWeight: FontWeight.w500)),
               ]),
             ]),
@@ -817,16 +818,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget              child;
   final double              radius;
   final double              borderWidth;
-  final Color               innerColor;
+  final Color?               innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color>         colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -837,7 +838,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
             math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,
@@ -878,7 +879,7 @@ class _SafeRobotLottie extends StatelessWidget {
       'assets/images/robot.json',
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _kCardLo,
         ),

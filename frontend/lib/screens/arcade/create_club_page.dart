@@ -7,6 +7,7 @@
 // Club map (the caller in ClubsListScreen pushes ClubScreen with it).
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +23,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
 const _kIndigo = Color(0xFF3F51B5);
@@ -358,7 +359,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+            icon: Icon(Icons.arrow_back_rounded, color: _kInk),
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),
@@ -387,7 +388,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       letterSpacing: 1.4,
                     )),
                 const SizedBox(height: 2),
-                const T('Start a Club',
+                T('Start a Club',
                     style: TextStyle(
                       fontFamily: 'Alfa',
                       fontSize: 22,
@@ -466,7 +467,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
   Widget _label(String label) => Padding(
         padding: const EdgeInsets.only(bottom: 6, left: 4),
         child: Text(label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Arch',
               fontWeight: FontWeight.bold,
               fontSize: 12,
@@ -493,7 +494,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
         validator:  validator,
         maxLength:  maxLength,
         maxLines:   maxLines,
-        style: const TextStyle(
+        style: TextStyle(
             fontFamily: 'Momo', fontSize: 14, color: _kInk),
         decoration: InputDecoration(
           hintText: hint,
@@ -585,7 +586,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -737,7 +738,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
-              const Expanded(
+              Expanded(
                 child: T('AI Logo Generator',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
@@ -773,7 +774,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                   child: TextField(
                     controller: _promptCtrl,
                     maxLines: 3,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Momo', fontSize: 14, color: _kInk),
                     decoration: InputDecoration(
                       hintText: TranslationService.I.tr('e.g. minimalist owl mascot, navy blue and gold, modern flat illustration'),

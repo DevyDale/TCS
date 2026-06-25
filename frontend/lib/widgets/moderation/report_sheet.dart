@@ -3,6 +3,7 @@
 // Modal bottom sheet for reporting a post, comment, or user.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +12,7 @@ import '../../services/moderation_service.dart';
 
 const _kG2 = Color(0xFF8E54E9);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class ReportSheet extends StatefulWidget {
   final String contentType;
@@ -116,7 +117,7 @@ class _ReportSheetState extends State<ReportSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Report ${widget.targetLabel}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
                   const SizedBox(height: 6),
                   T(
@@ -157,7 +158,7 @@ class _ReportSheetState extends State<ReportSheet> {
                           setState(() => _reasonKey = v);
                         },
                         title: Text(e.value,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontFamily: 'Arch',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,

@@ -20,6 +20,7 @@
 import 'dart:math' as math;
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
@@ -34,15 +35,15 @@ const _kBg1      = Color(0xFFFAFAFC); // gradient start (near-white)
 const _kBg2      = Color(0xFFE6E6EE); // gradient mid (soft grey)
 const _kBg3      = Color(0xFFF2F2F6); // gradient end (light grey)
 
-const _kCard     = Color(0xFFFFFFFF); // tile / footer card
-const _kCardLo   = Color(0xFFF5F5F8); // raised surfaces inside cards
+Color get _kCard => AppC.card; // tile / footer card
+Color get _kCardLo => AppC.card2; // raised surfaces inside cards
 
-const _kBorder   = Color(0xFFE5E7EB); // soft hairline (back button)
+Color get _kBorder => AppC.border; // soft hairline (back button)
 
-const _kSlate2   = Color(0xFF9CA3AF); // tertiary text
-const _kSlate    = Color(0xFF6B7280); // secondary text
+Color get _kSlate2 => AppC.sub; // tertiary text
+Color get _kSlate => AppC.sub; // secondary text
 const _kInkSoft  = Color(0xFF374151); // mid text / icons
-const _kInk      = Color(0xFF0D0D1A); // primary text
+Color get _kInk => AppC.text; // primary text
 
 // Sweep gradient colors used for ALL animated borders on this page.
 const _gradColors = <Color>[
@@ -246,7 +247,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_back_ios_new_rounded,
                       color: _kInk,
                       size:  15,
@@ -270,7 +271,7 @@ class _AiHubScreenState extends State<AiHubScreen>
               ),
               const SizedBox(width: 10),
 
-              const Flexible(
+              Flexible(
                 child: T(
                   'Dale',
                   maxLines: 1,
@@ -302,7 +303,7 @@ class _AiHubScreenState extends State<AiHubScreen>
             ),
           ),
           const SizedBox(height: 2),
-          const T(
+          T(
             'What can I help with today?',
             style: TextStyle(color: _kSlate, fontSize: 12.5),
           ),
@@ -433,14 +434,14 @@ class _AiHubScreenState extends State<AiHubScreen>
                 const Icon(Icons.bolt_rounded,
                     color: _kInkSoft, size: 15),
                 const SizedBox(width: 6),
-                const T('Hourly usage',
+                T('Hourly usage',
                     style: TextStyle(
                         color: _kInk,
                         fontSize: 12,
                         fontWeight: FontWeight.w700)),
                 const Spacer(),
                 Text('$_used / $_limit',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _kSlate,
                         fontSize: 12,
                         fontFamily: 'monospace')),
@@ -458,7 +459,7 @@ class _AiHubScreenState extends State<AiHubScreen>
               ),
             ),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               children: [
                 Icon(Icons.info_outline_rounded,
                     color: _kSlate2, size: 11),
@@ -493,7 +494,7 @@ class _SafeRobotLottie extends StatelessWidget {
       'assets/images/robot.json',
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _kCardLo,
         ),
@@ -555,7 +556,7 @@ class _ToolTileState extends State<_ToolTile> {
                 Text(t.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _kInk,
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
@@ -564,7 +565,7 @@ class _ToolTileState extends State<_ToolTile> {
                 Text(t.tagline,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _kSlate, fontSize: 12.5, height: 1.3)),
               ],
             ),
@@ -583,7 +584,7 @@ class _ToolTileState extends State<_ToolTile> {
           Text(t.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   color: _kInk,
                   fontSize: 15.5,
                   fontWeight: FontWeight.w800,
@@ -592,7 +593,7 @@ class _ToolTileState extends State<_ToolTile> {
           Text(t.tagline,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   color: _kSlate, fontSize: 11, height: 1.3)),
         ],
       );
@@ -631,16 +632,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget              child;
   final double              radius;
   final double              borderWidth;
-  final Color               innerColor;
+  final Color?               innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color>         colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -651,7 +652,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

@@ -9,13 +9,14 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
 const _kAmber  = Color(0xFFF7971E);
 const _kCoral  = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class HighlightCard extends StatelessWidget {
   /// Map shape from `/api/events/highlights/`:

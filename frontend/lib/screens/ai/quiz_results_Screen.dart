@@ -7,6 +7,7 @@
 //   • Retake / Back to library actions
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
@@ -17,7 +18,7 @@ const _kWoodLight = Color(0xFF8B5E3C);
 const _kCream     = Color(0xFFFDF6EC);
 const _kPaper     = Color(0xFFF5ECD7);
 const _kGold      = Color(0xFFD4A017);
-const _kInk       = Color(0xFF1A1209);
+Color get _kInk => AppC.text;
 const _kInkLight  = Color(0xFF4A3728);
 const _kGreen     = Color(0xFF43A047);
 const _kRed       = Color(0xFFE53935);
@@ -164,7 +165,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                     decoration: BoxDecoration(color: _kGold,
                         borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 10),
-                const T('Review',
+                T('Review',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 18, color: _kInk)),
                 const SizedBox(width: 8),
@@ -358,7 +359,7 @@ class _ReviewCard extends StatelessWidget {
                   Text(qText,
                       maxLines: expanded ? null : 2,
                       overflow: expanded ? null : TextOverflow.ellipsis,
-                      style: const TextStyle(fontFamily: 'Arch',
+                      style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           fontSize: 13, color: _kInk, height: 1.4)),
                 ])),
@@ -399,7 +400,7 @@ class _ReviewCard extends StatelessWidget {
                       const T('💡', style: TextStyle(fontSize: 14)),
                       const SizedBox(width: 8),
                       Expanded(child: Text(explanation,
-                          style: const TextStyle(fontFamily: 'Momo',
+                          style: TextStyle(fontFamily: 'Momo',
                               fontSize: 11, color: _kInk, height: 1.5))),
                     ]),
                   ),
@@ -430,7 +431,7 @@ class _ReviewCard extends StatelessWidget {
                   fontWeight: FontWeight.bold, fontSize: 10, color: color)),
           const SizedBox(height: 3),
           Text(value,
-              style: const TextStyle(fontFamily: 'Momo',
+              style: TextStyle(fontFamily: 'Momo',
                   fontSize: 12, color: _kInk, height: 1.4)),
         ])),
       ]),

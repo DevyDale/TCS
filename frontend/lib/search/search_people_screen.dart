@@ -22,6 +22,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../screens/profile/user_screen_profile.dart';
@@ -32,7 +33,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
 
@@ -217,7 +218,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+            icon: Icon(Icons.arrow_back_rounded, color: _kInk),
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),
@@ -231,7 +232,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
                 color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
-          const T(
+          T(
             'Search People',
             style: TextStyle(
               fontFamily: 'Alfa',
@@ -264,7 +265,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
           enableSuggestions: false,
           autocorrect: false,
           onChanged: _onChanged,
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search by name, preferred name, or ID...'),
             hintStyle: TextStyle(
@@ -409,7 +410,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
           children: [
             Icon(icon, size: 56, color: Colors.grey.shade300),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(
+            Text(title, style: TextStyle(
               fontFamily: 'Alfa',
               fontSize: 18,
               color: _kInk,
@@ -499,7 +500,7 @@ class _PersonResultCard extends StatelessWidget {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 14,

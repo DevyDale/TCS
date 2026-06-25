@@ -14,6 +14,7 @@
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import 'chat_room_screen.dart';
@@ -24,7 +25,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 class ChatRequestsScreen extends StatefulWidget {
   const ChatRequestsScreen({super.key});
@@ -150,7 +151,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const T('Cancel request?',
+        title: T('Cancel request?',
             style:
                 TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
         content: Text(
@@ -280,7 +281,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         child: TextField(
           controller: ctrl,
           onChanged: onChanged,
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
             isDense: true,
             prefixIcon:
@@ -343,10 +344,10 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       ),
       child: Row(children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+          icon: Icon(Icons.arrow_back_rounded, color: _kInk),
           onPressed: () => Navigator.pop(context),
         ),
-        const Expanded(
+        Expanded(
           child: T('Requests',
               style:
                   TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
@@ -552,7 +553,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
             Icon(icon, size: 52, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(title,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             const SizedBox(height: 8),
             Padding(
@@ -587,7 +588,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(8)),
             child: Text('$count',
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -660,7 +661,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                 Text(bubbleName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -722,7 +723,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300)),
-                child: const Center(
+                child: Center(
                     child: T('Decline',
                         style: TextStyle(
                             fontFamily: 'Arch',
@@ -800,7 +801,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(name,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -852,7 +853,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300)),
-                child: const Center(
+                child: Center(
                     child: T('Decline',
                         style: TextStyle(
                             fontFamily: 'Arch',

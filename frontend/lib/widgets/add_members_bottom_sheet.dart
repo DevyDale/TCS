@@ -16,6 +16,7 @@
 import 'dart:async';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -24,7 +25,7 @@ const _kG1   = Color(0xFF6DD5FA);
 const _kG2   = Color(0xFF8E54E9);
 const _kG3   = Color(0xFFF7971E);
 const _kG4   = Color(0xFFFF5858);
-const _kInk  = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 
 /// Helper that shows the sheet and returns the picked users.
@@ -188,7 +189,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
   Widget _buildHeader() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
     child: Row(children: [
-      Expanded(child: Text(widget.title, style: const TextStyle(
+      Expanded(child: Text(widget.title, style: TextStyle(
           fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
       GestureDetector(
         onTap: () => Navigator.of(context).pop(),
@@ -335,7 +336,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Arch',
+                    style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
                 const SizedBox(height: 2),
                 Text(role, style: TextStyle(fontFamily: 'Momo',
@@ -373,7 +374,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 44, color: Colors.grey.shade300),
       const SizedBox(height: 14),
-      Text(title, style: const TextStyle(fontFamily: 'Alfa',
+      Text(title, style: TextStyle(fontFamily: 'Alfa',
           fontSize: 16, color: _kInk)),
       const SizedBox(height: 6),
       Text(body, textAlign: TextAlign.center,

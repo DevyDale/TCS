@@ -7,15 +7,16 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 
 // Light-theme palette
-const _kInk     = Color(0xFF0D0D1A);
-const _kSlate   = Color(0xFF6B7280);
-const _kBorder  = Color(0xFFE5E7EB);
+Color get _kInk => AppC.text;
+Color get _kSlate => AppC.sub;
+Color get _kBorder => AppC.border;
 
 class AiMarkdown extends StatefulWidget {
   final String data;
@@ -84,23 +85,23 @@ class _AiMarkdownState extends State<AiMarkdown>
             }
           : const {},
       styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(
+        p: TextStyle(
           color: _kInk,
           fontFamily: 'Momo',
           fontSize: 14,
           height: 1.5,
         ),
-        strong:     const TextStyle(color: _kInk, fontWeight: FontWeight.w700),
-        em:         const TextStyle(color: _kInk, fontStyle: FontStyle.italic),
-        listBullet: const TextStyle(
+        strong:     TextStyle(color: _kInk, fontWeight: FontWeight.w700),
+        em:         TextStyle(color: _kInk, fontStyle: FontStyle.italic),
+        listBullet: TextStyle(
             color: _kInk, fontFamily: 'Momo', fontSize: 14),
-        h1: const TextStyle(
+        h1: TextStyle(
             color: _kInk, fontFamily: 'Alfa', fontSize: 20,
             fontWeight: FontWeight.w700),
-        h2: const TextStyle(
+        h2: TextStyle(
             color: _kInk, fontFamily: 'Alfa', fontSize: 18,
             fontWeight: FontWeight.w700),
-        h3: const TextStyle(
+        h3: TextStyle(
             color: _kInk, fontFamily: 'Alfa', fontSize: 16,
             fontWeight: FontWeight.w700),
         // Inline `code`
@@ -117,7 +118,7 @@ class _AiMarkdownState extends State<AiMarkdown>
           border: Border.all(color: _kBorder),
         ),
         // Blockquote — left bar uses the rotating gradient (see custom builder)
-        blockquote: const TextStyle(
+        blockquote: TextStyle(
           color: _kSlate,
           fontFamily: 'Momo',
           fontSize: 14,

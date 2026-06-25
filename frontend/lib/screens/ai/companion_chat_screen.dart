@@ -14,6 +14,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:tcs_app/widgets/ai_markdown.dart';
@@ -25,15 +26,15 @@ const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF374151);
-const _kSlate = Color(0xFF6B7280);
-const _kSlateLight = Color(0xFF9CA3AF);
-const _kBorder = Color(0xFFE5E7EB);
-const _kBorderSoft = Color(0xFFF1F2F5);
+Color get _kSlate => AppC.sub;
+Color get _kSlateLight => AppC.sub;
+Color get _kBorder => AppC.border;
+Color get _kBorderSoft => AppC.border;
 const _kInputBg = Color(0xFFF7F8FB);
 const _kDanger = Color(0xFFFF5858);
 const _kOnline = Color(0xFF10B981);
@@ -680,7 +681,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
             child: Padding(
               padding: const EdgeInsets.all(6),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _kCard,
                 ),
@@ -715,7 +716,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
         Text(
           _tagline,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,
             color: _kSlate,
@@ -908,7 +909,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
         14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kCard,
         border: Border(top: BorderSide(color: _kBorder)),
       ),
@@ -931,7 +932,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                 cursorColor: _gradient.last,
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 14,
                   color: _kInk,
@@ -947,7 +948,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                   hintText: _isLoading
                       ? '$_name is thinking…'
                       : 'Ask $_name anything…',
-                  hintStyle: const TextStyle(
+                  hintStyle: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 14,
                     color: _kSlateLight,
@@ -989,7 +990,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                     : null,
               ),
               child: _isLoading
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
                         color: _kSlate,
@@ -1222,16 +1223,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -1243,7 +1244,7 @@ class _GradientBorderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth),
         ),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,
@@ -1417,13 +1418,13 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
                         widget.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Alfa',
                           fontSize: 18,
                           color: _kInk,
                         ),
                       ),
-                      const T(
+                      T(
                         'Chat history',
                         style: TextStyle(
                           fontFamily: 'Momo',
@@ -1521,18 +1522,18 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.chat_bubble_outline_rounded,
             size: 44,
             color: _kBorder,
           ),
           const SizedBox(height: 12),
-          const T(
+          T(
             'No past conversations yet',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 14, color: _kSlate),
           ),
           const SizedBox(height: 6),
-          const T(
+          T(
             'Your saved chats will appear here',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -1612,7 +1613,7 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -1624,7 +1625,7 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
                       '$msgCount message${msgCount == 1 ? '' : 's'} · ${_timeAgo(updatedAt)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 10,
                         color: _kSlate,

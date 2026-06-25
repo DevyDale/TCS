@@ -11,6 +11,7 @@
 // returns a quiz, then we push the play screen.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -25,7 +26,7 @@ const _kWoodLight = Color(0xFF8B5E3C);
 const _kCream     = Color(0xFFFDF6EC);
 const _kPaper     = Color(0xFFF5ECD7);
 const _kGold      = Color(0xFFD4A017);
-const _kInk       = Color(0xFF1A1209);
+Color get _kInk => AppC.text;
 const _kInkLight  = Color(0xFF4A3728);
 
 class QuizGeneratorScreen extends StatefulWidget {
@@ -229,7 +230,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
               color: Colors.white, fontSize: 14)))),
     const SizedBox(width: 10),
     Text(label,
-        style: const TextStyle(fontFamily: 'Alfa',
+        style: TextStyle(fontFamily: 'Alfa',
             fontSize: 16, color: _kInk)),
   ]);
 
@@ -245,7 +246,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         child: Column(children: [
           const T('📭', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 8),
-          const T('No quiz-compatible materials',
+          T('No quiz-compatible materials',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 14, color: _kInk)),
           const SizedBox(height: 4),
@@ -293,7 +294,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(m['title'] as String? ?? 'Untitled',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Arch',
+                    style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 13, color: _kInk)),
                 const SizedBox(height: 2),
@@ -342,7 +343,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
           crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(m['title'] as String? ?? 'Untitled',
               maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 14, color: _kInk)),
           const SizedBox(height: 2),
@@ -363,7 +364,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
   Widget _buildSubjectField() {
     return TextField(
       controller: _subjectCtrl,
-      style: const TextStyle(fontFamily: 'Momo',
+      style: TextStyle(fontFamily: 'Momo',
           fontSize: 14, color: _kInk),
       decoration: InputDecoration(
         hintText: TranslationService.I.tr('e.g. Mathematics, Biology, Programming…'),
@@ -393,7 +394,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         border: Border.all(color: _kWoodLight.withOpacity(0.3))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Number of questions
-        const T('Number of questions',
+        T('Number of questions',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -424,7 +425,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         ]),
 
         const SizedBox(height: 18),
-        const T('Difficulty',
+        T('Difficulty',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -437,7 +438,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         ]),
 
         const SizedBox(height: 18),
-        const T('Question types',
+        T('Question types',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -554,7 +555,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
                 child: CircularProgressIndicator(
                     color: _kGold, strokeWidth: 3)),
               const SizedBox(height: 28),
-              const T('Generating your quiz',
+              T('Generating your quiz',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 22, color: _kInk)),
               const SizedBox(height: 10),

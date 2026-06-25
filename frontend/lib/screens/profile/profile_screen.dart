@@ -26,6 +26,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,13 +49,13 @@ import '../feed/feed_screen.dart' show deletedHighlightIds;
 const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
-const _kBorder = Color(0xFFE5E7EB);
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate = Color(0xFF6B7280);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 const _kBlue = Color(0xFF6DD5FA);
 const _kPurple = Color(0xFF7C3AED);
@@ -479,14 +480,14 @@ class _ProfileScreenState extends State<ProfileScreen>
           backgroundColor: _kCard,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Delete $type?',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 17, fontWeight: FontWeight.w900, color: _kInk)),
           content: Text('This $type will be permanently removed.',
-              style: const TextStyle(fontSize: 13, color: _kSlate, height: 1.5)),
+              style: TextStyle(fontSize: 13, color: _kSlate, height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const T('Cancel',
+              child: T('Cancel',
                   style: TextStyle(fontWeight: FontWeight.w700, color: _kSlate)),
             ),
             GestureDetector(
@@ -676,7 +677,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             widget.fullName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
                               color: _kInk,
@@ -827,7 +828,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           const SizedBox(width: 6),
           Text(_handleName,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, fontWeight: FontWeight.w600, color: _kSlate)),
         ],
       ),
@@ -860,11 +861,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         children: [
           Text(fmt(value),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w900, color: _kInk)),
           const SizedBox(height: 1),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 10.5, color: _kSlate, fontWeight: FontWeight.w600)),
         ],
       ),
@@ -942,7 +943,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             ...chips,
             if (chips.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 2),
                 child: T('Add your Instagram, TikTok, YouTube and more.',
                     style: TextStyle(fontSize: 12.5, color: _kSlate)),
@@ -983,7 +984,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: _kPurple, size: 15),
                 ),
                 const SizedBox(width: 8),
-                const T('About Me',
+                T('About Me',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
@@ -1055,7 +1056,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Icon(icon, size: 14, color: _kInkSoft),
               const SizedBox(width: 5),
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: _kInk)),
@@ -1097,7 +1098,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              const T('Bio',
+              T('Bio',
                   style: TextStyle(
                       fontSize: 22, fontWeight: FontWeight.w900, color: _kInk)),
               const SizedBox(height: 16),
@@ -1517,7 +1518,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               const SizedBox(height: 18),
               Text(title,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
                       color: _kInk)),
@@ -1570,16 +1571,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -1590,7 +1591,7 @@ class _GradientBorderCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius:
             BorderRadius.circular(math.max(0.0, radius - borderWidth)),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,
@@ -1632,7 +1633,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kBg1,
         border: Border(bottom: BorderSide(color: _kBorder, width: 0.5)),
       ),
@@ -1674,14 +1675,14 @@ class _BioRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
                           color: _kSlate2,
                           letterSpacing: 0.5)),
                   const SizedBox(height: 2),
                   Text(value,
-                      style: const TextStyle(fontSize: 14, color: _kInk)),
+                      style: TextStyle(fontSize: 14, color: _kInk)),
                 ],
               ),
             ),
@@ -1764,12 +1765,12 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
               keyboardType: TextInputType.url,
               autocorrect: false,
               enableSuggestions: false,
-              style: const TextStyle(fontSize: 13, color: _kInk),
+              style: TextStyle(fontSize: 13, color: _kInk),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: '${m.label} (handle or link)',
-                hintStyle: const TextStyle(color: _kSlate2, fontSize: 13),
+                hintStyle: TextStyle(color: _kSlate2, fontSize: 13),
               ),
             ),
           ),
@@ -1804,13 +1805,13 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const T('Your links',
+                T('Your links',
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: _kInk)),
                 const SizedBox(height: 4),
-                const T('Paste a full URL or just your handle.',
+                T('Paste a full URL or just your handle.',
                     style: TextStyle(fontSize: 12, color: _kSlate)),
                 const SizedBox(height: 16),
                 for (final k in _kSocialOrder) _field(k, _ctrls[k]!),
@@ -1895,11 +1896,11 @@ class _PostDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
             child: Row(children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+                icon: Icon(Icons.arrow_back_rounded, color: _kInk),
                 onPressed: () => Navigator.pop(context),
               ),
               Text(isFweet ? 'Fweet' : 'Post',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w900, color: _kInk)),
             ]),
           ),
@@ -1929,7 +1930,7 @@ class _PostDetailScreen extends StatelessWidget {
                     child: Text(authorName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 15,
                             color: _kInk)),
@@ -1976,7 +1977,7 @@ class _PostDetailScreen extends StatelessWidget {
                   if (content.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(content,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 15, color: _kInk, height: 1.5)),
                   ],
                 ],
@@ -1987,11 +1988,11 @@ class _PostDetailScreen extends StatelessWidget {
                         size: 14, color: _kCoral),
                     const SizedBox(width: 4),
                     Text(location,
-                        style: const TextStyle(fontSize: 12, color: _kSlate)),
+                        style: TextStyle(fontSize: 12, color: _kSlate)),
                   ]),
                 ],
                 const SizedBox(height: 18),
-                const Divider(height: 1, color: _kBorder),
+                Divider(height: 1, color: _kBorder),
                 const SizedBox(height: 14),
                 Row(children: [
                   _stat(Icons.favorite_rounded, likes, _kCoral),
@@ -2022,7 +2023,7 @@ class _PostDetailScreen extends StatelessWidget {
           Icon(icon, size: 20, color: color),
           const SizedBox(width: 6),
           Text('$count',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w800, color: _kInk)),
         ],
       );

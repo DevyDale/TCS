@@ -41,13 +41,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 
 const _kG1  = Color(0xFF6DD5FA);
 const _kG2  = Color(0xFF8E54E9);
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kG4  = Color(0xFFFF5858);
 
 // ─────────────────────────────────────────────────────────────
@@ -264,7 +265,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                   const SizedBox(height: 2),
                   Text(_displayName,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                     ),
                   ),
@@ -393,7 +394,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
           const SizedBox(width: 12),
           Expanded(child: Text(label,
             maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: _kInk,
             ),

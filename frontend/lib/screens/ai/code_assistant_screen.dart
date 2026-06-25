@@ -22,6 +22,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
@@ -35,16 +36,16 @@ const _kBg1 = Color(0xFFFAFAFC);
 const _kBg2 = Color(0xFFE6E6EE);
 const _kBg3 = Color(0xFFF2F2F6);
 
-const _kCard = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
 const _kInputBg = Color(0xFFF7F8FB);
 
-const _kBorder = Color(0xFFE5E7EB);
+Color get _kBorder => AppC.border;
 
-const _kSlate2 = Color(0xFF9CA3AF);
-const _kSlate = Color(0xFF6B7280);
+Color get _kSlate2 => AppC.sub;
+Color get _kSlate => AppC.sub;
 const _kInkSoft = Color(0xFF374151);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kInk => AppC.text;
 
 // Code-helper identity: teal/green pair used only for user
 // bubbles + the AiMarkdown accent. Everything else is mono.
@@ -603,7 +604,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Flexible(
+                  Flexible(
                     child: T(
                       'Code Helper',
                       maxLines: 1,
@@ -683,7 +684,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                         child: T(
                           'No conversations yet.\nStart chatting and it’ll show up here.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 13,
                             color: _kSlate2,
@@ -734,7 +735,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 borderWidth: 1.2,
                 innerColor: _kCard,
                 padding: const EdgeInsets.all(11),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: _kInk,
                   size: 16,
@@ -755,12 +756,12 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
               borderWidth: 1.2,
               innerColor: _kCard,
               padding: const EdgeInsets.all(11),
-              child: const Icon(Icons.menu_rounded, color: _kInk, size: 16),
+              child: Icon(Icons.menu_rounded, color: _kInk, size: 16),
             ),
           ),
           const SizedBox(width: 10),
           // Title
-          const Expanded(
+          Expanded(
             child: T(
               'Code Helper',
               maxLines: 1,
@@ -787,7 +788,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 const SizedBox(width: 4),
                 Text(
                   '$_rateLimitUsed / $_rateLimitMax',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _kInk,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -840,7 +841,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 child: Text(
                   s.$2,
                   softWrap: true,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _kInk,
                     fontSize: 13,
                     height: 1.3,
@@ -964,7 +965,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
         14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kCard,
         border: Border(top: BorderSide(color: _kBorder)),
       ),
@@ -993,7 +994,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 cursorColor: _kCode2,
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
-                style: const TextStyle(color: _kInk, fontSize: 14, height: 1.4),
+                style: TextStyle(color: _kInk, fontSize: 14, height: 1.4),
                 decoration: InputDecoration(
                   filled: false,
                   isDense: true,
@@ -1038,7 +1039,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                     : null,
               ),
               child: _isLoading
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
                         color: _kSlate,
@@ -1112,7 +1113,7 @@ class _ConversationTile extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1122,7 +1123,7 @@ class _ConversationTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 10,
                           color: _kSlate2,
@@ -1134,7 +1135,7 @@ class _ConversationTile extends StatelessWidget {
                 GestureDetector(
                   onTap: onDelete,
                   behavior: HitTestBehavior.opaque,
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(4),
                     child: Icon(
                       Icons.delete_outline_rounded,
@@ -1161,16 +1162,16 @@ class _GradientBorderCard extends StatelessWidget {
   final Widget child;
   final double radius;
   final double borderWidth;
-  final Color innerColor;
+  final Color? innerColor;
   final EdgeInsetsGeometry? padding;
   final List<Color> colors;
 
-  const _GradientBorderCard({
+  _GradientBorderCard({
     required this.animation,
     required this.child,
     this.radius = 20,
     this.borderWidth = 1.4,
-    this.innerColor = _kCard,
+    this.innerColor,
     this.padding,
     this.colors = _gradColors,
   });
@@ -1182,7 +1183,7 @@ class _GradientBorderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(
           math.max(0.0, radius - borderWidth),
         ),
-        color: innerColor,
+        color: innerColor ?? _kCard,
       ),
       padding: padding,
       child: child,

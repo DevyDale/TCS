@@ -24,6 +24,7 @@ import 'dart:async';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
 import 'package:tcs_app/services/app_warmup.dart';
@@ -47,11 +48,11 @@ const _kG1 = _kBlue;
 const _kG2 = Color(0xFF8E54E9);
 
 // Light theme surfaces (matches arcade + profile)
-const _kCard   = Color(0xFFFFFFFF);
-const _kCardLo = Color(0xFFF5F5F8);
-const _kBorder = Color(0xFFE5E7EB);
-const _kInk    = Color(0xFF0D0D1A);
-const _kSlate2 = Color(0xFF9CA3AF);
+Color get _kCard => AppC.card;
+Color get _kCardLo => AppC.card2;
+Color get _kBorder => AppC.border;
+Color get _kInk => AppC.text;
+Color get _kSlate2 => AppC.sub;
 
 class DashboardScreen extends StatefulWidget {
   final String fullName;

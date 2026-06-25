@@ -15,6 +15,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -25,7 +26,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
 const _kIndigo = Color(0xFF3F51B5);
@@ -188,7 +189,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+            icon: Icon(Icons.arrow_back_rounded, color: _kInk),
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),
@@ -225,7 +226,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const T('Clubs',
+                T('Clubs',
                     style: TextStyle(
                       fontFamily: 'Alfa',
                       fontSize: 24,
@@ -314,7 +315,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
         child: TextField(
           controller: _searchCtrl,
           onChanged: (q) => setState(() => _searchQuery = q.trim().toLowerCase()),
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search clubs by name or tagline...'),
             hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
@@ -442,7 +443,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
             Icon(icon, size: 56, color: Colors.grey.shade300),
             const SizedBox(height: 12),
             Text(title,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
             const SizedBox(height: 6),
             Text(message,
@@ -567,7 +568,7 @@ class _ClubCard extends StatelessWidget {
                             child: Text(name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Alfa',
                                   fontSize: 15,
                                   color: _kInk,

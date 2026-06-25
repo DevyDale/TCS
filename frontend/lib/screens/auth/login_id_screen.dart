@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +17,7 @@ const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
 
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kBg = Color(0xFFF5F6FA);
 
 class LoginIdScreen extends StatefulWidget {
@@ -199,7 +200,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         focusNode: _dobFocus,
         keyboardType: TextInputType.number,
         inputFormatters: [_DobInputFormatter()],
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
+        style: TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
@@ -881,7 +882,7 @@ class _LoginFieldState extends State<_LoginField> {
         obscureText: widget.obscure,
         keyboardType: widget.keyboardType,
         inputFormatters: widget.inputFormatters,
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
+        style: TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,

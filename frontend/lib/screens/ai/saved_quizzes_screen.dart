@@ -5,6 +5,7 @@
 // Long-press → delete.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
@@ -16,7 +17,7 @@ const _kWoodLight = Color(0xFF8B5E3C);
 const _kCream     = Color(0xFFFDF6EC);
 const _kPaper     = Color(0xFFF5ECD7);
 const _kGold      = Color(0xFFD4A017);
-const _kInk       = Color(0xFF1A1209);
+Color get _kInk => AppC.text;
 const _kInkLight  = Color(0xFF4A3728);
 
 class SavedQuizzesScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCream,
-        title: const T('Delete this quiz?',
+        title: T('Delete this quiz?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
         content: Text(
             '"${quiz['title']}" and all its attempts will be permanently removed.',
@@ -169,7 +170,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const T('🎓', style: TextStyle(fontSize: 64)),
           const SizedBox(height: 16),
-          const T('No quizzes yet',
+          T('No quizzes yet',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: _kInk)),
           const SizedBox(height: 8),
@@ -302,7 +303,7 @@ class _QuizCard extends StatelessWidget {
                 children: [
               Text(title,
                   maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 13, color: _kInk, height: 1.3)),
               const SizedBox(height: 6),

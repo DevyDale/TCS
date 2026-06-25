@@ -21,6 +21,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -38,7 +39,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _kSlate  = Color(0xFF64687A);
 const _kBg     = Color(0xFFF4F5FA);
 const _kIndigo = Color(0xFF3F51B5);
@@ -732,7 +733,7 @@ class _ClubScreenState extends State<ClubScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.arrow_back_rounded,
+                    child: Icon(Icons.arrow_back_rounded,
                         size: 18, color: _kInk),
                   ),
                 ),
@@ -780,7 +781,7 @@ class _ClubScreenState extends State<ClubScreen> {
               Flexible(
                 child: Text(_name,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 24, color: _kInk,
                       fontWeight: FontWeight.w800,
                     )),
@@ -961,7 +962,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const T('About',
+                    T('About',
                         style: TextStyle(
                           fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                           fontWeight: FontWeight.w800,
@@ -1014,7 +1015,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const T('About',
+              T('About',
                   style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 22, color: _kInk,
                     fontWeight: FontWeight.w900,
@@ -1022,29 +1023,29 @@ class _ClubScreenState extends State<ClubScreen> {
               const SizedBox(height: 12),
               if (_description.isNotEmpty)
                 Text(_description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Momo', fontSize: 14,
                       color: _kInk, height: 1.6,
                     )),
               if (_mission.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const T('Mission',
+                T('Mission',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
                 const SizedBox(height: 8),
                 Text(_mission,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Momo', fontSize: 14,
                         color: _kInk, height: 1.6)),
               ],
               if (_rules.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const T('Rules',
+                T('Rules',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
                 const SizedBox(height: 8),
                 Text(_rules,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: 'Momo', fontSize: 14,
                         color: _kInk, height: 1.6)),
               ],
@@ -1077,7 +1078,7 @@ class _ClubScreenState extends State<ClubScreen> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: T('Upcoming Events',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
@@ -1198,7 +1199,7 @@ class _ClubScreenState extends State<ClubScreen> {
                       )),
                   const SizedBox(height: 2),
                   Text(dayLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 22,
                         color: _kInk, height: 1,
                       )),
@@ -1212,7 +1213,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 children: [
                   Text(title,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 15,
                         color: _kInk, fontWeight: FontWeight.w700,
                       )),
@@ -1296,7 +1297,7 @@ class _ClubScreenState extends State<ClubScreen> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: T('Members',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
@@ -1421,7 +1422,7 @@ class _ClubScreenState extends State<ClubScreen> {
             const SizedBox(height: 6),
             Text(name.split(' ').first,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Arch', fontSize: 11,
                   color: _kInk, fontWeight: FontWeight.bold,
                 )),
@@ -1473,7 +1474,7 @@ class _ClubScreenState extends State<ClubScreen> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: T('Posts & Videos',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
@@ -1587,7 +1588,7 @@ class _ClubScreenState extends State<ClubScreen> {
             Expanded(
               child: Text(author,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Arch', fontSize: 13,
                     color: _kInk, fontWeight: FontWeight.bold,
                   )),
@@ -1597,7 +1598,7 @@ class _ClubScreenState extends State<ClubScreen> {
             const SizedBox(height: 8),
             Text(content,
                 maxLines: 3, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo', fontSize: 13,
                   color: _kInk, height: 1.45,
                 )),
@@ -1961,7 +1962,7 @@ class _ClubScreenState extends State<ClubScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const T('Approvals',
+              T('Approvals',
                   style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                     fontWeight: FontWeight.w800,
@@ -2021,7 +2022,7 @@ class _ClubScreenState extends State<ClubScreen> {
         Expanded(
           child: Text(name,
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Arch', fontSize: 13,
                 color: _kInk, fontWeight: FontWeight.bold,
               )),
@@ -2430,7 +2431,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
-              const Expanded(
+              Expanded(
                 child: T('Create Event',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
@@ -2527,7 +2528,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
       TextField(
         controller: c,
         maxLines: maxLines,
-        style: const TextStyle(
+        style: TextStyle(
             fontFamily: 'Momo', fontSize: 14, color: _kInk),
         decoration: InputDecoration(
           hintText: hint,
@@ -2561,7 +2562,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(value,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Momo', fontSize: 13, color: _kInk)),
             ),
             const Icon(Icons.chevron_right_rounded, color: _kSlate),
@@ -2668,7 +2669,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
-              const Expanded(
+              Expanded(
                 child: T('Invite Members',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
@@ -2686,7 +2687,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
             child: TextField(
               controller: _searchCtrl,
               onChanged: _search,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'Momo', fontSize: 14, color: _kInk),
               decoration: InputDecoration(
                 hintText: TranslationService.I.tr('Search by name…'),
@@ -2796,7 +2797,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
                                   child: Text(name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Arch',
                                         fontSize: 14,
                                         color: _kInk,
@@ -2932,7 +2933,7 @@ class _EventDetailSheet extends StatelessWidget {
               Expanded(
                 child: Text(title,
                     maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 20, color: _kInk,
                       fontWeight: FontWeight.w900,
                     )),
@@ -3032,7 +3033,7 @@ class _EventDetailSheet extends StatelessWidget {
                       )),
                   const SizedBox(height: 6),
                   Text(desc,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Momo', fontSize: 14,
                         color: _kInk, height: 1.5,
                       )),
@@ -3126,7 +3127,7 @@ class _EventDetailSheet extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(text,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: 'Momo', fontSize: 14, color: _kInk)),
           ),
         ]),
@@ -3318,7 +3319,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                 ),
                 const SizedBox(height: 16),
                 Row(children: [
-                  const T('Comments',
+                  T('Comments',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 15, color: _kInk,
                         fontWeight: FontWeight.w800,
@@ -3491,7 +3492,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
         const SizedBox(width: 10),
         Expanded(child: Text(author,
             maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Arch', fontSize: 14,
               color: _kInk, fontWeight: FontWeight.bold,
             ))),
@@ -3525,7 +3526,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
       if (content.isNotEmpty) ...[
         SizedBox(height: mediaUrl.isNotEmpty ? 12 : 10),
         Text(content,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Momo', fontSize: 14,
               color: _kInk, height: 1.5,
             )),
@@ -3600,13 +3601,13 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
               Text(name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Arch', fontSize: 12,
                     color: _kInk, fontWeight: FontWeight.bold,
                   )),
               const SizedBox(height: 3),
               Text(text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Momo', fontSize: 13,
                     color: _kInk, height: 1.4,
                   )),

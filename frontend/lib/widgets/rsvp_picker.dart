@@ -7,12 +7,13 @@
 // (i.e. tapping "Going" while already Going emits null).
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kAmber  = Color(0xFFF7971E);
 const _kCoral  = Color(0xFFFF5858);
-const _kInk    = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 
 /// Backend-facing values: must match `EventRSVP.Status` choices.
 const String kRsvpGoing      = 'going';

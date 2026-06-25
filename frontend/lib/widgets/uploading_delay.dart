@@ -24,11 +24,12 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
-const _kCard = Color(0xFFFFFFFF);
-const _kInk = Color(0xFF0D0D1A);
+Color get _kCard => AppC.card;
+Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF374151);
-const _kSlate = Color(0xFF6B7280);
+Color get _kSlate => AppC.sub;
 
 const _gradColors = <Color>[
   Color(0xFF6DD5FA),
@@ -116,7 +117,7 @@ class _UploadingCard extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _kInk,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -128,7 +129,7 @@ class _UploadingCard extends StatelessWidget {
                 Text(
                   subtitle!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: _kSlate, fontSize: 12, height: 1.4),
                 ),
               ],
