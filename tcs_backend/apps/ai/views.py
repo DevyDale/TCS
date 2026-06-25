@@ -63,6 +63,9 @@ class ServerSentEventRenderer(BaseRenderer):
 # ═════════════════════════════════════════════════════════════
 
 # Rate limiting — abuse prevention only (NOT monetization)
+import logging
+logger = logging.getLogger(__name__)
+
 MAX_MESSAGES_PER_HOUR = 60
 RATE_LIMIT_WINDOW     = 3600
 
@@ -862,3 +865,70 @@ def mentor_clear(request):
     """DELETE /api/ai/mentor/clear/ — clear the user's Sage history (fresh start)."""
     MentorMessage.objects.filter(user=request.user).delete()
     return JsonResponse({"cleared": True})
+
+
+# ─────────────────────────────────────────────────────────────
+# Birthday note — a unique, AI-written birthday message for the
+# tapping user, plus the age they're turning. (See BirthdayNoteScreen.)
+# ─────────────────────────────────────────────────────────────
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def birthday_note(request):
+    """GET /api/ai/birthday-note/ → {name, age, message}
+
+    Generates a heart-warming, original birthday message for the current user.
+    A random tone + the user's name/age keep it different for everyone (and
+    fresh on each tap). Falls back to a warm canned message if AI is down.
+    """
+    import os
+    import random
+    from datetime import date
+
+    u    = request.user
+    full = (getattr(u, "name", "") or getattr(u, "display_name", "") or "").strip()
+    name = (full.split(" ")[0].strip() if full else "") or "friend"
+
+    age = None
+    dob = getattr(u, "date_of_birth", None)
+    if dob:
+        today = date.today()
+        age = today.year - dob.year - (
+            (today.month, today.day) < (dob.month, dob.day))
+        if age is not None and (age < 0 or age > 120):
+            age = None
+
+    fallback = (
+        f"Happy birthday, {name}! \U0001F389 Today is all about you. "
+        "Thank you for being part of the TCS family — your curiosity, your "
+        "energy and your kindness make this place brighter. Here's to another "
+        "year of big dreams, good friends and unforgettable moments. "
+        "Go make today amazing \U0001F382")
+
+    message = fallback
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if api_key:
+        tones = ["warm and poetic", "playful and funny", "inspiring and uplifting",
+                 "cozy and heartfelt", "joyful and celebratory",
+                 "gentle and reflective", "bright and hopeful"]
+        tone  = random.choice(tones)
+        system = (
+            "You are Dale, the friendly AI of TCS (a student community app). "
+            "Write a short, original, heart-warming HAPPY BIRTHDAY message to a "
+            "student. 3 to 5 sentences. Warm, personal and uplifting. Address "
+            "them by their first name. If an age is given, weave it in naturally "
+            "and celebrate the milestone. Plain prose only — no markdown, no "
+            "bullet lists, no quotation marks around the whole thing.")
+        details = f"First name: {name}."
+        if age is not None:
+            details += f" They are turning {age} today."
+        user_msg = (f"Write a {tone} birthday message. Make it feel personal, "
+                    f"unique and genuinely moving. {details}")
+        try:
+            payload = _build_gemini_payload(system, [], user_msg)
+            txt = _call_gemini_oneshot(payload, api_key)
+            if txt and txt.strip() and "trouble connecting" not in txt:
+                message = txt.strip()
+        except Exception:
+            logger.exception("birthday_note generation failed")
+
+    return Response({"name": name, "age": age, "message": message})

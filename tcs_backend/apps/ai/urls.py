@@ -11,6 +11,7 @@ urlpatterns = [
     path("chat/",   views.ai_chat,   name="ai-chat"),
     path("code/",   views.ai_code,   name="ai-code"),
     path("status/", views.ai_status, name="ai-status"),
+    path("birthday-note/", views.birthday_note, name="ai-birthday-note"),
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),

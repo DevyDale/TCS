@@ -39,6 +39,7 @@ import 'dashboard/event_details.dart';
 import 'dashboard/other_user_profile_Screen.dart';
 import 'groups/groups_study_hub_screen.dart';
 import 'feed/post_open_screen.dart';
+import 'birthday_note_screen.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
@@ -160,8 +161,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       // ── People ─────────────────────────────────────────────
       case 'follow':
-      case 'birthday':
         if (id.isNotEmpty) _push(OtherUserProfileScreen(userId: id));
+        break;
+      // It's the user's own birthday → festive AI birthday note.
+      case 'birthday':
+        _push(const BirthdayNoteScreen());
         break;
 
       // ── Post engagement → open that post ───────────────────
