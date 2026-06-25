@@ -1,15 +1,15 @@
 // lib/screens/staff/staff_home_screen.dart
 //
 // HOME tab — the staff Cohort Command Center.
-// Header: greeting block with notifications + Dale buttons (notifications opens
-// the Needs-attention page). Then the live pulse strip, beautified gradient
-// quick actions, and a "Run your cohort" auto-advancing carousel that stretches
-// to the bottom of the screen.
+// Header greeting + notifications/Dale buttons, live pulse strip, even gradient
+// quick actions, and a "Run your cohort" auto-advancing carousel that fills the
+// space down to JUST ABOVE the bottom nav (never under it).
 // Pulse data: GET /api/moderation/staff/overview/.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
@@ -22,6 +22,10 @@ import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+
+// Dale animation — the same robot Lottie used across the app. Falls back to an
+// icon if the asset is ever missing.
+const _kDaleLottie = 'assets/images/robot.json';
 
 class StaffHomeScreen extends StatefulWidget {
   final String fullName;
@@ -107,28 +111,45 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   void _push(Widget s) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
 
+  // Dale animation with a safe icon fallback if the asset isn't present.
+  Widget _daleVisual({required double size, required Color fallbackColor}) {
+    return Lottie.asset(
+      _kDaleLottie,
+      width: size, height: size, fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Icon(Icons.auto_awesome_rounded, color: fallbackColor, size: size * 0.62),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Reserve room so the carousel ends ABOVE the bottom nav bar.
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    const navBarHeight = 64.0;
+    final cohortHeight = (MediaQuery.of(context).size.height * 0.30)
+        .clamp(220.0, 300.0);
+
     return Scaffold(
       backgroundColor: AppC.bg,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics()),
+        padding: EdgeInsets.zero,
         children: [
           _header(),
-          Expanded(
-            child: Transform.translate(
-              offset: const Offset(0, -26),
-              child: Column(children: [
-                _pulseStrip(),
-                const SizedBox(height: 24),
-                _sectionLabel('Quick actions'),
-                _quickActions(),
-                const SizedBox(height: 26),
-                _sectionLabel('Run your cohort'),
-                const SizedBox(height: 4),
-                Expanded(child: _cohort()),
-              ]),
-            ),
+          Transform.translate(
+            offset: const Offset(0, -26),
+            child: Column(children: [
+              _pulseStrip(),
+              const SizedBox(height: 24),
+              _sectionLabel('Quick actions'),
+              _quickActions(),
+              const SizedBox(height: 26),
+              _sectionLabel('Run your cohort'),
+              const SizedBox(height: 6),
+              SizedBox(height: cohortHeight, child: _cohort()),
+              SizedBox(height: navBarHeight + bottomInset + 12),
+            ]),
           ),
         ],
       ),
@@ -158,12 +179,15 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             ]),
           ),
           const Spacer(),
-          _headerButton(Icons.notifications_rounded,
-              () => _push(const StaffNeedsAttentionScreen()),
+          _headerButton(
+              child: const Icon(Icons.notifications_rounded,
+                  color: Colors.white, size: 20),
+              onTap: () => _push(const StaffNeedsAttentionScreen()),
               dot: (_flagsPending ?? 0) > 0),
           const SizedBox(width: 10),
-          _headerButton(Icons.auto_awesome_rounded,
-              () => _push(const StaffKnowledgeScreen())),
+          _headerButton(
+              child: _daleVisual(size: 30, fallbackColor: Colors.white),
+              onTap: () => _push(const StaffKnowledgeScreen())),
         ]),
         const SizedBox(height: 20),
         Text('$_greeting,',
@@ -188,17 +212,22 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  Widget _headerButton(IconData icon, VoidCallback onTap, {bool dot = false}) {
+  Widget _headerButton({
+    required Widget child,
+    required VoidCallback onTap,
+    bool dot = false,
+  }) {
     return GestureDetector(
       onTap: () { HapticFeedback.selectionClick(); onTap(); },
       child: Stack(clipBehavior: Clip.none, children: [
         Container(
           width: 42, height: 42,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.18),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
-          child: Icon(icon, color: Colors.white, size: 20)),
+          child: child),
         if (dot)
           Positioned(right: -1, top: -1, child: Container(
             width: 12, height: 12,
@@ -262,21 +291,21 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   Widget _sectionLabel(String t) => StaffSectionLabel(t);
 
-  // ── Quick actions (gradient tiles) ────────────────────────
+  // ── Quick actions (even-height gradient tiles) ────────────
   Widget _quickActions() {
     final actions = <(IconData, String, List<Color>, VoidCallback)>[
-      (Icons.campaign_rounded, 'Post\nannouncement',
+      (Icons.campaign_rounded, 'Post announcement',
           [const Color(0xFFA78BFA), const Color(0xFF8E54E9)],
           () => _push(const StaffAnnouncementsScreen())),
-      (Icons.event_available_rounded, 'Create\nevent',
+      (Icons.event_available_rounded, 'Create event',
           [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
           () => _push(const EventsScreen())),
-      (Icons.school_rounded, 'Train\nDale',
+      (Icons.school_rounded, 'Train Dale',
           [const Color(0xFF2DD4BF), const Color(0xFF0EA5A4)],
           () => _push(const StaffKnowledgeScreen())),
     ];
     return SizedBox(
-      height: 118,
+      height: 128,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -287,7 +316,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           return GestureDetector(
             onTap: () { HapticFeedback.selectionClick(); a.$4(); },
             child: Container(
-              width: 114,
+              width: 124,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: a.$3,
@@ -300,15 +329,16 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 38, height: 38,
+                    width: 40, height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(12)),
-                    child: Icon(a.$1, color: Colors.white, size: 20)),
+                    child: Icon(a.$1, color: Colors.white, size: 21)),
                   const Spacer(),
-                  Text(a.$2, style: const TextStyle(fontFamily: 'Arch',
-                      fontSize: 12, fontWeight: FontWeight.bold, height: 1.2,
-                      color: Colors.white)),
+                  Text(a.$2, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontFamily: 'Arch',
+                          fontSize: 12.5, fontWeight: FontWeight.bold,
+                          height: 1.2, color: Colors.white)),
                 ],
               ),
             ),
@@ -318,7 +348,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  // ── Run your cohort (auto-advancing carousel, fills to bottom) ──
+  // ── Run your cohort (auto-advancing carousel) ─────────────
   List<_CohortItem> _cohortItems() {
     final items = <_CohortItem>[
       _CohortItem(Icons.shield_rounded, 'Moderation', 'Flags, hide & remove',
@@ -355,7 +385,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   Widget _cohort() {
     final items = _cohortItems();
     return Listener(
-      // Pause auto-scroll briefly while the user is interacting, then resume.
       onPointerDown: (_) => _autoTimer?.cancel(),
       onPointerUp: (_) => _startAutoScroll(),
       child: PageView.builder(
@@ -363,7 +392,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         onPageChanged: (i) => setState(() => _cohortPage = i),
         itemCount: items.length,
         itemBuilder: (_, i) => Padding(
-          padding: const EdgeInsets.fromLTRB(6, 0, 6, 16),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           child: _cohortTile(items[i]),
         ),
       ),
@@ -374,8 +403,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     return GestureDetector(
       onTap: () { HapticFeedback.selectionClick(); it.onTap(); },
       child: Container(
-        // Gradient border = gradient container with a small padding wrapping
-        // an inner card-coloured container.
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: it.gradient,
               begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -388,12 +415,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           decoration: BoxDecoration(
             color: AppC.card,
             borderRadius: BorderRadius.circular(22.6)),
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 60, height: 60,
+                width: 56, height: 56,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: it.gradient,
                       begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -401,28 +428,28 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   boxShadow: [BoxShadow(
                       color: it.gradient.last.withValues(alpha: 0.40),
                       blurRadius: 14, offset: const Offset(0, 6))]),
-                child: Icon(it.icon, color: Colors.white, size: 30)),
+                child: Icon(it.icon, color: Colors.white, size: 28)),
               const Spacer(),
               Text(it.title,
-                  style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
+                  style: TextStyle(fontFamily: 'Alfa', fontSize: 20,
                       color: AppC.text)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 7),
               Text(it.subtitle,
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 13.5,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                       color: AppC.sub, height: 1.3)),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                 decoration: BoxDecoration(
                   color: it.gradient.last.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text('Open',
                       style: TextStyle(fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold, fontSize: 12.5,
+                          fontWeight: FontWeight.bold, fontSize: 12,
                           color: it.gradient.last)),
                   const SizedBox(width: 5),
-                  Icon(Icons.arrow_forward_rounded, size: 14,
+                  Icon(Icons.arrow_forward_rounded, size: 13,
                       color: it.gradient.last),
                 ]),
               ),
