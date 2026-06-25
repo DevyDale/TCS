@@ -703,7 +703,18 @@ def image_generate(request):
     if seed is None or not isinstance(seed, int):
         seed = random.randint(1, 2_000_000_000)
 
-    image_url = _build_pollinations_url(prompt, model, width, height, seed)
+    # Phase 5: prefer Cloudflare Workers AI (FLUX → SDXL); fall back to the
+    # always-available Pollinations URL if CF is unconfigured or fails.
+    image_url = None
+    try:
+        from .image_gen import generate_cloudflare_image
+        cf = generate_cloudflare_image(prompt, width, height)
+        if cf:
+            image_url = cf[0]
+    except Exception:
+        image_url = None
+    if not image_url:
+        image_url = _build_pollinations_url(prompt, model, width, height, seed)
 
     gen = ImageGeneration.objects.create(
         user=request.user,
