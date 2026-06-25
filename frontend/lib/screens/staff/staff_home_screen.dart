@@ -3,9 +3,11 @@
 // HOME tab — the staff Cohort Command Center.
 // Header: greeting block with notifications + Dale buttons (notifications opens
 // the Needs-attention page). Then the live pulse strip, beautified gradient
-// quick actions, and a "Run your cohort" carousel of gradient-bordered tiles.
+// quick actions, and a "Run your cohort" auto-advancing carousel that stretches
+// to the bottom of the screen.
 // Pulse data: GET /api/moderation/staff/overview/.
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
@@ -20,9 +22,6 @@ import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
-
-const _kIndigo = Color(0xFF3F51B5);
-const _kDeep   = Color(0xFF512DA8);
 
 class StaffHomeScreen extends StatefulWidget {
   final String fullName;
@@ -46,17 +45,34 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   final _cohortCtrl = PageController(viewportFraction: 0.82);
   int _cohortPage = 0;
+  Timer? _autoTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _startAutoScroll();
   }
 
   @override
   void dispose() {
+    _autoTimer?.cancel();
     _cohortCtrl.dispose();
     super.dispose();
+  }
+
+  void _startAutoScroll() {
+    _autoTimer?.cancel();
+    _autoTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_cohortCtrl.hasClients) return;
+      final count = _cohortItems().length;
+      final next = (_cohortPage + 1) % count;
+      _cohortCtrl.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    });
   }
 
   Future<void> _load() async {
@@ -95,16 +111,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppC.bg,
-      body: RefreshIndicator(
-        color: _kDeep,
-        onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.zero,
-          children: [
-            _header(),
-            Transform.translate(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _header(),
+          Expanded(
+            child: Transform.translate(
               offset: const Offset(0, -26),
               child: Column(children: [
                 _pulseStrip(),
@@ -113,12 +125,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 _quickActions(),
                 const SizedBox(height: 26),
                 _sectionLabel('Run your cohort'),
-                _cohort(),
-                const SizedBox(height: 40),
+                const SizedBox(height: 4),
+                Expanded(child: _cohort()),
               ]),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -256,9 +268,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       (Icons.campaign_rounded, 'Post\nannouncement',
           [const Color(0xFFA78BFA), const Color(0xFF8E54E9)],
           () => _push(const StaffAnnouncementsScreen())),
-      (Icons.warning_amber_rounded, 'Send scam\nalert',
-          [const Color(0xFFFB7185), const Color(0xFFE11D48)],
-          () => _push(const StaffAnnouncementsScreen())),
       (Icons.event_available_rounded, 'Create\nevent',
           [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
           () => _push(const EventsScreen())),
@@ -309,7 +318,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  // ── Run your cohort (carousel) ────────────────────────────
+  // ── Run your cohort (auto-advancing carousel, fills to bottom) ──
   List<_CohortItem> _cohortItems() {
     final items = <_CohortItem>[
       _CohortItem(Icons.shield_rounded, 'Moderation', 'Flags, hide & remove',
@@ -345,22 +354,20 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   Widget _cohort() {
     final items = _cohortItems();
-    return Column(children: [
-      SizedBox(
-        height: 196,
-        child: PageView.builder(
-          controller: _cohortCtrl,
-          onPageChanged: (i) => setState(() => _cohortPage = i),
-          itemCount: items.length,
-          itemBuilder: (_, i) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: _cohortTile(items[i]),
-          ),
+    return Listener(
+      // Pause auto-scroll briefly while the user is interacting, then resume.
+      onPointerDown: (_) => _autoTimer?.cancel(),
+      onPointerUp: (_) => _startAutoScroll(),
+      child: PageView.builder(
+        controller: _cohortCtrl,
+        onPageChanged: (i) => setState(() => _cohortPage = i),
+        itemCount: items.length,
+        itemBuilder: (_, i) => Padding(
+          padding: const EdgeInsets.fromLTRB(6, 0, 6, 16),
+          child: _cohortTile(items[i]),
         ),
       ),
-      const SizedBox(height: 14),
-      _dots(items.length),
-    ]);
+    );
   }
 
   Widget _cohortTile(_CohortItem it) {
@@ -381,12 +388,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           decoration: BoxDecoration(
             color: AppC.card,
             borderRadius: BorderRadius.circular(22.6)),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(22),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 56, height: 56,
+                width: 60, height: 60,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: it.gradient,
                       begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -394,28 +401,28 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   boxShadow: [BoxShadow(
                       color: it.gradient.last.withValues(alpha: 0.40),
                       blurRadius: 14, offset: const Offset(0, 6))]),
-                child: Icon(it.icon, color: Colors.white, size: 28)),
+                child: Icon(it.icon, color: Colors.white, size: 30)),
               const Spacer(),
               Text(it.title,
-                  style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
+                  style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
                       color: AppC.text)),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(it.subtitle,
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 13.5,
                       color: AppC.sub, height: 1.3)),
-              const SizedBox(height: 14),
+              const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: it.gradient.last.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text('Open',
                       style: TextStyle(fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold, fontSize: 11.5,
+                          fontWeight: FontWeight.bold, fontSize: 12.5,
                           color: it.gradient.last)),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded, size: 13,
+                  const SizedBox(width: 5),
+                  Icon(Icons.arrow_forward_rounded, size: 14,
                       color: it.gradient.last),
                 ]),
               ),
@@ -423,27 +430,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _dots(int n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(n, (i) {
-        final active = i == _cohortPage;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: active ? 22 : 7,
-          height: 7,
-          decoration: BoxDecoration(
-            gradient: active
-                ? const LinearGradient(colors: [_kIndigo, _kDeep])
-                : null,
-            color: active ? null : AppC.faint.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(4)),
-        );
-      }),
     );
   }
 }
