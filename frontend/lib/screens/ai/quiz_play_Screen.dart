@@ -15,14 +15,16 @@ import 'package:tcs_app/screens/ai/quiz_results_Screen.dart';
 
 import '../../../../services/api_service.dart';
 
-const _kShelf     = Color(0xFF2C1810);
-const _kWood      = Color(0xFF5C3317);
-const _kWoodLight = Color(0xFF8B5E3C);
-const _kCream     = Color(0xFFFDF6EC);
-const _kPaper     = Color(0xFFF5ECD7);
+Color get _kShelf => AppC.bg;
+Color get _kWood => AppC.sub;
+Color get _kWoodLight => AppC.border;
+Color get _kCream => AppC.card;
+Color get _kPaper => AppC.card2;
 const _kGold      = Color(0xFFD4A017);
+const _kIndigo    = Color(0xFF3F51B5);
+const _kDeep      = Color(0xFF512DA8);
 Color get _kInk => AppC.text;
-const _kInkLight  = Color(0xFF4A3728);
+Color get _kInkLight => AppC.sub;
 
 class QuizPlayScreen extends StatefulWidget {
   final String  quizId;
@@ -143,7 +145,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           title: T('Submit anyway?',
               style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
           content: Text('You have $unanswered unanswered questions.',
-              style: const TextStyle(fontFamily: 'Momo', color: _kInkLight)),
+              style: TextStyle(fontFamily: 'Momo', color: _kInkLight)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false),
                 child: const T('Keep going')),
@@ -211,7 +213,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 _questionTypeBadge(q['type'] as String? ?? 'mcq'),
                 const SizedBox(height: 14),
                 Text('Question ${_index + 1} of ${_questions.length}',
-                    style: const TextStyle(fontFamily: 'Momo',
+                    style: TextStyle(fontFamily: 'Momo',
                         fontSize: 11, color: _kInkLight)),
                 const SizedBox(height: 8),
                 Text(q['question'] as String? ?? '',
@@ -234,7 +236,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 20, 14),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [_kShelf, _kWood],
+        gradient: LinearGradient(colors: [_kIndigo, _kDeep],
             begin: Alignment.topLeft, end: Alignment.bottomRight)),
       child: Column(children: [
         Row(children: [
@@ -403,7 +405,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget _shortWidget(Map<String, dynamic> q) {
     final qid = q['id'] as String;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const T('Your answer',
+      T('Your answer',
           style: TextStyle(fontFamily: 'Arch',
               fontWeight: FontWeight.bold, fontSize: 11, color: _kInkLight)),
       const SizedBox(height: 8),
@@ -414,7 +416,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             fontSize: 13, color: _kInk, height: 1.5),
         decoration: InputDecoration(
           hintText: TranslationService.I.tr('Type your answer here…'),
-          hintStyle: const TextStyle(fontFamily: 'Momo', color: _kInkLight),
+          hintStyle: TextStyle(fontFamily: 'Momo', color: _kInkLight),
           filled: true, fillColor: _kPaper,
           contentPadding: const EdgeInsets.all(14),
           enabledBorder: OutlineInputBorder(
@@ -495,7 +497,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         backgroundColor: _kCream,
         title: T('Leave the quiz?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
-        content: const T(
+        content: T(
             'Your progress will be lost. The quiz itself is saved and you can retake it anytime.',
             style: TextStyle(fontFamily: 'Momo', color: _kInkLight)),
         actions: [
@@ -518,7 +520,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget _centered(Widget child) =>
       Center(child: Padding(padding: const EdgeInsets.all(32), child: child));
 
-  Widget _loadingBlock() => const Column(mainAxisSize: MainAxisSize.min, children: [
+  Widget _loadingBlock() => Column(mainAxisSize: MainAxisSize.min, children: [
     CircularProgressIndicator(color: _kGold),
     SizedBox(height: 20),
     T('Loading your quiz…',

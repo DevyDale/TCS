@@ -21,14 +21,16 @@ import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 import '../../../../services/api_service.dart';
 
 // Library palette (matches saved materials screen)
-const _kShelf     = Color(0xFF2C1810);
-const _kWood      = Color(0xFF5C3317);
-const _kWoodLight = Color(0xFF8B5E3C);
-const _kCream     = Color(0xFFFDF6EC);
-const _kPaper     = Color(0xFFF5ECD7);
+Color get _kShelf => AppC.bg;
+Color get _kWood => AppC.sub;
+Color get _kWoodLight => AppC.border;
+Color get _kCream => AppC.card;
+Color get _kPaper => AppC.card2;
 const _kGold      = Color(0xFFD4A017);
+const _kIndigo    = Color(0xFF3F51B5);
+const _kDeep      = Color(0xFF512DA8);
 Color get _kInk => AppC.text;
-const _kInkLight  = Color(0xFF4A3728);
+Color get _kInkLight => AppC.sub;
 
 class QuizGeneratorScreen extends StatefulWidget {
   /// Full saved-materials list, so we can offer a picker.
@@ -191,7 +193,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 20, 16),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [_kShelf, _kWood],
+        gradient: LinearGradient(colors: [_kIndigo, _kDeep],
             begin: Alignment.topLeft, end: Alignment.bottomRight)),
       child: Row(children: [
         GestureDetector(
@@ -306,10 +308,10 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
                       m['source_group_name'],
                   ].whereType<String>().join(' · '),
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Momo',
+                  style: TextStyle(fontFamily: 'Momo',
                       fontSize: 10, color: _kInkLight)),
               ])),
-              const Icon(Icons.chevron_right_rounded,
+              Icon(Icons.chevron_right_rounded,
                   color: _kWood, size: 20),
             ]),
           ),
@@ -350,13 +352,13 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
           const SizedBox(height: 2),
           Text(m['file_name'] as String? ?? '',
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontFamily: 'Momo',
+              style: TextStyle(fontFamily: 'Momo',
                   fontSize: 10, color: _kInkLight)),
         ])),
         IconButton(
             tooltip: TranslationService.I.tr('Change'),
             onPressed: () => setState(() => _selected = null),
-            icon: const Icon(Icons.swap_horiz_rounded, color: _kWood)),
+            icon: Icon(Icons.swap_horiz_rounded, color: _kWood)),
       ]),
     );
   }
@@ -369,10 +371,10 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
           fontSize: 14, color: _kInk),
       decoration: InputDecoration(
         hintText: TranslationService.I.tr('e.g. Mathematics, Biology, Programming…'),
-        hintStyle: const TextStyle(fontFamily: 'Momo',
+        hintStyle: TextStyle(fontFamily: 'Momo',
             color: _kInkLight, fontSize: 13),
         filled: true, fillColor: _kPaper,
-        prefixIcon: const Icon(Icons.subject_rounded, color: _kWood),
+        prefixIcon: Icon(Icons.subject_rounded, color: _kWood),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         enabledBorder: OutlineInputBorder(
@@ -561,7 +563,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
                 width: 260,
                 child: Text(_statusLine,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontFamily: 'Momo',
+                    style: TextStyle(fontFamily: 'Momo',
                         fontSize: 13, color: _kInkLight, height: 1.5))),
             ]),
           ),

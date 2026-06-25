@@ -12,14 +12,16 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
 
-const _kShelf     = Color(0xFF2C1810);
-const _kWood      = Color(0xFF5C3317);
-const _kWoodLight = Color(0xFF8B5E3C);
-const _kCream     = Color(0xFFFDF6EC);
-const _kPaper     = Color(0xFFF5ECD7);
+Color get _kShelf => AppC.bg;
+Color get _kWood => AppC.sub;
+Color get _kWoodLight => AppC.border;
+Color get _kCream => AppC.card;
+Color get _kPaper => AppC.card2;
 const _kGold      = Color(0xFFD4A017);
+const _kIndigo    = Color(0xFF3F51B5);
+const _kDeep      = Color(0xFF512DA8);
 Color get _kInk => AppC.text;
-const _kInkLight  = Color(0xFF4A3728);
+Color get _kInkLight => AppC.sub;
 const _kGreen     = Color(0xFF43A047);
 const _kRed       = Color(0xFFE53935);
 
@@ -175,7 +177,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                     color: _kWood.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8)),
                   child: Text('${breakdown.length}',
-                      style: const TextStyle(fontFamily: 'Momo',
+                      style: TextStyle(fontFamily: 'Momo',
                           fontSize: 11, color: _kWood,
                           fontWeight: FontWeight.bold))),
                 const Spacer(),
@@ -376,7 +378,7 @@ class _ReviewCard extends StatelessWidget {
             if (expanded) Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Divider(color: _kWoodLight, height: 1),
+                Divider(color: _kWoodLight, height: 1),
                 const SizedBox(height: 12),
                 _answerRow('Your answer', userText,
                     color: isCorrect ? _kGreen : _kRed,
