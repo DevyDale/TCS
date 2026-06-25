@@ -14,6 +14,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/ai_spinner.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -844,7 +845,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
 
   Widget _buildBubbleBody(CompanionMessage msg, bool isUser) {
     if (msg.isStreaming && msg.content.isEmpty) {
-      return _TypingDots(color: _gradient.last);
+      return AiSpinner(color: _gradient.last);
     }
     if (isUser) {
       return Text(
@@ -1120,56 +1121,6 @@ class _MiniUserAvatar extends StatelessWidget {
             color: _kInkSoft,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _TypingDots extends StatefulWidget {
-  final Color color;
-  const _TypingDots({required this.color});
-  @override
-  State<_TypingDots> createState() => _TypingDotsState();
-}
-
-class _TypingDotsState extends State<_TypingDots>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(3, (i) {
-          final delay = i / 3;
-          final t = (_ctrl.value - delay).clamp(0.0, 1.0);
-          final op = (t < 0.5 ? t * 2 : (1 - t) * 2).clamp(0.3, 1.0);
-          return Container(
-            width: 7,
-            height: 7,
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: widget.color.withOpacity(op),
-            ),
-          );
-        }),
       ),
     );
   }

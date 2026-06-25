@@ -627,6 +627,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 pinned: true,
                 delegate: _StickyTabBarDelegate(
                   height: 60,
+                  isDark: AppC.isDark,
                   builder: (_) => _buildTabBar(),
                 ),
               ),
@@ -1623,7 +1624,9 @@ class _GradientBorderCard extends StatelessWidget {
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final WidgetBuilder builder;
   final double height;
-  _StickyTabBarDelegate({required this.builder, required this.height});
+  final bool isDark;
+  _StickyTabBarDelegate(
+      {required this.builder, required this.height, this.isDark = false});
 
   @override
   double get minExtent => height;
@@ -1643,7 +1646,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _StickyTabBarDelegate old) =>
-      old.height != height;
+      old.height != height || old.isDark != isDark;
 }
 
 // ═════════════════════════════════════════════════════════════
