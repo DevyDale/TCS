@@ -1,4 +1,6 @@
 // lib/screens/groups/group_screen.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
@@ -888,7 +890,7 @@ class _GroupScreenState extends State<GroupScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Column(children: [
         _buildHeader(),
         _buildTabBar(),
@@ -924,18 +926,34 @@ class _GroupScreenState extends State<GroupScreen>
             child: const Icon(Icons.arrow_back_rounded,
                 color: Colors.white, size: 20)),
         ),
-        const SizedBox(width: 8),
-        Text(_icon, style: const TextStyle(fontSize: 26)),
-        const SizedBox(width: 10),
+        const SizedBox(width: 6),
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: Colors.white.withOpacity(0.35))),
+          child: Center(
+              child: Text(_icon, style: const TextStyle(fontSize: 24))),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(_groupName,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: 'Alfa',
-                    fontSize: 18, color: AppC.text)),
-            Text('${_members.length} members',
-                style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 12, color: AppC.text.withOpacity(0.7))),
+                style: const TextStyle(fontFamily: 'Alfa',
+                    fontSize: 18, color: Colors.white)),
+            const SizedBox(height: 3),
+            Row(children: [
+              Container(
+                width: 7, height: 7,
+                decoration: const BoxDecoration(
+                    color: Color(0xFF34D399), shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text('${_members.length} members · active now',
+                  style: TextStyle(fontFamily: 'Momo',
+                      fontSize: 11.5, color: Colors.white.withOpacity(0.85))),
+            ]),
           ]),
         ),
         if (_isCreator)
@@ -986,15 +1004,12 @@ class _GroupScreenState extends State<GroupScreen>
 
   Widget _buildChatTab() {
     return Column(children: [
+      const _StudyVibeBanner(),
       Expanded(
         child: _loadingMsgs
             ? const Center(child: CircularProgressIndicator(color: _indigo))
             : _messages.isEmpty
-                ? Center(
-                    child: T('No posts yet — start the conversation!',
-                        style: TextStyle(
-                            fontFamily: 'Momo',
-                            color: AppC.faint)))
+                ? _buildChatEmptyState()
                 : ListView.builder(
                     reverse: true,
                     padding: const EdgeInsets.all(16),
@@ -1019,7 +1034,7 @@ class _GroupScreenState extends State<GroupScreen>
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
+                color: AppC.card2,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: AppC.border)),
               child: TextField(
@@ -1063,6 +1078,71 @@ class _GroupScreenState extends State<GroupScreen>
         ]),
       ),
     ]);
+  }
+
+  // Energetic empty state — tappable starters prefill the composer so the
+  // first message feels effortless.
+  Widget _buildChatEmptyState() {
+    const starters = [
+      '👋 Hey team! Who\'s studying today?',
+      '❓ Can someone explain…',
+      '📚 Let\'s plan a study session',
+      '🔥 My goal for today is…',
+    ];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(28, 44, 28, 24),
+      children: [
+        Center(
+          child: Container(
+            width: 96, height: 96,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [_indigo, _deep],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [BoxShadow(
+                  color: _indigo.withOpacity(0.40),
+                  blurRadius: 24, offset: const Offset(0, 10))]),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 46),
+          ),
+        ),
+        const SizedBox(height: 22),
+        Text('This is where the magic happens ✨',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontFamily: 'Alfa',
+                fontSize: 19, color: AppC.text)),
+        const SizedBox(height: 10),
+        Text(
+            'Great grades start with great conversations.\nBreak the ice and get the energy going 🚀',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontFamily: 'Momo',
+                fontSize: 13.5, height: 1.5, color: AppC.sub)),
+        const SizedBox(height: 26),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8, runSpacing: 8,
+          children: starters.map((s) => GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _msgCtrl.text = s.replaceAll('…', ' '));
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppC.card,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppC.border)),
+              child: Text(s,
+                  style: TextStyle(fontFamily: 'Momo',
+                      fontSize: 12.5, color: AppC.text)),
+            ),
+          )).toList(),
+        ),
+      ],
+    );
   }
 
   Widget _buildReplyBar() {
@@ -1154,7 +1234,7 @@ class _GroupScreenState extends State<GroupScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? _indigo : Colors.white,
+                color: isMe ? _indigo : AppC.card,
                 borderRadius: BorderRadius.only(
                   topLeft:     const Radius.circular(16),
                   topRight:    const Radius.circular(16),
@@ -1180,7 +1260,7 @@ class _GroupScreenState extends State<GroupScreen>
                       fontFamily: 'Momo',
                       fontSize: 15,
                       height: 1.4,
-                      color: isMe ? Colors.white : const Color(0xFF1A1A2E),
+                      color: isMe ? Colors.white : AppC.text,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -1701,5 +1781,82 @@ class _GroupScreenState extends State<GroupScreen>
     } catch (_) {
       return '';
     }
+  }
+}
+// ─────────────────────────────────────────────────────────────
+// STUDY VIBE BANNER — rotating motivational strip atop the chat.
+// Keeps the energy up and nudges people to actually study.
+// ─────────────────────────────────────────────────────────────
+class _StudyVibeBanner extends StatefulWidget {
+  const _StudyVibeBanner();
+  @override
+  State<_StudyVibeBanner> createState() => _StudyVibeBannerState();
+}
+
+class _StudyVibeBannerState extends State<_StudyVibeBanner> {
+  static const _lines = [
+    '🔥 Consistency beats intensity — show up today',
+    '🧠 Teaching a friend is the fastest way to learn',
+    '🚀 Small steps every day add up to big grades',
+    '⭐ Ask the "silly" question — someone else has it too',
+    '☕ 25 min focus, 5 min break. Let\'s lock in.',
+    '💪 Done is better than perfect. Start now.',
+    '📈 You vs. you yesterday. Win the day.',
+  ];
+  Timer? _t;
+  int _i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      setState(() => _i = (_i + 1) % _lines.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [
+          _indigo.withOpacity(0.10),
+          _deep.withOpacity(0.10),
+        ]),
+        border: Border(bottom: BorderSide(color: AppC.border)),
+      ),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        transitionBuilder: (child, anim) => FadeTransition(
+          opacity: anim,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.4),
+              end: Offset.zero,
+            ).animate(anim),
+            child: child,
+          ),
+        ),
+        child: Text(
+          _lines[_i],
+          key: ValueKey<int>(_i),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Momo',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppC.text.withOpacity(0.78),
+          ),
+        ),
+      ),
+    );
   }
 }
