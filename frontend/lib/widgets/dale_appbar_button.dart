@@ -8,6 +8,7 @@
 // reports taps. Logic (enable / summon / remove) lives in the parent.
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -92,8 +93,16 @@ class _DaleAppBarButtonState extends State<DaleAppBarButton>
                         color: Colors.white, strokeWidth: 2,
                       ),
                     )
-                  : const Icon(Icons.smart_toy_rounded,
-                      color: Colors.white, size: 20),
+                  : SizedBox(
+                      width: 28, height: 28,
+                      child: Lottie.asset(
+                        'assets/images/robot.json',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.smart_toy_rounded,
+                            color: Colors.white, size: 20),
+                      ),
+                    ),
             ),
           ),
 
