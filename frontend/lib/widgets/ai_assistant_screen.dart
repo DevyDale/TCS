@@ -28,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/widgets/markdown_text.dart';
+import 'package:tcs_app/screens/ai/scam_check_screen.dart';
 
 // ── Light palette ─────────────────────────────────────────────
 Color get _kBg => AppC.bg;
@@ -920,6 +921,27 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 ],
               ),
               child: const Icon(Icons.menu_rounded, color: _kInkSoft, size: 20),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Scam check — paste a suspicious message and get a cautious verdict.
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const ScamCheckScreen()));
+            },
+            child: Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF0EA5A4), Color(0xFF2563EB)]),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(
+                    color: const Color(0xFF0EA5A4).withOpacity(0.25),
+                    blurRadius: 8, offset: const Offset(0, 2))]),
+              child: const Icon(Icons.shield_rounded,
+                  color: Colors.white, size: 20),
             ),
           ),
           const Spacer(),

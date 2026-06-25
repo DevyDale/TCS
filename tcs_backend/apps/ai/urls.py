@@ -12,6 +12,7 @@ urlpatterns = [
     path("code/",   views.ai_code,   name="ai-code"),
     path("status/", views.ai_status, name="ai-status"),
     path("birthday-note/", views.birthday_note, name="ai-birthday-note"),
+    path("scam-check/",     views.scam_check,    name="ai-scam-check"),
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),

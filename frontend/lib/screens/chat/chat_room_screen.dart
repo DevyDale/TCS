@@ -36,6 +36,7 @@ import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
 import 'package:tcs_app/services/quiz_share.dart';
 import 'package:tcs_app/widgets/quiz_share_card.dart';
+import 'package:tcs_app/screens/ai/scam_check_screen.dart';
 import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
 import 'package:tcs_app/screens/chat/chat_audio_player.dart';
 import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
@@ -685,6 +686,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             decoration: BoxDecoration(
                 color: _kHair, borderRadius: BorderRadius.circular(2)),
           ),
+          // Scam links often arrive through chat — let users check a message.
+          if (((msg['text'] as String?) ?? '').trim().isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.shield_rounded, color: Color(0xFF0EA5A4)),
+              title: const T('Check for scams',
+                  style: TextStyle(fontFamily: 'Momo', color: _kInk)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => ScamCheckScreen(
+                        initialText: (msg['text'] as String?) ?? '')));
+              },
+            ),
           ListTile(
             leading: Icon(Icons.delete_outline_rounded, color: _kSlate),
             title: const T('Delete for me',

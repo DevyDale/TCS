@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
+import 'package:tcs_app/screens/ai/scam_check_screen.dart';
 import '../../../../services/api_service.dart';
 import 'code_assistant_screen.dart';
 import 'companion_list_Screen.dart';
@@ -214,6 +215,7 @@ class _AiHubScreenState extends State<AiHubScreen>
             children: [
               _buildHeader(),
               Expanded(child: _buildToolsArea()),
+              _buildScamCheckButton(),
               if (_isStaff) _buildTrainDaleButton(),
               _buildFooter(),
             ],
@@ -420,6 +422,51 @@ class _AiHubScreenState extends State<AiHubScreen>
         );
       },
       child: child,
+    );
+  }
+
+  // Everyone: a private, multilingual first line of defence against scams.
+  Widget _buildScamCheckButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const ScamCheckScreen()));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFF0EA5A4), Color(0xFF2563EB)],
+                begin: Alignment.centerLeft, end: Alignment.centerRight),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(
+                color: const Color(0xFF0EA5A4).withOpacity(0.30),
+                blurRadius: 12, offset: const Offset(0, 5))]),
+          child: Row(children: [
+            const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                T('Is this a scam?',
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold, fontSize: 14,
+                        color: Colors.white)),
+                Text('Paste a suspicious call, text, email or job offer to check it',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
+                        color: Colors.white70)),
+              ],
+            )),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 18),
+          ]),
+        ),
+      ),
     );
   }
 

@@ -932,3 +932,167 @@ def birthday_note(request):
             logger.exception("birthday_note generation failed")
 
     return Response({"name": name, "age": age, "message": message})
+
+
+# ─────────────────────────────────────────────────────────────
+# Scam check — paste a suspicious call/text/email/job offer and get
+# a cautious, structured verdict + the safe next action. Multilingual.
+# Safety rules: bias toward caution, never give confident "it's safe",
+# always route to official channels. (See ScamCheckScreen.)
+# ─────────────────────────────────────────────────────────────
+_SCAM_ANCHOR = (
+    "Remember: government departments, banks, the ATO, police and embassies "
+    "will NEVER demand immediate payment by gift card, iTunes voucher, "
+    "cryptocurrency or wire transfer, and never threaten you with instant "
+    "arrest or deportation over the phone. If anyone pressures you to act "
+    "right now, stop — hang up and verify through the organisation's official "
+    "channels.")
+
+_SCAM_REPORT = [
+    {"label": "Scamwatch (report scams)", "value": "scamwatch.gov.au"},
+    {"label": "ATO scam reporting", "value": "1800 008 540"},
+    {"label": "Police (emergency)", "value": "000"},
+    {"label": "Your international student office", "value": "Contact your college"},
+]
+
+_SCAM_SYSTEM = (
+    "You are Dale, a calm scam-safety assistant inside a student app used by "
+    "international students in Australia. A student will paste a message, "
+    "email, job/scholarship offer, or describe a phone call they received, and "
+    "ask if it's a scam. Analyse it against known red flags:\n"
+    "- Impersonation of authority (ATO, immigration/Home Affairs, police, an "
+    "embassy, a bank, the university) threatening visa cancellation, arrest, "
+    "fines or deportation.\n"
+    "- Unusual payment demands: gift cards, vouchers, cryptocurrency, wire "
+    "transfer (Western Union/MoneyGram) — legitimate bodies never use these.\n"
+    "- Manufactured urgency, fear, secrecy or pressure to act immediately.\n"
+    "- Too-good-to-be-true jobs, scholarships, discounts, refunds or prizes.\n"
+    "- Suspicious links, lookalike domains, requests for passwords/OTP/bank "
+    "details, or 'virtual kidnapping' / fake-authority extortion.\n\n"
+    "SAFETY RULES (critical):\n"
+    "1. Bias strongly toward caution. NEVER give a confident 'this is safe'. "
+    "If unsure, say it's suspicious and to verify independently.\n"
+    "2. Be calm and reassuring in tone — the student may be panicking. "
+    "De-escalate.\n"
+    "3. Always tell them to verify through official channels and not to pay or "
+    "share personal/bank details.\n"
+    "4. You are a FIRST CHECK, not the final authority.\n\n"
+    "Respond ONLY with a JSON object (no markdown) of this exact shape:\n"
+    '{\n'
+    '  \"verdict\": \"likely_scam\" | \"suspicious\" | \"probably_safe\",\n'
+    '  \"confidence\": \"low\" | \"medium\" | \"high\",\n'
+    '  \"headline\": \"one short plain-language sentence\",\n'
+    '  \"flags\": [\"specific red flag you matched\", ...],\n'
+    '  \"what_to_do\": [\"clear safe next step\", ...],\n'
+    '  \"explanation\": \"2-4 calm sentences explaining your reasoning\"\n'
+    '}\n'
+    "Keep it concise. If the input is empty or unrelated, return verdict "
+    "'suspicious' with a gentle note to paste the actual message.")
+
+
+def _coerce_scam_result(raw_text):
+    import json as _json
+    import re as _re
+    data = None
+    try:
+        data = _json.loads(raw_text)
+    except Exception:
+        m = _re.search(r"\{.*\}", raw_text or "", _re.DOTALL)
+        if m:
+            try:
+                data = _json.loads(m.group(0))
+            except Exception:
+                data = None
+    if not isinstance(data, dict):
+        return None
+
+    verdict = str(data.get("verdict", "")).lower().strip()
+    if verdict not in ("likely_scam", "suspicious", "probably_safe"):
+        verdict = "suspicious"
+    conf = str(data.get("confidence", "medium")).lower().strip()
+    if conf not in ("low", "medium", "high"):
+        conf = "medium"
+
+    def _strlist(v):
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()][:8]
+        if isinstance(v, str) and v.strip():
+            return [v.strip()]
+        return []
+
+    return {
+        "verdict": verdict,
+        "confidence": conf,
+        "headline": str(data.get("headline", "")).strip()
+                    or "Treat this as suspicious and verify it independently.",
+        "flags": _strlist(data.get("flags")),
+        "what_to_do": _strlist(data.get("what_to_do")) or [
+            "Don't pay anyone or share personal or bank details.",
+            "Verify by contacting the organisation through its official website "
+            "or your international student office.",
+            "If you're being pressured, stop and take your time.",
+        ],
+        "explanation": str(data.get("explanation", "")).strip(),
+    }
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def scam_check(request):
+    """POST /api/ai/scam-check/  body: {content, language?}
+
+    Returns a cautious structured verdict about a pasted suspicious message,
+    plus a fixed safety anchor and official report contacts.
+    """
+    content = (request.data.get("content") or "").strip()
+    language = (request.data.get("language") or "English").strip() or "English"
+
+    safe_fallback = {
+        "verdict": "suspicious",
+        "confidence": "low",
+        "headline": "I couldn't fully analyse this — please treat it as suspicious.",
+        "flags": [],
+        "what_to_do": [
+            "Don't pay anyone or share personal or bank details.",
+            "Verify through official channels or your international student office.",
+            "If you feel pressured, stop and take your time.",
+        ],
+        "explanation": "",
+        "anchor": _SCAM_ANCHOR,
+        "report": _SCAM_REPORT,
+    }
+
+    if not content:
+        return Response({
+            **safe_fallback,
+            "headline": "Paste the suspicious message, email or job offer and "
+                        "I'll check it for you.",
+        })
+
+    sys_prompt = _SCAM_SYSTEM
+    if language and language.lower() not in ("english", "en"):
+        sys_prompt += (f"\n\nIMPORTANT: Write the headline, flags, what_to_do "
+                       f"and explanation values in {language}. Keep the JSON "
+                       f"keys exactly as specified in English.")
+
+    messages = [
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": f"Is this a scam?\n\n{content[:4000]}"},
+    ]
+
+    try:
+        result = ai_router.complete(
+            "chat", messages, max_tokens=700, temperature=0.2,
+            response_format={"type": "json_object"})
+        text = (result or {}).get("text") or ""
+        parsed = _coerce_scam_result(text)
+    except Exception:
+        logger.exception("scam_check failed")
+        parsed = None
+
+    if parsed is None:
+        return Response(safe_fallback)
+
+    parsed["anchor"] = _SCAM_ANCHOR
+    parsed["report"] = _SCAM_REPORT
+    return Response(parsed)
