@@ -29,6 +29,7 @@ import 'dart:async';
 
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
 import 'package:tcs_app/screens/chat/chat_requests.dart';
@@ -748,7 +749,18 @@ Widget _buildSearchField() {
               const SizedBox(height: 3),
 
               Row(children: [
-                if (preview.icon != null) ...[
+                if (preview.dale) ...[
+                  SizedBox(
+                    width: 18, height: 18,
+                    child: Lottie.asset('assets/images/robot.json',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                            Icons.smart_toy_rounded, size: 13,
+                            color: preview.color
+                                ?? (unread > 0 ? _kG2 : Colors.grey.shade400))),
+                  ),
+                  const SizedBox(width: 4),
+                ] else if (preview.icon != null) ...[
                   Icon(preview.icon,
                       size: 13,
                       color: preview.color
@@ -823,7 +835,13 @@ Widget _buildSearchField() {
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (withIcon) ...[
-          Icon(Icons.smart_toy_rounded, size: 10, color: tint),
+          SizedBox(
+            width: 14, height: 14,
+            child: Lottie.asset('assets/images/robot.json',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    Icon(Icons.smart_toy_rounded, size: 10, color: tint)),
+          ),
           const SizedBox(width: 3),
         ],
         Text(label,
@@ -1125,7 +1143,7 @@ Widget _buildSearchField() {
     if (isAi && type == 'text' && rawText.isNotEmpty) {
       return _PreviewLine(
         text: 'Dale: $rawText',
-        icon: Icons.smart_toy_rounded,
+        dale: true,
       );
     }
 
@@ -1200,12 +1218,14 @@ class _PreviewLine {
   final Color?   color;
   final bool     italic;
   final bool     bold;
+  final bool     dale;   // render the Dale robot.json Lottie instead of an icon
   const _PreviewLine({
     required this.text,
     this.icon,
     this.color,
     this.italic = false,
     this.bold   = false,
+    this.dale   = false,
   });
 }
 
