@@ -1388,102 +1388,111 @@ class _BuddyCard extends StatelessWidget {
     final colors  = [_kG4, _kG1, _kG3, _kG2, _indigo];
     final color   = colors[name.hashCode.abs() % colors.length];
 
+    // Compact meta line: role · subjects (single, truncated) — replaces the
+    // tall chip-wrap that made these tiles so big.
+    final subjectList = subjects
+        .split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final metaParts = <String>[
+      if (role.isNotEmpty) role[0].toUpperCase() + role.substring(1),
+      if (subjectList.isNotEmpty) subjectList.take(2).join(', '),
+    ];
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppC.card,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppC.border),
         boxShadow: [BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 10, offset: const Offset(0, 3))]),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 8, offset: const Offset(0, 2))]),
+      child: Row(children: [
+        // Avatar with a live online dot.
+        Stack(children: [
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: [color.withOpacity(0.75), color],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+              image: avatarUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(avatarUrl), fit: BoxFit.cover)
+                  : null),
+            child: avatarUrl.isEmpty
+                ? Center(child: Text(initial,
+                    style: const TextStyle(color: Colors.white,
+                        fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                        fontSize: 18)))
+                : null),
+          if (online)
+            Positioned(bottom: 0, right: 0,
+              child: Container(width: 12, height: 12,
+                decoration: BoxDecoration(
+                    color: const Color(0xFF34D399), shape: BoxShape.circle,
+                    border: Border.all(color: AppC.card, width: 2)))),
+        ]),
+        const SizedBox(width: 12),
+        // Name + compact meta line.
+        Expanded(child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Stack(children: [
+              Flexible(child: Text(name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 14.5,
+                      color: AppC.text))),
+              if (online) ...[
+                const SizedBox(width: 6),
                 Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: [color.withOpacity(0.7), color],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight),
-                    shape: BoxShape.circle,
-                    image: avatarUrl.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(avatarUrl),
-                            fit: BoxFit.cover)
-                        : null),
-                  child: avatarUrl.isEmpty
-                      ? Center(child: Text(initial,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'Arch',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20)))
-                      : null),
-                if (online)
-                  Positioned(bottom: 1, right: 1,
-                    child: Container(width: 13, height: 13,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white, width: 2)))),
-              ]),
-              const SizedBox(width: 14),
-
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: TextStyle(
-                      fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: AppC.text)),
-                  const SizedBox(height: 3),
-                  Text(role, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: AppC.faint)),
-                ])),
-              GestureDetector(
-                onTap: onConnect,
-                child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                      horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [_indigo, _deepPurple]),
-                    borderRadius: BorderRadius.circular(10)),
-                  child: const T('Request',
-                      style: TextStyle(fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white, fontSize: 12)))),
+                    color: const Color(0xFF34D399).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6)),
+                  child: const Text('online', style: TextStyle(
+                      fontFamily: 'Arch', fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF12B886)))),
+              ],
             ]),
-
-            if (subjects.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(spacing: 6, runSpacing: 6,
-                children: subjects.split(',').map((s) {
-                  final t = s.trim();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: color.withOpacity(0.2))),
-                    child: Text(t, style: TextStyle(
-                        fontFamily: 'Momo', fontSize: 11,
-                        color: color,
-                        fontWeight: FontWeight.w600)));
-                }).toList()),
-            ],
-          ],
+            const SizedBox(height: 4),
+            Row(children: [
+              Icon(Icons.menu_book_rounded, size: 12, color: color),
+              const SizedBox(width: 5),
+              Flexible(child: Text(
+                  metaParts.isEmpty ? 'Study buddy' : metaParts.join('  ·  '),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                      color: AppC.sub))),
+            ]),
+          ])),
+        const SizedBox(width: 10),
+        // Compact gradient request button.
+        GestureDetector(
+          onTap: onConnect,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_indigo, _deepPurple]),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(
+                  color: _indigo.withOpacity(0.30),
+                  blurRadius: 8, offset: const Offset(0, 3))]),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.person_add_alt_1_rounded,
+                  color: Colors.white, size: 14),
+              SizedBox(width: 5),
+              T('Request', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, color: Colors.white,
+                  fontSize: 12)),
+            ])),
         ),
-      ),
+      ]),
     );
   }
 }
