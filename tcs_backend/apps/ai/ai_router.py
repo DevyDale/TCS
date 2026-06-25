@@ -19,6 +19,11 @@ import urllib.request
 
 logger = logging.getLogger(__name__)
 
+# Groq and Cerebras sit behind Cloudflare, which blocks the default
+# python-urllib User-Agent with a 1010 error. A normal browser UA passes.
+_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
 # ── Provider registry ────────────────────────────────────────
 # kind: "openai" → OpenAI-compatible /chat/completions (Groq, Cerebras,
 #                  SambaNova, DeepSeek/OpenRouter, Mistral, …)
@@ -35,7 +40,7 @@ PROVIDERS = {
     "cerebras": {
         "env": "CEREBRAS_API_KEY",
         "base": "https://api.cerebras.ai/v1",
-        "model": "llama-3.3-70b",
+        "model": "gpt-oss-120b",   # the model this account actually has access to
         "kind": "openai",
     },
     "sambanova": {
@@ -44,10 +49,19 @@ PROVIDERS = {
         "model": "Meta-Llama-3.3-70B-Instruct",
         "kind": "openai",
     },
-    "deepseek": {
+    # DeepSeek served free via NVIDIA (OpenRouter's free DeepSeek is retired and
+    # the account has no credits). NVIDIA also hosts baai/bge-m3 for RAG later.
+    "nvidia": {
+        "env": "NVIDIA_API_KEY",
+        "base": "https://integrate.api.nvidia.com/v1",
+        "model": "deepseek-ai/deepseek-v4-pro",
+        "kind": "openai",
+    },
+    # Kept for when the OpenRouter account has credits; not in any lane today.
+    "openrouter": {
         "env": "OPENROUTER_API_KEY",
         "base": "https://openrouter.ai/api/v1",
-        "model": "deepseek/deepseek-chat",
+        "model": "deepseek/deepseek-chat-v3-0324",
         "kind": "openai",
     },
     "mistral": {
@@ -72,10 +86,10 @@ PROVIDERS = {
 # (its key is already set), so a lane never goes fully dark.
 TASK_LANES = {
     "chat":      ["groq", "cerebras", "sambanova", "gemini"],
-    "quiz":      ["cerebras", "groq", "deepseek", "gemini"],
+    "quiz":      ["cerebras", "groq", "nvidia", "gemini"],
     "rag":       ["groq", "cerebras", "gemini"],
     "code":      ["mistral", "groq", "gemini"],
-    "reasoning": ["deepseek", "groq", "gemini"],
+    "reasoning": ["nvidia", "groq", "gemini"],
 }
 
 DEFAULT_TASK = "chat"
@@ -124,7 +138,8 @@ def status():
 def _req(url, body, headers):
     return urllib.request.Request(
         url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", **headers}, method="POST")
+        headers={"Content-Type": "application/json", "User-Agent": _UA, **headers},
+        method="POST")
 
 
 def _openai_body(p, messages, max_tokens, temperature, stream):
@@ -192,8 +207,12 @@ def _gemini_complete(p, key, messages, max_tokens, temperature):
                _gemini_body(p, messages, max_tokens, temperature),
                {"x-goog-api-key": key})
     with urllib.request.urlopen(req, timeout=40) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        data  = json.loads(resp.read().decode("utf-8"))
+        cands = data.get("candidates") or []
+        if not cands:
+            return ""
+        parts = (cands[0].get("content") or {}).get("parts") or []
+        return parts[0].get("text", "") if parts else ""
 
 
 def _gemini_stream(p, key, messages, max_tokens, temperature):
