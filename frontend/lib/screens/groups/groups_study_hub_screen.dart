@@ -1,5 +1,6 @@
 // lib/screens/groups/groups_study_hub_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -253,8 +254,8 @@ class _GroupsStudyHubScreenState
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(top: false, child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -262,7 +263,7 @@ class _GroupsStudyHubScreenState
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(top: 10, bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
@@ -332,15 +333,15 @@ class _GroupsStudyHubScreenState
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppC.card,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             Row(children: [
               Container(
@@ -360,13 +361,13 @@ class _GroupsStudyHubScreenState
               'This removes the group for every member. All shared '
               'materials will be saved to your Digital Library first.',
               style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12.5, color: Colors.grey.shade600, height: 1.4)),
+                  fontSize: 12.5, color: AppC.sub, height: 1.4)),
             const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
+                color: AppC.bg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200)),
+                border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: reasonCtrl, autofocus: true, maxLines: 3,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
@@ -383,7 +384,7 @@ class _GroupsStudyHubScreenState
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
                   child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
@@ -478,7 +479,7 @@ class _GroupsStudyHubScreenState
         insetPadding: const EdgeInsets.symmetric(horizontal: 32),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(22)),
           padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -499,7 +500,7 @@ class _GroupsStudyHubScreenState
                 "You can re-join later if it's public.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    height: 1.4, color: Colors.grey.shade600)),
+                    height: 1.4, color: AppC.sub)),
             const SizedBox(height: 20),
             Row(children: [
               Expanded(child: GestureDetector(
@@ -507,7 +508,7 @@ class _GroupsStudyHubScreenState
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
                   child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
@@ -600,7 +601,7 @@ class _GroupsStudyHubScreenState
     return showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
         title: const T('What are you studying?',
@@ -608,13 +609,13 @@ class _GroupsStudyHubScreenState
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           T('Tell others what subjects you can help with.',
             style: TextStyle(fontFamily: 'Momo',
-                fontSize: 13, color: Colors.grey.shade600)),
+                fontSize: 13, color: AppC.sub)),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200)),
+              border: Border.all(color: AppC.border)),
             child: TextField(
               controller: ctrl,
               autofocus: true,
@@ -622,7 +623,7 @@ class _GroupsStudyHubScreenState
               decoration: InputDecoration(
                 hintText: TranslationService.I.tr('e.g. Math, Physics, Chemistry'),
                 hintStyle: TextStyle(fontFamily: 'Momo',
-                    color: Colors.grey.shade400),
+                    color: AppC.faint),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
@@ -765,7 +766,7 @@ class _GroupsStudyHubScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           _buildHeader(),
@@ -796,9 +797,9 @@ class _GroupsStudyHubScreenState
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        border: Border(bottom: BorderSide(color: AppC.border)),
       ),
       child: Row(children: [
         Container(
@@ -858,9 +859,9 @@ class _GroupsStudyHubScreenState
   Widget _hdrBtn(IconData icon) => Container(
     width: 40, height: 40,
     decoration: BoxDecoration(
-      color: Colors.grey.shade100,
+      color: AppC.card2,
       borderRadius: BorderRadius.circular(10)),
-    child: Icon(icon, color: Colors.grey.shade600, size: 20));
+    child: Icon(icon, color: AppC.sub, size: 20));
 
   Widget _buildQuickActions() {
     return Container(
@@ -928,9 +929,9 @@ class _GroupsStudyHubScreenState
             width: double.infinity,
             height: 46,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.grey.shade200, width: 1.5)),
+              border: Border.all(color: AppC.border, width: 1.5)),
             child: Stack(children: [
               // Sliding indicator — always exactly half the bar
               AnimatedAlign(
@@ -976,7 +977,7 @@ class _GroupsStudyHubScreenState
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: selected ? Colors.white : Colors.grey.shade500)),
+                  color: selected ? Colors.white : AppC.faint)),
         ),
       ),
     );
@@ -1044,7 +1045,7 @@ class _GroupsStudyHubScreenState
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.groups_outlined, size: 52,
-            color: Colors.grey.shade300),
+            color: AppC.border),
         const SizedBox(height: 14),
         const T('No Groups Yet',
             style: TextStyle(fontFamily: 'Alfa',
@@ -1052,7 +1053,7 @@ class _GroupsStudyHubScreenState
         const SizedBox(height: 6),
         T('Create or join a group to get started',
             style: TextStyle(fontFamily: 'Momo',
-                fontSize: 13, color: Colors.grey.shade400)),
+                fontSize: 13, color: AppC.faint)),
       ]),
     ),
   );
@@ -1107,9 +1108,9 @@ class _GroupsStudyHubScreenState
           // Search through the available study buddies
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200)),
+              border: Border.all(color: AppC.border)),
             child: TextField(
               controller: _buddySearchCtrl,
               enableSuggestions: false,
@@ -1119,7 +1120,7 @@ class _GroupsStudyHubScreenState
               decoration: InputDecoration(
                 hintText: TranslationService.I.tr('Search study buddies...'),
                 hintStyle: TextStyle(
-                    fontFamily: 'Momo', color: Colors.grey.shade400),
+                    fontFamily: 'Momo', color: AppC.faint),
                 prefixIcon: const Icon(Icons.search_rounded, color: _indigo),
                 suffixIcon: _buddyQuery.isEmpty
                     ? null
@@ -1142,7 +1143,7 @@ class _GroupsStudyHubScreenState
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.people_outline, size: 52,
-                    color: Colors.grey.shade300),
+                    color: AppC.border),
                 const SizedBox(height: 14),
                 Text(
                     q.isEmpty
@@ -1150,7 +1151,7 @@ class _GroupsStudyHubScreenState
                         : 'No study buddies match your search',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 13, color: Colors.grey.shade400)),
+                        fontSize: 13, color: AppC.faint)),
               ]),
             ))
           else
@@ -1180,7 +1181,7 @@ class _GroupsStudyHubScreenState
                 padding: const EdgeInsets.only(top: 60),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.notifications_none_rounded, size: 52,
-                      color: Colors.grey.shade300),
+                      color: AppC.border),
                   const SizedBox(height: 14),
                   const T('No Recent Activity',
                       style: TextStyle(fontFamily: 'Alfa',
@@ -1190,7 +1191,7 @@ class _GroupsStudyHubScreenState
                     'Group events appear here — joins, materials shared,\ndissolutions, expirations and buddy requests.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 13, color: Colors.grey.shade400)),
+                        fontSize: 13, color: AppC.faint)),
                 ]),
               )),
             ])
@@ -1275,7 +1276,7 @@ class _GroupCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.black, width: 1.5),
           boxShadow: [BoxShadow(
@@ -1310,21 +1311,21 @@ class _GroupCard extends StatelessWidget {
                 if (!isPublic)
                   Padding(padding: const EdgeInsets.only(left: 4),
                     child: Icon(Icons.lock_outline_rounded,
-                        size: 14, color: Colors.grey.shade400)),
+                        size: 14, color: AppC.faint)),
               ]),
               const SizedBox(height: 3),
               if (subject.isNotEmpty)
                 Text(subject[0].toUpperCase() + subject.substring(1),
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 12, color: Colors.grey.shade500)),
+                        fontSize: 12, color: AppC.faint)),
               const SizedBox(height: 6),
               Row(children: [
                 Icon(Icons.people_rounded, size: 12,
-                    color: Colors.grey.shade400),
+                    color: AppC.faint),
                 const SizedBox(width: 4),
                 Text('$members members',
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 11, color: Colors.grey.shade400)),
+                        fontSize: 11, color: AppC.faint)),
               ]),
             ])),
           const SizedBox(width: 10),
@@ -1342,7 +1343,7 @@ class _GroupCard extends StatelessWidget {
                       fontWeight: FontWeight.bold, fontSize: 11)))
           else if (isJoined)
             Icon(Icons.arrow_forward_ios_rounded,
-                size: 16, color: Colors.grey.shade300)
+                size: 16, color: AppC.border)
           else
             GestureDetector(
               onTap: onJoin,
@@ -1390,7 +1391,7 @@ class _BuddyCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [BoxShadow(
           color: Colors.black.withOpacity(0.04),
@@ -1444,7 +1445,7 @@ class _BuddyCard extends StatelessWidget {
                       color: Color(0xFF1A1A2E))),
                   const SizedBox(height: 3),
                   Text(role, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
+                      fontSize: 12, color: AppC.faint)),
                 ])),
               GestureDetector(
                 onTap: onConnect,
@@ -1520,7 +1521,7 @@ class _ActivityCard extends StatelessWidget {
                 verb:  'expiring —');
       case 'group_expired':
         return (icon: Icons.history_toggle_off_rounded,
-                color: Colors.grey.shade600,
+                color: AppC.sub,
                 verb:  'expired —');
       case 'dale_invoked':
         return (icon: Icons.auto_awesome_rounded,
@@ -1560,7 +1561,7 @@ class _ActivityCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(
           color: Colors.black.withOpacity(0.03),
@@ -1586,14 +1587,14 @@ class _ActivityCard extends StatelessWidget {
                       fontSize: 14, color: Color(0xFF1A1A2E)))),
                 const SizedBox(width: 6),
                 Text(timeAgo, style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 11, color: Colors.grey.shade400)),
+                    fontSize: 11, color: AppC.faint)),
               ]),
               if (body.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(body, maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 13, color: Colors.grey.shade600,
+                        fontSize: 13, color: AppC.sub,
                         height: 1.4)),
               ],
             ])),
@@ -1642,7 +1643,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _kG2.withOpacity(0.3)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
@@ -1675,7 +1676,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(role.isEmpty ? subject : '$role  ·  $subject',
                   style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
+                      fontSize: 12, color: AppC.faint)),
             ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1693,7 +1694,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10)),
             child: Text(message,
                 style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 13, color: Colors.grey.shade700, height: 1.4))),
+                    fontSize: 13, color: AppC.sub, height: 1.4))),
         ],
         const SizedBox(height: 12),
         Row(children: [
@@ -1702,9 +1703,9 @@ class _StudyBuddyRequestCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppC.card2,
                 borderRadius: BorderRadius.circular(11),
-                border: Border.all(color: Colors.grey.shade300)),
+                border: Border.all(color: AppC.border)),
               child: const Center(child: T('Decline',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,

@@ -51,8 +51,8 @@ final ValueNotifier<Set<String>> deletedHighlightIds =
 
 // ── Palette ───────────────────────────────────────────────────
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
-const _kBg     = Color(0xFFF4F5FA);
+Color get _kSlate => AppC.sub;
+Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 const _kViolet = Color(0xFF7C3AED);
 const _kBlue   = Color(0xFF3B82F6);
@@ -489,7 +489,7 @@ class _FeedScreenState extends State<FeedScreen>
       context: context,
       barrierColor: Colors.black.withOpacity(0.45),
       builder: (dialogCtx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         insetPadding: const EdgeInsets.symmetric(horizontal: 36),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24)),
@@ -511,7 +511,7 @@ class _FeedScreenState extends State<FeedScreen>
                           fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
               GestureDetector(
                   onTap: () => Navigator.of(dialogCtx).pop(),
-                  child: const Icon(Icons.close_rounded,
+                  child: Icon(Icons.close_rounded,
                       color: _kSlate, size: 22)),
             ]),
             const SizedBox(height: 18),
@@ -558,9 +558,9 @@ class _FeedScreenState extends State<FeedScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppC.border),
         ),
         child: Row(children: [
           Container(
@@ -588,7 +588,7 @@ class _FeedScreenState extends State<FeedScreen>
                     style: TextStyle(
                         fontFamily: 'Momo', fontSize: 11.5, color: _kSlate)),
               ])),
-          const Icon(Icons.chevron_right_rounded, color: _kSlate, size: 22),
+          Icon(Icons.chevron_right_rounded, color: _kSlate, size: 22),
         ]),
       ),
     );
@@ -765,7 +765,7 @@ class _FeedScreenState extends State<FeedScreen>
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: _kBg,
                     shape: BoxShape.circle,
                   ),
@@ -776,14 +776,14 @@ class _FeedScreenState extends State<FeedScreen>
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => Container(
                               color: const Color(0xFFEDEEF3),
-                              child: const Icon(
+                              child: Icon(
                                   Icons.auto_awesome_rounded,
                                   color: _kSlate, size: 22),
                             ),
                           )
                         : Container(
                             color: const Color(0xFFEDEEF3),
-                            child: const Icon(
+                            child: Icon(
                                 Icons.auto_awesome_rounded,
                                 color: _kSlate, size: 22),
                           ),
@@ -967,10 +967,10 @@ class _FeedScreenState extends State<FeedScreen>
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.add_rounded,
                   size: 20,
-                  color: Colors.white,
+                  color: AppC.card,
                 ),
               ),
             ),
@@ -1127,7 +1127,7 @@ class _FeedScreenState extends State<FeedScreen>
                   color: active ? null : _kCard,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: active ? Colors.transparent : Colors.grey.shade200),
+                      color: active ? Colors.transparent : AppC.border),
                   boxShadow: active ? [BoxShadow(color: _kViolet.withOpacity(0.3),
                       blurRadius: 10, offset: const Offset(0, 4))] : []),
                 child: Row(
@@ -1263,9 +1263,9 @@ class _RobotLottieButton extends StatelessWidget {
             'assets/images/robot.json',
             errorBuilder: (context, error, stack) {
               debugPrint('🤖 Lottie failed: $error');
-              return const Icon(
+              return Icon(
                 Icons.smart_toy_rounded,
-                color: Colors.white,
+                color: AppC.card,
                 size: 22,
               );
             },
@@ -1565,7 +1565,7 @@ class _PostCardState extends State<_PostCard>
           ],
 
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Divider(height: 1, color: Colors.grey.shade100)),
+            child: Divider(height: 1, color: AppC.card2)),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
@@ -1792,7 +1792,7 @@ class _PostCardState extends State<_PostCard>
         ));
       },
       child: Container(
-        color: Colors.grey.shade100,
+        color: AppC.card2,
         child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
@@ -1811,13 +1811,13 @@ class _PostCardState extends State<_PostCard>
 
   Widget _mediaPlaceholder(IconData icon, String label) {
     return Container(
-      color: Colors.grey.shade100,
+      color: AppC.card2,
       alignment: Alignment.center,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Colors.grey.shade400, size: 38),
+        Icon(icon, color: AppC.faint, size: 38),
         const SizedBox(height: 8),
         Text(label, style: TextStyle(fontFamily: 'Momo',
-            fontSize: 12, color: Colors.grey.shade500)),
+            fontSize: 12, color: AppC.faint)),
       ]),
     );
   }
@@ -2177,8 +2177,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
       snap: true,
       snapSizes: const [0.7],
       builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(children: [
@@ -2186,12 +2186,12 @@ class _CommentsSheetState extends State<_CommentsSheet> {
           Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 12),
           _header(),
           _preview(),
-          Divider(height: 1, color: Colors.grey.shade100),
+          Divider(height: 1, color: AppC.card2),
           Expanded(child: _list(scrollCtrl)),
           if (_replyTo != null) _replyBanner(),
           if (_emojiOpen) _emojiPanel(),
@@ -2350,7 +2350,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             behavior: HitTestBehavior.opaque,
             onTap: () => _toggleReplies(c),
             child: Row(children: [
-              Container(width: 22, height: 1, color: Colors.grey.shade300),
+              Container(width: 22, height: 1, color: AppC.border),
               const SizedBox(width: 8),
               Text(
                   exp
@@ -2405,7 +2405,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                     color: _kViolet))),
         GestureDetector(
           onTap: () => setState(() => _replyTo = null),
-          child: const Icon(Icons.close_rounded, size: 18, color: _kSlate),
+          child: Icon(Icons.close_rounded, size: 18, color: _kSlate),
         ),
       ]),
     );
@@ -2441,8 +2441,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
           12,
           (_emojiOpen ? 12 : MediaQuery.of(context).viewInsets.bottom + 12)),
       decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100))),
+          color: AppC.card,
+          border: Border(top: BorderSide(color: AppC.card2))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         GestureDetector(
           onTap: _toggleEmoji,
@@ -2463,7 +2463,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
           decoration: BoxDecoration(
               color: _kBg,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.shade200)),
+              border: Border.all(color: AppC.border)),
           child: TextField(
             controller: _ctrl,
             focusNode: _focus,
@@ -2597,7 +2597,7 @@ class _CommentTile extends StatelessWidget {
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 10.5,
-                          color: Colors.grey.shade400)),
+                          color: AppC.faint)),
                 ],
               ]),
               const SizedBox(height: 3),
@@ -2612,7 +2612,7 @@ class _CommentTile extends StatelessWidget {
                 GestureDetector(
                   onTap: onReply,
                   behavior: HitTestBehavior.opaque,
-                  child: const T('Reply',
+                  child: T('Reply',
                       style: TextStyle(
                           fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
@@ -2848,15 +2848,15 @@ class _ShareSheetState extends State<_ShareSheet> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (_, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppC.card,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(children: [
             const SizedBox(height: 12),
             Container(width: 40, height: 4,
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: AppC.border,
                     borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             Padding(
@@ -2968,7 +2968,7 @@ class _ShareSheetState extends State<_ShareSheet> {
           color: sel ? _kViolet.withOpacity(0.07) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: sel ? _kViolet.withOpacity(0.5) : Colors.grey.shade200,
+              color: sel ? _kViolet.withOpacity(0.5) : AppC.border,
               width: 1.4),
         ),
         child: Row(children: [
@@ -3212,7 +3212,7 @@ class _EventCardState extends State<_EventCard>
                     imageUrl: poster,
                     fit: BoxFit.cover,
                     placeholder: (_, __) =>
-                        Container(color: Colors.grey.shade100),
+                        Container(color: AppC.card2),
                     errorWidget: (_, __, ___) =>
                         _EventPosterPlaceholder(
                             startIso: startIso, title: title),
@@ -3270,7 +3270,7 @@ class _EventCardState extends State<_EventCard>
                   const SizedBox(width: 6),
                   Expanded(child: Text(location,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontFamily: 'Momo',
+                      style: TextStyle(fontFamily: 'Momo',
                           fontSize: 12, color: _kSlate,
                           fontWeight: FontWeight.w600))),
                 ]),
@@ -3392,9 +3392,9 @@ class _EventPosterPlaceholder extends StatelessWidget {
               children: [
                 Text(
                   monthLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Arch',
-                    color: Colors.white,
+                    color: AppC.card,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 4,
@@ -3403,9 +3403,9 @@ class _EventPosterPlaceholder extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   dayLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Alfa',
-                    color: Colors.white,
+                    color: AppC.card,
                     fontSize: 72,
                     fontWeight: FontWeight.w900,
                     height: 1.0,
