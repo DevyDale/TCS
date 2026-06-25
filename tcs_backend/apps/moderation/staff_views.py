@@ -370,3 +370,73 @@ def wellbeing_action(request, pk):
             logger.exception("wellbeing escalate notify failed")
 
     return Response({"ok": True, "action": action})
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def needs_attention(request):
+    """GET /api/moderation/staff/needs-attention/
+
+    A prioritized worklist for the Home command center, combining wellbeing
+    escalations, heavily-flagged content, and quiet students. Each item carries
+    a `target` ('moderation' | 'wellbeing') the app deep-links into.
+    """
+    from datetime import timedelta
+    from django.db.models import Count
+    from .models import WellbeingAction
+
+    now = timezone.now()
+    items = []
+
+    def _name(u):
+        return (getattr(u, "display_name", "") or getattr(u, "name", "")
+                or "a student") if u else "a student"
+
+    # 1. Wellbeing escalations (last 7 days) — highest priority.
+    for a in (WellbeingAction.objects
+              .filter(kind="escalate", created_at__gte=now - timedelta(days=7))
+              .select_related("student", "staff")
+              .order_by("-created_at")[:4]):
+        items.append({
+            "type": "escalation", "priority": 0, "target": "wellbeing",
+            "title": "Wellbeing escalation",
+            "subtitle": f"{_name(a.student)} — raised by {_name(a.staff)}",
+        })
+
+    # 2. Heavily-flagged content (grouped, most-flagged first).
+    groups = (Report.objects.filter(status="pending")
+              .values("content_type", "object_id")
+              .annotate(n=Count("id")).order_by("-n", "-object_id")[:4])
+    for g in groups:
+        rep = (Report.objects
+               .filter(content_type_id=g["content_type"],
+                       object_id=g["object_id"], status="pending")
+               .select_related("content_type")
+               .order_by("-created_at").first())
+        if not rep:
+            continue
+        n = g["n"]
+        items.append({
+            "type": "flag", "priority": 1 if n >= 3 else 2, "target": "moderation",
+            "title": f"{n} flag{'s' if n != 1 else ''} · {rep.content_type.model}",
+            "subtitle": _preview(rep.content_object),
+        })
+
+    # 3. Quiet students (early-support), excluding recently-attended.
+    handled = set(WellbeingAction.objects
+                  .filter(created_at__gte=now - timedelta(days=14))
+                  .values_list("student_id", flat=True))
+    for u in (User.objects
+              .filter(role="student", is_active=True,
+                      last_seen__gte=now - timedelta(days=45),
+                      last_seen__lt=now - timedelta(days=7))
+              .exclude(id__in=handled).order_by("last_seen")[:3]):
+        days = (now - u.last_seen).days
+        items.append({
+            "type": "wellbeing", "priority": 3, "target": "wellbeing",
+            "title": f"{_name(u)} has gone quiet",
+            "subtitle": f"Quiet for {days} days — consider reaching out",
+        })
+
+    items.sort(key=lambda x: x["priority"])
+    return Response({"results": items[:8]})

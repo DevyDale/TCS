@@ -15,6 +15,7 @@ import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/dashboard/events_screen.dart';
 import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
+import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -37,6 +38,7 @@ class StaffHomeScreen extends StatefulWidget {
 class _StaffHomeScreenState extends State<StaffHomeScreen> {
   final _api = ApiService();
   int? _activeToday, _flagsPending, _upcomingEvents;
+  List<Map<String, dynamic>> _needs = [];
   bool _loading = true;
 
   @override
@@ -47,17 +49,31 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   Future<void> _load() async {
     try {
-      final d = await _api.get('/moderation/staff/overview/')
-          as Map<String, dynamic>;
+      final results = await Future.wait([
+        _api.get('/moderation/staff/overview/'),
+        _api.get('/moderation/staff/needs-attention/')
+            .catchError((_) => <String, dynamic>{}),
+      ]);
       if (!mounted) return;
+      final d = (results[0] as Map).cast<String, dynamic>();
+      final n = (results[1] as Map).cast<String, dynamic>();
       setState(() {
         _activeToday    = (d['active_today'] as num?)?.toInt();
         _flagsPending   = (d['flags_pending'] as num?)?.toInt();
         _upcomingEvents = (d['upcoming_events'] as num?)?.toInt();
+        _needs = ((n['results'] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _openTarget(String target) {
+    if (target == 'moderation') {
+      _push(const StaffModerationScreen());
+    } else if (target == 'wellbeing') {
+      _push(const StaffWellbeingScreen());
     }
   }
 
@@ -92,6 +108,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             _header(),
             const SizedBox(height: 16),
             _pulseStrip(),
+            const SizedBox(height: 22),
+            _sectionLabel('Needs attention'),
+            _needsAttention(),
             const SizedBox(height: 22),
             _sectionLabel('Quick actions'),
             _quickActions(),
@@ -196,6 +215,102 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         child: Text(t, style: TextStyle(fontFamily: 'Alfa',
             fontSize: 16, color: AppC.text)),
       );
+
+  ({IconData icon, Color color}) _needStyle(String type) {
+    switch (type) {
+      case 'escalation':
+        return (icon: Icons.priority_high_rounded, color: const Color(0xFFE11D48));
+      case 'flag':
+        return (icon: Icons.flag_rounded, color: const Color(0xFFF59E0B));
+      case 'wellbeing':
+        return (icon: Icons.favorite_rounded, color: const Color(0xFF0EA5A4));
+      default:
+        return (icon: Icons.notifications_rounded, color: _kIndigo);
+    }
+  }
+
+  Widget _needsAttention() {
+    if (_loading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: AppC.card, borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppC.border)),
+          child: const Center(child: SizedBox(width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _kDeep))),
+        ),
+      );
+    }
+    if (_needs.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppC.card, borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppC.border)),
+          child: Row(children: [
+            const Icon(Icons.check_circle_rounded,
+                color: Color(0xFF22C55E), size: 22),
+            const SizedBox(width: 12),
+            Expanded(child: Text("You're all caught up — nothing needs you right now.",
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                    color: AppC.sub))),
+          ]),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: _needs.map((it) {
+        final st = _needStyle((it['type'] ?? '').toString());
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _openTarget((it['target'] ?? '').toString());
+            },
+            child: Container(
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: AppC.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: st.color.withOpacity(0.30))),
+              child: Row(children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: st.color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(11)),
+                  child: Icon(st.icon, color: st.color, size: 19)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text((it['title'] ?? '').toString(),
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold, fontSize: 13.5,
+                            color: AppC.text)),
+                    const SizedBox(height: 2),
+                    Text((it['subtitle'] ?? '').toString(),
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                            color: AppC.sub)),
+                  ],
+                )),
+                Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 20),
+              ]),
+            ),
+          ),
+        );
+      }).toList()),
+    );
+  }
 
   Widget _quickActions() {
     final actions = [
