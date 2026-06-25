@@ -4,6 +4,7 @@
 // now wired to the live module; the rest open placeholders until built.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
@@ -111,7 +112,7 @@ class StaffConsoleScreen extends StatelessWidget {
       ),
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Staff Console',
+        T('Staff Console',
             style: TextStyle(fontFamily: 'Momo', fontSize: 11,
                 color: Colors.white.withOpacity(.45), letterSpacing: 2)),
         const SizedBox(height: 2),
@@ -275,7 +276,7 @@ class _StaffSection extends StatelessWidget {
         Text(pillar.title,
             style: const TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white)),
         const SizedBox(height: 8),
-        Text('This module is being wired up.',
+        T('This module is being wired up.',
             style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                 color: Colors.white.withOpacity(.5))),
       ])),

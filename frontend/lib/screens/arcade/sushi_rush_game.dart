@@ -1,5 +1,6 @@
 // lib/screens/arcade/sushi_rush_game.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -133,13 +134,13 @@ class _SushiRushGameState extends State<SushiRushGame> {
         borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white.withOpacity(0.08))),
         child:const Icon(Icons.arrow_back_rounded,color:Colors.white60,size:20)))),
     const Spacer(),
-    const Text('🍣',style:TextStyle(fontSize:80)),
+    const T('🍣',style:TextStyle(fontSize:80)),
     const SizedBox(height:16),
     ShaderMask(shaderCallback:(b)=>const LinearGradient(colors:[kNeonOrange,kNeonRed]).createShader(b),
-      blendMode:BlendMode.srcIn,child:const Text('Sushi Rush',
+      blendMode:BlendMode.srcIn,child:const T('Sushi Rush',
         style:TextStyle(fontFamily:'Alfa',fontSize:38,color:Colors.white))),
     const SizedBox(height:10),
-    Text('Memorize the order!\nTap the sushi in the correct sequence',
+    T('Memorize the order!\nTap the sushi in the correct sequence',
       textAlign:TextAlign.center,
       style:TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white.withOpacity(0.5),height:1.6)),
     const SizedBox(height:20),
@@ -165,7 +166,7 @@ class _SushiRushGameState extends State<SushiRushGame> {
       decoration:BoxDecoration(gradient:const LinearGradient(colors:[kNeonOrange,kNeonRed]),
         borderRadius:BorderRadius.circular(16),
         boxShadow:[BoxShadow(color:kNeonOrange.withOpacity(0.4),blurRadius:20,offset:const Offset(0,6))]),
-      child:const Center(child:Text('Start Rush! 🍜',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
+      child:const Center(child:T('Start Rush! 🍜',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
   ]));
 
   Widget _game()=>Column(children:[
@@ -174,7 +175,7 @@ class _SushiRushGameState extends State<SushiRushGame> {
       Text('Round $_round/${_cfg['rounds']}',style:const TextStyle(fontFamily:'Alfa',fontSize:14,color:kNeonOrange)),
       const Spacer(),
       Row(children:List.generate(_lives,(_)=>const Padding(
-        padding:EdgeInsets.only(left:4),child:Text('❤️',style:TextStyle(fontSize:16))))),
+        padding:EdgeInsets.only(left:4),child:T('❤️',style:TextStyle(fontSize:16))))),
       const Spacer(),
       Text('$_score pts',style:const TextStyle(fontFamily:'Alfa',fontSize:14,color:kNeonBlue)),
     ])),
@@ -226,7 +227,7 @@ class _SushiRushGameState extends State<SushiRushGame> {
           style:TextStyle(fontFamily:'Momo',fontSize:11,color:Colors.white38)),
         const SizedBox(height:8),
         _playerInput.isEmpty
-          ?Text('Tap below ↓',style:TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white24))
+          ?T('Tap below ↓',style:TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white24))
           :Wrap(spacing:6,runSpacing:6,children:_playerInput.map((s)=>
               Container(width:36,height:36,decoration:BoxDecoration(
                 color:kDarkCard,borderRadius:BorderRadius.circular(8)),

@@ -1,5 +1,6 @@
 // lib/screens/arcade/spirit_racers_game.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -167,13 +168,13 @@ class _SpiritRacersGameState extends State<SpiritRacersGame>
         borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white.withOpacity(0.08))),
         child:const Icon(Icons.arrow_back_rounded,color:Colors.white60,size:20)))),
     const Spacer(),
-    const Text('🏎️', style: TextStyle(fontSize:80)),
+    const T('🏎️', style: TextStyle(fontSize:80)),
     const SizedBox(height:16),
     ShaderMask(shaderCallback:(b)=>const LinearGradient(colors:[kNeonBlue,kNeonOrange]).createShader(b),
-      blendMode:BlendMode.srcIn, child:const Text('Spirit Racers',
+      blendMode:BlendMode.srcIn, child:const T('Spirit Racers',
         style:TextStyle(fontFamily:'Alfa',fontSize:38,color:Colors.white))),
     const SizedBox(height:10),
-    Text('Dodge obstacles · Collect coins\nSwipe left/right to steer',
+    T('Dodge obstacles · Collect coins\nSwipe left/right to steer',
       textAlign:TextAlign.center,
       style:TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white.withOpacity(0.5),height:1.6)),
     const SizedBox(height:20),
@@ -200,7 +201,7 @@ class _SpiritRacersGameState extends State<SpiritRacersGame>
       decoration:BoxDecoration(gradient:const LinearGradient(colors:[kNeonBlue,kNeonOrange]),
         borderRadius:BorderRadius.circular(16),
         boxShadow:[BoxShadow(color:kNeonBlue.withOpacity(0.4),blurRadius:20,offset:const Offset(0,6))]),
-      child:const Center(child:Text('Race! 🏁',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
+      child:const Center(child:T('Race! 🏁',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
   ]));
 
   Widget _game(BuildContext context) {

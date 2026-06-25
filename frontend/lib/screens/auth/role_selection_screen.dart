@@ -7,6 +7,7 @@
 // remain visually distinct without breaking the page palette.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -271,7 +272,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
         ),
         const SizedBox(height: 22),
-        Text(
+        T(
           'Welcome to TCS',
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -283,7 +284,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
         ),
         const SizedBox(height: 6),
-        Text(
+        T(
           'Taylors College Social & Arcade',
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -301,7 +302,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           borderWidth: 1.2,
           innerColor: _kCard,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          child: Text(
+          child: T(
             'Select your role to get started',
             style: TextStyle(
               fontFamily: 'Arch',
@@ -357,7 +358,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
               ),
             ),
             const SizedBox(width: 6),
-            Text(
+            T(
               'Secure login  ·  All data encrypted',
               style: TextStyle(
                 fontFamily: 'Arch',
@@ -368,7 +369,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ],
         ),
         const SizedBox(height: 8),
-        Text(
+        T(
           'POWERED BY LUMORA',
           style: TextStyle(
             fontFamily: 'Arch',

@@ -13,6 +13,7 @@
 // reachable via its own list screen.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -171,7 +172,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
               color: Colors.white, size: 18),
         ),
         const SizedBox(width: 10),
-        const Text('Search Clubs',
+        const T('Search Clubs',
             style: TextStyle(
               fontFamily: 'Alfa',
               fontSize: 19,

@@ -11,6 +11,7 @@
 // the migration explicit and avoid silent import collisions.
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gradient_borders/gradient_borders.dart';
@@ -173,7 +174,7 @@ class _EventsScreenState extends State<EventsScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(fontFamily: 'Momo', fontSize: 13)),
           const SizedBox(height: 16),
-          TextButton(onPressed: _load, child: const Text('Try again')),
+          TextButton(onPressed: _load, child: const T('Try again')),
         ],
       ),
     );
@@ -498,7 +499,7 @@ class _EventListCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Details'),
+                    child: const T('Details'),
                   ),
                 ],
               ),
@@ -621,14 +622,14 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('📭', style: TextStyle(fontSize: 48)),
+            const T('📭', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
-            const Text(
+            const T(
               'No events to show',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
             ),
             const SizedBox(height: 6),
-            Text(
+            T(
               'Check back soon — new events appear here as they are scheduled.',
               textAlign: TextAlign.center,
               style: TextStyle(

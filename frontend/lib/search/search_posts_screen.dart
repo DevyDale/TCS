@@ -7,6 +7,7 @@
 // (added in Phase 4 backend patch).
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -133,7 +134,7 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
                 color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
-          const Text(
+          const T(
             'Search Posts',
             style: TextStyle(
               fontFamily: 'Alfa',
@@ -413,7 +414,7 @@ class _PostResultCard extends StatelessWidget {
                   color: _kG4.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child: const T(
                   '⚡ Fweet',
                   style: TextStyle(
                     fontFamily: 'Arch',

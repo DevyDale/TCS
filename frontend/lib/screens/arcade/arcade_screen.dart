@@ -12,6 +12,7 @@
 // data/avators.dart, rendered via AvatarView.preset(). _avatarId is int?.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -464,12 +465,12 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(padding: const EdgeInsets.all(28),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('🎮', style: TextStyle(fontSize: 48)),
+          const T('🎮', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 12),
           Text(name, style: TextStyle(fontSize: 18,
               fontWeight: FontWeight.w800, color: t.ink, letterSpacing: -0.3)),
           const SizedBox(height: 8),
-          Text('Coming soon!',
+          T('Coming soon!',
               style: TextStyle(fontSize: 13, color: t.slate)),
           const SizedBox(height: 20),
           GestureDetector(onTap: () => Navigator.pop(context),
@@ -477,7 +478,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
               decoration: BoxDecoration(
                   color: t.ink, borderRadius: BorderRadius.circular(12)),
-              child: Text('OK', style: TextStyle(
+              child: T('OK', style: TextStyle(
                   fontWeight: FontWeight.w700,
                   color: t.isDark ? t.bg1 : Colors.white,
                   fontSize: 13)))),
@@ -557,7 +558,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight).createShader(b),
               blendMode: BlendMode.srcIn,
-              child: const Text('ARCADE',
+              child: const T('ARCADE',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
                       letterSpacing: 3, color: Colors.white)))),
             _circleIconButton(
@@ -689,7 +690,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                     borderRadius: BorderRadius.circular(11),
                     border: Border.all(color: _kAmber.withOpacity(0.30))),
                   child: Row(children: [
-                    const Text('🪙', style: TextStyle(fontSize: 13)),
+                    const T('🪙', style: TextStyle(fontSize: 13)),
                     const SizedBox(width: 5),
                     AnimatedCounter(
                       value: tokens,
@@ -932,11 +933,11 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         child: Center(child: Column(children: [
           Icon(Icons.videogame_asset_off_rounded, color: t.slate2, size: 40),
           const SizedBox(height: 12),
-          Text('No games seeded yet',
+          T('No games seeded yet',
               style: TextStyle(fontSize: 15,
                   fontWeight: FontWeight.w800, color: t.ink)),
           const SizedBox(height: 4),
-          Text('Run python manage.py seed_games on the backend',
+          T('Run python manage.py seed_games on the backend',
               style: TextStyle(fontSize: 11, color: t.slate)),
         ])),
       );
@@ -1008,7 +1009,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         _sectionLabel(t, 'Global XP rankings'),
         const SizedBox(height: 14),
         if (_leaderboard.isEmpty)
-          Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(
+          Padding(padding: const EdgeInsets.all(40), child: Center(child: T(
               'No rankings yet.\nPlay games to appear here.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: t.slate2))))
@@ -1469,7 +1470,7 @@ class _FeaturedTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF22C55E).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(5)),
-                child: Text('LIVE', style: TextStyle(
+                child: T('LIVE', style: TextStyle(
                     fontSize: 8, fontWeight: FontWeight.w800,
                     color: t.isDark
                         ? const Color(0xFF4ADE80)
@@ -1559,7 +1560,7 @@ class _GameGridCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(5)),
-                  child: const Text('LIVE',
+                  child: const T('LIVE',
                       style: TextStyle(fontSize: 7,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF15803D), letterSpacing: 0.3)))),
@@ -1683,7 +1684,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Text(
+                T(
                   'Choose your avatar',
                   style: TextStyle(
                     fontSize: 19, fontWeight: FontWeight.w900,
@@ -1691,7 +1692,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                T(
                   'Pick one — you can change it any time',
                   style: TextStyle(fontSize: 12, color: t.slate),
                 ),
@@ -1789,7 +1790,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                         border: Border.all(color: t.border),
                       ),
                       alignment: Alignment.center,
-                      child: Text(
+                      child: T(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w800,

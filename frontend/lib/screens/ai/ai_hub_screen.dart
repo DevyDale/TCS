@@ -18,6 +18,7 @@
 //   the `child` param so the static interior is built once.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -270,7 +271,7 @@ class _AiHubScreenState extends State<AiHubScreen>
               const SizedBox(width: 10),
 
               const Flexible(
-                child: Text(
+                child: T(
                   'Dale',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -301,7 +302,7 @@ class _AiHubScreenState extends State<AiHubScreen>
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
+          const T(
             'What can I help with today?',
             style: TextStyle(color: _kSlate, fontSize: 12.5),
           ),
@@ -432,7 +433,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                 const Icon(Icons.bolt_rounded,
                     color: _kInkSoft, size: 15),
                 const SizedBox(width: 6),
-                const Text('Hourly usage',
+                const T('Hourly usage',
                     style: TextStyle(
                         color: _kInk,
                         fontSize: 12,
@@ -463,7 +464,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                     color: _kSlate2, size: 11),
                 SizedBox(width: 6),
                 Expanded(
-                  child: Text(
+                  child: T(
                     'Free for every TCS student. Powered by Gemini & FLUX.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

@@ -5,6 +5,7 @@
 // or suspend the offending user. Backed by /moderation/staff/reports/.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
@@ -91,7 +92,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
         backgroundColor: _bg, elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Row(children: [
-          const Text('Moderation',
+          const T('Moderation',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
           if (_pending > 0) ...[
             const SizedBox(width: 10),
@@ -130,10 +131,10 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.verified_user_rounded, size: 52, color: _kG1),
       const SizedBox(height: 12),
-      const Text('Queue clear',
+      const T('Queue clear',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
       const SizedBox(height: 6),
-      Text('No pending reports to review',
+      T('No pending reports to review',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
               color: Colors.white.withOpacity(.5))),
     ]),
@@ -167,7 +168,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
                     fontWeight: FontWeight.bold, color: Colors.white.withOpacity(.4))),
             const Spacer(),
             if (suspended)
-              const Text('SUSPENDED', style: TextStyle(fontFamily: 'Arch',
+              const T('SUSPENDED', style: TextStyle(fontFamily: 'Arch',
                   fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFFAB91))),
           ]),
           const SizedBox(height: 10),
@@ -245,15 +246,15 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('Confirm',
+        title: const T('Confirm',
             style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 18)),
         content: Text(message,
             style: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
           TextButton(onPressed: () { Navigator.pop(ctx); onYes(); },
-              child: const Text('Confirm', style: TextStyle(color: _kRed))),
+              child: const T('Confirm', style: TextStyle(color: _kRed))),
         ],
       ),
     );

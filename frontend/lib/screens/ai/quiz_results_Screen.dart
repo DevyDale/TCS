@@ -7,6 +7,7 @@
 //   • Retake / Back to library actions
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
 
@@ -163,7 +164,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                     decoration: BoxDecoration(color: _kGold,
                         borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 10),
-                const Text('Review',
+                const T('Review',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 18, color: _kInk)),
                 const SizedBox(width: 8),
@@ -177,7 +178,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                           fontSize: 11, color: _kWood,
                           fontWeight: FontWeight.bold))),
                 const Spacer(),
-                Text('Tap to expand',
+                T('Tap to expand',
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 10, color: _kInkLight)),
               ]),
@@ -226,7 +227,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12))),
-                child: const Text('Back to library',
+                child: const T('Back to library',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold, fontSize: 13)),
               )),
@@ -253,7 +254,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                     children: [
                   Icon(Icons.refresh_rounded, size: 16),
                   SizedBox(width: 6),
-                  Text('Retake',
+                  T('Retake',
                       style: TextStyle(fontFamily: 'Alfa',
                           fontSize: 14, letterSpacing: 0.3)),
                 ]))),
@@ -395,7 +396,7 @@ class _ReviewCard extends StatelessWidget {
                       border: Border.all(color: _kGold.withOpacity(0.3))),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      const Text('💡', style: TextStyle(fontSize: 14)),
+                      const T('💡', style: TextStyle(fontSize: 14)),
                       const SizedBox(width: 8),
                       Expanded(child: Text(explanation,
                           style: const TextStyle(fontFamily: 'Momo',

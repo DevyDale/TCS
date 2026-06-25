@@ -1,5 +1,6 @@
 // lib/screens/bio.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -212,7 +213,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                                 const Icon(Icons.info_outline_rounded,
                                     color: Colors.white70, size: 16),
                                 const SizedBox(width: 8),
-                                Expanded(child: Text(
+                                Expanded(child: T(
                                   'All fields are optional. Fill in whatever you\'re comfortable sharing.',
                                   style: TextStyle(fontFamily: 'Momo', fontSize: 12,
                                       color: Colors.white.withOpacity(0.85)),
@@ -278,11 +279,11 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Edit Bio', style: TextStyle(
+                T('Edit Bio', style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 22,
                   color: Colors.white, fontWeight: FontWeight.bold,
                 )),
-                Text('Everything here is optional',
+                T('Everything here is optional',
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 12, color: Colors.white70)),
               ],
@@ -298,7 +299,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
-              child: const Text('Save', style: TextStyle(
+              child: const T('Save', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 color: Colors.white, fontSize: 14,
               )),
@@ -557,7 +558,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('What others will see on your profile:',
+            T('What others will see on your profile:',
                 style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 12, color: _kG2)),
             const SizedBox(height: 10),
@@ -605,7 +606,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
             children: [
               Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
               SizedBox(width: 10),
-              Text('Save Profile', style: TextStyle(
+              T('Save Profile', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 color: Colors.white, fontSize: 16,
               )),

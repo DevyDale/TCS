@@ -12,6 +12,7 @@
 // opens ChatSearchScreen and, on a result, jumps straight into that room.
 
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -149,7 +150,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const Text('Cancel request?',
+        title: const T('Cancel request?',
             style:
                 TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
         content: Text(
@@ -164,7 +165,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Keep',
+            child: T('Keep',
                 style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
@@ -172,7 +173,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Cancel request',
+            child: const T('Cancel request',
                 style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
@@ -346,7 +347,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           onPressed: () => Navigator.pop(context),
         ),
         const Expanded(
-          child: Text('Requests',
+          child: T('Requests',
               style:
                   TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
         ),
@@ -454,7 +455,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                   children: [
                     const SizedBox(height: 80),
                     Center(
-                        child: Text('No matches',
+                        child: T('No matches',
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 color: Colors.grey.shade500))),
@@ -515,7 +516,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                   children: [
                     const SizedBox(height: 80),
                     Center(
-                        child: Text('No matches',
+                        child: T('No matches',
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 color: Colors.grey.shade500))),
@@ -681,7 +682,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               decoration: BoxDecoration(
                   color: _kG4.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6)),
-              child: const Text('Bubble',
+              child: const T('Bubble',
                   style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 10,
@@ -722,7 +723,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300)),
                 child: const Center(
-                    child: Text('Decline',
+                    child: T('Decline',
                         style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
@@ -739,7 +740,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     gradient: const LinearGradient(colors: [_kG3, _kG4]),
                     borderRadius: BorderRadius.circular(12)),
                 child: const Center(
-                    child: Text('Join',
+                    child: T('Join',
                         style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
@@ -819,7 +820,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               decoration: BoxDecoration(
                   color: _kG3.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6)),
-              child: const Text('Chat Request',
+              child: const T('Chat Request',
                   style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 10,
@@ -852,7 +853,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300)),
                 child: const Center(
-                    child: Text('Decline',
+                    child: T('Decline',
                         style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
@@ -869,7 +870,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     gradient: const LinearGradient(colors: [_kG1, _kG2]),
                     borderRadius: BorderRadius.circular(12)),
                 child: const Center(
-                    child: Text('Accept',
+                    child: T('Accept',
                         style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
@@ -917,7 +918,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     style:
                         const TextStyle(fontFamily: 'Alfa', fontSize: 14)),
                 const SizedBox(height: 2),
-                Text('Awaiting response',
+                T('Awaiting response',
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 12,
@@ -934,7 +935,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               color: const Color(0xFFFFF3CD),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text('Pending',
+            child: const T('Pending',
                 style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 11,

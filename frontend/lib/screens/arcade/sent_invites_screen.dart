@@ -4,6 +4,7 @@
 // auto-declines all recipients and refunds my escrowed wager.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -53,22 +54,22 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
         backgroundColor: _kDarkCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const Text('Cancel challenge?',
+        title: const T('Cancel challenge?',
           style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
-        content: const Text(
+        content: const T(
           'Your wager will be refunded. Recipients will see this challenge '
           'as cancelled.',
           style: TextStyle(fontFamily: 'Momo', color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep', style: TextStyle(
+            child: const T('Keep', style: TextStyle(
                 fontFamily: 'Momo', color: Colors.white60))),
           GestureDetector(onTap: () => Navigator.pop(context, true),
             child: Container(padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 9),
               decoration: BoxDecoration(color: _kNeonRed,
                   borderRadius: BorderRadius.circular(10)),
-              child: const Text('Cancel',
+              child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, color: Colors.white)))),
           const SizedBox(width: 12),
@@ -83,7 +84,7 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
-        content: const Text('Challenge cancelled · wager refunded',
+        content: const T('Challenge cancelled · wager refunded',
             style: TextStyle(fontFamily: 'Momo'))));
       _load();
     } catch (e) {
@@ -102,7 +103,7 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
       backgroundColor: _kDarkBg,
       appBar: AppBar(
         backgroundColor: _kDarkBg, elevation: 0,
-        title: const Text('Sent Challenges',
+        title: const T('Sent Challenges',
           style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
       ),
       body: RefreshIndicator(
@@ -113,7 +114,7 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
           : _invites.isEmpty
             ? ListView(children: const [
                 SizedBox(height: 100),
-                Center(child: Text('📬', style: TextStyle(fontSize: 56))),
+                Center(child: T('📬', style: TextStyle(fontSize: 56))),
                 SizedBox(height: 12),
                 Center(child: Text("You haven't sent any challenges yet",
                   style: TextStyle(fontFamily: 'Alfa',
@@ -202,7 +203,7 @@ class _InviteCard extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: _kNeonPurple.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(8)),
-                child: const Text('ROYALE',
+                child: const T('ROYALE',
                   style: TextStyle(fontFamily: 'Momo',
                       fontWeight: FontWeight.bold, fontSize: 9,
                       letterSpacing: 1, color: _kNeonPurple))),
@@ -254,7 +255,7 @@ class _InviteCard extends StatelessWidget {
                   color: _kNeonRed.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _kNeonRed.withOpacity(0.3))),
-                child: const Center(child: Text(
+                child: const Center(child: T(
                   '✕  Cancel & refund',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,

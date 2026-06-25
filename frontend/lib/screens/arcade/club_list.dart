@@ -11,6 +11,7 @@
 // create a new club.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -155,7 +156,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
         backgroundColor: _kIndigo,
         elevation: 4,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
+        label: const T(
           'New Club',
           style: TextStyle(
             fontFamily: 'Arch',
@@ -212,7 +213,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                const Text(
+                const T(
                   'CAMPUS COMMUNITIES',
                   style: TextStyle(
                     fontFamily: 'Arch',
@@ -223,7 +224,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text('Clubs',
+                const T('Clubs',
                     style: TextStyle(
                       fontFamily: 'Alfa',
                       fontSize: 24,
@@ -689,7 +690,7 @@ class _ClubCard extends StatelessWidget {
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.shield_rounded, color: Colors.white, size: 11),
           SizedBox(width: 4),
-          Text('ADMIN',
+          T('ADMIN',
               style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
@@ -712,7 +713,7 @@ class _ClubCard extends StatelessWidget {
           Icon(Icons.check_rounded,
               color: Colors.green.shade700, size: 11),
           const SizedBox(width: 4),
-          Text('JOINED',
+          T('JOINED',
               style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
@@ -734,7 +735,7 @@ class _ClubCard extends StatelessWidget {
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.hourglass_top_rounded, color: _kG3, size: 11),
           SizedBox(width: 4),
-          Text('PENDING',
+          T('PENDING',
               style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
@@ -751,7 +752,7 @@ class _ClubCard extends StatelessWidget {
         gradient: const LinearGradient(colors: [_kIndigo, _kDeep]),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Text('VIEW',
+      child: const T('VIEW',
           style: TextStyle(
             fontFamily: 'Arch',
             fontWeight: FontWeight.bold,

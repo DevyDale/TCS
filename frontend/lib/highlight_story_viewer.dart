@@ -28,6 +28,7 @@
 //     for callers that pass a single shared title.
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -278,7 +279,7 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
-          child: Text('No highlights to show',
+          child: T('No highlights to show',
               style: TextStyle(fontFamily: 'Momo', color: Colors.white70)),
         ),
       );

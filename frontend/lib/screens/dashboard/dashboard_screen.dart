@@ -21,6 +21,7 @@
 //   • Welcome banner, animations, and routing logic are untouched.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -243,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       heroTag: 'staff_console_fab',
       backgroundColor: const Color(0xFF8E54E9),
       icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
-      label: const Text('Staff Console',
+      label: const T('Staff Console',
           style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               color: Colors.white)),
       onPressed: () {
@@ -311,7 +312,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                         ),
                         child: const Center(
-                          child: Text('👋', style: TextStyle(fontSize: 22)),
+                          child: T('👋', style: TextStyle(fontSize: 22)),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -320,7 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
+                            T(
                               'WELCOME BACK',
                               style: TextStyle(
                                 fontFamily:    'Arch',

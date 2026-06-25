@@ -18,6 +18,7 @@
 // support one glance away.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
@@ -229,13 +230,13 @@ class _MentorScreenState extends State<MentorScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Start fresh with Sage?',
+        title: const T('Start fresh with Sage?',
             style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: _kInk)),
-        content: const Text(
+        content: const T(
           'This clears your conversation so far. Sage will start with a clean slate.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -243,12 +244,12 @@ class _MentorScreenState extends State<MentorScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Keep',
+            child: const T('Keep',
                 style: TextStyle(fontFamily: 'Momo', color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear',
+            child: const T('Clear',
                 style: TextStyle(
                     fontFamily: 'Momo',
                     color: _kDanger,
@@ -362,7 +363,7 @@ class _MentorScreenState extends State<MentorScreen>
                   children: [
                     Icon(Icons.refresh_rounded, color: _kInkSoft, size: 15),
                     SizedBox(width: 5),
-                    Text('Start fresh',
+                    T('Start fresh',
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 11,
@@ -495,7 +496,7 @@ class _MentorScreenState extends State<MentorScreen>
               Icon(Icons.favorite_rounded,
                   size: 13, color: _sage.last.withOpacity(0.75)),
               const SizedBox(width: 6),
-              Text(
+              T(
                 'YOU COULD START WITH',
                 style: TextStyle(
                   fontFamily: 'Momo',
@@ -623,7 +624,7 @@ class _MentorScreenState extends State<MentorScreen>
       width: double.infinity,
       color: _kBg,
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-      child: const Text(
+      child: const T(
         'Sage is an AI companion for support, not a substitute for professional care. '
         'In a crisis call 000 or Lifeline 13 11 14.',
         textAlign: TextAlign.center,

@@ -1,5 +1,6 @@
 // lib/screens/arcade/quiz_battle_game.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'game_engine.dart';
@@ -175,16 +176,16 @@ class _QuizBattleGameState extends State<QuizBattleGame>
               border: Border.all(color: Colors.white.withOpacity(0.08))),
           child: const Icon(Icons.arrow_back_rounded, color: Colors.white60, size: 20)))),
       const Spacer(),
-      const Text('🧠', style: TextStyle(fontSize: 80)),
+      const T('🧠', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 20),
       ShaderMask(
         shaderCallback: (b) => const LinearGradient(
             colors: [kNeonBlue, kNeonPurple]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Quiz Battle', style: TextStyle(fontFamily: 'Alfa',
+        child: const T('Quiz Battle', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 40, color: Colors.white))),
       const SizedBox(height: 10),
-      Text('10 questions · 20 sec each\n+100 pts per correct answer\n+Time & Streak Bonuses!',
+      T('10 questions · 20 sec each\n+100 pts per correct answer\n+Time & Streak Bonuses!',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 13,
               color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -230,7 +231,7 @@ class _QuizBattleGameState extends State<QuizBattleGame>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: kNeonPurple.withOpacity(0.4),
                 blurRadius: 20, offset: const Offset(0, 6))]),
-          child: const Center(child: Text('Start Quiz ▶', style: TextStyle(
+          child: const Center(child: T('Start Quiz ▶', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 20, color: Colors.white))))),
     ]));
   }
@@ -312,9 +313,9 @@ class _QuizBattleGameState extends State<QuizBattleGame>
                       color: _answered && opt == q['a'] ? Colors.green.shade300 : Colors.white,
                       height: 1.3))),
                   if (_answered && opt == q['a'])
-                    const Text('✓', style: TextStyle(fontSize: 18, color: Colors.green)),
+                    const T('✓', style: TextStyle(fontSize: 18, color: Colors.green)),
                   if (_answered && opt == _selected && opt != q['a'])
-                    const Text('✗', style: TextStyle(fontSize: 18, color: kNeonRed)),
+                    const T('✗', style: TextStyle(fontSize: 18, color: kNeonRed)),
                 ]),
               ),
             );

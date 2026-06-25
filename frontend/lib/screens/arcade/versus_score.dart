@@ -14,6 +14,7 @@
 //   ... in dispose ...           vs.dispose();
 // and reads vs.oppScore / vs.oppConnected / vs.settled for its UI.
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 
 import 'game_engine.dart';                  // colours + MultiplayerSession
@@ -117,7 +118,7 @@ class VersusScoreBar extends StatelessWidget {
           border: Border.all(color: Colors.white.withOpacity(0.07))),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         _side('YOU', meScore, meLead),
-        const Text('VS', style: TextStyle(fontFamily: 'Alfa',
+        const T('VS', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 12, color: Colors.white38)),
         _side(oppLabel.isEmpty ? 'RIVAL' : oppLabel, oppScore, !meLead),
       ]),
@@ -148,7 +149,7 @@ class VersusWaitingOverlay extends StatelessWidget {
         style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
             fontSize: 16, color: Colors.white)),
       const SizedBox(height: 6),
-      const Text('The duel starts when you both connect.',
+      const T('The duel starts when you both connect.',
         style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.white54)),
     ])));
 }
@@ -181,7 +182,7 @@ class VersusResultOverlay extends StatelessWidget {
           decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [kNeonOrange, kNeonRed]),
               borderRadius: BorderRadius.circular(14)),
-          child: const Text('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
+          child: const T('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
               fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)))),
       ]))));
 }

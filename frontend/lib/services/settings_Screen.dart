@@ -12,6 +12,7 @@
 //   update the moment a switch is flipped
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/main.dart'; // for syncFcmTopics()
 import 'package:tcs_app/screens/about_application_screen.dart';
@@ -98,8 +99,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
+        title: const T('Delete account?'),
+        content: const T(
           'This permanently deletes your account and all of your data — '
           'profile, posts, messages, clubs, and arcade progress. '
           'This cannot be undone.',
@@ -107,12 +108,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const T('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: _kG4),
-            child: const Text('Delete'),
+            child: const T('Delete'),
           ),
         ],
       ),
@@ -172,7 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: const Icon(Icons.logout_rounded, color: _kG4, size: 30),
         ),
         const SizedBox(height: 18),
-        Text('Log out?', style: TextStyle(fontFamily: 'Alfa',
+        T('Log out?', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 20, color: _text)),
         const SizedBox(height: 10),
         Text(
@@ -192,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: _bg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _divC)),
-              child: Center(child: Text('Cancel',
+              child: Center(child: T('Cancel',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     color: _text, fontSize: 14))),
@@ -210,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 boxShadow: [BoxShadow(
                     color: _kG4.withOpacity(0.35),
                     blurRadius: 12, offset: const Offset(0, 4))]),
-              child: const Center(child: Text('Log out',
+              child: const Center(child: T('Log out',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     color: Colors.white, fontSize: 14))),
@@ -285,7 +286,7 @@ Future<void> _performLogout() async {
 
               const SizedBox(height: 20),
 
-              Text(
+              T(
                 'Logging you out',
                 style: TextStyle(
                   fontFamily: 'Arch',
@@ -297,7 +298,7 @@ Future<void> _performLogout() async {
 
               const SizedBox(height: 6),
 
-              Text(
+              T(
                 'Please wait a moment...',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -444,11 +445,11 @@ _group([
         const SizedBox(width: 12),
         Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Log out',
+          T('Log out',
               style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 14, color: _kG4)),
-          Text('Sign out of this device',
+          T('Sign out of this device',
               style: TextStyle(fontFamily: 'Momo',
                   fontSize: 12, color: _sub)),
         ])),

@@ -1,5 +1,6 @@
 // lib/screens/groups/group_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -320,7 +321,7 @@ class _GroupScreenState extends State<GroupScreen>
                   borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.link_rounded, color: _kG2, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Share a Link',
+              const Expanded(child: T('Share a Link',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 18, color: Color(0xFF1A1A2E)))),
             ]),
@@ -353,7 +354,7 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Cancel',
+                  child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A1A2E), fontSize: 13))),
@@ -367,7 +368,7 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_indigo, _deep]),
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Share',
+                  child: const Center(child: T('Share',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 13))),
@@ -480,7 +481,7 @@ class _GroupScreenState extends State<GroupScreen>
               child: Row(children: [
                 Icon(Icons.photo_camera_rounded, color: _kG3, size: 22),
                 SizedBox(width: 10),
-                Text('Photo or Video',
+                T('Photo or Video',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 17, color: Color(0xFF1A1A2E))),
               ]),
@@ -580,7 +581,7 @@ class _GroupScreenState extends State<GroupScreen>
               child: Row(children: [
                 Icon(Icons.description_rounded, color: _indigo, size: 22),
                 SizedBox(width: 10),
-                Text('Upload Document',
+                T('Upload Document',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 17, color: Color(0xFF1A1A2E))),
               ]),
@@ -706,12 +707,12 @@ class _GroupScreenState extends State<GroupScreen>
                 child: const Icon(Icons.delete_forever_rounded,
                     color: _kG4, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Dissolve Group',
+              const Expanded(child: T('Dissolve Group',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 18, color: Color(0xFF1A1A2E)))),
             ]),
             const SizedBox(height: 8),
-            Text(
+            T(
               'All shared materials will be saved to your Digital Library '
               'before the group is removed.',
               style: TextStyle(fontFamily: 'Momo',
@@ -742,7 +743,7 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Cancel',
+                  child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A1A2E), fontSize: 13))),
@@ -759,7 +760,7 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: _kG4,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Dissolve',
+                  child: const Center(child: T('Dissolve',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 13))),
@@ -785,7 +786,7 @@ class _GroupScreenState extends State<GroupScreen>
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const CircularProgressIndicator(color: _kG4),
             const SizedBox(height: 16),
-            Text('Archiving materials & dissolving...',
+            T('Archiving materials & dissolving...',
               style: TextStyle(fontFamily: 'Momo',
                   fontSize: 13, color: Colors.grey.shade700)),
           ]),
@@ -855,11 +856,11 @@ class _GroupScreenState extends State<GroupScreen>
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel',
+                  child: const T('Cancel',
                       style: TextStyle(fontFamily: 'Momo'))),
               TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Yes',
+                  child: const T('Yes',
                       style: TextStyle(fontFamily: 'Momo', color: _kG4))),
             ],
           ),
@@ -949,7 +950,7 @@ class _GroupScreenState extends State<GroupScreen>
                 child: Row(children: [
                   Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20),
                   SizedBox(width: 10),
-                  Text('Dissolve Group',
+                  T('Dissolve Group',
                       style: TextStyle(fontFamily: 'Momo', color: Colors.red)),
                 ]),
               ),
@@ -988,7 +989,7 @@ class _GroupScreenState extends State<GroupScreen>
             ? const Center(child: CircularProgressIndicator(color: _indigo))
             : _messages.isEmpty
                 ? Center(
-                    child: Text('No posts yet — start the conversation!',
+                    child: T('No posts yet — start the conversation!',
                         style: TextStyle(
                             fontFamily: 'Momo',
                             color: Colors.grey.shade400)))
@@ -1289,7 +1290,7 @@ class _GroupScreenState extends State<GroupScreen>
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.reply_rounded, color: _indigo),
-              title: const Text('Reply',
+              title: const T('Reply',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
               onTap: () {
                 Navigator.pop(ctx);
@@ -1298,7 +1299,7 @@ class _GroupScreenState extends State<GroupScreen>
             ),
             ListTile(
               leading: const Icon(Icons.copy_rounded, color: _indigo),
-              title: const Text('Copy text',
+              title: const T('Copy text',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
               onTap: () {
                 Clipboard.setData(
@@ -1432,7 +1433,7 @@ class _GroupScreenState extends State<GroupScreen>
                       decoration: BoxDecoration(
                         color: _indigo.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8)),
-                      child: const Text('Add',
+                      child: const T('Add',
                           style: TextStyle(
                               fontFamily: 'Arch',
                               fontWeight: FontWeight.bold,
@@ -1492,7 +1493,7 @@ class _GroupScreenState extends State<GroupScreen>
                             decoration: BoxDecoration(
                               color: _indigo.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6)),
-                            child: const Text('Admin',
+                            child: const T('Admin',
                                 style: TextStyle(
                                     fontFamily: 'Momo',
                                     fontSize: 10,
@@ -1541,13 +1542,13 @@ class _GroupScreenState extends State<GroupScreen>
                         Icon(Icons.folder_open_rounded,
                             size: 52, color: Colors.grey.shade300),
                         const SizedBox(height: 14),
-                        Text('No materials yet',
+                        T('No materials yet',
                             style: TextStyle(
                                 fontFamily: 'Alfa',
                                 fontSize: 16,
                                 color: Colors.grey.shade400)),
                         const SizedBox(height: 6),
-                        Text('Upload photos, videos, docs or links',
+                        T('Upload photos, videos, docs or links',
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,

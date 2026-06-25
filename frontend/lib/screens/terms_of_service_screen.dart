@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/app_settings.dart';
 
 class TermsOfServiceScreen extends StatefulWidget {
@@ -35,14 +36,14 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
                 child: Icon(Icons.arrow_back_rounded, size: 20, color: _text)),
             ),
             const SizedBox(width: 12),
-            Text('Terms of Service & EULA', style: TextStyle(
+            T('Terms of Service & EULA', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 22, color: _text)),
           ]),
         ),
         Expanded(child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('Effective: 1 January 2026',
+            T('Effective: 1 January 2026',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _sub)),
             const SizedBox(height: 16),
             _h('1. Acceptance of Terms'),

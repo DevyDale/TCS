@@ -19,6 +19,7 @@
 //   • DELETE endpoint POST /chat/messages/<id>/delete/ {scope: me|everyone}.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -682,7 +683,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline_rounded, color: _kSlate),
-            title: const Text('Delete for me',
+            title: const T('Delete for me',
                 style: TextStyle(fontFamily: 'Momo', color: _kInk)),
             onTap: () {
               Navigator.pop(ctx);
@@ -693,9 +694,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ListTile(
               leading:
                   const Icon(Icons.delete_forever_rounded, color: _kDanger),
-              title: const Text('Delete for everyone',
+              title: const T('Delete for everyone',
                   style: TextStyle(fontFamily: 'Momo', color: _kDanger)),
-              subtitle: const Text('Within 10 minutes of sending',
+              subtitle: const T('Within 10 minutes of sending',
                   style: TextStyle(
                       fontFamily: 'Momo', fontSize: 11, color: _kSlate)),
               onTap: () {
@@ -844,7 +845,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   child: const Row(children: [
                     Icon(Icons.folder_shared_rounded, color: _kWarm, size: 16),
                     SizedBox(width: 4),
-                    Text('Materials',
+                    T('Materials',
                         style: TextStyle(
                             fontFamily: 'Momo',
                             color: _kWarm,
@@ -962,10 +963,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         color: _kWarm.withOpacity(0.10),
         child: Row(children: [
-          const Text('📚', style: TextStyle(fontSize: 16)),
+          const T('📚', style: TextStyle(fontSize: 16)),
           const SizedBox(width: 8),
           Expanded(
-              child: Text('Study Buddy Chat — share notes, PDFs, and audio',
+              child: T('Study Buddy Chat — share notes, PDFs, and audio',
                   style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 12,
@@ -1230,7 +1231,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       size: 12,
                       color: isMe ? Colors.white70 : _kSageDk),
                   const SizedBox(width: 4),
-                  Text('Tap to view profile',
+                  T('Tap to view profile',
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 11,
@@ -1296,7 +1297,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             SizedBox(width: 12),
-            Text('Uploading voice note...', style: TextStyle(fontFamily: 'Momo')),
+            T('Uploading voice note...', style: TextStyle(fontFamily: 'Momo')),
           ]),
         );
       }
@@ -1355,7 +1356,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           const Positioned(
             bottom: 8,
             child:
-                Text('Uploading video...', style: TextStyle(color: Colors.white)),
+                T('Uploading video...', style: TextStyle(color: Colors.white)),
           ),
         ]);
       }

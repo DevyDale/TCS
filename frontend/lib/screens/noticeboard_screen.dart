@@ -182,7 +182,7 @@ class _NoticeboardScreenState extends State<NoticeboardScreen> {
 
   Widget _empty() => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('📌', style: TextStyle(fontSize: 52)),
+      const T('📌', style: TextStyle(fontSize: 52)),
       const SizedBox(height: 12),
       T('No notices yet',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18,

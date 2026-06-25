@@ -1,5 +1,6 @@
 // lib/screens/arcade/battle_bots_game.dart
 import 'dart:math';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'game_engine.dart';
@@ -282,15 +283,15 @@ class _BattleBotsGameState extends State<BattleBotsGame> {
                 border: Border.all(color: Colors.white.withOpacity(0.08))),
             child: const Icon(Icons.arrow_back_rounded, color: Colors.white60, size: 20)))),
       const Spacer(),
-      const Text('🤖', style: TextStyle(fontSize: 80)),
+      const T('🤖', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 16),
       ShaderMask(
         shaderCallback: (b) => const LinearGradient(colors: [kNeonBlue, kNeonPurple]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Battle Bots',
+        child: const T('Battle Bots',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 38, color: Colors.white))),
       const SizedBox(height: 10),
-      Text('Turn-based strategy · Select & move bots\nAttack enemies in range',
+      T('Turn-based strategy · Select & move bots\nAttack enemies in range',
         textAlign: TextAlign.center,
         style: TextStyle(fontFamily: 'Momo', fontSize: 13,
             color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -325,7 +326,7 @@ class _BattleBotsGameState extends State<BattleBotsGame> {
               gradient: const LinearGradient(colors: [kNeonBlue, kNeonPurple]),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [BoxShadow(color: kNeonBlue.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 6))]),
-          child: const Center(child: Text('Deploy Bots! ⚡',
+          child: const Center(child: T('Deploy Bots! ⚡',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white))))),
     ]));
 
@@ -434,7 +435,7 @@ class _BattleBotsGameState extends State<BattleBotsGame> {
               decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [kNeonOrange, kNeonRed]),
                   borderRadius: BorderRadius.circular(12)),
-              child: const Center(child: Text('End Turn →',
+              child: const Center(child: T('End Turn →',
                   style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
                       color: Colors.white, fontSize: 14)))))),
     ]);

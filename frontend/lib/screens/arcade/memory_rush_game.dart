@@ -8,6 +8,7 @@
 //   flipBack    - ms before mismatched cards flip back
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -245,17 +246,17 @@ class _MemoryMatchGameState extends State<MemoryMatchGame>
             child: const Icon(Icons.arrow_back_rounded,
                 color: Colors.white60, size: 20)))),
       const Spacer(),
-      const Text('🃏', style: TextStyle(fontSize: 80)),
+      const T('🃏', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 16),
       ShaderMask(
         shaderCallback: (b) =>
             const LinearGradient(colors: [kNeonBlue, kNeonOrange]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Memory Match',
+        child: const T('Memory Match',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 36, color: Colors.white)),
       ),
       const SizedBox(height: 10),
-      Text('Flip pairs · Build streaks\nFewer flips = bigger score',
+      T('Flip pairs · Build streaks\nFewer flips = bigger score',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 13,
               color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -271,7 +272,7 @@ class _MemoryMatchGameState extends State<MemoryMatchGame>
             boxShadow: [BoxShadow(color: kNeonBlue.withOpacity(0.4),
                 blurRadius: 20, offset: const Offset(0, 6))],
           ),
-          child: const Center(child: Text('Choose Level 🎮',
+          child: const Center(child: T('Choose Level 🎮',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white))),
         ),
       ),

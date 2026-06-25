@@ -1,6 +1,7 @@
 // lib/screens/settings/blocked_users_screen.dart
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/moderation_service.dart';
@@ -49,17 +50,17 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Unblock?'),
+        title: const T('Unblock?'),
         content: Text(
             'Unblocking $name lets them see your posts and message you again.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+              child: const T('Cancel')),
           FilledButton(
               style: FilledButton.styleFrom(backgroundColor: _kG2),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Unblock')),
+              child: const T('Unblock')),
         ],
       ),
     );
@@ -82,7 +83,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
         backgroundColor: Colors.white,
         foregroundColor: _kInk,
         elevation: 0,
-        title: const Text('Blocked users',
+        title: const T('Blocked users',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 20)),
       ),
       body: RefreshIndicator(
@@ -113,7 +114,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
+                      child: T(
                         'Blocking someone hides their posts and stops them '
                         'from messaging you. You can unblock anytime.',
                         textAlign: TextAlign.center,
@@ -185,7 +186,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                         textStyle: const TextStyle(
                             fontFamily: 'Arch', fontWeight: FontWeight.bold),
                       ),
-                      child: const Text('Unblock'),
+                      child: const T('Unblock'),
                     ),
                   ),
                 );

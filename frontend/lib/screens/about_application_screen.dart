@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/app_settings.dart';
 
 class AboutApplicationScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
                 child: Icon(Icons.arrow_back_rounded, size: 20, color: _text)),
             ),
             const SizedBox(width: 12),
-            Text('About Application', style: TextStyle(
+            T('About Application', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 22, color: _text)),
           ]),
         ),
@@ -55,10 +56,10 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
                   color: Colors.white, size: 52),
             )),
             const SizedBox(height: 18),
-            Center(child: Text('TCS',
+            Center(child: T('TCS',
                 style: TextStyle(fontFamily: 'Alfa', fontSize: 24, color: _text))),
             const SizedBox(height: 4),
-            Center(child: Text('Version 5.0',
+            Center(child: T('Version 5.0',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: _sub))),
             const SizedBox(height: 28),
             _card2([

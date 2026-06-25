@@ -16,6 +16,7 @@
 //     picked label when it closes.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
@@ -323,7 +324,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
         ),
 const SizedBox(width: 12),
         Flexible(
-          child: Text(
+          child: T(
             'Create Fweet',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: onBg),
             overflow: TextOverflow.ellipsis,
@@ -617,7 +618,7 @@ const SizedBox(width: 12),
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('Who can see this Fweet?',
+          const T('Who can see this Fweet?',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: Color(0xFF1A1A2E))),
           const SizedBox(height: 16),
@@ -684,7 +685,7 @@ const SizedBox(width: 12),
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
-          const Text('How are you feeling?',
+          const T('How are you feeling?',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: Color(0xFF1A1A2E))),
           const SizedBox(height: 16),
@@ -713,7 +714,7 @@ const SizedBox(width: 12),
                     decoration: BoxDecoration(
                       color: _kG3.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10)),
-                    child: Text('Try again',
+                    child: T('Try again',
                         style: TextStyle(fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 12, color: _kG3)),
@@ -764,7 +765,7 @@ const SizedBox(width: 12),
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           Row(children: [
-            const Text('Choose Background',
+            const T('Choose Background',
                 style: TextStyle(fontFamily: 'Alfa',
                     fontSize: 18, color: Color(0xFF1A1A2E))),
             const Spacer(),
@@ -774,7 +775,7 @@ const SizedBox(width: 12),
                   setState(() => _selectedBg = null);
                   Navigator.pop(context);
                 },
-                child: const Text('Clear',
+                child: const T('Clear',
                     style: TextStyle(fontFamily: 'Momo',
                         color: _kG4, fontWeight: FontWeight.bold))),
           ]),

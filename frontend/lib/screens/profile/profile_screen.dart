@@ -20,6 +20,7 @@
 // if you want any of those re-added.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -485,7 +486,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
+              child: const T('Cancel',
                   style: TextStyle(fontWeight: FontWeight.w700, color: _kSlate)),
             ),
             GestureDetector(
@@ -494,7 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 decoration: BoxDecoration(
                     color: _kCoral, borderRadius: BorderRadius.circular(12)),
-                child: const Text('Delete',
+                child: const T('Delete',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -930,7 +931,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   children: [
                     Icon(Icons.add_rounded, color: Colors.white, size: 16),
                     SizedBox(width: 5),
-                    Text('Add link',
+                    T('Add link',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
@@ -943,7 +944,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (chips.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 2),
-                child: Text('Add your Instagram, TikTok, YouTube and more.',
+                child: T('Add your Instagram, TikTok, YouTube and more.',
                     style: TextStyle(fontSize: 12.5, color: _kSlate)),
               ),
           ],
@@ -982,7 +983,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: _kPurple, size: 15),
                 ),
                 const SizedBox(width: 8),
-                const Text('About Me',
+                const T('About Me',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
@@ -1096,7 +1097,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Bio',
+              const T('Bio',
                   style: TextStyle(
                       fontSize: 22, fontWeight: FontWeight.w900, color: _kInk)),
               const SizedBox(height: 16),
@@ -1126,7 +1127,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   decoration: BoxDecoration(
                       color: _kInk, borderRadius: BorderRadius.circular(14)),
                   child: const Center(
-                    child: Text('Edit Bio',
+                    child: T('Edit Bio',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -1737,7 +1738,7 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
       if (mounted) {
         setState(() => _busy = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save links. Try again.')),
+          const SnackBar(content: T('Could not save links. Try again.')),
         );
       }
     }
@@ -1803,13 +1804,13 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Your links',
+                const T('Your links',
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: _kInk)),
                 const SizedBox(height: 4),
-                const Text('Paste a full URL or just your handle.',
+                const T('Paste a full URL or just your handle.',
                     style: TextStyle(fontSize: 12, color: _kSlate)),
                 const SizedBox(height: 16),
                 for (final k in _kSocialOrder) _field(k, _ctrls[k]!),
@@ -1829,7 +1830,7 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
                               height: 22,
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2.5))
-                          : const Text('Save',
+                          : const T('Save',
                               style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,

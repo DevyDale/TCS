@@ -13,6 +13,7 @@
 // accent for the avatar halo, send button, user bubbles, and cursor.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -743,7 +744,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                             'assets/images/robot.json',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Center(
-                              child: Text('🤖', style: TextStyle(fontSize: 18)),
+                              child: T('🤖', style: TextStyle(fontSize: 18)),
                             ),
                           ),
                         ),
@@ -751,7 +752,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  const T(
                     'Dale',
                     style: TextStyle(
                       fontFamily: 'Alfa',
@@ -790,7 +791,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     children: [
                       Icon(Icons.add_rounded, color: Colors.white, size: 20),
                       SizedBox(width: 6),
-                      Text(
+                      T(
                         'New chat',
                         style: TextStyle(
                           fontFamily: 'Arch',
@@ -807,7 +808,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Text(
+              child: T(
                 'RECENT',
                 style: TextStyle(
                   fontFamily: 'Momo',
@@ -824,7 +825,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
+                        child: T(
                           'No conversations yet.\nStart chatting and it’ll show up here.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -1003,7 +1004,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                       errorBuilder: (_, e, __) {
                         if (kDebugMode) debugPrint('🤖 Lottie: $e');
                         return const Center(
-                          child: Text('🤖', style: TextStyle(fontSize: 60)),
+                          child: T('🤖', style: TextStyle(fontSize: 60)),
                         );
                       },
                     ),
@@ -1066,7 +1067,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 color: _theme.gradient.last.withOpacity(0.75),
               ),
               const SizedBox(width: 6),
-              Text(
+              T(
                 'TRY ASKING',
                 style: TextStyle(
                   fontFamily: 'Momo',
@@ -1514,7 +1515,7 @@ class _MiniAiAvatar extends StatelessWidget {
         ),
       ],
     ),
-    child: const Center(child: Text('🤖', style: TextStyle(fontSize: 14))),
+    child: const Center(child: T('🤖', style: TextStyle(fontSize: 14))),
   );
 }
 

@@ -2,6 +2,7 @@
 // Sky-themed Lumora screen — twinkling stars + slow shooting stars
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 
 class AboutDeveloperScreen extends StatefulWidget {
@@ -87,7 +88,7 @@ class _AboutDeveloperScreenState extends State<AboutDeveloperScreen>
               builder: (_, __) {
                 final glow = 0.5 + 0.5 *
                     math.sin(_twinkle.value * 2 * math.pi);
-                return Text('Lumora', style: TextStyle(
+                return T('Lumora', style: TextStyle(
                   fontFamily: 'Alfa',
                   fontSize: 64,
                   color: Colors.white,
@@ -104,7 +105,7 @@ class _AboutDeveloperScreenState extends State<AboutDeveloperScreen>
               },
             ),
             const SizedBox(height: 18),
-            Text('A studio under the stars',
+            T('A studio under the stars',
               style: TextStyle(fontFamily: 'Momo',
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.55),

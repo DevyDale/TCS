@@ -11,6 +11,7 @@
 // returns a quiz, then we push the play screen.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
@@ -85,7 +86,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
     if (_selected == null) return;
     if (_types.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Pick at least one question type.')));
+          content: T('Pick at least one question type.')));
       return;
     }
 
@@ -162,7 +163,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
 
                 _stepLabel('2', 'Subject'),
                 const SizedBox(height: 8),
-                Text(
+                T(
                     'Helps the AI focus on the right vocabulary. Auto-filled when we know the source group.',
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 11, color: _kInkLight)),
@@ -203,14 +204,14 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         const SizedBox(width: 12),
         const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('AI Quiz Generator',
+          T('AI Quiz Generator',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 20, color: Colors.white)),
-          Text('Turn any saved material into an interactive quiz',
+          T('Turn any saved material into an interactive quiz',
               style: TextStyle(fontFamily: 'Momo',
                   fontSize: 11, color: Colors.white60)),
         ])),
-        const Text('🧠', style: TextStyle(fontSize: 26)),
+        const T('🧠', style: TextStyle(fontSize: 26)),
       ]),
     );
   }
@@ -241,13 +242,13 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _kWoodLight.withOpacity(0.3))),
         child: Column(children: [
-          const Text('📭', style: TextStyle(fontSize: 36)),
+          const T('📭', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 8),
-          const Text('No quiz-compatible materials',
+          const T('No quiz-compatible materials',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 14, color: _kInk)),
           const SizedBox(height: 4),
-          Text('Save a PDF or DOCX in your library first.',
+          T('Save a PDF or DOCX in your library first.',
               style: TextStyle(fontFamily: 'Momo',
                   fontSize: 11, color: _kInkLight)),
         ]),
@@ -391,7 +392,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         border: Border.all(color: _kWoodLight.withOpacity(0.3))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Number of questions
-        const Text('Number of questions',
+        const T('Number of questions',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -422,7 +423,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         ]),
 
         const SizedBox(height: 18),
-        const Text('Difficulty',
+        const T('Difficulty',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -435,7 +436,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
         ]),
 
         const SizedBox(height: 18),
-        const Text('Question types',
+        const T('Question types',
             style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 12, color: _kInk)),
         const SizedBox(height: 8),
@@ -545,14 +546,14 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('🧠', style: TextStyle(fontSize: 72)),
+              const T('🧠', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 28),
               const SizedBox(
                 width: 36, height: 36,
                 child: CircularProgressIndicator(
                     color: _kGold, strokeWidth: 3)),
               const SizedBox(height: 28),
-              const Text('Generating your quiz',
+              const T('Generating your quiz',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 22, color: _kInk)),
               const SizedBox(height: 10),

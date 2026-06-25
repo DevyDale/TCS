@@ -1,5 +1,6 @@
 // lib/screens/groups/study_hub_search_screen.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -94,10 +95,10 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
           Expanded(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.school_outlined, size: 52, color: _indigo.withOpacity(0.25)),
             const SizedBox(height: 14),
-            Text('Search Study Hub', style: TextStyle(fontFamily: 'Alfa', fontSize: 17,
+            T('Search Study Hub', style: TextStyle(fontFamily: 'Alfa', fontSize: 17,
                 color: _indigo.withOpacity(0.5))),
             const SizedBox(height: 6),
-            Text('Find groups, study buddies, or subjects',
+            T('Find groups, study buddies, or subjects',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: Colors.grey.shade400)),
           ])))
         else
@@ -122,7 +123,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
                 Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
                   const SizedBox(height: 12),
-                  Text('No results found', style: TextStyle(fontFamily: 'Alfa',
+                  T('No results found', style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 16, color: Colors.grey.shade400)),
                 ])),
               ],

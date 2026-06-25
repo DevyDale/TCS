@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/services/notification_Service.dart';
@@ -498,7 +499,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                           position: _slideAnim,
                           child: Column(
                             children: [
-                              Text(
+                              T(
                                 'Welcome Back!',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -516,7 +517,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
+                              T(
                                 'Sign in with your ID & date of birth',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -612,7 +613,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                               color: Colors.grey.shade400,
                             ),
                             const SizedBox(width: 6),
-                            Text(
+                            T(
                               'Your credentials are securely encrypted',
                               style: TextStyle(
                                 fontFamily: 'Momo',
@@ -959,7 +960,7 @@ class _LoginButton extends StatelessWidget {
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    T(
                       'Login',
                       style: TextStyle(
                         fontFamily: 'Arch',
@@ -1087,7 +1088,7 @@ class _EulaToastState extends State<_EulaToast>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    const T(
                       'One quick thing',
                       style: TextStyle(
                         fontFamily: 'Arch',
@@ -1097,7 +1098,7 @@ class _EulaToastState extends State<_EulaToast>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    T(
                       'Please accept the Terms of Service & EULA to continue.',
                       style: TextStyle(
                         fontFamily: 'Momo',

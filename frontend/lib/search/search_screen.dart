@@ -14,6 +14,7 @@
 // People results (enforced in `_people`, and server-side too).
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -487,7 +488,7 @@ Widget _buildHeader() {
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
+            const T(
               'Search',
               style: TextStyle(
                 fontFamily: 'Alfa',
@@ -626,7 +627,7 @@ Widget _buildHeader() {
               child: Row(mainAxisSize: MainAxisSize.min, children: const [
                 Icon(Icons.delete_sweep_rounded, size: 16, color: _kG4),
                 SizedBox(width: 5),
-                Text('Clear all',
+                T('Clear all',
                     style: TextStyle(fontFamily: 'Arch', fontSize: 12,
                         fontWeight: FontWeight.bold, color: _kG4)),
               ]),
@@ -800,7 +801,7 @@ Widget _buildHeader() {
                       if (e.isPerson && (e.tag?.isNotEmpty ?? false))
                         _tagChip(e.tag!, c)
                       else
-                        const Text('Recent search',
+                        const T('Recent search',
                             style: TextStyle(fontFamily: 'Momo',
                                 fontSize: 11.5, color: _kSlate)),
                     ],
@@ -848,7 +849,7 @@ Widget _buildHeader() {
         child: Icon(Icons.history_rounded, size: 36, color: c.withOpacity(0.5)),
       ),
       const SizedBox(height: 16),
-      const Text('No recent searches',
+      const T('No recent searches',
           style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: _kInk)),
       const SizedBox(height: 6),
@@ -867,11 +868,11 @@ Widget _buildHeader() {
         child: Icon(_catIcon[cat], size: 34, color: c.withOpacity(0.5)),
       ),
       const SizedBox(height: 16),
-      const Text('No results',
+      const T('No results',
           style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: _kInk)),
       const SizedBox(height: 6),
-      const Text('Try different keywords.',
+      const T('Try different keywords.',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kSlate)),
     ]));
   }
@@ -1449,7 +1450,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                 icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
                 onPressed: () => Navigator.pop(context),
               ),
-              const Text('Post',
+              const T('Post',
                   style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             ]),
           ),
@@ -1775,7 +1776,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
               padding: EdgeInsets.fromLTRB(20, 14, 20, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Comments',
+                child: T('Comments',
                     style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
                         color: _kInk)),
               ),
@@ -1784,7 +1785,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _comments.isEmpty
-                      ? Center(child: Text('No comments yet. Be the first!',
+                      ? Center(child: T('No comments yet. Be the first!',
                           style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
                               color: Colors.grey.shade500)))
                       : ListView.builder(
@@ -2066,7 +2067,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
       if (!mounted) return;
       setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not share. Try again.'),
+        content: T('Could not share. Try again.'),
         behavior: SnackBarBehavior.floating));
     }
   }
@@ -2103,7 +2104,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
               padding: EdgeInsets.fromLTRB(20, 14, 20, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Share with',
+                child: T('Share with',
                     style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
               ),
@@ -2134,7 +2135,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
                       child: CircularProgressIndicator(color: _kG2))
                   : _people.isEmpty
                       ? Center(
-                          child: Text('No people found',
+                          child: T('No people found',
                               style: TextStyle(
                                   fontFamily: 'Momo', color: _kSlate)))
                       : ListView.builder(

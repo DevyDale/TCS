@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,8 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 40),
               const Icon(Icons.school, size: 80, color: Colors.blue),
               const SizedBox(height: 20),
-              Container(child: Text("Go to home page"),),
-              const Text(
+              Container(child: T("Go to home page"),),
+              const T(
                 'Welcome to TCS',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -106,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
               //   ),
               //   child: _isLoading
               //       ? const CircularProgressIndicator(color: Colors.white)
-              //       : const Text('Login', style: TextStyle(fontSize: 16)),
+              //       : const T('Login', style: TextStyle(fontSize: 16)),
               // ),
             ],
           ),

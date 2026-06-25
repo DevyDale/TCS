@@ -18,6 +18,7 @@
 // so the quiz engine can read it.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -158,7 +159,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove from library?',
+        title: const T('Remove from library?',
             style: TextStyle(color: _kInk, fontSize: 17,
                 fontWeight: FontWeight.w800)),
         content: const Text(
@@ -166,10 +167,10 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             style: TextStyle(color: _kSlate, fontSize: 13, height: 1.45)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
+              child: const T('Cancel',
                   style: TextStyle(color: _kSlate, fontSize: 13))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remove',
+              child: const T('Remove',
                   style: TextStyle(color: Color(0xFFFF4F6E), fontSize: 13))),
         ],
       ),
@@ -212,7 +213,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
     if (pf.path == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not read that file.')));
+            const SnackBar(content: T('Could not read that file.')));
       }
       return;
     }
@@ -240,7 +241,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
         await _load();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Added to your library ✓')));
+              const SnackBar(content: T('Added to your library ✓')));
         }
       }
     } catch (e) {
@@ -341,7 +342,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             onTap: () {
               if (_all.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Save some materials first to quiz on them.')));
+                    content: T('Save some materials first to quiz on them.')));
                 return;
               }
               _openQuizWizard();
@@ -358,7 +359,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                   child: _SafeRobotLottie(),
                 ),
                 const SizedBox(width: 10),
-                const Text('Quiz me',
+                const T('Quiz me',
                     style: TextStyle(
                         color: _kInk, fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -408,7 +409,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             borderWidth: 1.4,
             innerColor:  _kCard,
             padding:     const EdgeInsets.all(9),
-            child: const Text('📚', style: TextStyle(fontSize: 20)),
+            child: const T('📚', style: TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
 
@@ -417,12 +418,12 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-            Text('My Digital Library',
+            T('My Digital Library',
                 style: TextStyle(color: _kInk,
                     fontSize: 22, fontWeight: FontWeight.w800,
                     letterSpacing: -0.4, height: 1.1)),
             SizedBox(height: 2),
-            Text('AI-quizzable study materials',
+            T('AI-quizzable study materials',
                 style: TextStyle(color: _kSlate, fontSize: 12.5)),
           ])),
 
@@ -563,7 +564,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             borderWidth: 1.6,
             innerColor:  _kCard,
             padding:     const EdgeInsets.all(22),
-            child: const Text('📖', style: TextStyle(fontSize: 38)),
+            child: const T('📖', style: TextStyle(fontSize: 38)),
           ),
           const SizedBox(height: 20),
           Text(
@@ -756,7 +757,7 @@ class _MaterialCard extends StatelessWidget {
               bottom: Radius.circular(16)),
           onTap: canQuiz ? onQuiz : () {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Quizzes can only be made from PDFs or DOCXs.')));
+                content: T('Quizzes can only be made from PDFs or DOCXs.')));
           },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
@@ -770,7 +771,7 @@ class _MaterialCard extends StatelessWidget {
               Icon(Icons.auto_awesome_rounded,
                   size: 14, color: canQuiz ? _kInk : _kSlate2),
               const SizedBox(width: 6),
-              Text('Quiz me',
+              T('Quiz me',
                   style: TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w800,
                       letterSpacing: 0.1,

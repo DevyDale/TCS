@@ -1,6 +1,7 @@
 // lib/screens/role_selection_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 import 'auth/login_id_screen.dart';
@@ -134,13 +135,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight).createShader(b),
                     blendMode: BlendMode.srcIn,
-                    child: const Text('TCS', style: TextStyle(
+                    child: const T('TCS', style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 38,
                         fontWeight: FontWeight.bold, letterSpacing: 1.2,
                         color: Colors.white)),
                   ),
                   const SizedBox(height: 8),
-                  Text('One platform for every student.\nLearn, play, connect.',
+                  T('One platform for every student.\nLearn, play, connect.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo', fontSize: 14,
                         color: Colors.grey.shade500, height: 1.5)),
@@ -161,7 +162,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         end: Alignment.bottomCenter),
                     borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 10),
-                Text('Who are you?', style: TextStyle(
+                T('Who are you?', style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 18,
                     color: Colors.grey.shade800, letterSpacing: 0.5)),
               ]),
@@ -200,7 +201,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             // ── Footer ────────────────────────────────────────
             FadeTransition(opacity: _headerFade,
               child: Column(children: [
-                Text('Powered by LUMORA', style: TextStyle(
+                T('Powered by LUMORA', style: TextStyle(
                     fontFamily: 'Momo', fontSize: 12,
                     color: Colors.grey.shade400, letterSpacing: 2)),
                 const SizedBox(height: 6),
@@ -208,7 +209,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   Icon(Icons.shield_rounded, size: 13,
                       color: Colors.grey.shade400),
                   const SizedBox(width: 5),
-                  Text('Secured · Role-verified · GDPR compliant',
+                  T('Secured · Role-verified · GDPR compliant',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11,
                         color: Colors.grey.shade400)),
                 ]),

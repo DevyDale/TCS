@@ -11,6 +11,7 @@
 //     viewer-side filter still drops them.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -265,7 +266,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                   ),
                   const SizedBox(width: 14),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('All Members',
+                    const T('All Members',
                         style: TextStyle(fontFamily: 'Alfa',
                             fontSize: 20, color: Colors.white)),
                     Text('${_all.length} people on campus',
@@ -370,13 +371,13 @@ class _AllUsersScreenState extends State<AllUsersScreen>
               ? const Center(child: CircularProgressIndicator())
               : _filtered.isEmpty
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Text('🔍', style: TextStyle(fontSize: 48)),
+                      const T('🔍', style: TextStyle(fontSize: 48)),
                       const SizedBox(height: 12),
-                      const Text('No results',
+                      const T('No results',
                           style: TextStyle(fontFamily: 'Alfa',
                               fontSize: 18, color: _kInk)),
                       const SizedBox(height: 6),
-                      Text('Try a different search or filter',
+                      T('Try a different search or filter',
                           style: TextStyle(fontFamily: 'Momo',
                               fontSize: 13, color: Colors.grey.shade400)),
                     ]))

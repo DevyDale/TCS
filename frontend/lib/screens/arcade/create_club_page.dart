@@ -7,6 +7,7 @@
 // Club map (the caller in ClubsListScreen pushes ClubScreen with it).
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -164,7 +165,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                           onTap: _pickLogo,
                           child: Column(
                             children: [
-                              const Text('Club Logo', 
+                              const T('Club Logo', 
                                 style: TextStyle(fontFamily: 'Arch', fontSize: 12.5, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 8),
                               Container(
@@ -195,7 +196,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                           onTap: _pickCover,
                           child: Column(
                             children: [
-                              const Text('Cover Photo', 
+                              const T('Cover Photo', 
                                 style: TextStyle(fontFamily: 'Arch', fontSize: 12.5, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 8),
                               Container(
@@ -250,7 +251,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                           Icon(Icons.auto_awesome_rounded,
                               color: Colors.white, size: 18),
                           SizedBox(width: 8),
-                          Text('Generate Logo with AI',
+                          T('Generate Logo with AI',
                               style: TextStyle(
                                 fontFamily: 'Arch',
                                 fontSize: 14,
@@ -323,7 +324,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       const Icon(Icons.info_rounded, color: _kG2, size: 18),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: T(
                           'You\'ll become President of the club. You can '
                           'add a cover, logo, mission, and rules from the '
                           'Django admin panel afterwards.',
@@ -376,7 +377,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                const Text('NEW CLUB',
+                const T('NEW CLUB',
                     style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
@@ -385,7 +386,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       letterSpacing: 1.4,
                     )),
                 const SizedBox(height: 2),
-                const Text('Start a Club',
+                const T('Start a Club',
                     style: TextStyle(
                       fontFamily: 'Alfa',
                       fontSize: 22,
@@ -444,7 +445,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       Icon(Icons.flag_rounded,
                           color: Colors.white, size: 18),
                       SizedBox(width: 8),
-                      Text('Create Club',
+                      T('Create Club',
                           style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
@@ -736,7 +737,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
               const Expanded(
-                child: Text('AI Logo Generator',
+                child: T('AI Logo Generator',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
                       fontWeight: FontWeight.w900,
@@ -753,7 +754,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
               controller: ctrl,
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               children: [
-                Text(
+                T(
                   'Describe the vibe, mascot, or imagery and Flux will '
                   'generate a logo you can drop straight into your club. '
                   'Generation takes 5-30 seconds.',
@@ -828,7 +829,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                                       color: Colors.white, strokeWidth: 2),
                                 ),
                                 SizedBox(width: 10),
-                                Text('Flux is painting...',
+                                T('Flux is painting...',
                                     style: TextStyle(
                                       fontFamily: 'Arch', fontSize: 13,
                                       color: Colors.white,
@@ -881,7 +882,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                                   Icon(Icons.check_rounded,
                                       color: Colors.white, size: 16),
                                   SizedBox(width: 8),
-                                  Text('Use this logo',
+                                  T('Use this logo',
                                       style: TextStyle(
                                         fontFamily: 'Arch', fontSize: 14,
                                         color: Colors.white,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'legal/eula_screen.dart';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -292,7 +293,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
+                                  T(
                                     'Taylors College',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
@@ -303,7 +304,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       letterSpacing: 0.5,
                                     ),
                                   ),
-                                  Text(
+                                  T(
                                     'Sydney',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
@@ -326,7 +327,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     FadeTransition(
                       opacity: _subtitleFade,
-                      child: Text(
+                      child: T(
                         'Learn · Play · Connect',
                         style: TextStyle(
                           fontFamily: 'Arch',
@@ -377,13 +378,13 @@ class _SplashScreenState extends State<SplashScreen>
                       opacity: _lumoraFade,
                       child: Column(
                         children: [
-                          Text('POWERED BY LUMORA',
+                          T('POWERED BY LUMORA',
                               style: TextStyle(
                                 fontFamily: 'Momo', fontSize: 10,
                                 color: Colors.white.withOpacity(0.3), letterSpacing: 3.5,
                               )),
                           const SizedBox(height: 4),
-                          Text('Taylors College Social & Arcade',
+                          T('Taylors College Social & Arcade',
                               style: TextStyle(
                                 fontFamily: 'Momo', fontSize: context.isPhone ? 12 : 13,
                                 color: Colors.white.withOpacity(0.45), letterSpacing: 1,

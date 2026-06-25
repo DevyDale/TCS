@@ -5,6 +5,7 @@
 // fetches /quiz/<id>/play/. Handles MCQ, true/false, and short-answer.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -137,17 +138,17 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: _kCream,
-          title: const Text('Submit anyway?',
+          title: const T('Submit anyway?',
               style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
           content: Text('You have $unanswered unanswered questions.',
               style: const TextStyle(fontFamily: 'Momo', color: _kInkLight)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Keep going')),
+                child: const T('Keep going')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: _kGold),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Submit',
+              child: const T('Submit',
                   style: TextStyle(color: Colors.white))),
           ],
         ),
@@ -400,7 +401,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget _shortWidget(Map<String, dynamic> q) {
     final qid = q['id'] as String;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Your answer',
+      const T('Your answer',
           style: TextStyle(fontFamily: 'Arch',
               fontWeight: FontWeight.bold, fontSize: 11, color: _kInkLight)),
       const SizedBox(height: 8),
@@ -450,7 +451,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                   children: [
                 Icon(Icons.arrow_back_rounded, size: 16),
                 SizedBox(width: 6),
-                Text('Previous',
+                T('Previous',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold, fontSize: 13)),
               ]))),
@@ -490,18 +491,18 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCream,
-        title: const Text('Leave the quiz?',
+        title: const T('Leave the quiz?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
-        content: const Text(
+        content: const T(
             'Your progress will be lost. The quiz itself is saved and you can retake it anytime.',
             style: TextStyle(fontFamily: 'Momo', color: _kInkLight)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Stay')),
+              child: const T('Stay')),
           TextButton(
               style: TextButton.styleFrom(foregroundColor: const Color(0xFFE53935)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Leave')),
+              child: const T('Leave')),
         ],
       ),
     ) ?? false;
@@ -518,24 +519,24 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget _loadingBlock() => const Column(mainAxisSize: MainAxisSize.min, children: [
     CircularProgressIndicator(color: _kGold),
     SizedBox(height: 20),
-    Text('Loading your quiz…',
+    T('Loading your quiz…',
         style: TextStyle(fontFamily: 'Momo', color: _kInkLight, fontSize: 13)),
   ]);
 
   Widget _emptyBlock() => Column(mainAxisSize: MainAxisSize.min, children: [
-    const Text('🤷', style: TextStyle(fontSize: 60)),
+    const T('🤷', style: TextStyle(fontSize: 60)),
     const SizedBox(height: 20),
-    const Text('No questions in this quiz',
+    const T('No questions in this quiz',
         style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
     const SizedBox(height: 16),
     TextButton(onPressed: () => Navigator.pop(context),
-        child: const Text('Back')),
+        child: const T('Back')),
   ]);
 
   Widget _submittingBlock() => const Column(mainAxisSize: MainAxisSize.min, children: [
     CircularProgressIndicator(color: _kGold),
     SizedBox(height: 20),
-    Text('Grading…',
+    T('Grading…',
         style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
   ]);
 }

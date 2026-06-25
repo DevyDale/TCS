@@ -16,6 +16,7 @@
 // UI. That keeps this file purely visual.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
@@ -85,10 +86,10 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Dale from this chat?',
+        title: const T('Remove Dale from this chat?',
             style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const Text(
+        content: const T(
           "Dale will stop participating. You can add him back any time.",
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate),
@@ -96,12 +97,12 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove',
+            child: const T('Remove',
                 style: TextStyle(color: _kRed)),
           ),
         ],
@@ -174,13 +175,13 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                 const Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dale is here',
+                    T('Dale is here',
                         style: TextStyle(
                             fontFamily: 'Alfa',
                             fontSize: 16,
                             color: _kInk)),
                     SizedBox(height: 1),
-                    Text('Ask anything based on the chat',
+                    T('Ask anything based on the chat',
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 12,
@@ -236,7 +237,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                         border: Border.all(color: Colors.grey.shade300),
                       ),
                       child: const Center(
-                        child: Text('Catch me up',
+                        child: T('Catch me up',
                             style: TextStyle(
                                 fontFamily: 'Arch',
                                 fontWeight: FontWeight.bold,
@@ -273,7 +274,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                                 width: 18, height: 18,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2))
-                            : const Text('Ask Dale',
+                            : const T('Ask Dale',
                                 style: TextStyle(
                                     fontFamily: 'Arch',
                                     fontWeight: FontWeight.bold,
@@ -294,7 +295,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                 onPressed: _busy ? null : _confirmRemove,
                 icon: const Icon(Icons.exit_to_app_rounded,
                     color: _kRed, size: 18),
-                label: const Text('Remove Dale from chat',
+                label: const T('Remove Dale from chat',
                     style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,

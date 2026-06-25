@@ -13,6 +13,7 @@
 // to call your backend; the rest stays the same.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -248,7 +249,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
               border: Border.all(color: kNeonOrange.withOpacity(0.3)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('⭐', style: TextStyle(fontSize: 14)),
+              const T('⭐', style: TextStyle(fontSize: 14)),
               const SizedBox(width: 6),
               Text('${p.totalStars()} / 30',
                   style: const TextStyle(
@@ -270,7 +271,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
                       fontFamily: 'Alfa', fontSize: 26, color: Colors.white)),
             ),
             const SizedBox(height: 2),
-            Text('Choose your challenge',
+            T('Choose your challenge',
                 style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 12,
@@ -591,7 +592,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: kNeonOrange.withOpacity(0.3)),
                   ),
-                  child: const Text('🏆 NEW RECORD!',
+                  child: const T('🏆 NEW RECORD!',
                       style: TextStyle(
                           fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
@@ -615,7 +616,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                     border: Border.all(color: Colors.white.withOpacity(0.08)),
                   ),
                   child: const Center(
-                    child: Text('← Levels',
+                    child: T('← Levels',
                         style: TextStyle(
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,

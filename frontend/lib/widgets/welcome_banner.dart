@@ -17,6 +17,7 @@
 // itself from the visual tree when dismissed.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -150,7 +151,7 @@ class _WelcomeBannerState extends State<WelcomeBanner>
                           ),
                         ),
                         child: const Center(
-                          child: Text('👋', style: TextStyle(fontSize: 20)),
+                          child: T('👋', style: TextStyle(fontSize: 20)),
                         ),
                       ),
                       const SizedBox(width: 12),

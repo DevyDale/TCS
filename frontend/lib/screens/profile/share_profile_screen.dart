@@ -39,6 +39,7 @@
 //  3. If both fail, show "No recent chats yet."
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -254,7 +255,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Share profile',
+                  T('Share profile',
                     style: TextStyle(
                       fontFamily: 'Arch', fontSize: 12,
                       color: Colors.grey.shade500, letterSpacing: 0.6,
@@ -283,7 +284,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
           else if (_rooms.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No chats yet — accept a chat request first.',
+              child: T('No chats yet — accept a chat request first.',
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 13,
                   color: Colors.grey.shade500,
@@ -314,7 +315,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                 Icon(Icons.link_rounded,
                     color: Colors.grey.shade700, size: 18),
                 const SizedBox(width: 12),
-                Text('Copy profile link',
+                T('Copy profile link',
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 13, color: Colors.grey.shade700,
@@ -409,7 +410,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                 Icon(Icons.check_rounded, size: 12,
                     color: Colors.green.shade700),
                 const SizedBox(width: 4),
-                Text('Sent',
+                T('Sent',
                   style: TextStyle(
                     fontFamily: 'Arch', fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -426,7 +427,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                 gradient: const LinearGradient(colors: [_kG1, _kG2]),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text('Send',
+              child: const T('Send',
                 style: TextStyle(
                   fontFamily: 'Arch', fontSize: 11,
                   fontWeight: FontWeight.bold, color: Colors.white,

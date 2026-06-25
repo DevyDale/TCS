@@ -57,6 +57,7 @@
 //   • Shows "Powered by OpenStreetMap" attribution    (required)
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -363,7 +364,7 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Row(children: [
       const Icon(Icons.place_rounded, color: _kG2, size: 20),
       const SizedBox(width: 8),
-      const Text('Add a location',
+      const T('Add a location',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
       const Spacer(),
       IconButton(
@@ -464,7 +465,7 @@ class _LocationPickerState extends State<LocationPicker> {
                       fontSize: 13,
                       color: _kInk,
                     )),
-                Text('Keep your text as a free-form label',
+                T('Keep your text as a free-form label',
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 11,
@@ -507,7 +508,7 @@ class _LocationPickerState extends State<LocationPicker> {
     children: [
       Padding(
         padding: const EdgeInsets.only(bottom: 6, left: 4),
-        child: Text('SUGGESTIONS',
+        child: T('SUGGESTIONS',
             style: TextStyle(
               fontFamily: 'Arch',
               fontWeight: FontWeight.bold,
@@ -571,7 +572,7 @@ class _LocationPickerState extends State<LocationPicker> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 4, 0, 8),
-          child: Text('CAMPUS QUICK PICKS',
+          child: T('CAMPUS QUICK PICKS',
               style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
@@ -618,7 +619,7 @@ class _LocationPickerState extends State<LocationPicker> {
         Icon(Icons.travel_explore_rounded,
             size: 48, color: Colors.grey.shade300),
         const SizedBox(height: 12),
-        Text('Type a place to search',
+        T('Type a place to search',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 12,
@@ -636,20 +637,20 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('Powered by ',
+        T('Powered by ',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,
               color: Colors.grey.shade400,
             )),
-        Text('OpenStreetMap',
+        T('OpenStreetMap',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,
               color: Colors.grey.shade500,
               fontWeight: FontWeight.bold,
             )),
-        Text(' contributors',
+        T(' contributors',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,

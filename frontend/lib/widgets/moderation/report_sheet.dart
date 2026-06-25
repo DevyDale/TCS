@@ -3,6 +3,7 @@
 // Modal bottom sheet for reporting a post, comment, or user.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/moderation_service.dart';
@@ -59,7 +60,7 @@ class _ReportSheetState extends State<ReportSheet> {
   Future<void> _submit() async {
     if (_reasonKey == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a reason first')),
+        const SnackBar(content: T('Choose a reason first')),
       );
       return;
     }
@@ -117,7 +118,7 @@ class _ReportSheetState extends State<ReportSheet> {
                       style: const TextStyle(
                           fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
                   const SizedBox(height: 6),
-                  Text(
+                  T(
                     'Why are you reporting this? Reports are confidential and '
                     'reviewed by our moderators within 24 hours.',
                     style: TextStyle(
@@ -196,7 +197,7 @@ class _ReportSheetState extends State<ReportSheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text('Cancel'),
+                    child: const T('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -215,7 +216,7 @@ class _ReportSheetState extends State<ReportSheet> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Submit report'),
+                        : const T('Submit report'),
                   ),
                 ),
               ]),

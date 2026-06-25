@@ -18,6 +18,7 @@
 //   }
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 import '../data/avators.dart';
@@ -120,7 +121,7 @@ class _AvatarPickerScreenState extends State<AvatarPickerScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         const Expanded(
-          child: Text('Choose Avatar',
+          child: T('Choose Avatar',
               style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
         ),

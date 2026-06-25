@@ -8,6 +8,7 @@
 //   guesses   - max attempts allowed
 
 import 'dart:math';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -155,17 +156,17 @@ class _NumberGuesserGameState extends State<NumberGuesserGame> {
             child: const Icon(Icons.arrow_back_rounded,
                 color: Colors.white60, size: 20)))),
       const Spacer(),
-      const Text('🔢', style: TextStyle(fontSize: 80)),
+      const T('🔢', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 16),
       ShaderMask(
         shaderCallback: (b) =>
             const LinearGradient(colors: [kNeonOrange, kNeonRed]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Number Guesser',
+        child: const T('Number Guesser',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 32, color: Colors.white)),
       ),
       const SizedBox(height: 10),
-      Text('Crack the secret code\nFewer guesses = bigger score',
+      T('Crack the secret code\nFewer guesses = bigger score',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 13,
               color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -181,7 +182,7 @@ class _NumberGuesserGameState extends State<NumberGuesserGame> {
             boxShadow: [BoxShadow(color: kNeonOrange.withOpacity(0.4),
                 blurRadius: 20, offset: const Offset(0, 6))],
           ),
-          child: const Center(child: Text('Choose Level 🎮',
+          child: const Center(child: T('Choose Level 🎮',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white))),
         ),
       ),
@@ -301,7 +302,7 @@ class _NumberGuesserGameState extends State<NumberGuesserGame> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Center(
-                child: Text('Guess ⚡',
+                child: T('Guess ⚡',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 18, color: Colors.white)),
               ),

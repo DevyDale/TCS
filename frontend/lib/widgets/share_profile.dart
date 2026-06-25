@@ -26,6 +26,7 @@
 //   );
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -237,7 +238,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Row(
         children: [
-          const Text(
+          const T(
             'Share Profile',
             style: TextStyle(
               fontFamily: 'Alfa',

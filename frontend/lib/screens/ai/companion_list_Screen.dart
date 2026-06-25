@@ -6,6 +6,7 @@
 // on the avatar block so personalities still feel distinct.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -197,7 +198,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
             const SizedBox(width: 10),
           ],
           const Expanded(
-            child: Text(
+            child: T(
               'AI Companions',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -228,7 +229,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
   Widget _buildIntro() {
     return const Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: Text(
+      child: T(
         'Pick a persona to chat with. They remember your conversation.',
         style: TextStyle(color: _kSlate, fontSize: 13, height: 1.4),
       ),
@@ -302,7 +303,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
   Widget _buildGrid() {
     if (_companions.isEmpty) {
       return const Center(
-        child: Text('No companions yet.',
+        child: T('No companions yet.',
             style: TextStyle(color: _kSlate, fontSize: 13)),
       );
     }
@@ -354,7 +355,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
             const SizedBox(height: 12),
             TextButton(
               onPressed: _load,
-              child: const Text('Retry',
+              child: const T('Retry',
                   style: TextStyle(color: _kInk)),
             ),
           ],

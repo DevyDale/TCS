@@ -16,6 +16,7 @@
 //   });
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -127,7 +128,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            const Text('Stickers',
+            const T('Stickers',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
             const Spacer(),
@@ -215,7 +216,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
             Icon(Icons.sentiment_dissatisfied_rounded,
                 size: 56, color: Colors.grey.shade300),
             const SizedBox(height: 12),
-            const Text('No stickers available yet',
+            const T('No stickers available yet',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
             const SizedBox(height: 6),

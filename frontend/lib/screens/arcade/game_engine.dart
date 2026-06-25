@@ -1,6 +1,7 @@
 // lib/screens/arcade/game_engine.dart
 // Shared game utilities — stories, pause, quit, multiplayer, score, leaderboard
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
@@ -261,7 +262,7 @@ class _GameStoryScreenState extends State<GameStoryScreen>
                   border: Border.all(
                     color: story.gradient.colors.first.withOpacity(0.25))),
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Text('💡 ', style: TextStyle(fontSize: 14)),
+                  const T('💡 ', style: TextStyle(fontSize: 14)),
                   Flexible(child: Text(story.tips[_tipIndex],
                     style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                       color: story.gradient.colors.first))),
@@ -298,7 +299,7 @@ class _GameStoryScreenState extends State<GameStoryScreen>
                     color: Colors.white))))),
             const SizedBox(height: 8),
             GestureDetector(onTap: () { _seenStories.add(widget.gameSlug); widget.onPlay(); },
-              child: Text('Skip story →', style: TextStyle(fontFamily: 'Momo',
+              child: T('Skip story →', style: TextStyle(fontFamily: 'Momo',
                 fontSize: 13, color: Colors.white.withOpacity(0.3)))),
           ]),
         ),
@@ -332,9 +333,9 @@ class PauseOverlay extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: kNeonBlue.withOpacity(0.2))),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('⏸', style: TextStyle(fontSize: 52)),
+          const T('⏸', style: TextStyle(fontSize: 52)),
           const SizedBox(height: 12),
-          const Text('PAUSED', style: TextStyle(fontFamily: 'Alfa',
+          const T('PAUSED', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 28, color: Colors.white, letterSpacing: 4)),
           Text(gameName, style: TextStyle(fontFamily: 'Momo',
             fontSize: 13, color: Colors.white.withOpacity(0.5))),
@@ -344,7 +345,7 @@ class PauseOverlay extends StatelessWidget {
                 decoration: BoxDecoration(color: kNeonOrange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: kNeonOrange.withOpacity(0.3))),
-                child: Text('⚠️ Opponent notified of pause.\nAuto-quit in 5s if not resumed.',
+                child: T('⚠️ Opponent notified of pause.\nAuto-quit in 5s if not resumed.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontFamily: 'Momo', fontSize: 12, color: kNeonOrange)))),
           const SizedBox(height: 24),
@@ -354,7 +355,7 @@ class PauseOverlay extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [kNeonBlue, kNeonPurple]),
                 borderRadius: BorderRadius.circular(14)),
-              child: const Center(child: Text('▶  Resume', style: TextStyle(
+              child: const Center(child: T('▶  Resume', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 fontSize: 16, color: Colors.white))))),
           const SizedBox(height: 12),
@@ -364,7 +365,7 @@ class PauseOverlay extends StatelessWidget {
               decoration: BoxDecoration(color: kNeonRed.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: kNeonRed.withOpacity(0.3))),
-              child: const Center(child: Text('✕  Quit Game', style: TextStyle(
+              child: const Center(child: T('✕  Quit Game', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 fontSize: 16, color: kNeonRed))))),
         ]),
@@ -381,7 +382,7 @@ Future<bool> showQuitDialog(BuildContext ctx, {bool isMultiplayer = false}) asyn
     builder: (_) => AlertDialog(
       backgroundColor: kDarkCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('Quit Game?', style: TextStyle(fontFamily: 'Alfa',
+      title: const T('Quit Game?', style: TextStyle(fontFamily: 'Alfa',
         fontSize: 20, color: Colors.white)),
       content: Text(
         isMultiplayer
@@ -391,10 +392,10 @@ Future<bool> showQuitDialog(BuildContext ctx, {bool isMultiplayer = false}) asyn
           color: Colors.white.withOpacity(0.7), height: 1.5)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Keep Playing', style: TextStyle(
+          child: const T('Keep Playing', style: TextStyle(
             fontFamily: 'Arch', fontWeight: FontWeight.bold, color: kNeonBlue))),
         TextButton(onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Quit', style: TextStyle(
+          child: const T('Quit', style: TextStyle(
             fontFamily: 'Arch', fontWeight: FontWeight.bold, color: kNeonRed))),
       ],
     ),
@@ -581,7 +582,7 @@ class _GameOverScreenState extends State<GameOverScreen>
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: _color.withOpacity(0.3), width: 1.5)),
               child: Column(children: [
-                Text('SCORE', style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                T('SCORE', style: TextStyle(fontFamily: 'Momo', fontSize: 11,
                   color: Colors.white.withOpacity(0.4), letterSpacing: 2)),
                 const SizedBox(height: 8),
                 Text('${widget.result.score}', style: TextStyle(
@@ -591,7 +592,7 @@ class _GameOverScreenState extends State<GameOverScreen>
                   const SizedBox(width: 20, height: 20,
                     child: CircularProgressIndicator(color: kNeonBlue, strokeWidth: 2)),
                   const SizedBox(height: 6),
-                  Text('Saving...', style: TextStyle(fontFamily: 'Momo',
+                  T('Saving...', style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11, color: Colors.white.withOpacity(0.3))),
                 ] else if (_reward != null) ...[
                   const SizedBox(height: 14),
@@ -615,7 +616,7 @@ class _GameOverScreenState extends State<GameOverScreen>
                   decoration: BoxDecoration(color: kDarkCard2,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.white.withOpacity(0.08))),
-                  child: const Center(child: Text('← Arcade', style: TextStyle(
+                  child: const Center(child: T('← Arcade', style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 14, color: Colors.white60)))))),
               const SizedBox(width: 12),
@@ -625,7 +626,7 @@ class _GameOverScreenState extends State<GameOverScreen>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [_color, _color.withOpacity(0.7)]),
                     borderRadius: BorderRadius.circular(14)),
-                  child: const Center(child: Text('▶ Play Again', style: TextStyle(
+                  child: const Center(child: T('▶ Play Again', style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 14, color: Colors.white)))))),
             ]),
@@ -680,7 +681,7 @@ class _MiniLeaderboardState extends State<MiniLeaderboard> {
         border: Border.all(color: Colors.white.withOpacity(0.06))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('🏆', style: TextStyle(fontSize: 14)),
+          const T('🏆', style: TextStyle(fontSize: 14)),
           const SizedBox(width: 6),
           Text('${widget.gameName} Top Scores',
             style: const TextStyle(fontFamily: 'Alfa', fontSize: 13, color: Colors.white)),
@@ -690,7 +691,7 @@ class _MiniLeaderboardState extends State<MiniLeaderboard> {
           const Center(child: SizedBox(width: 18, height: 18,
             child: CircularProgressIndicator(color: kNeonBlue, strokeWidth: 2)))
         else if (_rows.isEmpty)
-          Text('No scores yet — be the first!', style: TextStyle(fontFamily: 'Momo',
+          T('No scores yet — be the first!', style: TextStyle(fontFamily: 'Momo',
             fontSize: 12, color: Colors.white.withOpacity(0.4)))
         else
           ..._rows.map((r) {

@@ -9,6 +9,7 @@
 //   • Live wallet balance + recent transfer history below
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -158,7 +159,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
         backgroundColor: _kDarkCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const Text('Confirm transfer',
+        title: const T('Confirm transfer',
           style: TextStyle(fontFamily: 'Alfa',
               color: Colors.white, fontSize: 18)),
         content: Column(mainAxisSize: MainAxisSize.min,
@@ -168,13 +169,13 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
             style: const TextStyle(fontFamily: 'Momo',
                 color: Colors.white, fontSize: 14)),
           const SizedBox(height: 8),
-          Text('This is final. Tokens move immediately.',
+          T('This is final. Tokens move immediately.',
             style: TextStyle(fontFamily: 'Momo',
                 color: Colors.white.withOpacity(0.4), fontSize: 11)),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
               style: TextStyle(fontFamily: 'Momo', color: Colors.white60))),
           GestureDetector(onTap: () => Navigator.pop(context, true),
             child: Container(
@@ -184,7 +185,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                 gradient: const LinearGradient(
                     colors: [_kNeonOrange, _kNeonRed]),
                 borderRadius: BorderRadius.circular(10)),
-              child: const Text('Send',
+              child: const T('Send',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     color: Colors.white, fontSize: 13)))),
@@ -236,7 +237,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
       backgroundColor: _kDarkBg,
       appBar: AppBar(
         backgroundColor: _kDarkBg, elevation: 0,
-        title: const Text('Send Tokens',
+        title: const T('Send Tokens',
           style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
       ),
       body: ListView(
@@ -254,7 +255,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   blurRadius: 18, offset: const Offset(0, 6))]),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('YOUR BALANCE',
+                T('YOUR BALANCE',
                   style: TextStyle(fontFamily: 'Momo',
                       letterSpacing: 2, fontSize: 10,
                       color: Colors.white.withOpacity(0.7))),
@@ -263,7 +264,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   style: const TextStyle(fontFamily: 'Alfa',
                       fontSize: 36, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text('Daily cap: 500 · Max per send: 200',
+                T('Daily cap: 500 · Max per send: 200',
                   style: TextStyle(fontFamily: 'Momo',
                       fontSize: 11,
                       color: Colors.white.withOpacity(0.7))),
@@ -425,7 +426,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   ? const SizedBox(width: 22, height: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.5))
-                  : const Text('💸  Send Tokens',
+                  : const T('💸  Send Tokens',
                       style: TextStyle(fontFamily: 'Alfa',
                           fontSize: 16, color: Colors.white)))))),
 
@@ -438,7 +439,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   color: _kNeonBlue)))
           else if (_history.isEmpty)
             Padding(padding: const EdgeInsets.all(20),
-              child: Center(child: Text('No transfers yet',
+              child: Center(child: T('No transfers yet',
                   style: TextStyle(fontFamily: 'Momo',
                       color: Colors.white.withOpacity(0.3))))),
           ..._history.map(_historyTile),

@@ -5,6 +5,7 @@
 // Staff can toggle a doc active/inactive or delete it.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
@@ -73,7 +74,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('Add to Dale\'s knowledge',
+        title: const T('Add to Dale\'s knowledge',
             style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 17)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: titleCtrl, style: const TextStyle(color: Colors.white),
@@ -87,9 +88,9 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Upload', style: TextStyle(color: _kG1))),
+              child: const T('Upload', style: TextStyle(color: _kG1))),
         ],
       ),
     );
@@ -132,15 +133,15 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('Delete document?',
+        title: const T('Delete document?',
             style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 17)),
         content: Text('"${d['title']}" will be removed from Dale\'s knowledge.',
             style: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete', style: TextStyle(color: _kRed))),
+              child: const T('Delete', style: TextStyle(color: _kRed))),
         ],
       ),
     );
@@ -179,14 +180,14 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Dale Knowledge',
+        title: const T('Dale Knowledge',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _kG2,
         onPressed: _busy ? null : _upload,
         icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
-        label: const Text('Upload material',
+        label: const T('Upload material',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: Colors.white)),
       ),
       body: _loading
@@ -224,10 +225,10 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.menu_book_rounded, size: 52, color: _kG1),
       const SizedBox(height: 12),
-      const Text('No material yet',
+      const T('No material yet',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
       const SizedBox(height: 6),
-      Text('Upload notes so Dale tutors from your course content',
+      T('Upload notes so Dale tutors from your course content',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
               color: Colors.white.withOpacity(.5))),

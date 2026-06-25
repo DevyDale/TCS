@@ -12,6 +12,7 @@
 // The screen fetches the event itself, so callers only need to pass an ID.
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -205,7 +206,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () { setState(() { _loading = true; }); _fetch(); },
-              child: const Text('Try again'),
+              child: const T('Try again'),
             ),
           ],
         ),
@@ -397,7 +398,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           const SizedBox(height: 22),
 
           // Description
-          const Text('ABOUT', style: TextStyle(
+          const T('ABOUT', style: TextStyle(
             fontFamily: 'Arch',
             fontWeight: FontWeight.bold,
             fontSize: 11,

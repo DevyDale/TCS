@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/avator/avator_picker.dart';
@@ -221,7 +222,7 @@ Future<void> _pickAvatar() async {
                 ),
 
                 const SizedBox(height: 10),
-                Text('Tap to choose avatar',
+                T('Tap to choose avatar',
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: r.caption,
@@ -243,7 +244,7 @@ Future<void> _pickAvatar() async {
                   ),
 
                 SizedBox(height: 6),
-                Text('Create your gamer identity',
+                T('Create your gamer identity',
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: r.subheading - 2,
@@ -326,7 +327,7 @@ Future<void> _pickAvatar() async {
                 // Suggestions
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Suggestions',
+                  child: T('Suggestions',
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: r.caption,
@@ -364,7 +365,7 @@ Future<void> _pickAvatar() async {
                 // Accent Colour
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Accent Colour',
+                  child: T('Accent Colour',
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: r.caption,
@@ -434,7 +435,7 @@ Future<void> _pickAvatar() async {
                               height: 26,
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 3))
-                          : Text('Claim Tag ⚡',
+                          : T('Claim Tag ⚡',
                               style: TextStyle(
                                   fontFamily: 'Alfa',
                                   fontSize: r.heading - 4,

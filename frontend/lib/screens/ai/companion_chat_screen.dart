@@ -7,6 +7,7 @@
 // still feels distinct.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -741,7 +742,7 @@ class _CompanionChatScreenState extends State<CompanionChatScreen>
                 color: _gradient.last.withOpacity(0.75),
               ),
               const SizedBox(width: 6),
-              Text(
+              T(
                 'TRY ASKING',
                 style: TextStyle(
                   fontFamily: 'Momo',
@@ -1333,22 +1334,22 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: const T(
           'Delete this conversation?',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 17),
         ),
-        content: const Text(
+        content: const T(
           'This cannot be undone.',
           style: TextStyle(fontFamily: 'Momo', fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Momo')),
+            child: const T('Cancel', style: TextStyle(fontFamily: 'Momo')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
+            child: const T(
               'Delete',
               style: TextStyle(fontFamily: 'Momo', color: _kDanger),
             ),
@@ -1422,7 +1423,7 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
                           color: _kInk,
                         ),
                       ),
-                      const Text(
+                      const T(
                         'Chat history',
                         style: TextStyle(
                           fontFamily: 'Momo',
@@ -1466,7 +1467,7 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
                       size: 18,
                     ),
                     SizedBox(width: 8),
-                    Text(
+                    T(
                       'New chat',
                       style: TextStyle(
                         fontFamily: 'Arch',
@@ -1482,7 +1483,7 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-            child: Text(
+            child: T(
               'RECENT',
               style: TextStyle(
                 fontFamily: 'Momo',
@@ -1526,12 +1527,12 @@ class _HistoryDrawerState extends State<_HistoryDrawer> {
             color: _kBorder,
           ),
           const SizedBox(height: 12),
-          const Text(
+          const T(
             'No past conversations yet',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 14, color: _kSlate),
           ),
           const SizedBox(height: 6),
-          const Text(
+          const T(
             'Your saved chats will appear here',
             textAlign: TextAlign.center,
             style: TextStyle(

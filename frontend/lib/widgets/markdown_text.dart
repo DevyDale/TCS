@@ -5,6 +5,7 @@
 // - and 1. lists, and > quotes. Fixes the literal "****" the AI used to print.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 
 class MarkdownText extends StatelessWidget {
   final String data;
@@ -87,7 +88,7 @@ class MarkdownText extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 4, left: 2),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(padding: const EdgeInsets.only(top: 1, right: 8),
-        child: Text('•', style: _base.copyWith(fontWeight: FontWeight.bold))),
+        child: T('•', style: _base.copyWith(fontWeight: FontWeight.bold))),
       Expanded(child: RichText(text: TextSpan(children: _inline(t, _base)))),
     ]),
   );

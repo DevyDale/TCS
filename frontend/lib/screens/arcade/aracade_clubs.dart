@@ -19,6 +19,7 @@
 // original — this is a presentation-only redesign.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -358,7 +359,7 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
               onTap: () { HapticFeedback.lightImpact(); Navigator.of(context).pop(); },
             ),
             const SizedBox(width: 12),
-            Text('Clubs',
+            T('Clubs',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
                     color: t.ink, letterSpacing: -0.3)),
             const Spacer(),
@@ -403,7 +404,7 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('CAMPUS COMMUNITIES',
+        T('CAMPUS COMMUNITIES',
             style: TextStyle(
                 fontSize: 10, fontWeight: FontWeight.w900,
                 letterSpacing: 2.0, color: t.slate2)),
@@ -414,7 +415,7 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
               begin: Alignment.centerLeft,
               end: Alignment.centerRight).createShader(b),
           blendMode: BlendMode.srcIn,
-          child: const Text('Clubs',
+          child: const T('Clubs',
               style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900,
                   letterSpacing: -1.2, height: 1.0, color: Colors.white)),
         ),
@@ -629,11 +630,11 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
           borderRadius: BorderRadius.circular(18)),
         child: const Icon(Icons.groups_rounded, color: _kPurple, size: 28)),
       const SizedBox(height: 14),
-      Text('No clubs yet', style: TextStyle(
+      T('No clubs yet', style: TextStyle(
           fontSize: 15, fontWeight: FontWeight.w900,
           color: t.ink, letterSpacing: -0.3)),
       const SizedBox(height: 6),
-      Text('Join one from Trending below, or browse everything on campus.',
+      T('Join one from Trending below, or browse everything on campus.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: t.slate, height: 1.5)),
       const SizedBox(height: 16),
@@ -646,7 +647,7 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
             Icon(Icons.explore_rounded, size: 15,
                 color: t.isDark ? t.bg1 : Colors.white),
             const SizedBox(width: 7),
-            Text('Discover clubs', style: TextStyle(
+            T('Discover clubs', style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w800,
                 color: t.isDark ? t.bg1 : Colors.white, letterSpacing: -0.2)),
           ]))),

@@ -18,6 +18,7 @@
 // Tapping a result opens UserProfileScreen (Phase 3).
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -229,7 +230,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
                 color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
-          const Text(
+          const T(
             'Search People',
             style: TextStyle(
               fontFamily: 'Alfa',

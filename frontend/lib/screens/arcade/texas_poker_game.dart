@@ -1,5 +1,6 @@
 // lib/screens/arcade/texas_poker_game.dart
 import 'dart:math';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'game_engine.dart';
@@ -319,7 +320,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
             border:Border.all(color:Colors.white.withOpacity(0.08))),
           child:const Icon(Icons.arrow_back_rounded,color:Colors.white60,size:20)))),
     const Spacer(),
-    const Text('🃏', style: TextStyle(fontSize: 80)),
+    const T('🃏', style: TextStyle(fontSize: 80)),
     const SizedBox(height: 16),
     ShaderMask(shaderCallback:(b)=>const LinearGradient(
         colors:[Color(0xFF66BB6A),Color(0xFFFFD700)]).createShader(b),
@@ -327,7 +328,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
       child:const Text("Texas Hold'em",
         style:TextStyle(fontFamily:'Alfa',fontSize:30,color:Colors.white))),
     const SizedBox(height: 10),
-    Text('Fold · Call · Raise\nBest hand wins the pot',
+    T('Fold · Call · Raise\nBest hand wins the pot',
       textAlign:TextAlign.center,
       style:TextStyle(fontFamily:'Momo',fontSize:13,
         color:Colors.white.withOpacity(0.5),height:1.6)),
@@ -360,7 +361,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
         borderRadius:BorderRadius.circular(16),
         boxShadow:[BoxShadow(color:const Color(0xFF388E3C).withOpacity(0.4),
           blurRadius:20,offset:const Offset(0,6))]),
-      child:const Center(child:Text('Deal Me In! 🃏',
+      child:const Center(child:T('Deal Me In! 🃏',
         style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
   ]));
 
@@ -387,7 +388,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
           const SizedBox(height: 6),
           Row(mainAxisAlignment:MainAxisAlignment.center,
             children: _community.isEmpty
-              ? [Text('Community cards will appear here',
+              ? [T('Community cards will appear here',
                   style:TextStyle(fontFamily:'Momo',fontSize:12,
                     color:Colors.white.withOpacity(0.4)))]
               : _community.map((c) => _cardWidget(c, revealed:true)).toList()),
@@ -413,7 +414,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
       // Player hand
       Padding(padding: const EdgeInsets.all(8),
         child: Column(children: [
-          Text('Your Hand', style: TextStyle(fontFamily:'Momo',fontSize:11,
+          T('Your Hand', style: TextStyle(fontFamily:'Momo',fontSize:11,
             color:Colors.white.withOpacity(0.6))),
           const SizedBox(height:6),
           Row(mainAxisAlignment:MainAxisAlignment.center,
@@ -456,7 +457,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
     Text('\$${_cpuChips.length>i?_cpuChips[i]:0}',
       style:TextStyle(fontFamily:'Alfa',fontSize:11,
         color:_cpuFolded[i]?Colors.white24:const Color(0xFFFFD700))),
-    if(_cpuFolded[i]) Text('FOLDED',style:TextStyle(fontFamily:'Momo',
+    if(_cpuFolded[i]) T('FOLDED',style:TextStyle(fontFamily:'Momo',
       fontSize:9,color:Colors.red.shade300)),
   ]);
 
@@ -475,7 +476,7 @@ class _TexasPokerGameState extends State<TexasPokerGame>
               fontSize:14,color:card.color)),
             Text(card.suit,style:TextStyle(fontSize:14,color:card.color)),
           ])
-        :Center(child:Text('🂠',style:TextStyle(fontSize:24,
+        :Center(child:T('🂠',style:TextStyle(fontSize:24,
           color:Colors.white.withOpacity(0.3)))));
     });
   }

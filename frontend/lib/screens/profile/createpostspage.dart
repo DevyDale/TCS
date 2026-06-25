@@ -1,5 +1,6 @@
 // lib/screens/create_post_page.dart
 import 'dart:io';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -548,7 +549,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                 borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.close_rounded, color: _kInk, size: 20))),
         const SizedBox(width: 12),
-        const Text('Create Post', style: TextStyle(
+        const T('Create Post', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const Spacer(),
         if (_media.isNotEmpty)
@@ -596,7 +597,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text('Who can see this post?',
+          const T('Who can see this post?',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 16),
           ...[
@@ -667,7 +668,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               blendMode: BlendMode.srcIn,
               child: const Icon(Icons.add_photo_alternate_rounded, size: 52)),
             const SizedBox(height: 14),
-            const Text('Add Media', style: TextStyle(
+            const T('Add Media', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
             const SizedBox(height: 6),
             Text('Up to $_kMaxMedia items · $_kMaxImageMb MB photos · '
@@ -825,7 +826,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             child: const Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.videocam_rounded, color: Colors.white, size: 11),
               SizedBox(width: 4),
-              Text('VIDEO', style: TextStyle(
+              T('VIDEO', style: TextStyle(
                   fontFamily: 'Arch', fontWeight: FontWeight.bold,
                   color: Colors.white, fontSize: 10)),
             ]))),
@@ -904,7 +905,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               decoration: BoxDecoration(color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
-          const Text('Add to your post', style: TextStyle(
+          const T('Add to your post', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 6),
           Text(
@@ -1105,7 +1106,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('How are you feeling?', style: TextStyle(
+          const T('How are you feeling?', style: TextStyle(
               fontFamily: 'Alfa', fontSize: 18, color: _kInk)),
           const SizedBox(height: 16),
           Wrap(spacing: 10, runSpacing: 10,
@@ -1183,7 +1184,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                 : const Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.send_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
-                    Text('Post', style: TextStyle(fontFamily: 'Arch',
+                    T('Post', style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         color: Colors.white, fontSize: 15)),
                   ]))),

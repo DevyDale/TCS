@@ -6,6 +6,7 @@
 // selection states + the Generate button.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -288,7 +289,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                   ),
                   const SizedBox(width: 10),
                   const Expanded(
-                    child: Text(
+                    child: T(
                       'Your images',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -385,7 +386,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
           ),
           const SizedBox(width: 10),
           const Expanded(
-            child: Text(
+            child: T(
               'Image Generator',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -408,7 +409,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
               children: [
                 Icon(Icons.auto_awesome_rounded, color: _kInkSoft, size: 12),
                 SizedBox(width: 4),
-                Text(
+                T(
                   'FLUX',
                   style: TextStyle(
                     color: _kInk,
@@ -466,7 +467,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          const T(
             'TRY ONE',
             style: TextStyle(
               color: _kSlate,
@@ -666,7 +667,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                       ),
                     ),
                     SizedBox(width: 12),
-                    Text(
+                    T(
                       'Generating…',
                       style: TextStyle(
                         color: _kInk,
@@ -676,7 +677,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     ),
                   ],
                 )
-              : const Text(
+              : const T(
                   'Generate',
                   style: TextStyle(
                     color: Colors.white,
@@ -736,7 +737,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                   children: [
                     Icon(Icons.auto_awesome_rounded, color: _kImg1, size: 30),
                     SizedBox(height: 8),
-                    Text(
+                    T(
                       'FLUX is painting…',
                       style: TextStyle(
                         color: _kInkSoft,
@@ -745,7 +746,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                       ),
                     ),
                     SizedBox(height: 4),
-                    Text(
+                    T(
                       '5–30 seconds',
                       style: TextStyle(color: _kSlate, fontSize: 11),
                     ),
@@ -795,7 +796,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     height: 200,
                     alignment: Alignment.center,
                     color: _kCardLo,
-                    child: const Text(
+                    child: const T(
                       'Failed to load image',
                       style: TextStyle(color: _kSlate),
                     ),
@@ -896,7 +897,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
       children: [
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          child: Text(
+          child: T(
             'RECENT',
             style: TextStyle(
               color: _kSlate,
@@ -942,25 +943,25 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
       builder: (_) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: const T(
           'Delete this image?',
           style: TextStyle(color: _kInk, fontWeight: FontWeight.w800),
         ),
-        content: const Text(
+        content: const T(
           'Removes it from your history.',
           style: TextStyle(color: _kSlate),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: _kSlate)),
+            child: const T('Cancel', style: TextStyle(color: _kSlate)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _deleteImage(g);
             },
-            child: const Text(
+            child: const T(
               'Delete',
               style: TextStyle(color: _kImg1, fontWeight: FontWeight.w800),
             ),
@@ -1002,7 +1003,7 @@ class _FullScreenImage extends StatelessWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('Prompt copied')));
+                ).showSnackBar(const SnackBar(content: T('Prompt copied')));
               }
             },
           ),

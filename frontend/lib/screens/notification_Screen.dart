@@ -25,6 +25,7 @@
 //     Today/Yesterday/Earlier pills are unchanged.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
@@ -156,7 +157,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text('Notifications',
+        title: const T('Notifications',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk, fontSize: 18)),
         iconTheme: const IconThemeData(color: _kInk),
         actions: [
@@ -192,7 +193,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: const T(
                     'Clear All',
                     style: TextStyle(
                       fontFamily: 'Arch',
@@ -289,9 +290,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear all notifications?',
+        title: const T('Clear all notifications?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const Text(
+        content: const T(
           'This will permanently remove every notification. This action cannot be undone.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -299,12 +300,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear all',
+            child: const T('Clear all',
                 style: TextStyle(
                     fontFamily: 'Arch',
                     color: _kRed,
@@ -372,7 +373,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Text('🔔', style: TextStyle(fontSize: 38)),
+                  child: T('🔔', style: TextStyle(fontSize: 38)),
                 ),
               ),
 
@@ -467,9 +468,9 @@ class _NotifTile extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete notification?',
+        title: const T('Delete notification?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const Text(
+        content: const T(
           'This notification will be permanently removed and will not appear again.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -477,12 +478,12 @@ class _NotifTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
+            child: const T('Delete',
                 style: TextStyle(
                     fontFamily: 'Arch',
                     color: _kRed,
@@ -507,7 +508,7 @@ class _NotifTile extends StatelessWidget {
           children: [
             Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
             SizedBox(width: 6),
-            Text('Delete',
+            T('Delete',
                 style: TextStyle(
                     fontFamily: 'Arch',
                     color: Colors.white,

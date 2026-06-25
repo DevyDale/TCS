@@ -5,6 +5,7 @@
 // Long-press → delete.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
 import '../../../../services/api_service.dart';
@@ -54,19 +55,19 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCream,
-        title: const Text('Delete this quiz?',
+        title: const T('Delete this quiz?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
         content: Text(
             '"${quiz['title']}" and all its attempts will be permanently removed.',
             style: const TextStyle(fontFamily: 'Momo', color: _kInkLight)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: const T('Cancel')),
           TextButton(
               style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFFE53935)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+              child: const T('Delete')),
         ],
       ),
     ) ?? false;
@@ -137,11 +138,11 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               const Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text('My Quizzes',
+                T('My Quizzes',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 28, color: Colors.white,
                         letterSpacing: 0.5)),
-                Text('AI-generated · retake anytime',
+                T('AI-generated · retake anytime',
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 12, color: Colors.white54)),
               ]),
@@ -152,7 +153,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
                   color: _kGold.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: _kGold.withOpacity(0.3))),
-                child: const Center(child: Text('🧠',
+                child: const Center(child: T('🧠',
                     style: TextStyle(fontSize: 24)))),
             ]),
           ]),
@@ -166,9 +167,9 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('🎓', style: TextStyle(fontSize: 64)),
+          const T('🎓', style: TextStyle(fontSize: 64)),
           const SizedBox(height: 16),
-          const Text('No quizzes yet',
+          const T('No quizzes yet',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: _kInk)),
           const SizedBox(height: 8),
@@ -186,7 +187,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12))),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Back to library',
+            child: const T('Back to library',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold)),
           ),
@@ -293,7 +294,7 @@ class _QuizCard extends StatelessWidget {
                     colors: [difColor, difColor.withOpacity(0.7)],
                     begin: Alignment.topLeft, end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(12)),
-              child: const Center(child: Text('🧠',
+              child: const Center(child: T('🧠',
                   style: TextStyle(fontSize: 22)))),
             const SizedBox(width: 12),
 
@@ -331,7 +332,7 @@ class _QuizCard extends StatelessWidget {
                       style: const TextStyle(fontFamily: 'Momo',
                           fontSize: 10, color: _kInkLight)),
                 ] else
-                  const Text('Not attempted yet',
+                  const T('Not attempted yet',
                       style: TextStyle(fontFamily: 'Momo',
                           fontSize: 10, color: _kInkLight,
                           fontStyle: FontStyle.italic)),

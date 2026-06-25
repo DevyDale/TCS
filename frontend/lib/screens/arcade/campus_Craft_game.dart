@@ -1,6 +1,7 @@
 // lib/screens/arcade/campus_craft_game.dart
 // Slide puzzle: arrange tiles in order
 import 'dart:math';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/arcade/game_engine.dart';
@@ -124,13 +125,13 @@ class _CampusCraftGameState extends State<CampusCraftGame>{
         borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white.withOpacity(0.08))),
         child:const Icon(Icons.arrow_back_rounded,color:Colors.white60,size:20)))),
     const Spacer(),
-    const Text('🏗️',style:TextStyle(fontSize:80)),
+    const T('🏗️',style:TextStyle(fontSize:80)),
     const SizedBox(height:16),
     ShaderMask(shaderCallback:(b)=>const LinearGradient(colors:[kNeonOrange,kNeonBlue]).createShader(b),
-      blendMode:BlendMode.srcIn,child:const Text('Campus Craft',
+      blendMode:BlendMode.srcIn,child:const T('Campus Craft',
         style:TextStyle(fontFamily:'Alfa',fontSize:36,color:Colors.white))),
     const SizedBox(height:10),
-    Text('Slide tiles to restore the campus!\nFewest moves = highest score',
+    T('Slide tiles to restore the campus!\nFewest moves = highest score',
       textAlign:TextAlign.center,
       style:TextStyle(fontFamily:'Momo',fontSize:13,color:Colors.white.withOpacity(0.5),height:1.6)),
     const SizedBox(height:20),
@@ -160,7 +161,7 @@ class _CampusCraftGameState extends State<CampusCraftGame>{
       decoration:BoxDecoration(gradient:const LinearGradient(colors:[kNeonOrange,kNeonBlue]),
         borderRadius:BorderRadius.circular(16),
         boxShadow:[BoxShadow(color:kNeonOrange.withOpacity(0.4),blurRadius:20,offset:const Offset(0,6))]),
-      child:const Center(child:Text('Start Building! 🏗️',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
+      child:const Center(child:T('Start Building! 🏗️',style:TextStyle(fontFamily:'Alfa',fontSize:20,color:Colors.white))))),
   ]));
 
   Widget _game(BuildContext context){
@@ -183,7 +184,7 @@ class _CampusCraftGameState extends State<CampusCraftGame>{
         decoration:BoxDecoration(color:Colors.green.shade900.withOpacity(0.5),
           borderRadius:BorderRadius.circular(12),
           border:Border.all(color:Colors.green.shade500)),
-        child:const Center(child:Text('🎉 Campus Restored!',
+        child:const Center(child:T('🎉 Campus Restored!',
           style:TextStyle(fontFamily:'Alfa',fontSize:18,color:Colors.white)))),
       const Spacer(),
       Center(child:Container(width:gridPx,height:gridPx,

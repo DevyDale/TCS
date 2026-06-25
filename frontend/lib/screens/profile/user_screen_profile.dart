@@ -14,6 +14,7 @@
 // All actions and data fetches preserved from the previous version.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -242,7 +243,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
               decoration: BoxDecoration(
                 color: _kInk, borderRadius: BorderRadius.circular(12)),
-              child: const Text('Try again', style: TextStyle(
+              child: const T('Try again', style: TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w800,
                   fontSize: 13)),
             ),
@@ -479,7 +480,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       children: [
                       Icon(Icons.check_rounded, size: 16, color: _kInk),
                       SizedBox(width: 6),
-                      Text('Following', style: TextStyle(
+                      T('Following', style: TextStyle(
                           fontWeight: FontWeight.w800, fontSize: 13,
                           color: _kInk, letterSpacing: -0.2)),
                     ])))
@@ -497,7 +498,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     Icon(Icons.person_add_alt_1_rounded,
                         size: 16, color: Colors.white),
                     SizedBox(width: 6),
-                    Text('Follow', style: TextStyle(
+                    T('Follow', style: TextStyle(
                         fontWeight: FontWeight.w800, fontSize: 13,
                         color: Colors.white, letterSpacing: -0.2)),
                   ])),
@@ -522,7 +523,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   Icon(Icons.chat_bubble_outline_rounded,
                       size: 16, color: _kInkSoft),
                   SizedBox(width: 6),
-                  Text('Message', style: TextStyle(
+                  T('Message', style: TextStyle(
                       fontWeight: FontWeight.w800, fontSize: 13,
                       color: _kInk, letterSpacing: -0.2)),
                 ])),
@@ -558,7 +559,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('BIO', style: TextStyle(
+        const T('BIO', style: TextStyle(
             fontWeight: FontWeight.w900, fontSize: 11,
             color: _kPurple, letterSpacing: 1.2)),
         const SizedBox(height: 8),
@@ -586,7 +587,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('INTERESTS', style: TextStyle(
+        const T('INTERESTS', style: TextStyle(
             fontWeight: FontWeight.w900, fontSize: 11,
             color: _kAmber, letterSpacing: 1.2)),
         const SizedBox(height: 10),

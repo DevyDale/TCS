@@ -23,6 +23,7 @@
 //     deletedHighlightIds (shared notifier from the feed screen).
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -373,7 +374,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.flag_outlined, color: _kCoral),
-              title: const Text('Report user',
+              title: const T('Report user',
                   style: TextStyle(fontWeight: FontWeight.w800, color: _kInk)),
               onTap: () async {
                 Navigator.pop(context);
@@ -394,7 +395,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             ),
             ListTile(
               leading: const Icon(Icons.block_rounded, color: _kSlate),
-              title: const Text('Block user',
+              title: const T('Block user',
                   style: TextStyle(fontWeight: FontWeight.w800, color: _kInk)),
               onTap: () async {
                 Navigator.pop(context);
@@ -428,7 +429,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: _kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Block this user?',
+        title: const T('Block this user?',
             style: TextStyle(fontWeight: FontWeight.w900, color: _kInk)),
         content: Text(
           'You will no longer see posts or messages from $name, and they '
@@ -438,13 +439,13 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(color: _kSlate, fontWeight: FontWeight.w700)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: _kCoral),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Block'),
+            child: const T('Block'),
           ),
         ],
       ),
@@ -833,7 +834,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             style: const TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w900, color: _kInk)),
         const SizedBox(height: 1),
-        const Text('Followers',
+        const T('Followers',
             style: TextStyle(
                 fontSize: 10.5, color: _kSlate, fontWeight: FontWeight.w600)),
       ],
@@ -1093,7 +1094,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
                       color: _kPurple, size: 15),
                 ),
                 const SizedBox(width: 8),
-                const Text('About Me',
+                const T('About Me',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,

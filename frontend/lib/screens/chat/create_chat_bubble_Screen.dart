@@ -25,6 +25,7 @@
 //     and lets anyone join without an invite.
 
 import 'dart:io';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -202,7 +203,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: 4),
-        const Expanded(child: Text('Create Chat Bubble',
+        const Expanded(child: T('Create Chat Bubble',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk))),
       ]),
     );
@@ -258,11 +259,11 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           ]),
         )),
         const SizedBox(height: 8),
-        const Center(child: Text(
+        const Center(child: T(
             'Build your group',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
         const SizedBox(height: 4),
-        Center(child: Text(
+        Center(child: T(
             'Name it, describe it, invite people in.',
             style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                 color: Colors.grey.shade500))),
@@ -310,7 +311,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 14),
                 SizedBox(width: 4),
-                Text('Add', style: TextStyle(fontFamily: 'Arch',
+                T('Add', style: TextStyle(fontFamily: 'Arch',
                     color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
               ]),
             ),
@@ -455,7 +456,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           child: Column(children: [
             Icon(Icons.people_alt_outlined, size: 30, color: Colors.grey.shade400),
             const SizedBox(height: 8),
-            Text('No members yet',
+            T('No members yet',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     fontSize: 13, color: Colors.grey.shade600)),
@@ -538,7 +539,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
                       width: 22, height: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.4))
-                  : const Text('Create Bubble',
+                  : const T('Create Bubble',
                       style: TextStyle(fontFamily: 'Arch',
                           color: Colors.white,
                           fontWeight: FontWeight.bold, fontSize: 15))),

@@ -10,6 +10,7 @@
 // Recents loader is defensive — silent if the endpoint shape differs.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -343,7 +344,7 @@ class _ChatSearchScreenState extends State<ChatSearchScreen>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight).createShader(b),
             blendMode: BlendMode.srcIn,
-            child: const Text('FIND PEOPLE',
+            child: const T('FIND PEOPLE',
                 style: TextStyle(
                   fontSize: 22, fontWeight: FontWeight.w900,
                   letterSpacing: 2.5, color: Colors.white)),
@@ -568,12 +569,12 @@ Widget _buildSearchBar() {
                     color: Colors.white, size: 30),
               ),
               const SizedBox(height: 14),
-              const Text('Find someone to chat with',
+              const T('Find someone to chat with',
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w900,
                       color: _kInk, letterSpacing: -0.3)),
               const SizedBox(height: 6),
-              Text('Type a name or student ID. Use the filters above\n'
+              T('Type a name or student ID. Use the filters above\n'
                    'to narrow by status.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -592,7 +593,7 @@ Widget _buildSearchBar() {
         Icon(Icons.search_off_rounded,
             size: 56, color: _kSlate2.withOpacity(0.5)),
         const SizedBox(height: 14),
-        const Text('No people found',
+        const T('No people found',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w800, color: _kInk)),
         const SizedBox(height: 4),
@@ -612,7 +613,7 @@ Widget _buildSearchBar() {
                   horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
                 color: _kInk, borderRadius: BorderRadius.circular(11)),
-              child: const Text('Clear filter',
+              child: const T('Clear filter',
                   style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.w800,
@@ -797,7 +798,7 @@ Widget _buildSearchBar() {
               ],
               if (!isConnected && !hasRoom)
                 Flexible(
-                  child: Text('Not in your network',
+                  child: T('Not in your network',
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           fontSize: 10, color: _kSlate)),
@@ -819,7 +820,7 @@ Widget _buildSearchBar() {
                     color: _kPurple.withOpacity(0.30),
                     blurRadius: 10, offset: const Offset(0, 3))],
               ),
-              child: const Text('Chat',
+              child: const T('Chat',
                   style: TextStyle(
                       fontFamily: 'Arch',
                       fontSize: 12, fontWeight: FontWeight.w800,

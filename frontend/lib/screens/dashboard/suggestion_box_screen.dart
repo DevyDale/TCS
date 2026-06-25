@@ -1,5 +1,6 @@
 // lib/screens/suggestion_box_screen.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
@@ -333,11 +334,11 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               child: const Icon(Icons.check_rounded,
                   color: Colors.white, size: 60))),
           const SizedBox(height: 28),
-          const Text('Thank you! 🙏',
+          const T('Thank you! 🙏',
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 36, color: Colors.white)),
           const SizedBox(height: 12),
-          Text('Your suggestion has been received.\n'
+          T('Your suggestion has been received.\n'
               'We appreciate your feedback!',
             textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo', fontSize: 15,
@@ -360,7 +361,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.4))),
-              child: const Text('Submit another',
+              child: const T('Submit another',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     fontSize: 15, color: Colors.white)),
@@ -369,7 +370,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Text('← Back',
+            child: const T('← Back',
               style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 14, color: Colors.white70)),
@@ -424,13 +425,13 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               AnimatedBuilder(animation: _floatAnim, builder: (_, __) =>
                 Transform.translate(
                   offset: Offset(0, _floatAnim.value * 0.4),
-                  child: const Text('📬',
+                  child: const T('📬',
                       style: TextStyle(fontSize: 52)))),
               const SizedBox(height: 12),
-              const Text('Suggestion Box', style: TextStyle(
+              const T('Suggestion Box', style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 28, color: Colors.white)),
               const SizedBox(height: 6),
-              Text('Your name will be attached — speak freely!',
+              T('Your name will be attached — speak freely!',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                     color: Colors.white.withOpacity(0.8))),
             ])),
@@ -508,7 +509,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
             _buildSubmitButton(),
 
             const SizedBox(height: 16),
-            Center(child: Text(
+            Center(child: T(
               'Submitted suggestions are reviewed by the TCS team.',
               textAlign: TextAlign.center,
               style: TextStyle(fontFamily: 'Momo', fontSize: 11,
@@ -623,7 +624,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
       child: Row(children: [
         const Icon(Icons.arrow_upward_rounded, size: 16, color: _kG2),
         const SizedBox(width: 8),
-        Expanded(child: Text(
+        Expanded(child: T(
           'Pick a category above to start writing.',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
               color: sub, height: 1.4))),
@@ -703,7 +704,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your submissions',
+                  T('Your submissions',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 13, color: text)),
@@ -751,7 +752,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
     if (_submissions.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 18),
-        child: Center(child: Text(
+        child: Center(child: T(
             'No submissions yet — yours will appear here.',
             style: TextStyle(fontFamily: 'Momo',
                 fontSize: 12, color: sub))));

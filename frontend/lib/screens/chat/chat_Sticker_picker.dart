@@ -10,6 +10,7 @@
 // follow.
 
 import 'dart:io';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -155,20 +156,20 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove sticker?',
+        title: const T('Remove sticker?',
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
-        content: const Text(
+        content: const T(
             'This will permanently remove this sticker from your saved set.',
             style: TextStyle(fontFamily: 'Momo')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Momo', color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove',
+            child: const T('Remove',
                 style: TextStyle(fontFamily: 'Momo', color: _kG4)),
           ),
         ],
@@ -235,7 +236,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            const Text('Stickers',
+            const T('Stickers',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
             const Spacer(),
@@ -360,7 +361,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                                 color: Colors.white, size: 18),
                           ),
                           const SizedBox(height: 6),
-                          const Text('Add',
+                          const T('Add',
                               style: TextStyle(
                                   fontFamily: 'Momo',
                                   fontSize: 11,

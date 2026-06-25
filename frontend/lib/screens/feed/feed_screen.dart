@@ -18,6 +18,7 @@
 //     events can show up in the profile screen's favorites tab.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -391,7 +392,7 @@ class _FeedScreenState extends State<FeedScreen>
     if (allStories.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not load highlights',
+        content: T('Could not load highlights',
             style: TextStyle(fontFamily: 'Momo')),
         behavior: SnackBarBehavior.floating,
       ));
@@ -503,7 +504,7 @@ class _FeedScreenState extends State<FeedScreen>
                     color: _kAmber, size: 22)),
               const SizedBox(width: 12),
               const Expanded(
-                  child: Text('Create',
+                  child: T('Create',
                       style: TextStyle(
                           fontFamily: 'Alfa', fontSize: 20, color: _kInk))),
               GestureDetector(
@@ -715,7 +716,7 @@ class _FeedScreenState extends State<FeedScreen>
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 22, 20, 0),
-          child: Text('HIGHLIGHTS', style: TextStyle(
+          child: T('HIGHLIGHTS', style: TextStyle(
               fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 10, color: _kViolet, letterSpacing: 1.5)),
         ),
@@ -842,7 +843,7 @@ class _FeedScreenState extends State<FeedScreen>
             children: [
             Text(_greeting, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 15, color: _kSlate)),
-            const Text('TCS StudentHub', style: TextStyle(
+            const T('TCS StudentHub', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 20, color: _kInk, height: 1.1)),
           ])),
 
@@ -860,7 +861,7 @@ class _FeedScreenState extends State<FeedScreen>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kViolet.withOpacity(0.15))),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('📝', style: TextStyle(fontFamily: 'Arch',
+                T('📝', style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, color: _kViolet, fontSize: 12)),
               ]))),
           const SizedBox(width: 8),
@@ -1011,7 +1012,7 @@ class _FeedScreenState extends State<FeedScreen>
                         const SizedBox(width: 2),
 
                         Expanded(
-                          child: Text(
+                          child: T(
                             'Searching...',
                             style: TextStyle(
                               fontFamily: 'Momo',
@@ -1073,11 +1074,11 @@ class _FeedScreenState extends State<FeedScreen>
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('LATEST', style: TextStyle(fontFamily: 'Arch',
+            T('LATEST', style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 10,
                 color: _kViolet, letterSpacing: 1.5)),
             const SizedBox(height: 2),
-            const Text('Campus Feed', style: TextStyle(
+            const T('Campus Feed', style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
           ]),
           const Spacer(),
@@ -1169,13 +1170,13 @@ class _FeedScreenState extends State<FeedScreen>
         Container(width: 72, height: 72,
           decoration: BoxDecoration(
             color: _kViolet.withOpacity(0.06), shape: BoxShape.circle),
-          child: const Center(child: Text('📭',
+          child: const Center(child: T('📭',
               style: TextStyle(fontSize: 34)))),
         const SizedBox(height: 20),
-        const Text('No posts yet', style: TextStyle(
+        const T('No posts yet', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const SizedBox(height: 8),
-        Text('Be the first to share something with campus',
+        T('Be the first to share something with campus',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: _kSlate)),
       ]),
@@ -1189,10 +1190,10 @@ class _FeedScreenState extends State<FeedScreen>
         Container(width: 72, height: 72,
           decoration: BoxDecoration(
             color: _kViolet.withOpacity(0.06), shape: BoxShape.circle),
-          child: const Center(child: Text('🗓️',
+          child: const Center(child: T('🗓️',
               style: TextStyle(fontSize: 34)))),
         const SizedBox(height: 20),
-        const Text('No club events yet', style: TextStyle(
+        const T('No club events yet', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
         const SizedBox(height: 8),
         Text("When clubs create events, you'll see them here",
@@ -1646,7 +1647,7 @@ class _PostCardState extends State<_PostCard>
                     horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: _kCoral.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(5)),
-                  child: const Text('⚡ Fweet', style: TextStyle(
+                  child: const T('⚡ Fweet', style: TextStyle(
                       fontFamily: 'Arch', fontSize: 9,
                       fontWeight: FontWeight.bold, color: _kCoral))),
               ],
@@ -1771,7 +1772,7 @@ class _PostCardState extends State<_PostCard>
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.videocam_rounded, color: Colors.white, size: 11),
                 SizedBox(width: 4),
-                Text('VIDEO', style: TextStyle(fontFamily: 'Arch',
+                T('VIDEO', style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     color: Colors.white, fontSize: 10)),
               ]))),
@@ -2306,16 +2307,16 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               decoration: BoxDecoration(
                   color: _kViolet.withOpacity(0.06), shape: BoxShape.circle),
               child:
-                  const Center(child: Text('💬', style: TextStyle(fontSize: 28)))),
+                  const Center(child: T('💬', style: TextStyle(fontSize: 28)))),
           const SizedBox(height: 14),
-          const Text('No comments yet',
+          const T('No comments yet',
               style: TextStyle(
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                   color: _kInk)),
           const SizedBox(height: 6),
-          Text('Be the first to say something',
+          T('Be the first to say something',
               style: TextStyle(
                   fontFamily: 'Momo', fontSize: 12.5, color: _kSlate)),
         ])),
@@ -2609,7 +2610,7 @@ class _CommentTile extends StatelessWidget {
                 GestureDetector(
                   onTap: onReply,
                   behavior: HitTestBehavior.opaque,
-                  child: const Text('Reply',
+                  child: const T('Reply',
                       style: TextStyle(
                           fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
@@ -2821,7 +2822,7 @@ class _ShareSheetState extends State<_ShareSheet> {
       if (!mounted) return;
       setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not share. Try again.'),
+        content: T('Could not share. Try again.'),
         behavior: SnackBarBehavior.floating));
     }
   }
@@ -2891,7 +2892,7 @@ class _ShareSheetState extends State<_ShareSheet> {
                       child: CircularProgressIndicator(color: _kViolet))
                   : _people.isEmpty
                       ? Center(
-                          child: Text('No people found',
+                          child: T('No people found',
                               style: TextStyle(
                                   fontFamily: 'Momo', color: _kSlate)))
                       : ListView.builder(

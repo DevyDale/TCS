@@ -1,5 +1,6 @@
 // lib/screens/groups/groups_study_hub_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
@@ -279,11 +280,11 @@ class _GroupsStudyHubScreenState
               ListTile(
                 leading: const Icon(Icons.delete_forever_rounded,
                     color: _kG4, size: 22),
-                title: const Text('Delete Group',
+                title: const T('Delete Group',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 14, color: _kG4)),
-                subtitle: const Text(
+                subtitle: const T(
                     'Removes the group for every member. Materials are saved to your library.',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11.5)),
                 onTap: () {
@@ -295,11 +296,11 @@ class _GroupsStudyHubScreenState
               ListTile(
                 leading: const Icon(Icons.logout_rounded,
                     color: _kG3, size: 22),
-                title: const Text('Leave Group',
+                title: const T('Leave Group',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 14, color: _kG3)),
-                subtitle: const Text(
+                subtitle: const T(
                     'You will stop receiving updates from this group.',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11.5)),
                 onTap: () {
@@ -349,12 +350,12 @@ class _GroupsStudyHubScreenState
                 child: const Icon(Icons.delete_forever_rounded,
                     color: _kG4, size: 20)),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Delete Group',
+              const Expanded(child: T('Delete Group',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 18, color: Color(0xFF1A1A2E)))),
             ]),
             const SizedBox(height: 10),
-            Text(
+            T(
               'This removes the group for every member. All shared '
               'materials will be saved to your Digital Library first.',
               style: TextStyle(fontFamily: 'Momo',
@@ -383,7 +384,7 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Cancel',
+                  child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A1A2E), fontSize: 13))),
@@ -400,7 +401,7 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     color: _kG4,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Delete',
+                  child: const Center(child: T('Delete',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 13))),
@@ -507,7 +508,7 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Cancel',
+                  child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A1A2E), fontSize: 13))),
@@ -521,7 +522,7 @@ class _GroupsStudyHubScreenState
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_kG3, _kG4]),
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Leave',
+                  child: const Center(child: T('Leave',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 13))),
@@ -601,10 +602,10 @@ class _GroupsStudyHubScreenState
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
-        title: const Text('What are you studying?',
+        title: const T('What are you studying?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Tell others what subjects you can help with.',
+          T('Tell others what subjects you can help with.',
             style: TextStyle(fontFamily: 'Momo',
                 fontSize: 13, color: Colors.grey.shade600)),
           const SizedBox(height: 14),
@@ -631,7 +632,7 @@ class _GroupsStudyHubScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Momo'))),
           GestureDetector(
             onTap: () {
@@ -645,7 +646,7 @@ class _GroupsStudyHubScreenState
                 gradient: const LinearGradient(
                     colors: [_indigo, _deepPurple]),
                 borderRadius: BorderRadius.circular(10)),
-              child: const Text('Go Available',
+              child: const T('Go Available',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       color: Colors.white, fontSize: 13)),
@@ -810,7 +811,7 @@ class _GroupsStudyHubScreenState
           child: const Icon(Icons.school_rounded,
               color: Colors.white, size: 20)),
         const SizedBox(width: 12),
-        const Text('Study Hub',
+        const T('Study Hub',
             style: TextStyle(fontFamily: 'Alfa',
                 fontSize: 22, color: Color(0xFF1A1A2E))),
         const Spacer(),
@@ -1044,11 +1045,11 @@ class _GroupsStudyHubScreenState
         Icon(Icons.groups_outlined, size: 52,
             color: Colors.grey.shade300),
         const SizedBox(height: 14),
-        const Text('No Groups Yet',
+        const T('No Groups Yet',
             style: TextStyle(fontFamily: 'Alfa',
                 fontSize: 17, color: Color(0xFF1A1A2E))),
         const SizedBox(height: 6),
-        Text('Create or join a group to get started',
+        T('Create or join a group to get started',
             style: TextStyle(fontFamily: 'Momo',
                 fontSize: 13, color: Colors.grey.shade400)),
       ]),
@@ -1083,7 +1084,7 @@ class _GroupsStudyHubScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Available Now',
+              const T('Available Now',
                   style: TextStyle(fontFamily: 'Alfa',
                       fontSize: 18, color: Color(0xFF1A1A2E))),
               Container(
@@ -1180,11 +1181,11 @@ class _GroupsStudyHubScreenState
                   Icon(Icons.notifications_none_rounded, size: 52,
                       color: Colors.grey.shade300),
                   const SizedBox(height: 14),
-                  const Text('No Recent Activity',
+                  const T('No Recent Activity',
                       style: TextStyle(fontFamily: 'Alfa',
                           fontSize: 17, color: Color(0xFF1A1A2E))),
                   const SizedBox(height: 6),
-                  Text(
+                  T(
                     'Group events appear here — joins, materials shared,\ndissolutions, expirations and buddy requests.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo',
@@ -1200,7 +1201,7 @@ class _GroupsStudyHubScreenState
                 if (i == 0) {
                   return const Padding(
                     padding: EdgeInsets.only(bottom: 12),
-                    child: Text('Recent Activity',
+                    child: T('Recent Activity',
                         style: TextStyle(fontFamily: 'Alfa',
                             fontSize: 18, color: Color(0xFF1A1A2E))),
                   );
@@ -1353,7 +1354,7 @@ class _GroupCard extends StatelessWidget {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight),
                   borderRadius: BorderRadius.circular(10)),
-                child: const Text('Join',
+                child: const T('Join',
                     style: TextStyle(fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         color: Colors.white, fontSize: 12)))),
@@ -1453,7 +1454,7 @@ class _BuddyCard extends StatelessWidget {
                     gradient: const LinearGradient(
                         colors: [_indigo, _deepPurple]),
                     borderRadius: BorderRadius.circular(10)),
-                  child: const Text('Request',
+                  child: const T('Request',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           color: Colors.white, fontSize: 12)))),
@@ -1679,7 +1680,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: _kG2.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(6)),
-            child: const Text('Study Buddy',
+            child: const T('Study Buddy',
                 style: TextStyle(fontFamily: 'Momo',
                     fontSize: 10, fontWeight: FontWeight.bold, color: _kG2))),
         ]),
@@ -1703,7 +1704,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: Colors.grey.shade300)),
-              child: const Center(child: Text('Decline',
+              child: const Center(child: T('Decline',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 13, color: Color(0xFF1A1A2E)))),
@@ -1717,7 +1718,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [_indigo, _deepPurple]),
                 borderRadius: BorderRadius.circular(11)),
-              child: const Center(child: Text('Accept',
+              child: const Center(child: T('Accept',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 13, color: Colors.white))),

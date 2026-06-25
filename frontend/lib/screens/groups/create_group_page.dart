@@ -1,5 +1,6 @@
 // lib/screens/groups/create_group_page.dart
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
@@ -167,7 +168,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Create Group', style: TextStyle(fontFamily: 'Alfa',
+          const T('Create Group', style: TextStyle(fontFamily: 'Alfa',
               fontSize: 20, color: Color(0xFF1A1A2E))),
           Text(['Basics', 'Details', 'Members', 'Review'][_step],
               style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade500)),
@@ -222,7 +223,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       const SizedBox(height: 24),
       _sectionLabel('Theme'),
       const SizedBox(height: 8),
-      Text('The icon will be auto-assigned based on theme',
+      T('The icon will be auto-assigned based on theme',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade400)),
       const SizedBox(height: 12),
       Wrap(spacing: 10, runSpacing: 10, children: _themes.map((t) {
@@ -296,7 +297,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           child: Row(children: [
             Icon(Icons.info_outline_rounded, color: _kG3, size: 16),
             const SizedBox(width: 8),
-            Expanded(child: Text('Private groups require you to manually add members.',
+            Expanded(child: T('Private groups require you to manually add members.',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: _kG3))),
           ]),
         ),
@@ -304,7 +305,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       const SizedBox(height: 24),
       _sectionLabel('Group Duration'),
       const SizedBox(height: 8),
-      Text('The group will automatically close after this period.',
+      T('The group will automatically close after this period.',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade400)),
       const SizedBox(height: 12),
       Wrap(spacing: 8, runSpacing: 8, children: _durations.map((d) {
@@ -342,7 +343,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           child: Row(children: [
             const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
             const SizedBox(width: 10),
-            const Expanded(child: Text('Public group — anyone can join.\nYou can still add specific people below.',
+            const Expanded(child: T('Public group — anyone can join.\nYou can still add specific people below.',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: Color(0xFF1A1A2E)))),
           ]),
         ),
@@ -408,7 +409,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_indigo, _deep]),
                     borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Add', style: TextStyle(fontFamily: 'Arch',
+                  child: const T('Add', style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12)),
                 ),
               ),

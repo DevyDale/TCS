@@ -12,6 +12,7 @@
 // You can override `gameRenderer` from a per-game widget to draw it.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -231,10 +232,10 @@ class _SpectatorScreenState extends State<SpectatorScreen> {
                 colors: [_kNeonOrange, _kNeonRed]),
               borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
-              const Text('🏆',
+              const T('🏆',
                   style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              const Text('PRIZE POT',
+              const T('PRIZE POT',
                 style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11, letterSpacing: 1.4,
                     color: Colors.white)),
@@ -285,7 +286,7 @@ class _SpectatorScreenState extends State<SpectatorScreen> {
                         gradient: const LinearGradient(
                           colors: [_kNeonOrange, _kNeonRed]),
                         borderRadius: BorderRadius.circular(14)),
-                      child: const Center(child: Text('🔥',
+                      child: const Center(child: T('🔥',
                           style: TextStyle(fontSize: 22)))))),
                 const SizedBox(width: 8),
                 // Chat field
@@ -388,7 +389,7 @@ class _SpectatorScreenState extends State<SpectatorScreen> {
       builder: (_) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Pick a cheer',
+          const T('Pick a cheer',
             style: TextStyle(fontFamily: 'Alfa',
                 fontSize: 16, color: Colors.white)),
           const SizedBox(height: 14),
@@ -459,9 +460,9 @@ class _DefaultGameViewer extends StatelessWidget {
     if (payload == null) {
       return const Center(child: Padding(padding: EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('🎮', style: TextStyle(fontSize: 56)),
+          T('🎮', style: TextStyle(fontSize: 56)),
           SizedBox(height: 14),
-          Text('Waiting for the players to start...',
+          T('Waiting for the players to start...',
             style: TextStyle(fontFamily: 'Momo',
                 color: Colors.white60, fontSize: 13)),
         ])));
@@ -536,7 +537,7 @@ class _SettledOverlay extends StatelessWidget {
                 gradient: const LinearGradient(
                     colors: [_kNeonBlue, _kNeonPurple]),
                 borderRadius: BorderRadius.circular(12)),
-              child: const Text('Close',
+              child: const T('Close',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     color: Colors.white, fontSize: 14)))),

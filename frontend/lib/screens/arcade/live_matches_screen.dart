@@ -4,6 +4,7 @@
 // open the spectator screen.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -79,7 +80,7 @@ class _LiveMatchesScreenState extends State<LiveMatchesScreen> {
         title: Row(children: [
           _LiveDot(),
           const SizedBox(width: 8),
-          const Text('Live Matches',
+          const T('Live Matches',
             style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
           const SizedBox(width: 10),
           Text('${_sessions.length}',
@@ -95,13 +96,13 @@ class _LiveMatchesScreenState extends State<LiveMatchesScreen> {
           : _sessions.isEmpty
             ? ListView(children: const [
                 SizedBox(height: 120),
-                Center(child: Text('🎮', style: TextStyle(fontSize: 64))),
+                Center(child: T('🎮', style: TextStyle(fontSize: 64))),
                 SizedBox(height: 14),
-                Center(child: Text('No live matches right now',
+                Center(child: T('No live matches right now',
                   style: TextStyle(fontFamily: 'Alfa',
                       color: Colors.white60, fontSize: 16))),
                 SizedBox(height: 6),
-                Center(child: Text('Pull down to refresh',
+                Center(child: T('Pull down to refresh',
                   style: TextStyle(fontFamily: 'Momo',
                       color: Colors.white24, fontSize: 12))),
               ])
@@ -149,7 +150,7 @@ class _MatchCard extends StatelessWidget {
                 Row(children: [
                   _LiveDot(),
                   const SizedBox(width: 6),
-                  Text('LIVE',
+                  T('LIVE',
                     style: TextStyle(fontFamily: 'Momo',
                         letterSpacing: 1.5, fontSize: 10,
                         color: Colors.green.shade400,
@@ -191,7 +192,7 @@ class _MatchCard extends StatelessWidget {
                       Icon(Icons.visibility_rounded,
                           color: Colors.white, size: 14),
                       SizedBox(width: 6),
-                      Text('Watch',
+                      T('Watch',
                         style: TextStyle(fontFamily: 'Arch',
                             fontWeight: FontWeight.bold, fontSize: 12,
                             color: Colors.white)),

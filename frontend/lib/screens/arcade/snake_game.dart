@@ -10,6 +10,7 @@
 //   food      - simultaneous food on board
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -303,17 +304,17 @@ class _SnakeGameState extends State<SnakeGame> {
         ),
       ),
       const Spacer(),
-      const Text('🐍', style: TextStyle(fontSize: 80)),
+      const T('🐍', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 16),
       ShaderMask(
         shaderCallback: (b) => const LinearGradient(
             colors: [Color(0xFF11998E), Color(0xFF38EF7D)]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Snake',
+        child: const T('Snake',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 40, color: Colors.white)),
       ),
       const SizedBox(height: 10),
-      Text('Eat data nodes · Avoid walls\n10 levels of mounting chaos',
+      T('Eat data nodes · Avoid walls\n10 levels of mounting chaos',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 13,
               color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -332,7 +333,7 @@ class _SnakeGameState extends State<SnakeGame> {
                 blurRadius: 20, offset: const Offset(0, 6))],
           ),
           child: const Center(
-            child: Text('Choose Level 🎮',
+            child: T('Choose Level 🎮',
                 style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 20, color: Colors.white)),
           ),
@@ -408,7 +409,7 @@ class _SnakeGameState extends State<SnakeGame> {
         ),
       )),
       const SizedBox(height: 10),
-      Text('Swipe to change direction',
+      T('Swipe to change direction',
           style: TextStyle(fontFamily: 'Momo', fontSize: 11,
               color: Colors.white.withOpacity(0.4))),
       const Spacer(),

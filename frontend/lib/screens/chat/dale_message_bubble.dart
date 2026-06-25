@@ -12,6 +12,7 @@
 // regular media renderer.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 
@@ -106,7 +107,7 @@ class DaleMessageBubble extends StatelessWidget {
                           shaderCallback: (rect) => const LinearGradient(
                             colors: [_kG1, _kG2],
                           ).createShader(rect),
-                          child: const Text(
+                          child: const T(
                             'Dale',
                             style: TextStyle(
                               fontFamily: 'Arch',

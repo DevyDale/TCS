@@ -17,6 +17,7 @@
 // Self-contained: only depends on image_picker + ApiService.
 
 import 'dart:io';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -234,7 +235,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: _kInk),
           onPressed: _saving ? null : () => Navigator.pop(context)),
-        title: const Text('New Highlight', style: TextStyle(
+        title: const T('New Highlight', style: TextStyle(
           fontWeight: FontWeight.w900, color: _kInk,
           fontSize: 17, letterSpacing: -0.3)),
         centerTitle: true,
@@ -266,7 +267,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 6),
-                  const Text('Cover & name', style: TextStyle(
+                  const T('Cover & name', style: TextStyle(
                     fontWeight: FontWeight.w800, fontSize: 12,
                     color: _kSlate, letterSpacing: 0.3)),
                   const SizedBox(height: 8),
@@ -304,7 +305,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
             const SizedBox(height: 24),
 
             Row(children: [
-              const Text('Story items', style: TextStyle(
+              const T('Story items', style: TextStyle(
                 fontWeight: FontWeight.w800, fontSize: 12,
                 color: _kInk, letterSpacing: 0.3)),
               const SizedBox(width: 8),
@@ -342,7 +343,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                             fontWeight: FontWeight.w800,
                             color: Colors.white, fontSize: 13)),
                       ])
-                    : const Text('Create Highlight', style: TextStyle(
+                    : const T('Create Highlight', style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: Colors.white, fontSize: 15))),
               ),
@@ -377,7 +378,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                 children: [
                   Icon(Icons.add_rounded, color: _kSlate2, size: 26),
                   SizedBox(height: 4),
-                  Text('Add', style: TextStyle(
+                  T('Add', style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 11, color: _kSlate2)),
                 ])),
@@ -402,7 +403,7 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(6)),
-                child: const Text('VIDEO', style: TextStyle(
+                child: const T('VIDEO', style: TextStyle(
                   color: Colors.white, fontSize: 8,
                   fontWeight: FontWeight.w800)))),
             Positioned(top: 4, right: 4, child: GestureDetector(

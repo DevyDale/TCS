@@ -26,6 +26,7 @@
 // preview, FAB navigation) is untouched.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:flutter/material.dart';
@@ -328,7 +329,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       decoration: const BoxDecoration(color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
       child: Row(children: [
-        const Expanded(child: Text('Messages', style: TextStyle(fontFamily: 'Alfa',
+        const Expanded(child: T('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
         // Requests button (opens the Requests page) with pending badge
         GestureDetector(
@@ -928,7 +929,7 @@ Widget _buildSearchField() {
             if (canBlock)
               ListTile(
                 leading: const Icon(Icons.block_rounded, color: _kG4),
-                title: const Text(
+                title: const T(
                   'Block & delete',
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
@@ -947,7 +948,7 @@ Widget _buildSearchField() {
               ),
             ListTile(
               leading: Icon(Icons.close_rounded, color: Colors.grey.shade500),
-              title: Text(
+              title: T(
                 'Cancel',
                 style: TextStyle(
                   fontFamily: 'Arch', fontWeight: FontWeight.bold,
@@ -970,7 +971,7 @@ Widget _buildSearchField() {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Block & delete?',
+        title: const T('Block & delete?',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
         ),
         content: Text(
@@ -985,7 +986,7 @@ Widget _buildSearchField() {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
+            child: T('Cancel',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 color: Colors.grey.shade600,
@@ -993,7 +994,7 @@ Widget _buildSearchField() {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Block',
+            child: const T('Block',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold, color: _kG4,
               )),
@@ -1050,7 +1051,7 @@ Widget _buildSearchField() {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete chat?',
+        title: const T('Delete chat?',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: _kInk),
         ),
         content: Text(
@@ -1065,7 +1066,7 @@ Widget _buildSearchField() {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
+            child: T('Cancel',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 color: Colors.grey.shade600,
@@ -1073,7 +1074,7 @@ Widget _buildSearchField() {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
+            child: const T('Delete',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold, color: _kG4,
               )),

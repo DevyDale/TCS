@@ -4,6 +4,7 @@
 // that posts to /announcements/create/ (which fans out push notifications).
 
 import 'dart:io';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -60,7 +61,7 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
-        title: const Text('Announcements',
+        title: const T('Announcements',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -68,14 +69,14 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
         backgroundColor: _kG2,
         onPressed: _compose,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('New notice',
+        label: const T('New notice',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 color: Colors.white)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _kG2))
           : _items.isEmpty
-              ? Center(child: Text('No announcements yet.\nTap New notice to post one.',
+              ? Center(child: T('No announcements yet.\nTap New notice to post one.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                       color: Colors.white.withOpacity(.5))))
@@ -216,7 +217,7 @@ class _StaffAnnouncementComposeScreenState
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
-        title: const Text('New notice',
+        title: const T('New notice',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -258,7 +259,7 @@ class _StaffAnnouncementComposeScreenState
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kG2.withOpacity(.3))),
             child: _image == null
-                ? Center(child: Text('+ Add image (optional)',
+                ? Center(child: T('+ Add image (optional)',
                     style: TextStyle(fontFamily: 'Momo',
                         color: Colors.white.withOpacity(.6))))
                 : ClipRRect(borderRadius: BorderRadius.circular(14),
@@ -268,13 +269,13 @@ class _StaffAnnouncementComposeScreenState
         const SizedBox(height: 8),
         SwitchListTile(
           value: _pinned, activeColor: _kG1,
-          title: const Text('Pin to top',
+          title: const T('Pin to top',
               style: TextStyle(fontFamily: 'Arch', color: Colors.white)),
           onChanged: (v) => setState(() => _pinned = v),
         ),
         SwitchListTile(
           value: _publishNow, activeColor: _kG1,
-          title: const Text('Publish now (push to students)',
+          title: const T('Publish now (push to students)',
               style: TextStyle(fontFamily: 'Arch', color: Colors.white)),
           subtitle: Text(_publishNow ? 'Sends a notification immediately' : 'Saves as draft',
               style: TextStyle(fontFamily: 'Momo', fontSize: 11,
@@ -291,7 +292,7 @@ class _StaffAnnouncementComposeScreenState
             child: _submitting
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Post announcement',
+                : const T('Post announcement',
                     style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: Colors.white)),
           ),
         ),

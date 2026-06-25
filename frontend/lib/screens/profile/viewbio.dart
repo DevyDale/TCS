@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:intl/intl.dart';
 
 class BioPage extends StatefulWidget {
@@ -97,7 +98,7 @@ class _BioPageState extends State<BioPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
+        title: const T(
           'Student Bio',
           style: TextStyle(
             color: Colors.white,
@@ -155,7 +156,7 @@ class _BioPageState extends State<BioPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       const SizedBox(height: 18),
-                      Text('Profile completion: {(_completion * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
+                      T('Profile completion: {(_completion * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 24),
                       _sectionHeader('Personal Info'),
                       const SizedBox(height: 12),
@@ -172,7 +173,7 @@ class _BioPageState extends State<BioPage> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Text('Age:', style: TextStyle(fontWeight: FontWeight.w600)),
+                          const T('Age:', style: TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(width: 8),
                           Text(_age != null ? '$_age' : '--', style: const TextStyle(fontSize: 16)),
                         ],
@@ -258,7 +259,7 @@ class _BioPageState extends State<BioPage> {
                       SwitchListTile(
                         value: _availableForStudy,
                         onChanged: (v) => setState(() => _availableForStudy = v),
-                        title: const Text('Available for study'),
+                        title: const T('Available for study'),
                         activeThumbColor: Colors.blue.shade700,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -343,35 +344,35 @@ class _BioPageState extends State<BioPage> {
                       SwitchListTile(
                         value: _showPersonal,
                         onChanged: (v) => setState(() => _showPersonal = v),
-                        title: const Text('Show personal info (DOB / Age / Country)'),
+                        title: const T('Show personal info (DOB / Age / Country)'),
                         activeThumbColor: Colors.purple.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       SwitchListTile(
                         value: _showAcademic,
                         onChanged: (v) => setState(() => _showAcademic = v),
-                        title: const Text('Show academic info'),
+                        title: const T('Show academic info'),
                         activeThumbColor: Colors.pink.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       SwitchListTile(
                         value: _showAvailability,
                         onChanged: (v) => setState(() => _showAvailability = v),
-                        title: const Text('Show availability'),
+                        title: const T('Show availability'),
                         activeThumbColor: Colors.orange.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       SwitchListTile(
                         value: _allowRequests,
                         onChanged: (v) => setState(() => _allowRequests = v),
-                        title: const Text('Allow study requests'),
+                        title: const T('Allow study requests'),
                         activeThumbColor: Colors.blue.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       SwitchListTile(
                         value: _schoolOnly,
                         onChanged: (v) => setState(() => _schoolOnly = v),
-                        title: const Text('Only allow school students to see profile'),
+                        title: const T('Only allow school students to see profile'),
                         activeThumbColor: Colors.green.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -383,7 +384,7 @@ class _BioPageState extends State<BioPage> {
                               ? () {
                                   // TODO: Save all info
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Profile saved!'), behavior: SnackBarBehavior.floating),
+                                    const SnackBar(content: T('Profile saved!'), behavior: SnackBarBehavior.floating),
                                   );
                                   Navigator.pop(context);
                                 }

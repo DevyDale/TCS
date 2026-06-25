@@ -18,6 +18,7 @@
 // Original light palette preserved (_kBg / _kIndigo / _kDeep / gradient _kG1-_kG4).
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -477,7 +478,7 @@ class _ClubScreenState extends State<ClubScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel',
+              child: const T('Cancel',
                   style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
             ),
             TextButton(
@@ -564,14 +565,14 @@ class _ClubScreenState extends State<ClubScreen> {
             const Row(children: [
               Icon(Icons.warning_amber_rounded, size: 16, color: _kG4),
               SizedBox(width: 8),
-              Text('Danger zone',
+              T('Danger zone',
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 12, color: _kG4, letterSpacing: 0.5,
                   )),
             ]),
             const SizedBox(height: 8),
-            const Text(
+            const T(
               'Only the club president can dissolve the club. This removes '
               'all members and cannot be undone.',
               style: TextStyle(
@@ -603,7 +604,7 @@ class _ClubScreenState extends State<ClubScreen> {
                             Icon(Icons.delete_forever_rounded,
                                 size: 16, color: _kG4),
                             SizedBox(width: 6),
-                            Text('Dissolve Club',
+                            T('Dissolve Club',
                                 style: TextStyle(
                                   fontFamily: 'Arch',
                                   fontWeight: FontWeight.bold,
@@ -753,7 +754,7 @@ class _ClubScreenState extends State<ClubScreen> {
                           Icon(Icons.camera_alt_rounded,
                               size: 12, color: Colors.white),
                           SizedBox(width: 4),
-                          Text('Edit Cover',
+                          T('Edit Cover',
                               style: TextStyle(
                                 fontFamily: 'Arch',
                                 fontSize: 10,
@@ -959,7 +960,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('About',
+                    const T('About',
                         style: TextStyle(
                           fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                           fontWeight: FontWeight.w800,
@@ -1012,7 +1013,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('About',
+              const T('About',
                   style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 22, color: _kInk,
                     fontWeight: FontWeight.w900,
@@ -1026,7 +1027,7 @@ class _ClubScreenState extends State<ClubScreen> {
                     )),
               if (_mission.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Mission',
+                const T('Mission',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
                 const SizedBox(height: 8),
@@ -1037,7 +1038,7 @@ class _ClubScreenState extends State<ClubScreen> {
               ],
               if (_rules.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Rules',
+                const T('Rules',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
                 const SizedBox(height: 8),
@@ -1076,7 +1077,7 @@ class _ClubScreenState extends State<ClubScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Upcoming Events',
+                  child: T('Upcoming Events',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                         fontWeight: FontWeight.w800,
@@ -1105,7 +1106,7 @@ class _ClubScreenState extends State<ClubScreen> {
                           Icon(Icons.add_rounded,
                               color: Colors.white, size: 14),
                           SizedBox(width: 4),
-                          Text('Create',
+                          T('Create',
                               style: TextStyle(
                                 fontFamily: 'Arch', fontSize: 11,
                                 color: Colors.white,
@@ -1258,7 +1259,7 @@ class _ClubScreenState extends State<ClubScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _kIndigo),
                 ),
-                child: const Text('RSVP',
+                child: const T('RSVP',
                     style: TextStyle(
                       fontFamily: 'Arch', fontSize: 11,
                       color: _kIndigo, fontWeight: FontWeight.bold,
@@ -1295,7 +1296,7 @@ class _ClubScreenState extends State<ClubScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Members',
+                  child: T('Members',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                         fontWeight: FontWeight.w800,
@@ -1318,7 +1319,7 @@ class _ClubScreenState extends State<ClubScreen> {
                           Icon(Icons.person_add_alt_1_rounded,
                               color: Colors.white, size: 14),
                           SizedBox(width: 4),
-                          Text('Invite',
+                          T('Invite',
                               style: TextStyle(
                                 fontFamily: 'Arch', fontSize: 11,
                                 color: Colors.white,
@@ -1472,7 +1473,7 @@ class _ClubScreenState extends State<ClubScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Posts & Videos',
+                  child: T('Posts & Videos',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                         fontWeight: FontWeight.w800,
@@ -1501,7 +1502,7 @@ class _ClubScreenState extends State<ClubScreen> {
                           Icon(Icons.add_rounded,
                               color: Colors.white, size: 14),
                           SizedBox(width: 4),
-                          Text('Add Post',
+                          T('Add Post',
                               style: TextStyle(
                                 fontFamily: 'Arch', fontSize: 11,
                                 color: Colors.white,
@@ -1783,7 +1784,7 @@ class _ClubScreenState extends State<ClubScreen> {
             border: Border.all(color: _kIndigo.withOpacity(0.20)),
           ),
           child: const Center(
-            child: Text('You manage this club',
+            child: T('You manage this club',
                 style: TextStyle(
                   fontFamily: 'Arch', fontSize: 13,
                   color: _kIndigo, fontWeight: FontWeight.bold,
@@ -1809,7 +1810,7 @@ class _ClubScreenState extends State<ClubScreen> {
             children: [
               Icon(Icons.hourglass_top_rounded, color: _kSlate, size: 16),
               SizedBox(width: 8),
-              Text('Request sent — awaiting approval',
+              T('Request sent — awaiting approval',
                   style: TextStyle(
                     fontFamily: 'Arch', fontSize: 13,
                     color: _kSlate, fontWeight: FontWeight.bold,
@@ -1844,7 +1845,7 @@ class _ClubScreenState extends State<ClubScreen> {
                       children: [
                         Icon(Icons.logout_rounded, color: _kG4, size: 16),
                         SizedBox(width: 8),
-                        Text('Leave Club',
+                        T('Leave Club',
                             style: TextStyle(
                               fontFamily: 'Arch', fontSize: 14,
                               color: _kG4, fontWeight: FontWeight.bold,
@@ -1959,7 +1960,7 @@ class _ClubScreenState extends State<ClubScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Text('Approvals',
+              const T('Approvals',
                   style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 17, color: _kInk,
                     fontWeight: FontWeight.w800,
@@ -2050,7 +2051,7 @@ class _ClubScreenState extends State<ClubScreen> {
               children: [
                 Icon(Icons.check_rounded, color: Colors.white, size: 14),
                 SizedBox(width: 4),
-                Text('Approve',
+                T('Approve',
                     style: TextStyle(
                       fontFamily: 'Arch', fontSize: 11,
                       color: Colors.white, fontWeight: FontWeight.bold,
@@ -2098,13 +2099,13 @@ class _ClubScreenState extends State<ClubScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Club Chat',
+                  T('Club Chat',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 16,
                         color: Colors.white, fontWeight: FontWeight.w800,
                       )),
                   SizedBox(height: 2),
-                  Text('Members-only conversation',
+                  T('Members-only conversation',
                       style: TextStyle(
                         fontFamily: 'Momo', fontSize: 11.5,
                         color: Colors.white70,
@@ -2222,7 +2223,7 @@ class _ClubScreenState extends State<ClubScreen> {
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
         ),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Edit About', style: TextStyle(fontFamily: 'Alfa', fontSize: 20)),
+          const T('Edit About', style: TextStyle(fontFamily: 'Alfa', fontSize: 20)),
           const SizedBox(height: 16),
           TextField(controller: descCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
           const SizedBox(height: 12),
@@ -2231,9 +2232,9 @@ class _ClubScreenState extends State<ClubScreen> {
           TextField(controller: ruleCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Rules', border: OutlineInputBorder())),
           const SizedBox(height: 20),
           Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel'))),
+            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel'))),
             const SizedBox(width: 12),
-            Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save'))),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const T('Save'))),
           ]),
         ]),
       ),
@@ -2269,7 +2270,7 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Row(children: [
         const Icon(Icons.shield_rounded, size: 16, color: _kIndigo),
         const SizedBox(width: 8),
-        const Text('Admin tools', style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 12, color: _kIndigo)),
+        const T('Admin tools', style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 12, color: _kIndigo)),
         const Spacer(),
         _adminIconBtn(Icons.image_outlined, 'Cover', _adminReplaceCover),
         _adminIconBtn(Icons.account_circle_outlined, 'Logo', _adminReplaceLogo),
@@ -2364,7 +2365,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty || _start == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Title and start time are required',
+        content: const T('Title and start time are required',
             style: TextStyle(fontFamily: 'Momo', color: Colors.white)),
         backgroundColor: _kG4,
         behavior: SnackBarBehavior.floating,
@@ -2429,7 +2430,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
               const Expanded(
-                child: Text('Create Event',
+                child: T('Create Event',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
                       fontWeight: FontWeight.w900,
@@ -2494,7 +2495,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2),
                             )
-                          : const Text('Create Event',
+                          : const T('Create Event',
                               style: TextStyle(
                                 fontFamily: 'Arch', fontSize: 14,
                                 color: Colors.white,
@@ -2667,7 +2668,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
               const Expanded(
-                child: Text('Invite Members',
+                child: T('Invite Members',
                     style: TextStyle(
                       fontFamily: 'Alfa', fontSize: 22, color: _kInk,
                       fontWeight: FontWeight.w900,
@@ -2987,7 +2988,7 @@ class _EventDetailSheet extends StatelessWidget {
                               Icon(Icons.image_outlined,
                                   color: _kSlate, size: 40),
                               SizedBox(height: 6),
-                              Text('No poster',
+                              T('No poster',
                                   style: TextStyle(
                                     fontFamily: 'Momo',
                                     fontSize: 12,
@@ -3022,7 +3023,7 @@ class _EventDetailSheet extends StatelessWidget {
                 // Description
                 if (desc.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  const Text('About this event',
+                  const T('About this event',
                       style: TextStyle(
                         fontFamily: 'Arch', fontSize: 11,
                         color: _kSlate, fontWeight: FontWeight.bold,
@@ -3068,7 +3069,7 @@ class _EventDetailSheet extends StatelessWidget {
                             Icon(Icons.image_outlined,
                                 color: Colors.white, size: 18),
                             SizedBox(width: 8),
-                            Text('Edit Poster',
+                            T('Edit Poster',
                                 style: TextStyle(
                                   fontFamily: 'Arch', fontSize: 14,
                                   color: Colors.white,
@@ -3099,7 +3100,7 @@ class _EventDetailSheet extends StatelessWidget {
                             Icon(Icons.delete_outline_rounded,
                                 color: _kG4, size: 18),
                             SizedBox(width: 8),
-                            Text('Delete Event',
+                            T('Delete Event',
                                 style: TextStyle(
                                   fontFamily: 'Arch', fontSize: 14,
                                   color: _kG4, fontWeight: FontWeight.bold,
@@ -3216,21 +3217,21 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete this post?',
+        title: const T('Delete this post?',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18)),
-        content: const Text(
+        content: const T(
             'This permanently removes the post from the club. '
             'This cannot be undone.',
             style: TextStyle(fontFamily: 'Momo')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
+            child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Arch', color: _kSlate)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete',
+            child: const T('Delete',
                 style: TextStyle(fontFamily: 'Arch', color: _kG4)),
           ),
         ],
@@ -3316,7 +3317,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                 ),
                 const SizedBox(height: 16),
                 Row(children: [
-                  const Text('Comments',
+                  const T('Comments',
                       style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 15, color: _kInk,
                         fontWeight: FontWeight.w800,
@@ -3347,7 +3348,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     child: Center(
-                      child: Text('No comments yet. Be the first!',
+                      child: T('No comments yet. Be the first!',
                           style: TextStyle(
                               fontFamily: 'Momo', fontSize: 12,
                               color: _kSlate)),

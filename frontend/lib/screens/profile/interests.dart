@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -263,7 +264,7 @@ class _InterestsPageState extends State<InterestsPage>
               ),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text(
+                child: T(
                   'Your Interests',
                   style: TextStyle(
                     fontFamily: 'Alfa',

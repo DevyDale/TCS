@@ -9,6 +9,7 @@
 // SOLO_ONLY games.
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -126,7 +127,7 @@ class _GameRequestsScreenState extends State<GameRequestsScreen>
       appBar: AppBar(
         backgroundColor: _kDarkBg,
         elevation: 0,
-        title: const Text('Challenges',
+        title: const T('Challenges',
           style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
         bottom: TabBar(
           controller: _tab,
@@ -208,13 +209,13 @@ class _IncomingList extends StatelessWidget {
         onRefresh: () async => onRefresh(),
         child: ListView(children: const [
           SizedBox(height: 120),
-          Center(child: Text('🎮', style: TextStyle(fontSize: 64))),
+          Center(child: T('🎮', style: TextStyle(fontSize: 64))),
           SizedBox(height: 12),
-          Center(child: Text('No challenges right now',
+          Center(child: T('No challenges right now',
             style: TextStyle(fontFamily: 'Alfa', color: Colors.white60,
                 fontSize: 16))),
           SizedBox(height: 6),
-          Center(child: Text('Pull down to refresh',
+          Center(child: T('Pull down to refresh',
             style: TextStyle(fontFamily: 'Momo', color: Colors.white24,
                 fontSize: 12))),
         ]),
@@ -296,7 +297,7 @@ class _IncomingCard extends StatelessWidget {
           decoration: BoxDecoration(color: _kDarkCard2,
               borderRadius: BorderRadius.circular(10)),
           child: Row(children: [
-            const Text('🎮', style: TextStyle(fontSize: 16)),
+            const T('🎮', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 8),
             Text(req.gameName,
               style: const TextStyle(fontFamily: 'Arch',
@@ -316,7 +317,7 @@ class _IncomingCard extends StatelessWidget {
               decoration: BoxDecoration(color: _kNeonRed.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _kNeonRed.withOpacity(0.3))),
-              child: const Center(child: Text('✕  Decline',
+              child: const Center(child: T('✕  Decline',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, fontSize: 14,
                     color: _kNeonRed)))))),
@@ -328,7 +329,7 @@ class _IncomingCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [
                     Color(0xFF388E3C), Color(0xFF1B5E20)]),
                   borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: Text('⚔  Accept',
+                child: const Center(child: T('⚔  Accept',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14,
                       color: Colors.white)))))))
@@ -603,7 +604,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                     decoration: BoxDecoration(
                       color: _kNeonOrange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4)),
-                    child: const Text('1-4',
+                    child: const T('1-4',
                       style: TextStyle(fontFamily: 'Momo',
                           fontWeight: FontWeight.bold, fontSize: 9,
                           color: _kNeonOrange))),
@@ -670,7 +671,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2.5))
-                : const Text('⚔  Send Challenge',
+                : const T('⚔  Send Challenge',
                     style: TextStyle(fontFamily: 'Alfa',
                         fontSize: 16, color: Colors.white))))),
         ),

@@ -1,5 +1,6 @@
 // lib/screens/arcade/pool_royale_game.dart
 import 'dart:math';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'game_engine.dart';
@@ -251,15 +252,15 @@ class _PoolRoyaleGameState extends State<PoolRoyaleGame>
                 border: Border.all(color: Colors.white.withOpacity(0.08))),
             child: const Icon(Icons.arrow_back_rounded, color: Colors.white60, size: 20)))),
       const Spacer(),
-      const Text('🎱', style: TextStyle(fontSize: 80)),
+      const T('🎱', style: TextStyle(fontSize: 80)),
       const SizedBox(height: 16),
       ShaderMask(
         shaderCallback: (b) => const LinearGradient(colors: [kNeonPurple, kNeonBlue]).createShader(b),
         blendMode: BlendMode.srcIn,
-        child: const Text('Pool Royale',
+        child: const T('Pool Royale',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 38, color: Colors.white))),
       const SizedBox(height: 10),
-      Text('Drag from cue ball to aim\nPocket all colored balls!',
+      T('Drag from cue ball to aim\nPocket all colored balls!',
         textAlign: TextAlign.center,
         style: TextStyle(fontFamily: 'Momo', fontSize: 13,
             color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -294,7 +295,7 @@ class _PoolRoyaleGameState extends State<PoolRoyaleGame>
               gradient: const LinearGradient(colors: [kNeonPurple, kNeonBlue]),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [BoxShadow(color: kNeonPurple.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 6))]),
-          child: const Center(child: Text('Break! 🎱',
+          child: const Center(child: T('Break! 🎱',
               style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white))))),
     ]));
 
@@ -373,7 +374,7 @@ class _PoolRoyaleGameState extends State<PoolRoyaleGame>
                   color: kNeonOrange.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: kNeonOrange.withOpacity(0.3))),
-              child: const Center(child: Text('↩ Place cue ball (-30 pts)',
+              child: const Center(child: T('↩ Place cue ball (-30 pts)',
                   style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
                       fontSize: 13, color: kNeonOrange)))))),
       const Spacer(),

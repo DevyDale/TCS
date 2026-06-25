@@ -16,6 +16,7 @@
 //                    AI Assistant screen).
 
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -602,7 +603,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                   ),
                   const SizedBox(width: 10),
                   const Flexible(
-                    child: Text(
+                    child: T(
                       'Code Helper',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -644,7 +645,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                     children: [
                       Icon(Icons.add_rounded, color: Colors.white, size: 20),
                       SizedBox(width: 6),
-                      Text(
+                      T(
                         'New chat',
                         style: TextStyle(
                           fontFamily: 'Arch',
@@ -661,7 +662,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
 
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Text(
+              child: T(
                 'RECENT',
                 style: TextStyle(
                   fontFamily: 'Momo',
@@ -678,7 +679,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
+                        child: T(
                           'No conversations yet.\nStart chatting and it’ll show up here.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -759,7 +760,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
           const SizedBox(width: 10),
           // Title
           const Expanded(
-            child: Text(
+            child: T(
               'Code Helper',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

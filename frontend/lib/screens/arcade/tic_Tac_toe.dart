@@ -15,6 +15,7 @@
 //       lose 0 / draw 50); the server's settle_match awards the pot.
 //     • Quitting forfeits the match to the opponent.
 import 'dart:async';
+import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -142,12 +143,12 @@ class _TicTacToeGameState extends State<TicTacToeGame>
                       ? ShaderMask(shaderCallback: (b) => const LinearGradient(
                             colors: [kNeonBlue, kNeonPurple]).createShader(b),
                           blendMode: BlendMode.srcIn,
-                          child: const Text('X', style: TextStyle(fontFamily: 'Alfa',
+                          child: const T('X', style: TextStyle(fontFamily: 'Alfa',
                               fontSize: 42, color: Colors.white)))
                       : isO ? ShaderMask(shaderCallback: (b) => const LinearGradient(
                             colors: [kNeonOrange, kNeonRed]).createShader(b),
                           blendMode: BlendMode.srcIn,
-                          child: const Text('O', style: TextStyle(fontFamily: 'Alfa',
+                          child: const T('O', style: TextStyle(fontFamily: 'Alfa',
                               fontSize: 42, color: Colors.white)))
                       : null),
                 ),
@@ -368,7 +369,7 @@ class _TicTacToeGameState extends State<TicTacToeGame>
                   decoration: BoxDecoration(
                       gradient: const LinearGradient(colors: [kNeonOrange, kNeonRed]),
                       borderRadius: BorderRadius.circular(14)),
-                  child: const Text('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
+                  child: const T('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)))),
             ])))),
     ]);
@@ -498,14 +499,14 @@ class _TicTacToeGameState extends State<TicTacToeGame>
           border: Border.all(color: Colors.white.withOpacity(0.08))),
         child: const Icon(Icons.arrow_back_rounded, color: Colors.white60, size: 20)))),
     const Spacer(),
-    const Text('⭕', style: TextStyle(fontSize: 80)),
+    const T('⭕', style: TextStyle(fontSize: 80)),
     const SizedBox(height: 16),
     ShaderMask(shaderCallback: (b) => const LinearGradient(
         colors: [kNeonOrange, kNeonRed]).createShader(b), blendMode: BlendMode.srcIn,
-      child: const Text('Tic Tac Toe', style: TextStyle(fontFamily: 'Alfa', fontSize: 38,
+      child: const T('Tic Tac Toe', style: TextStyle(fontFamily: 'Alfa', fontSize: 38,
           color: Colors.white))),
     const SizedBox(height: 10),
-    Text('Beat the bot — it gets smarter every level.\nLv.10 plays perfectly: a draw is a win.',
+    T('Beat the bot — it gets smarter every level.\nLv.10 plays perfectly: a draw is a win.',
       textAlign: TextAlign.center,
       style: TextStyle(fontFamily: 'Momo', fontSize: 13,
           color: Colors.white.withOpacity(0.5), height: 1.6)),
@@ -519,7 +520,7 @@ class _TicTacToeGameState extends State<TicTacToeGame>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: kNeonOrange.withOpacity(0.4),
               blurRadius: 20, offset: const Offset(0, 6))]),
-        child: const Center(child: Text('Choose Level ▶', style: TextStyle(
+        child: const Center(child: T('Choose Level ▶', style: TextStyle(
             fontFamily: 'Alfa', fontSize: 20, color: Colors.white))))),
   ]));
 

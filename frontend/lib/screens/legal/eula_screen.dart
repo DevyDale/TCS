@@ -21,6 +21,7 @@
 // EulaScreen pops `true` on accept and `false` on decline.
 
 import 'dart:math' as math;
+import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -331,7 +332,7 @@ class _EulaScreenState extends State<EulaScreen>
                       color: Colors.white, size: 28),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                const T(
                   'Terms of Use &\nCommunity Rules',
                   style: TextStyle(
                     fontFamily: 'Arch',
@@ -342,7 +343,7 @@ class _EulaScreenState extends State<EulaScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                T(
                   'Please read these terms before continuing to TCS.',
                   style: TextStyle(
                     fontFamily: 'Momo',
@@ -404,7 +405,7 @@ class _EulaScreenState extends State<EulaScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    Text(
+                    T(
                       'Skip to end',
                       style: TextStyle(
                         fontFamily: 'Arch',
@@ -533,7 +534,7 @@ class _EulaScreenState extends State<EulaScreen>
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
+            child: T(
               'I agree to the Terms of Use and accept that there is zero '
               'tolerance for objectionable content or abusive behaviour.',
               style: TextStyle(
@@ -561,7 +562,7 @@ class _EulaScreenState extends State<EulaScreen>
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(
+            child: T(
               'Decline',
               style: TextStyle(
                 fontFamily: 'Arch',
@@ -599,7 +600,7 @@ class _EulaScreenState extends State<EulaScreen>
                           ]
                         : null,
                   ),
-                  child: const Text(
+                  child: const T(
                     'Agree & Continue',
                     style: TextStyle(
                       fontFamily: 'Arch',
@@ -700,7 +701,7 @@ class _SectionCard extends StatelessWidget {
                           color: d.accent.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
+                        child: T(
                           'IMPORTANT',
                           style: TextStyle(
                             fontFamily: 'Arch',
