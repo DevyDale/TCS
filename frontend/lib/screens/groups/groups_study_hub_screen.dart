@@ -8,6 +8,7 @@ import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
 import 'dart:async';
 import '../../services/api_service.dart';
 import '../../services/cache_store.dart';
+import '../../widgets/pulse_glow.dart';
 import '../chat/chat_room_screen.dart';
 import 'create_group_page.dart';
 import '../dashboard/group_Screen.dart';
@@ -34,7 +35,6 @@ class _GroupsStudyHubScreenState
   late final TabController _tabCtrl;
 
   bool _availableForStudy = false;
-  String _availSubjects   = '';
 
   final _buddySearchCtrl = TextEditingController();
   String _buddyQuery = '';
@@ -87,12 +87,9 @@ class _GroupsStudyHubScreenState
       final available = (me['is_available_study'] ??
                          me['available'] ??
                          me['study_buddy_available']) == true;
-      final subjects  = (me['study_subjects'] as String?) ??
-                        (me['subjects']       as String?) ?? '';
       if (!mounted) return;
       setState(() {
         _availableForStudy = available;
-        _availSubjects     = subjects;
       });
     } catch (_) {
       // Silent — keep the local default (false). User can re-toggle.
@@ -161,23 +158,13 @@ class _GroupsStudyHubScreenState
       onData: (data, fresh) {
         if (!mounted) return;
         final list = _asList(data);
-        // ── TEMP DIAGNOSTIC (fire only on the fresh value, not the
-        // cached paint, so the snackbar doesn't flash twice) ──
-        if (fresh) {
-          debugPrint('🧑‍🎓 getStudyBuddies raw runtimeType: ${data.runtimeType}');
-          debugPrint('🧑‍🎓 getStudyBuddies raw: $data');
-          debugPrint('🧑‍🎓 _asList → ${list.length} buddies');
-          _snack('Buddies loaded: ${list.length}');
-        }
         setState(() {
           _buddies        = list;
           _loadingBuddies = false;
         });
         if (fresh && !c.isCompleted) c.complete();
       },
-      onError: (e) {
-        debugPrint('🧑‍🎓 getStudyBuddies failed: $e');
-        _snack('Buddies error: $e');
+      onError: (_) {
         if (mounted) setState(() => _loadingBuddies = false);
         if (!c.isCompleted) c.complete();
       },
@@ -585,18 +572,17 @@ class _GroupsStudyHubScreenState
       if (subjects == null) return;
       setState(() {
         _availableForStudy = true;
-        _availSubjects     = subjects;
       });
       try {
         await _api.updateStudyBuddy({'available': true, 'subjects': subjects});
         _loadBuddies();
         _snack("✅ You're now available as a Study Buddy!");
       } catch (e) {
-        setState(() { _availableForStudy = false; _availSubjects = ''; });
+        setState(() { _availableForStudy = false; });
         _snack('Could not update: $e');
       }
     } else {
-      setState(() { _availableForStudy = false; _availSubjects = ''; });
+      setState(() { _availableForStudy = false; });
       try {
         await _api.updateStudyBuddy({'available': false, 'subjects': ''});
         _loadBuddies();
@@ -904,12 +890,17 @@ class _GroupsStudyHubScreenState
             },
           ),
           Container(width: 1, height: 40, color: Colors.white12),
-          _QAction(
-            icon: _availableForStudy
-                ? Icons.visibility_off_rounded
-                : Icons.visibility_rounded,
-            label: _availableForStudy ? 'Go\nOffline' : 'Go\nAvailable',
-            onTap: _toggleAvailability,
+          // Pulses green while available — replaces the old full-width banner.
+          PulseGlow(
+            active: _availableForStudy,
+            borderRadius: 14,
+            child: _QAction(
+              icon: _availableForStudy
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+              label: _availableForStudy ? 'Go\nOffline' : 'Go\nAvailable',
+              onTap: _toggleAvailability,
+            ),
           ),
           Container(width: 1, height: 40, color: Colors.white12),
           _QAction(
@@ -1004,8 +995,6 @@ class _GroupsStudyHubScreenState
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 160),
         children: [
-          if (_availableForStudy) _availBanner(),
-
           if (_myGroups.isNotEmpty) ...[
             _sectionHeader('My Groups', _myGroups.length),
             const SizedBox(height: 10),
@@ -1091,7 +1080,6 @@ class _GroupsStudyHubScreenState
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 160),
         children: [
-          if (_availableForStudy) _availBanner(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1234,40 +1222,6 @@ class _GroupsStudyHubScreenState
             ),
     );
   }
-
-  Widget _availBanner() => Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Colors.green.shade400, Colors.green.shade600],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-      borderRadius: BorderRadius.circular(14)),
-    child: Row(children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          shape: BoxShape.circle),
-        child: const Icon(Icons.check_circle_rounded,
-            color: Colors.white, size: 20)),
-      const SizedBox(width: 12),
-      Expanded(child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("You're Available for Study! 🟢",
-              style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, fontSize: 14)),
-          const SizedBox(height: 2),
-          Text(
-            _availSubjects.isNotEmpty
-                ? 'Subjects: $_availSubjects'
-                : 'Others can see you in Study Buddies',
-            style: const TextStyle(fontFamily: 'Momo',
-                color: Colors.white70, fontSize: 12)),
-        ])),
-    ]),
-  );
 
   Widget _sectionHeader(String label, int count) => Row(children: [
     Text(label, style: const TextStyle(fontFamily: 'Alfa',
