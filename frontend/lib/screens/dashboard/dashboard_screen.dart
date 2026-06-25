@@ -31,6 +31,7 @@ import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
+import '../staff/staff_console_screen.dart';
 import '../../widgets/ai_assistant_fab.dart';
 import '../../utils/responsive_helper.dart';
 
@@ -210,6 +211,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   int  get _navIndex => _currentIndex >= 2 ? _currentIndex + 1 : _currentIndex;
   bool get _showFab  => _currentIndex == 0 || _currentIndex == 1;
 
+  // Staff-only: additive entry point to the command-center console. Students
+  // never see it; staff keep the normal dashboard as home.
+  bool get _isStaff => const {'teaching_staff', 'non_teaching_staff', 'admin'}
+      .contains(widget.role.toLowerCase().trim());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,7 +232,30 @@ class _DashboardScreenState extends State<DashboardScreen>
       // can show through near the bar's rounded top edge.
       extendBody: true,
       backgroundColor: Colors.transparent,
+      floatingActionButton: _isStaff ? _buildStaffConsoleFab(context) : null,
       bottomNavigationBar: _buildBottomNav(context),
+    );
+  }
+
+  // ── Staff console entry (staff only) ──────────────────────
+  Widget _buildStaffConsoleFab(BuildContext context) {
+    return FloatingActionButton.extended(
+      heroTag: 'staff_console_fab',
+      backgroundColor: const Color(0xFF8E54E9),
+      icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
+      label: const Text('Staff Console',
+          style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+              color: Colors.white)),
+      onPressed: () {
+        HapticFeedback.mediumImpact();
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => StaffConsoleScreen(
+            fullName:      widget.fullName,
+            preferredName: widget.preferredName,
+            role:          widget.role,
+          ),
+        ));
+      },
     );
   }
 
