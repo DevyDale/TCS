@@ -19,6 +19,7 @@ api_v1 = [
     path("arcade/",        include("apps.arcade.urls")),
     path("clubs/",         include("apps.clubs.urls")),
     path("notifications/", include("apps.notifications.urls")),
+    path("announcements/", include("apps.notifications.announcement_urls")),
     path("moderation/",    include("apps.moderation.urls")),
     path("quiz/",          include("apps.quiz.urls")),
     path("feedback/",      include("apps.feedback.urls")),
