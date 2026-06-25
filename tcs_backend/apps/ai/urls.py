@@ -2,6 +2,8 @@
 from django.urls import path
 from . import views
 from .router_views import ai_router_status
+from .knowledge_views import (knowledge_list, knowledge_upload,
+                              knowledge_toggle, knowledge_delete)
 
 urlpatterns = [
     # Text tools
@@ -11,6 +13,12 @@ urlpatterns = [
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),
+
+    # Phase 4 RAG knowledge base (staff-only)
+    path("knowledge/",                  knowledge_list,   name="ai-knowledge-list"),
+    path("knowledge/upload/",           knowledge_upload, name="ai-knowledge-upload"),
+    path("knowledge/<uuid:pk>/toggle/", knowledge_toggle, name="ai-knowledge-toggle"),
+    path("knowledge/<uuid:pk>/",        knowledge_delete, name="ai-knowledge-delete"),
 
     # Companions
     path("companions/",                                   views.companion_list,           name="ai-companion-list"),

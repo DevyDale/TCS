@@ -181,3 +181,43 @@ class MentorMessage(models.Model):
 
     def __str__(self):
         return f"{self.role} @ {self.created_at:%Y-%m-%d %H:%M}"
+
+
+# ═════════════════════════════════════════════════════════════
+# Knowledge base (RAG) — staff-uploaded study material that Dale
+# tutors from. Text is extracted + chunked at upload time; retrieval
+# is on-the-fly Postgres full-text search over active chunks.
+# ═════════════════════════════════════════════════════════════
+
+class KnowledgeDoc(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title       = models.CharField(max_length=200)
+    subject     = models.CharField(max_length=80, blank=True, default="")
+    filename    = models.CharField(max_length=255, blank=True, default="")
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name="knowledge_docs")
+    char_count  = models.PositiveIntegerField(default=0)
+    chunk_count = models.PositiveIntegerField(default=0)
+    is_active   = models.BooleanField(default=True, db_index=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ai_knowledge_docs"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class KnowledgeChunk(models.Model):
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    doc        = models.ForeignKey(KnowledgeDoc, on_delete=models.CASCADE,
+                                   related_name="chunks")
+    ordinal    = models.PositiveIntegerField(default=0)
+    content    = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ai_knowledge_chunks"
+        ordering = ["doc", "ordinal"]
+        indexes  = [models.Index(fields=["doc", "ordinal"], name="ai_kchunk_doc_ord_idx")]

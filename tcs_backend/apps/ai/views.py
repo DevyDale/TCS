@@ -406,6 +406,19 @@ def _run_text_tool(request, system_prompt: str, personalize: bool = True, task: 
         if hasattr(user, "role") and user.role:
             final_prompt += f" They are a {user.role}."
 
+    # RAG: pull staff-uploaded study material relevant to this question and
+    # inject it as authoritative. Chat lane only; never breaks the turn.
+    if task == "chat":
+        try:
+            from .knowledge import retrieve_context
+            kb = retrieve_context(message)
+        except Exception:
+            kb = ""
+        if kb:
+            final_prompt += (
+                "\n\nSTAFF STUDY MATERIAL (authoritative — teach from this and tell the "
+                "student it comes from their course material):\n" + kb)
+
     messages = [{"role": "system", "content": final_prompt}, *recent_history,
                 {"role": "user", "content": message}]
 
