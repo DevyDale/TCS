@@ -36,6 +36,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 
 from .models import AiCompanion, ChatMessage, Conversation, ImageGeneration, MentorMessage
+from . import ai_router  # Phase 2: chat/code route through the shared router
 
 
 # ═════════════════════════════════════════════════════════════
@@ -364,10 +365,15 @@ def _build_pollinations_url(prompt: str, model: str, width: int, height: int, se
     return f"{POLLINATIONS_BASE}/{encoded}?{params}"
 
 
-def _run_text_tool(request, system_prompt: str, personalize: bool = True):
-    """Shared streaming SSE pipeline for /chat/ and /code/."""
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
+def _run_text_tool(request, system_prompt: str, personalize: bool = True, task: str = "chat"):
+    """Shared streaming SSE pipeline for /chat/ and /code/.
+
+    Phase 2: routes through ai_router so the request flows down the task's
+    provider lane (e.g. chat: groq → cerebras → sambanova → gemini) with
+    automatic failover. The SSE envelope is unchanged, so the Flutter client
+    needs no changes.
+    """
+    if not ai_router.available(task):
         return JsonResponse({"error": "AI service not configured."}, status=503)
 
     allowed, used = _check_rate_limit(str(request.user.id))
@@ -400,24 +406,31 @@ def _run_text_tool(request, system_prompt: str, personalize: bool = True):
         if hasattr(user, "role") and user.role:
             final_prompt += f" They are a {user.role}."
 
-    payload = _build_gemini_payload(final_prompt, recent_history, message)
+    messages = [{"role": "system", "content": final_prompt}, *recent_history,
+                {"role": "user", "content": message}]
 
     if stream:
         def event_stream():
+            got = False
             try:
-                for token in _call_gemini_stream(payload, api_key):
+                for token in ai_router.stream(task, messages, max_tokens=1500, temperature=0.8):
+                    got = True
                     yield f"data: {json.dumps({'token': token})}\n\n"
-                yield "data: [DONE]\n\n"
             except Exception as e:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            if not got:
+                yield f"data: {json.dumps({'error': 'The AI is busy right now — please try again in a moment.'})}\n\n"
+            yield "data: [DONE]\n\n"
 
         resp = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
         resp["Cache-Control"]     = "no-cache"
         resp["X-Accel-Buffering"] = "no"
         return resp
 
-    text = _call_gemini_oneshot(payload, api_key)
-    return JsonResponse({"response": text, "messages_used": used})
+    result = ai_router.complete(task, messages, max_tokens=1500, temperature=0.8)
+    text   = result.get("text") or "Sorry, I'm having trouble connecting right now. Please try again in a moment."
+    return JsonResponse({"response": text, "messages_used": used,
+                         "provider": result.get("provider")})
 
 
 def _companion_dict(c: AiCompanion) -> dict:
@@ -442,7 +455,7 @@ def _companion_dict(c: AiCompanion) -> dict:
 @renderer_classes([ServerSentEventRenderer, JSONRenderer])
 def ai_chat(request):
     """POST /api/ai/chat/ — general assistant (streaming SSE)."""
-    return _run_text_tool(request, TCS_SYSTEM_PROMPT, personalize=True)
+    return _run_text_tool(request, TCS_SYSTEM_PROMPT, personalize=True, task="chat")
 
 
 @api_view(["POST"])
@@ -450,7 +463,7 @@ def ai_chat(request):
 @renderer_classes([ServerSentEventRenderer, JSONRenderer])
 def ai_code(request):
     """POST /api/ai/code/ — code generator (streaming SSE)."""
-    return _run_text_tool(request, CODE_SYSTEM_PROMPT, personalize=False)
+    return _run_text_tool(request, CODE_SYSTEM_PROMPT, personalize=False, task="code")
 
 
 @api_view(["GET"])
@@ -458,11 +471,13 @@ def ai_code(request):
 def ai_status(request):
     """GET /api/ai/status/ — rate-limit usage indicator."""
     used = cache.get(f"ai_rate_{request.user.id}", 0)
+    chat_lane = ai_router.available("chat")
     return JsonResponse({
         "messages_used": used,
         "limit":         MAX_MESSAGES_PER_HOUR,
         "model":         GEMINI_MODEL,
-        "provider":      "google-gemini",
+        "provider":      chat_lane[0] if chat_lane else "google-gemini",
+        "chat_lane":     chat_lane,
     })
 
 
