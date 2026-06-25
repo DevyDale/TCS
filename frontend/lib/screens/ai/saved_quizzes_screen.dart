@@ -11,14 +11,17 @@ import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
 import '../../../../services/api_service.dart';
 
-const _kShelf     = Color(0xFF2C1810);
-const _kWood      = Color(0xFF5C3317);
-const _kWoodLight = Color(0xFF8B5E3C);
-const _kCream     = Color(0xFFFDF6EC);
-const _kPaper     = Color(0xFFF5ECD7);
+// Quiz palette now blends with the app theme (was a brown bookshelf).
+const _kIndigo    = Color(0xFF3F51B5);
+const _kDeep      = Color(0xFF512DA8);
+Color get _kShelf     => AppC.bg;
+Color get _kWood      => AppC.sub;
+Color get _kWoodLight => AppC.border;
+Color get _kCream     => AppC.card;
+Color get _kPaper     => AppC.card2;
 const _kGold      = Color(0xFFD4A017);
 Color get _kInk => AppC.text;
-const _kInkLight  = Color(0xFF4A3728);
+Color get _kInkLight  => AppC.sub;
 
 class SavedQuizzesScreen extends StatefulWidget {
   const SavedQuizzesScreen({super.key});
@@ -29,13 +32,33 @@ class SavedQuizzesScreen extends StatefulWidget {
 
 class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
   final _api = ApiService();
+  final _searchCtrl = TextEditingController();
   List<Map<String, dynamic>> _quizzes = [];
   bool _loading = true;
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  // Quizzes matching the search box (title / subject / difficulty).
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _quizzes;
+    return _quizzes.where((x) {
+      final t = (x['title'] as String? ?? '').toLowerCase();
+      final s = (x['subject'] as String? ?? '').toLowerCase();
+      final d = (x['difficulty'] as String? ?? '').toLowerCase();
+      return t.contains(q) || s.contains(q) || d.contains(q);
+    }).toList();
   }
 
   Future<void> _load() async {
@@ -60,7 +83,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
             style: TextStyle(fontFamily: 'Alfa', color: _kInk)),
         content: Text(
             '"${quiz['title']}" and all its attempts will be permanently removed.',
-            style: const TextStyle(fontFamily: 'Momo', color: _kInkLight)),
+            style: TextStyle(fontFamily: 'Momo', color: _kInkLight)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
               child: const T('Cancel')),
@@ -87,7 +110,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
         _buildHeader(),
         Expanded(
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: _kCream,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
             child: _loading
@@ -105,8 +128,8 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1A0E09), _kShelf, _kWood],
-          begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+          colors: [_kIndigo, _kDeep],
+          begin: Alignment.topLeft, end: Alignment.bottomRight)),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -157,6 +180,39 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
                 child: const Center(child: T('🧠',
                     style: TextStyle(fontSize: 24)))),
             ]),
+            const SizedBox(height: 14),
+            // Search through saved quizzes.
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.18))),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _query = v),
+                style: const TextStyle(
+                    fontFamily: 'Momo', fontSize: 14, color: Colors.white),
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  hintText: 'Search your quizzes…',
+                  hintStyle: const TextStyle(
+                      fontFamily: 'Momo', fontSize: 13, color: Colors.white60),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: Colors.white70, size: 20),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close_rounded,
+                              color: Colors.white70, size: 18),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _query = '');
+                          }),
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 12)),
+              ),
+            ),
           ]),
         ),
       ),
@@ -174,7 +230,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
               style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: _kInk)),
           const SizedBox(height: 8),
-          const Text(
+          Text(
               'Head back to your library and tap\n"Quiz me" on any PDF or DOCX.',
               textAlign: TextAlign.center,
               style: TextStyle(fontFamily: 'Momo',
@@ -198,23 +254,39 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
   }
 
   Widget _buildList() {
+    final items = _filtered;
     return RefreshIndicator(
       color: _kGold, backgroundColor: _kCream, onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-        physics: const BouncingScrollPhysics(),
-        itemCount: _quizzes.length,
-        itemBuilder: (_, i) => _QuizCard(
-          quiz:     _quizzes[i],
-          onTap:    () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => QuizPlayScreen(
-              quizId:    _quizzes[i]['id'] as String,
-              quizTitle: _quizzes[i]['title'] as String? ?? 'Quiz',
+      child: items.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics()),
+              children: [
+                const SizedBox(height: 80),
+                Center(child: Column(children: [
+                  Icon(Icons.search_off_rounded, size: 48, color: _kInkLight),
+                  const SizedBox(height: 12),
+                  Text('No quizzes match "$_query"',
+                      style: TextStyle(fontFamily: 'Momo',
+                          fontSize: 13, color: _kInkLight)),
+                ])),
+              ],
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+              physics: const BouncingScrollPhysics(),
+              itemCount: items.length,
+              itemBuilder: (_, i) => _QuizCard(
+                quiz:     items[i],
+                onTap:    () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => QuizPlayScreen(
+                    quizId:    items[i]['id'] as String,
+                    quizTitle: items[i]['title'] as String? ?? 'Quiz',
+                  ),
+                )).then((_) => _load()),
+                onDelete: () => _delete(items[i]),
+              ),
             ),
-          )).then((_) => _load()),
-          onDelete: () => _delete(_quizzes[i]),
-        ),
-      ),
     );
   }
 }
@@ -330,22 +402,22 @@ class _QuizCard extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Text('· $attempts attempts',
-                      style: const TextStyle(fontFamily: 'Momo',
+                      style: TextStyle(fontFamily: 'Momo',
                           fontSize: 10, color: _kInkLight)),
                 ] else
-                  const T('Not attempted yet',
+                  T('Not attempted yet',
                       style: TextStyle(fontFamily: 'Momo',
                           fontSize: 10, color: _kInkLight,
                           fontStyle: FontStyle.italic)),
                 const Spacer(),
                 Text(createdAt,
-                    style: const TextStyle(fontFamily: 'Momo',
+                    style: TextStyle(fontFamily: 'Momo',
                         fontSize: 10, color: _kInkLight)),
               ]),
             ])),
 
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded,
+            Icon(Icons.chevron_right_rounded,
                 color: _kWood, size: 22),
           ]),
         ),
