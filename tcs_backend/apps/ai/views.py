@@ -34,6 +34,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import BaseRenderer, JSONRenderer
+from rest_framework.response import Response
 
 from .models import AiCompanion, ChatMessage, Conversation, ImageGeneration, MentorMessage
 from . import ai_router  # Phase 2: chat/code route through the shared router
