@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
+import 'package:tcs_app/widgets/quiz_share_picker.dart';
 
 
 Color get _kShelf => AppC.bg;
@@ -220,6 +221,26 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: Row(children: [
+            // Share this quiz to a chat / study group.
+            if (_quizId().isNotEmpty) ...[
+              GestureDetector(
+                onTap: () => showQuizSharePicker(
+                  context,
+                  quizId: _quizId(),
+                  title: widget.quizTitle,
+                  count: (widget.result['total'] as num?)?.toInt() ?? 0,
+                  difficulty: widget.result['difficulty'] as String? ?? '',
+                ),
+                child: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: _kIndigo.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.ios_share_rounded,
+                      color: _kIndigo, size: 20)),
+              ),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: OutlinedButton(
                 onPressed: () => Navigator.popUntil(context,

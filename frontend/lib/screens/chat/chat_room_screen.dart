@@ -34,6 +34,8 @@ import 'package:tcs_app/screens/chat/chat_audio_recorder.dart';
 import 'package:tcs_app/screens/dashboard/other_user_profile_Screen.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:tcs_app/screens/chat/dale_message_bubble.dart';
+import 'package:tcs_app/services/quiz_share.dart';
+import 'package:tcs_app/widgets/quiz_share_card.dart';
 import 'package:tcs_app/screens/chat/chat_Sticker_picker.dart';
 import 'package:tcs_app/screens/chat/chat_audio_player.dart';
 import 'package:tcs_app/screens/chat/chat_sticker_bubble.dart';
@@ -1085,9 +1087,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final txt = msg['text'] as String? ?? '';
     final sharedProfileId =
         msgType == 'text' ? _sharedProfileId(txt) : null;
+    // Shared quiz → tappable quiz card.
+    final quizShare = msgType == 'text' ? QuizShare.parse(txt) : null;
 
     final Widget bubble;
-    if (sharedProfileId != null) {
+    if (quizShare != null) {
+      bubble = QuizShareCard(quiz: quizShare);
+    } else if (sharedProfileId != null) {
       bubble = _profileShareCard(sharedProfileId, _sharedProfileName(txt), isMe);
     } else if (msgType == 'sticker') {
       bubble = ChatStickerBubble(message: msg, isMe: isMe, stickerMap: _stickerById);

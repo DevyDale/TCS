@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/widgets/uploading_delay.dart';
 import 'package:tcs_app/widgets/ask_dale_sheet.dart';
+import 'package:tcs_app/services/quiz_share.dart';
+import 'package:tcs_app/widgets/quiz_share_card.dart';
 import 'package:lottie/lottie.dart';
 import '../../services/api_service.dart';
 
@@ -1333,6 +1335,32 @@ class _GroupScreenState extends State<GroupScreen>
                 ? rawName
                 : (_myDisplayName ?? 'You'))
             : ((rawName != null && rawName.isNotEmpty) ? rawName : 'Unknown'));
+
+    // A shared quiz renders as a tappable card instead of plain text.
+    final qShare = QuizShare.parse(m['content'] as String?);
+    if (qShare != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                    left: isMe ? 0 : 4, right: isMe ? 4 : 0, bottom: 3),
+                child: Text(senderName,
+                    style: TextStyle(fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold, fontSize: 12,
+                        color: AppC.text)),
+              ),
+              QuizShareCard(quiz: qShare),
+            ],
+          ),
+        ),
+      );
+    }
 
     final bubble = GestureDetector(
       onLongPress: () => _showMessageActions(m),

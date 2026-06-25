@@ -206,35 +206,34 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
               ]),
               const SizedBox(height: 16),
 
-              // Text field
-              Container(
-                decoration: BoxDecoration(
-                  color: AppC.card2,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: widget.accent2.withOpacity(0.55),
-                      width: 1.5),
-                ),
-                child: TextField(
-                  controller: _ctrl,
-                  autofocus: true,
-                  enableSuggestions: true,
-                  maxLines: 3, minLines: 1,
-                  cursorColor: widget.accent2,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _ask(),
-                  style: TextStyle(
-                      fontFamily: 'Momo', fontSize: 14, color: AppC.text),
-                  decoration: InputDecoration(
-                    hintText: TranslationService.I.tr('Ask Dale a question…'),
-                    hintStyle: TextStyle(
-                        fontFamily: 'Momo',
-                        color: AppC.faint,
-                        fontSize: 13),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+              // Text field — framework-native outline border so it renders
+              // cleanly (the old Container border looked broken).
+              TextField(
+                controller: _ctrl,
+                autofocus: true,
+                enableSuggestions: true,
+                maxLines: 3, minLines: 1,
+                cursorColor: widget.accent2,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _ask(),
+                style: TextStyle(
+                    fontFamily: 'Momo', fontSize: 14, color: AppC.text),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppC.card2,
+                  hintText: TranslationService.I.tr('Ask Dale a question…'),
+                  hintStyle: TextStyle(
+                      fontFamily: 'Momo', color: AppC.faint, fontSize: 13),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                        color: widget.accent2.withOpacity(0.55), width: 1.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: widget.accent2, width: 2),
                   ),
                 ),
               ),

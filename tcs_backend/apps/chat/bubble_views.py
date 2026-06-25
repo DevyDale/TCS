@@ -7,6 +7,8 @@
 #
 # Wire these into apps/chat/urls.py (see urls_patch.md).
 
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -25,6 +27,7 @@ from .ai_in_chat import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 # ─── Serializers (small, scoped to bubbles/invites) ──────────
@@ -448,3 +451,78 @@ def summon_dale(request, room_id):
             "message_type": msg.message_type,
         },
     })
+
+# ─────────────────────────────────────────────────────────────
+# Share a quiz into a chat room (renders as a tappable quiz card)
+# ─────────────────────────────────────────────────────────────
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def share_quiz_to_room(request, room_id):
+    """POST /api/chat/rooms/<id>/share-quiz/
+       body: {quiz_id, title, count, difficulty}
+
+    Creates a normal text Message whose body carries a quiz marker
+    ([[quiz|id|title|count|difficulty]]). The app renders any message with
+    that marker as a tappable quiz card. Broadcasts live like a real message.
+    """
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response({"error": "Room not found."}, status=404)
+    if not RoomMember.objects.filter(room=room, user=request.user).exists():
+        return Response({"error": "You're not in this chat."}, status=403)
+
+    quiz_id = str(request.data.get("quiz_id") or "").strip()
+    if not quiz_id:
+        return Response({"error": "quiz_id is required."}, status=400)
+    title = (str(request.data.get("title") or "Quiz")
+             .replace("|", "/").replace("]", ")"))[:120]
+    count = str(request.data.get("count") or "")
+    difficulty = str(request.data.get("difficulty") or "")
+
+    marker = f"[[quiz|{quiz_id}|{title}|{count}|{difficulty}]]"
+    preview = f"\U0001F4DD Shared a quiz: “{title}”"
+    text = f"{preview}\n{marker}"
+
+    msg = Message.objects.create(
+        room=room, sender=request.user,
+        message_type=Message.MsgType.TEXT, text=text,
+    )
+    Room.objects.filter(id=room.id).update(
+        last_message_text=preview,
+        last_message_at=timezone.now(),
+        last_message_sender=request.user,
+    )
+
+    payload = {
+        "id":           str(msg.id),
+        "room_id":      str(msg.room_id),
+        "sender_id":    request.user.user_id,
+        "sender_name":  request.user.display_name,
+        "message_type": "text",
+        "text":         text,
+        "media_url":    None,
+        "reply_to":     None,
+        "reactions":    [],
+        "is_edited":    False,
+        "is_deleted":   False,
+        "is_ai":        False,
+        "is_system":    False,
+        "created_at":   msg.created_at.isoformat(),
+    }
+    try:
+        layer = get_channel_layer()
+        if layer:
+            async_to_sync(layer.group_send)(
+                f"room_{room.id}", {"type": "chat.message", "payload": payload})
+            async_to_sync(layer.group_send)(
+                f"chatlist_{room.id}",
+                {"type": "list.new_message", "room_id": str(room.id),
+                 "message": payload})
+    except Exception:
+        logger.exception("share_quiz broadcast failed")
+
+    return Response(payload, status=201)

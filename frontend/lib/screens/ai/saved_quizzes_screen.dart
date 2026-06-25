@@ -9,6 +9,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 import 'package:tcs_app/widgets/ai_spinner.dart';
+import 'package:tcs_app/widgets/quiz_share_picker.dart';
 
 import '../../../../services/api_service.dart';
 
@@ -100,6 +101,17 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
     if (!ok) return;
     try { await _api.delete('/quiz/${quiz['id']}/'); } catch (_) {}
     setState(() => _quizzes.removeWhere((q) => q['id'] == quiz['id']));
+  }
+
+  void _share(Map<String, dynamic> quiz) {
+    showQuizSharePicker(
+      context,
+      quizId: quiz['id'] as String,
+      title: quiz['title'] as String? ?? 'Quiz',
+      count: (quiz['question_count'] as num?)?.toInt()
+          ?? (quiz['num_questions'] as num?)?.toInt() ?? 0,
+      difficulty: quiz['difficulty'] as String? ?? '',
+    );
   }
 
   // ── Redo a quiz in another format ──────────────────────────
@@ -445,6 +457,7 @@ class _SavedQuizzesScreenState extends State<SavedQuizzesScreen> {
                 )).then((_) => _load()),
                 onDelete: () => _delete(items[i]),
                 onRedo: () => _redo(items[i]),
+                onShare: () => _share(items[i]),
               ),
             ),
     );
@@ -457,12 +470,14 @@ class _QuizCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onRedo;
+  final VoidCallback onShare;
 
   const _QuizCard({
     required this.quiz,
     required this.onTap,
     required this.onDelete,
     required this.onRedo,
+    required this.onShare,
   });
 
   Color _difficultyColor(String d) {
@@ -579,17 +594,31 @@ class _QuizCard extends StatelessWidget {
             ])),
 
             const SizedBox(width: 6),
-            // Redo this quiz in another format.
-            GestureDetector(
-              onTap: onRedo,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _kIndigo.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.refresh_rounded,
-                    color: _kIndigo, size: 18)),
-            ),
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              // Share this quiz to a chat / study group.
+              GestureDetector(
+                onTap: onShare,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _kIndigo.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.ios_share_rounded,
+                      color: _kIndigo, size: 17)),
+              ),
+              const SizedBox(height: 6),
+              // Redo this quiz in another format.
+              GestureDetector(
+                onTap: onRedo,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _kIndigo.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.refresh_rounded,
+                      color: _kIndigo, size: 17)),
+              ),
+            ]),
           ]),
         ),
       ),

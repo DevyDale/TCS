@@ -47,4 +47,5 @@ urlpatterns = [
     path("rooms/<uuid:room_id>/ai/enable/",  bubble_views.enable_ai_in_room,  name="chat-ai-enable"),
     path("rooms/<uuid:room_id>/ai/summon/",  bubble_views.summon_dale,        name="chat-ai-summon"),
     path("rooms/<uuid:room_id>/ai/disable/", bubble_views.disable_ai_in_room, name="chat-ai-disable"),
+    path("rooms/<uuid:room_id>/share-quiz/", bubble_views.share_quiz_to_room, name="chat-share-quiz"),
 ]
