@@ -28,11 +28,59 @@ def _fcm_send(token, title, body, data=None):
             token=token,
             android=messaging.AndroidConfig(priority="high"),
             apns=messaging.APNSConfig(
+                headers={"apns-priority": "10", "apns-push-type": "alert"},
                 payload=messaging.APNSPayload(aps=messaging.Aps(sound="default"))
             ),
         ))
     except Exception as e:
         logger.debug(f"FCM skipped: {e}")
+
+
+def _ensure_firebase():
+    """Lazy-init the Firebase app once per process. Returns the messaging
+    module, or None if Firebase isn't configured."""
+    global _firebase_app
+    from django.conf import settings as s
+    cred_path = getattr(s, "FIREBASE_CREDENTIALS_JSON", "")
+    if not cred_path:
+        return None
+    if _firebase_app is None:
+        import firebase_admin
+        from firebase_admin import credentials
+        _firebase_app = firebase_admin.initialize_app(credentials.Certificate(cred_path))
+    from firebase_admin import messaging
+    return messaging
+
+
+def _fcm_send_multi(tokens, title, body, data=None):
+    """Batched multicast push — ONE FCM call per up-to-500 tokens instead of
+    one blocking call per recipient. This is the difference between a broadcast
+    landing on every screen at once vs. trickling out over a minute."""
+    tokens = [t for t in (tokens or []) if t]
+    if not tokens:
+        return 0
+    try:
+        messaging = _ensure_firebase()
+        if messaging is None:
+            return 0
+        payload = {str(k): str(v) for k, v in (data or {}).items()}
+        sent = 0
+        for i in range(0, len(tokens), 500):
+            batch = tokens[i:i + 500]
+            resp = messaging.send_each_for_multicast(messaging.MulticastMessage(
+                notification=messaging.Notification(title=title, body=body),
+                data=payload, tokens=batch,
+                android=messaging.AndroidConfig(priority="high"),
+                apns=messaging.APNSConfig(
+                    headers={"apns-priority": "10", "apns-push-type": "alert"},
+                    payload=messaging.APNSPayload(aps=messaging.Aps(sound="default"))
+                ),
+            ))
+            sent += resp.success_count
+        return sent
+    except Exception as e:
+        logger.debug(f"FCM multicast skipped: {e}")
+        return 0
 
 
 def _create(recipient_id, actor_id, notif_type, title, body,

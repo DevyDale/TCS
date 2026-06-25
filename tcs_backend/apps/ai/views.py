@@ -384,10 +384,11 @@ def _run_text_tool(request, system_prompt: str, personalize: bool = True, task: 
         }, status=429)
 
     try:
-        body    = json.loads(request.body)
-        message = body.get("message", "").strip()
-        history = body.get("history", [])
-        stream  = body.get("stream", True)
+        body     = json.loads(request.body)
+        message  = body.get("message", "").strip()
+        history  = body.get("history", [])
+        stream   = body.get("stream", True)
+        language = (body.get("language") or "").strip()
     except (json.JSONDecodeError, AttributeError):
         return JsonResponse({"error": "Invalid request body."}, status=400)
 
@@ -405,6 +406,14 @@ def _run_text_tool(request, system_prompt: str, personalize: bool = True, task: 
             final_prompt += f"\n\nThe student you are talking to is named {user.name}."
         if hasattr(user, "role") and user.role:
             final_prompt += f" They are a {user.role}."
+
+    # Language memory: the student picked an app language — always answer in it,
+    # regardless of what language they happen to type this message in.
+    if language:
+        final_prompt += (
+            f"\n\nLANGUAGE: The student has selected '{language}' (ISO 639-1 code) as "
+            f"their language. ALWAYS reply in that language no matter what language "
+            f"they type in, unless they explicitly ask you to switch languages.")
 
     # RAG: pull staff-uploaded study material relevant to this question and
     # inject it as authoritative. Chat lane only; never breaks the turn.

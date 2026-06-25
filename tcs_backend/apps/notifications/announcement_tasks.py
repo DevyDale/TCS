@@ -2,7 +2,7 @@
 import logging
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from .tasks import _create, _fcm_send
+from .tasks import _create, _fcm_send_multi
 
 logger = logging.getLogger(__name__)
 User   = get_user_model()
@@ -32,14 +32,18 @@ def push_announcement(announcement_id):
     body     = (a.body[:140] + "…") if len(a.body) > 140 else a.body
     actor_id = str(a.author_id) if a.author_id else None
 
-    sent = 0
+    tokens, sent = [], 0
     for u in qs.iterator():
         try:
             _create(str(u.id), actor_id, "announcement", title, body,
                     "announcement", str(a.id))
-            _fcm_send(getattr(u, "fcm_token", None), title, body,
-                      {"type": "announcement", "announcement_id": str(a.id)})
+            tok = getattr(u, "fcm_token", None)
+            if tok:
+                tokens.append(tok)
             sent += 1
         except Exception as e:
             logger.debug(f"announcement fan-out skip: {e}")
-    logger.info(f"push_announcement {announcement_id}: notified {sent}")
+    # One batched multicast for all recipients instead of N serial sends.
+    pushed = _fcm_send_multi(tokens, title, body,
+                             {"type": "announcement", "announcement_id": str(a.id)})
+    logger.info(f"push_announcement {announcement_id}: created {sent}, pushed {pushed}")

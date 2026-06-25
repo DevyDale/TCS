@@ -531,6 +531,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         debugPrint('🤖 history len: ${history.length}, message: $msg');
       }
 
+      // The student's selected app language — Dale always replies in it.
+      final lang = (await SharedPreferences.getInstance()).getString('language') ?? 'en';
+
       final request = http.Request('POST', Uri.parse('$baseUrl/api/ai/chat/'))
         ..headers.addAll({
           'Content-Type': 'application/json',
@@ -541,6 +544,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           'message': msg,
           'history': history,
           'stream': true,
+          'language': lang,
         });
 
       final streamed = await request.send().timeout(
