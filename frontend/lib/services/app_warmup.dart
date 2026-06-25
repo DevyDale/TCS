@@ -38,9 +38,27 @@ class AppWarmup {
       'arcade:leaderboard:15': () => api.getLeaderboard(limit: 15),
       'arcade:requests':       () => api.getGameRequests(),
 
-      // ── Add the rest of your hot endpoints here, one per screen ──
-      // 'feed:home':   () => api.getFeed(),
-      // 'profile:me':  () => api.getMyProfile(),
+      // Profile screen (lib/screens/profile/profile_screen.dart).
+      'profile:posts':      () => api.getMyPosts(),
+      'profile:fweets':     () => api.getMyFweets(),
+      'profile:highlights': () => api.getMyHighlights(),
+      'profile:me':         () => api.getMyProfile(),
+
+      // Chat list (lib/screens/chat/chat_list_screen.dart).
+      'chat:rooms': () => api.getChatRooms(),
+
+      // Study hub (lib/screens/groups/groups_study_hub_screen.dart).
+      // Only the simple single-call key is primed here; the composite
+      // 'groups:list'/'groups:activity' entries self-warm on first visit.
+      'groups:buddies': () => api.getStudyBuddies(),
+
+      // Feed (lib/screens/feed/feed_screen.dart). The home page-1 key must
+      // store the *casted results list* — the exact shape the feed peeks.
+      'feed:highlights': () => api.get('/highlights/feed/'),
+      'feed:home:1': () async {
+        final d = await api.getFeed(type: 'home', page: 1) as Map<String, dynamic>;
+        return ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
+      },
     };
 
     await Future.wait(

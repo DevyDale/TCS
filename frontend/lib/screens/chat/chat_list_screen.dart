@@ -36,6 +36,7 @@ import 'package:tcs_app/screens/chat/create_chat_bubble_Screen.dart';
 
 import 'chat_room_screen.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -106,20 +107,31 @@ class _ChatListScreenState extends State<ChatListScreen>
     } catch (_) { /* not fatal */ }
   }
 
-  Future<void> _loadChats() async {
-    setState(() => _loadingChats = true);
-    try {
-      final data = await _api.getChatRooms() as List;
-      if (!mounted) return;
-      final list = data.cast<Map<String, dynamic>>();
-      _sortChats(list);
-      setState(() {
-        _chats        = list;
-        _loadingChats = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loadingChats = false);
-    }
+  // SWR: paints instantly from the cached room list, then revalidates.
+  // _loadingChats defaults true so the spinner shows only on first-ever load.
+  // Returns a Future that completes on the fresh value so it can still be
+  // used as a RefreshIndicator.onRefresh callback (pull-to-refresh awaits it).
+  Future<void> _loadChats() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'chat:rooms',
+      fetch: () => _api.getChatRooms(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final list = (data as List).cast<Map<String, dynamic>>();
+        _sortChats(list);
+        setState(() {
+          _chats        = list;
+          _loadingChats = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingChats = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
   Future<void> _loadRequestsAndInvites() async {

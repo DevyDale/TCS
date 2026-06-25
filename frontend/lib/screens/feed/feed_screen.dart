@@ -28,6 +28,7 @@ import 'package:tcs_app/services/notification_Service.dart';
 
 import '../../search/search_screen.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 import '../../highlight_story_viewer.dart';
 import '../profile/profile_screen.dart' show deletedPostIds;
 import '../profile/createpostspage.dart';
@@ -153,12 +154,30 @@ class _FeedScreenState extends State<FeedScreen>
       });
     }
 
+    // Instant paint from cache on the first page (warmed at login / on a
+    // prior visit). The network fetch below still runs and overwrites with
+    // fresh data — this only kills the spinner when we already have something.
+    if (_feedPage == 1 && !refresh) {
+      final key = _feedTab == 2
+          ? 'feed:events:1'
+          : 'feed:${const ['home', 'following', 'trending', 'club_posts'][_feedTab]}:1';
+      final cached = CacheStore.I.peek(key);
+      if (cached is List) {
+        setState(() {
+          final list = cached.cast<Map<String, dynamic>>();
+          if (_feedTab == 2) { _events = list; } else { _posts = list; }
+          _feedLoading = false;
+        });
+      }
+    }
+
     if (_feedTab == 2) {
       try {
         final d = await _api.get('/clubs/events-feed/?page=$_feedPage')
             as Map<String, dynamic>;
         final results = (d['results'] as List? ?? [])
             .cast<Map<String, dynamic>>();
+        if (_feedPage == 1) CacheStore.I.put('feed:events:1', results);
         if (!mounted) return;
         setState(() {
           if (refresh || _feedPage == 1) {
@@ -187,6 +206,7 @@ class _FeedScreenState extends State<FeedScreen>
           as Map<String, dynamic>;
       final results = (data['results'] as List? ?? [])
           .cast<Map<String, dynamic>>();
+      if (_feedPage == 1) CacheStore.I.put('feed:$type:1', results);
       setState(() {
         if (refresh || _feedPage == 1) {
           _posts = results;
@@ -299,25 +319,35 @@ class _FeedScreenState extends State<FeedScreen>
     _highlightGroups = order.map((k) => map[k]!).toList();
   }
 
-  Future<void> _loadStoryHighlights() async {
-    if (mounted) setState(() => _storyHighlightsLoading = true);
-    try {
-      final d = await _api.get('/highlights/feed/');
-      final list = d is List
-          ? d
-          : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
-      if (!mounted) return;
-      setState(() {
-        _storyHighlights = list
-            .cast<Map<String, dynamic>>()
-            .where(_isFresh)
-            .toList();
-        _rebuildHighlightGroups();
-        _storyHighlightsLoading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _storyHighlightsLoading = false);
-    }
+  // SWR: paints instantly from the cached highlights, then revalidates.
+  // Returns a Future (completes on fresh) so the pull-to-refresh Future.wait
+  // still awaits a real network round-trip.
+  Future<void> _loadStoryHighlights() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'feed:highlights',
+      fetch: () => _api.get('/highlights/feed/'),
+      onData: (d, fresh) {
+        if (!mounted) return;
+        final list = d is List
+            ? d
+            : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
+        setState(() {
+          _storyHighlights = list
+              .cast<Map<String, dynamic>>()
+              .where(_isFresh)
+              .toList();
+          _rebuildHighlightGroups();
+          _storyHighlightsLoading = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _storyHighlightsLoading = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
   void _onHighlightsDeleted() {

@@ -5,7 +5,9 @@ import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
 
+import 'dart:async';
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 import '../chat/chat_room_screen.dart';
 import 'create_group_page.dart';
 import '../dashboard/group_Screen.dart';
@@ -96,24 +98,38 @@ class _GroupsStudyHubScreenState
       // Silent — keep the local default (false). User can re-toggle.
     }
   }
-  Future<void> _loadGroups() async {
-    setState(() => _loadingGroups = true);
-    try {
-      final mine = await _api.getGroups(filter: 'mine');
-      final sugg = await _api.getGroups(filter: 'suggested');
-      final mineList = _asList(mine);
-
-      // Emit expiry-approaching activity for groups expiring within 3 days.
-      _checkExpiringGroups(mineList);
-
-      setState(() {
-        _myGroups        = mineList;
-        _suggestedGroups = _asList(sugg);
-        _loadingGroups   = false;
-      });
-    } catch (_) {
-      setState(() => _loadingGroups = false);
-    }
+  // SWR: paints instantly from cache, then revalidates. The two list calls
+  // are coalesced into one cache entry so the pair stays consistent. Returns
+  // a Future (completes on fresh) so _loadAll()'s Future.wait still works.
+  Future<void> _loadGroups() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'groups:list',
+      fetch: () async {
+        final mine = await _api.getGroups(filter: 'mine');
+        final sugg = await _api.getGroups(filter: 'suggested');
+        return {'mine': _asList(mine), 'suggested': _asList(sugg)};
+      },
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final m = data as Map;
+        final mineList = (m['mine'] as List).cast<Map<String, dynamic>>();
+        // Side-effect (posts activity) only on the authoritative network
+        // value — never the cached paint, to avoid duplicate emissions.
+        if (fresh) _checkExpiringGroups(mineList);
+        setState(() {
+          _myGroups        = mineList;
+          _suggestedGroups = (m['suggested'] as List).cast<Map<String, dynamic>>();
+          _loadingGroups   = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingGroups = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
   void _checkExpiringGroups(List<Map<String, dynamic>> groups) {
@@ -137,54 +153,71 @@ class _GroupsStudyHubScreenState
     }
   }
 
-  Future<void> _loadBuddies() async {
-    setState(() => _loadingBuddies = true);
-    try {
-      final data = await _api.getStudyBuddies();
-      final list = _asList(data);
-      // ── TEMP DIAGNOSTIC ──
-      debugPrint('🧑‍🎓 getStudyBuddies raw runtimeType: ${data.runtimeType}');
-      debugPrint('🧑‍🎓 getStudyBuddies raw: $data');
-      debugPrint('🧑‍🎓 _asList → ${list.length} buddies');
-      _snack('Buddies loaded: ${list.length}');
-      setState(() {
-        _buddies        = list;
-        _loadingBuddies = false;
-      });
-    } catch (e, st) {
-      debugPrint('🧑‍🎓 getStudyBuddies failed: $e\n$st');
-      _snack('Buddies error: $e');
-      setState(() => _loadingBuddies = false);
-    }
+  Future<void> _loadBuddies() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'groups:buddies',
+      fetch: () => _api.getStudyBuddies(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final list = _asList(data);
+        // ── TEMP DIAGNOSTIC (fire only on the fresh value, not the
+        // cached paint, so the snackbar doesn't flash twice) ──
+        if (fresh) {
+          debugPrint('🧑‍🎓 getStudyBuddies raw runtimeType: ${data.runtimeType}');
+          debugPrint('🧑‍🎓 getStudyBuddies raw: $data');
+          debugPrint('🧑‍🎓 _asList → ${list.length} buddies');
+          _snack('Buddies loaded: ${list.length}');
+        }
+        setState(() {
+          _buddies        = list;
+          _loadingBuddies = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (e) {
+        debugPrint('🧑‍🎓 getStudyBuddies failed: $e');
+        _snack('Buddies error: $e');
+        if (mounted) setState(() => _loadingBuddies = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
-  Future<void> _loadActivity() async {
-    setState(() => _loadingActivity = true);
-    try {
-      final data = await _api.get('/activity/',
-          query: {'limit': '50'}) as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _activities      = ((data['results'] as List?) ?? [])
-            .cast<Map<String, dynamic>>();
-        _loadingActivity = false;
-      });
-    } catch (_) {
-      // Fallback: announcements
-      try {
-        final fb = await _api.getFeed(type: 'announcements')
-            as Map<String, dynamic>;
+  Future<void> _loadActivity() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'groups:activity',
+      // The announcements fallback lives inside the fetcher so the cached
+      // value is always the final activity list, whichever source won.
+      fetch: () async {
+        try {
+          final data = await _api.get('/activity/',
+              query: {'limit': '50'}) as Map<String, dynamic>;
+          return ((data['results'] as List?) ?? [])
+              .cast<Map<String, dynamic>>();
+        } catch (_) {
+          final fb = await _api.getFeed(type: 'announcements')
+              as Map<String, dynamic>;
+          return ((fb['results'] as List?) ?? [])
+              .cast<Map<String, dynamic>>();
+        }
+      },
+      onData: (data, fresh) {
         if (!mounted) return;
         setState(() {
-          _activities      = ((fb['results'] as List?) ?? [])
-              .cast<Map<String, dynamic>>();
+          _activities      = (data as List).cast<Map<String, dynamic>>();
           _loadingActivity = false;
         });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() => _loadingActivity = false);
-      }
-    }
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingActivity = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
   List<Map<String, dynamic>> _asList(dynamic raw) {

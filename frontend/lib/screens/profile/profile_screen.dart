@@ -19,6 +19,7 @@
 // profile-share sheet, bio/interests privacy toggles, and the Clubs tab. Ask
 // if you want any of those re-added.
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -32,6 +33,7 @@ import 'package:tcs_app/services/settings_Screen.dart';
 
 import '../../models/biodata.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 import 'bio.dart';
 import 'create_highlight_page.dart';
 import 'createpostspage.dart';
@@ -186,48 +188,66 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ── Data fetches ──────────────────────────────────────────
 
-  Future<void> _fetchPosts() async {
-    setState(() => _postsLoading = true);
-    try {
-      final d = await _api.getMyPosts() as Map<String, dynamic>;
-      setState(() {
-        _posts = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        _postsLoading = false;
-      });
-    } catch (_) {
-      setState(() => _postsLoading = false);
-    }
+  // Stale-while-revalidate: paint instantly from cache (warmed at login),
+  // then silently refresh. Loading flags start true (field defaults), so
+  // the spinner still shows on the very first load with no cached value.
+
+  void _fetchPosts() {
+    CacheStore.I.swr(
+      'profile:posts',
+      fetch: () => _api.getMyPosts(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final d = (data as Map).cast<String, dynamic>();
+        setState(() {
+          _posts = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
+          _postsLoading = false;
+        });
+      },
+      onError: (_) {
+        if (mounted) setState(() => _postsLoading = false);
+      },
+    );
   }
 
-  Future<void> _fetchFweets() async {
-    setState(() => _fweetsLoading = true);
-    try {
-      final d = await _api.getMyFweets() as Map<String, dynamic>;
-      setState(() {
-        _fweets = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
-        _fweetsLoading = false;
-      });
-    } catch (_) {
-      setState(() => _fweetsLoading = false);
-    }
+  void _fetchFweets() {
+    CacheStore.I.swr(
+      'profile:fweets',
+      fetch: () => _api.getMyFweets(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final d = (data as Map).cast<String, dynamic>();
+        setState(() {
+          _fweets = (d['results'] as List? ?? []).cast<Map<String, dynamic>>();
+          _fweetsLoading = false;
+        });
+      },
+      onError: (_) {
+        if (mounted) setState(() => _fweetsLoading = false);
+      },
+    );
   }
 
-  Future<void> _fetchHighlights() async {
-    setState(() => _highlightsLoading = true);
-    try {
-      final d = await _api.getMyHighlights();
-      final list = d is List
-          ? d
-          : (d as Map<String, dynamic>?)?['results'] as List? ?? [];
-      final cast = list.cast<Map<String, dynamic>>();
-      final fresh = cast.where(_isHighlightFresh).toList();
-      setState(() {
-        _highlights = fresh;
-        _highlightsLoading = false;
-      });
-    } catch (_) {
-      setState(() => _highlightsLoading = false);
-    }
+  void _fetchHighlights() {
+    CacheStore.I.swr(
+      'profile:highlights',
+      fetch: () => _api.getMyHighlights(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final list = data is List
+            ? data
+            : (data as Map<String, dynamic>?)?['results'] as List? ?? [];
+        final cast = list.cast<Map<String, dynamic>>();
+        final freshItems = cast.where(_isHighlightFresh).toList();
+        setState(() {
+          _highlights = freshItems;
+          _highlightsLoading = false;
+        });
+      },
+      onError: (_) {
+        if (mounted) setState(() => _highlightsLoading = false);
+      },
+    );
   }
 
   bool _isHighlightFresh(Map<String, dynamic> h) {
@@ -242,10 +262,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Future<void> _fetchStats() async {
-    try {
-      final d = await _api.getMyProfile() as Map<String, dynamic>;
-      setState(() {
+  void _fetchStats() {
+    CacheStore.I.swr(
+      'profile:me',
+      fetch: () => _api.getMyProfile(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final d = (data as Map).cast<String, dynamic>();
+        setState(() {
         _followers = d['followers_count'] as int? ?? 0;
         _following = d['following_count'] as int? ?? 0;
 
@@ -284,7 +308,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         final av = d['avatar_url'] as String?;
         if (av != null && av.isNotEmpty && _avatarFile == null) _avatarUrl = av;
       });
-    } catch (_) {}
+      },
+      onError: (_) {},
+    );
   }
 
   // ── Persist / restore avatar URL ──────────────────────────
