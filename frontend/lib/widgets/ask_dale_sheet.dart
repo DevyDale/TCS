@@ -37,6 +37,10 @@ Future<void> showAskDaleSheet(
   required Future<void> Function(String message) onAsk,
   Future<void> Function()? onRemove,
   String subtitle = 'Ask anything based on the chat',
+  // Accent gradient so the sheet matches the room it's opened from
+  // (defaults to the chat-room sage; groups pass their indigo/purple).
+  Color accent1 = _kG1,
+  Color accent2 = _kG2,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -47,7 +51,8 @@ Future<void> showAskDaleSheet(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: _AskDaleSheet(
-          onAsk: onAsk, onRemove: onRemove, subtitle: subtitle),
+          onAsk: onAsk, onRemove: onRemove, subtitle: subtitle,
+          accent1: accent1, accent2: accent2),
     ),
   );
 }
@@ -56,10 +61,14 @@ class _AskDaleSheet extends StatefulWidget {
   final Future<void> Function(String) onAsk;
   final Future<void> Function()? onRemove;
   final String subtitle;
+  final Color accent1;
+  final Color accent2;
   const _AskDaleSheet({
     required this.onAsk,
     this.onRemove,
     this.subtitle = 'Ask anything based on the chat',
+    this.accent1 = _kG1,
+    this.accent2 = _kG2,
   });
 
   @override
@@ -156,10 +165,10 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
               Row(children: [
                 Container(
                   width: 38, height: 38,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [_kG1, _kG2],
+                      colors: [widget.accent1, widget.accent2],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -185,7 +194,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                         style: TextStyle(
                             fontFamily: 'Alfa',
                             fontSize: 16,
-                            color: _kInk)),
+                            color: AppC.text)),
                     SizedBox(height: 1),
                     T(widget.subtitle,
                         style: TextStyle(
@@ -200,20 +209,21 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
               // Text field
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF6F8F2),
+                  color: AppC.card2,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _kG1.withOpacity(0.5)),
+                  border: Border.all(color: widget.accent2.withOpacity(0.55),
+                      width: 1.5),
                 ),
                 child: TextField(
                   controller: _ctrl,
                   autofocus: true,
                   enableSuggestions: true,
                   maxLines: 3, minLines: 1,
-                  cursorColor: _kG2,
+                  cursorColor: widget.accent2,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _ask(),
-                  style: const TextStyle(
-                      fontFamily: 'Momo', fontSize: 14, color: _kInk),
+                  style: TextStyle(
+                      fontFamily: 'Momo', fontSize: 14, color: AppC.text),
                   decoration: InputDecoration(
                     hintText: TranslationService.I.tr('Ask Dale a question…'),
                     hintStyle: TextStyle(
@@ -242,13 +252,13 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppC.border),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: T('Catch me up',
                             style: TextStyle(
                                 fontFamily: 'Arch',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: _kInk)),
+                                color: AppC.text)),
                       ),
                     ),
                   ),
@@ -261,15 +271,15 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_kG1, _kG2],
+                        gradient: LinearGradient(
+                          colors: [widget.accent1, widget.accent2],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                              color: _kG2.withOpacity(0.35),
+                              color: widget.accent2.withOpacity(0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 3)),
                         ],
@@ -280,12 +290,12 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                                 width: 18, height: 18,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2))
-                            : T('Ask Dale',
+                            : const T('Ask Dale',
                                 style: TextStyle(
                                     fontFamily: 'Arch',
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: AppC.text)),
+                                    color: Colors.white)),
                       ),
                     ),
                   ),

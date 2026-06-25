@@ -256,6 +256,9 @@ class _GroupScreenState extends State<GroupScreen>
       context,
       onAsk: _askDaleInGroup,
       subtitle: 'Ask anything based on the group chat',
+      // Match the group room's indigo/purple instead of chat-room sage.
+      accent1: _indigo,
+      accent2: _deep,
       // No onRemove: Dale isn't a persistent member here, he's summoned
       // on demand — so the sheet hides the "Remove Dale" option.
     );

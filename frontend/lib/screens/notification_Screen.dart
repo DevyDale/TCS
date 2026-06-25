@@ -31,6 +31,14 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
 import 'noticeboard_screen.dart';
+import 'chat/chat_room_screen.dart';
+import 'chat/chat_requests.dart';
+import 'arcade/game_requests_screen.dart';
+import 'dashboard/group_Screen.dart';
+import 'dashboard/event_details.dart';
+import 'dashboard/other_user_profile_Screen.dart';
+import 'groups/groups_study_hub_screen.dart';
+import 'feed/post_open_screen.dart';
 
 const _kViolet = Color(0xFF8E54E9);
 const _kBlue   = Color(0xFF6DD5FA);
@@ -80,49 +88,87 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _routeFor(n);
   }
 
-  // Map notif_type → screen. Plug your existing routes in here.
+  void _push(Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
+
+  // Map notif_type (+ target_type/target_id from the backend) → the actual
+  // screen the notification is about, so tapping a tile takes you there.
   void _routeFor(AppNotification n) {
-    // Safe defaults — replace with your real Navigator.push targets.
+    final id = n.targetId;
     switch (n.notifType) {
-      case 'game_request':
-        Navigator.of(context).pushNamed('/arcade/requests');
+      // ── Chats ──────────────────────────────────────────────
+      case 'chat_message':
+      case 'request_accepted':
+        if (n.targetType == 'room' && id.isNotEmpty) {
+          _push(ChatRoomScreen(
+            roomId: id,
+            roomName: n.title.isNotEmpty ? n.title : 'Chat',
+            userName: '',
+            roomType: 'direct',
+          ));
+        } else if (id.isNotEmpty) {
+          _push(OtherUserProfileScreen(userId: id));
+        }
         break;
       case 'chat_request':
-        Navigator.of(context).pushNamed('/chat/requests');
+      case 'request_declined':
+        _push(const ChatRequestsScreen());
         break;
-      case 'chat_message':
-        Navigator.of(context).pushNamed('/chat/room',
-            arguments: {'room_id': n.targetId});
+
+      // ── Games ──────────────────────────────────────────────
+      case 'game_request':
+      case 'game_request_accepted':
+        _push(const GameRequestsScreen(myTokens: 0));
+        break;
+
+      // ── Study groups (Posts scoped to a group) ─────────────
+      case 'group_message':
+      case 'group_material':
+      case 'study_group_invite':
+        if (id.isNotEmpty) _push(GroupScreen(group: {'id': id}));
+        break;
+      case 'group_add':
+        if (n.targetType == 'group' && id.isNotEmpty) {
+          _push(GroupScreen(group: {'id': id}));
+        } else if (id.isNotEmpty) {
+          _push(ChatRoomScreen(
+            roomId: id,
+            roomName: n.title.isNotEmpty ? n.title : 'Group',
+            userName: '',
+            roomType: 'group',
+          ));
+        }
+        break;
+      case 'study_buddy_request':
+        _push(const GroupsStudyHubScreen());
+        break;
+
+      // ── Events / announcements ─────────────────────────────
+      case 'event_reminder':
+      case 'club_event':
+        if (id.isNotEmpty) _push(EventDetailsScreen(eventId: id));
         break;
       case 'highlight':
-        if (n.targetType == 'event') {
-          Navigator.of(context).pushNamed('/events/details',
-              arguments: {'event_id': n.targetId});
-        } else {
-          Navigator.of(context).pushNamed('/feed');
+        if (n.targetType == 'event' && id.isNotEmpty) {
+          _push(EventDetailsScreen(eventId: id));
         }
         break;
       case 'announcement':
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => NoticeboardScreen(highlightId: n.targetId),
-        ));
+        _push(NoticeboardScreen(highlightId: id));
         break;
-      case 'study_buddy_request':
-        Navigator.of(context).pushNamed('/groups/buddies');
-        break;
-      case 'study_group_invite':
-        Navigator.of(context).pushNamed('/groups/detail',
-            arguments: {'group_id': n.targetId});
-        break;
+
+      // ── People ─────────────────────────────────────────────
       case 'follow':
-        Navigator.of(context).pushNamed('/profile/other',
-            arguments: {'user_id': n.targetId});
+      case 'birthday':
+        if (id.isNotEmpty) _push(OtherUserProfileScreen(userId: id));
         break;
+
+      // ── Post engagement → open that post ───────────────────
       case 'like':
       case 'comment':
       case 'mention':
-        Navigator.of(context).pushNamed('/posts/detail',
-            arguments: {'post_id': n.targetId});
+        if (id.isNotEmpty) _push(PostOpenScreen(postId: id));
         break;
     }
   }

@@ -432,7 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _openDetail(Map<String, dynamic> item, {required bool isFweet}) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => _PostDetailScreen(
+      builder: (_) => PostDetailScreen(
         post: item,
         isFweet: isFweet,
         authorName: widget.fullName,
@@ -1855,12 +1855,12 @@ class _EditLinksSheetState extends State<_EditLinksSheet> {
 // POST / FWEET DETAIL — opens full-screen from a grid tile.
 // ═════════════════════════════════════════════════════════════
 
-class _PostDetailScreen extends StatelessWidget {
+class PostDetailScreen extends StatelessWidget {
   final Map<String, dynamic> post;
   final bool isFweet;
   final String authorName;
   final String? authorAvatar;
-  const _PostDetailScreen({
+  const PostDetailScreen({
     required this.post,
     required this.isFweet,
     required this.authorName,
