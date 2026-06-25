@@ -151,7 +151,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ── DRF ──────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.SuspensionAwareJWTAuthentication",
     ),
     # Fail CLOSED: every endpoint requires a valid token unless it explicitly
     # opts out with permission_classes = [AllowAny]. The genuinely-public
