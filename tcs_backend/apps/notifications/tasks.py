@@ -455,3 +455,9 @@ def push_birthday_notifications():
         notif = _create(str(u.id), None, "birthday", title, body, "user", str(u.id))
         if notif:
             _fcm_send(u.fcm_token, title, body, {"type": "birthday"})
+
+
+# Celery's autodiscover only imports each app's tasks.py. Pull in sibling
+# task modules here so their @shared_tasks (e.g. push_announcement) are
+# actually registered on the worker.
+from . import announcement_tasks  # noqa: E402,F401
