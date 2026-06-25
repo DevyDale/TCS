@@ -21,6 +21,7 @@ import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
+import 'package:tcs_app/screens/staff/staff_dale_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 // Dale animation — the same robot Lottie used across the app. Falls back to an
@@ -187,7 +188,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           const SizedBox(width: 10),
           _headerButton(
               child: _daleVisual(size: 30, fallbackColor: Colors.white),
-              onTap: () => _push(const StaffKnowledgeScreen())),
+              onTap: () => _push(const StaffDaleScreen())),
         ]),
         const SizedBox(height: 20),
         Text('$_greeting,',

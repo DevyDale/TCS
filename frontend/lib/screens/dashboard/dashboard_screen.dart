@@ -36,7 +36,6 @@ import '../staff/staff_home_screen.dart';
 import '../staff/staff_protect_screen.dart';
 import '../staff/staff_connect_screen.dart';
 import '../staff/staff_campus_screen.dart';
-import '../staff/staff_dale_screen.dart';
 import '../../utils/responsive_helper.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
@@ -125,7 +124,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           const StaffProtectScreen(),
           const StaffConnectScreen(),
           const StaffCampusScreen(),
-          const StaffDaleScreen(),
         ]
       : [
           const FeedScreen(),
@@ -205,7 +203,57 @@ class _DashboardScreenState extends State<DashboardScreen>
       // can show through near the bar's rounded top edge.
       extendBody: true,
       backgroundColor: Colors.transparent,
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar:
+          _isStaff ? _buildStaffNav(context) : _buildBottomNav(context),
+    );
+  }
+
+  // ── Staff nav: a flat 4-tab bar (Home · Protect · Connect · Campus).
+  // Dale lives on Home's header button instead of in the bar.
+  Widget _buildStaffNav(BuildContext context) {
+    final r = R(context);
+    final double barH       = r.btnH + r.sm;
+    final double slotsH     = r.btnH;
+    final double topRadius  = r.radiusLg;
+    final double slotIcon   = r.iconMd;
+    final double slotPill   = slotsH - 8;
+    final double pillRadius = r.radiusSm;
+
+    _NavSlot slot(IconData icon, String label, int i) => _NavSlot(
+          icon: icon, label: label,
+          selected: _navIndex == i,
+          onTap: () => _onTabTap(i),
+          iconSize: slotIcon, pillSize: slotPill, pillRadius: pillRadius,
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.only(
+          topLeft:  Radius.circular(topRadius),
+          topRight: Radius.circular(topRadius)),
+        boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 22, offset: const Offset(0, -4))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: barH,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              height: slotsH,
+              child: Row(children: [
+                slot(Icons.dashboard_rounded, 'Home', 0),
+                slot(Icons.shield_rounded, 'Protect', 1),
+                slot(Icons.forum_rounded, 'Connect', 2),
+                slot(Icons.gps_fixed_rounded, 'Campus', 3),
+              ]),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
