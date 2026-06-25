@@ -237,3 +237,44 @@ def restore_user(request, pk):
     u.suspended_at     = None
     u.save(update_fields=["is_suspended", "suspended_reason", "suspended_at"])
     return Response({"ok": True, "id": str(u.id)})
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def staff_roster(request):
+    """GET /api/moderation/staff/roster/?q=&filter=all|active|quiet
+
+    Searchable student roster with engagement signal (last seen / online).
+    """
+    from datetime import timedelta
+    from django.db.models import Q
+
+    q    = (request.GET.get("q") or "").strip()
+    filt = (request.GET.get("filter") or "all").strip()
+    now  = timezone.now()
+
+    qs = User.objects.filter(role="student", is_active=True)
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(user_id__icontains=q))
+    if filt == "active":
+        qs = qs.filter(last_seen__gte=now - timedelta(days=2))
+    elif filt == "quiet":
+        qs = qs.filter(Q(last_seen__lt=now - timedelta(days=7)) |
+                       Q(last_seen__isnull=True))
+    users = list(qs.order_by("-is_online", "-last_seen")[:300])
+
+    return Response({
+        "count": len(users),
+        "results": [{
+            "id":         str(u.id),
+            "user_id":    getattr(u, "user_id", ""),
+            "name":       getattr(u, "display_name", "") or getattr(u, "name", "")
+                          or "Student",
+            "is_online":  bool(getattr(u, "is_online", False)),
+            "suspended":  bool(getattr(u, "is_suspended", False)),
+            "last_seen":  u.last_seen.isoformat() if getattr(u, "last_seen", None)
+                          else None,
+            "avatar_url": request.build_absolute_uri(u.avatar.url)
+                          if getattr(u, "avatar", None) else None,
+        } for u in users],
+    })

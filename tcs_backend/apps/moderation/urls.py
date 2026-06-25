@@ -2,7 +2,7 @@ from django.urls import path
 from .views import ReportCreateView, BlockListCreateView, BlockDestroyView
 from .staff_views import (
     report_queue, report_action, staff_overview,
-    suspended_users, restore_user,
+    suspended_users, restore_user, staff_roster,
 )
 
 urlpatterns = [
@@ -16,4 +16,5 @@ urlpatterns = [
     path("staff/overview/",                 staff_overview, name="moderation-staff-overview"),
     path("staff/suspended/",                suspended_users, name="moderation-staff-suspended"),
     path("staff/suspended/<uuid:pk>/restore/", restore_user, name="moderation-staff-restore"),
+    path("staff/roster/",                   staff_roster, name="moderation-staff-roster"),
 ]

@@ -14,6 +14,7 @@ import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/dashboard/events_screen.dart';
+import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -148,7 +149,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
         _pulseTile('Active today', _activeToday, Icons.bolt_rounded,
-            const Color(0xFF22C55E)),
+            const Color(0xFF22C55E),
+            onTap: () => _push(const StaffOversightScreen(initialFilter: 'active'))),
         const SizedBox(width: 10),
         _pulseTile('Flags pending', _flagsPending, Icons.flag_rounded,
             const Color(0xFFE11D48),
@@ -257,6 +259,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           const Color(0xFF8E54E9), () => _push(const StaffAnnouncementsScreen())),
       (Icons.school_rounded, 'Train Dale', 'Tutor from your notes',
           const Color(0xFF0EA5A4), () => _push(const StaffKnowledgeScreen())),
+      (Icons.insights_rounded, 'Oversight', 'Student roster & engagement',
+          const Color(0xFF2575FC), () => _push(const StaffOversightScreen())),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
