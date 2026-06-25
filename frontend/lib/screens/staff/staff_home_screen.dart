@@ -1,8 +1,9 @@
 // lib/screens/staff/staff_home_screen.dart
 //
-// HOME tab — the staff Cohort Command Center. Answers "what needs me today?"
-// the instant it opens: greeting + live pulse strip, quick actions, and the
-// control cards (moderation, suggestions, announcements, train Dale).
+// HOME tab — the staff Cohort Command Center.
+// Header: greeting block with notifications + Dale buttons (notifications opens
+// the Needs-attention page). Then the live pulse strip, beautified gradient
+// quick actions, and a "Run your cohort" carousel of gradient-bordered tiles.
 // Pulse data: GET /api/moderation/staff/overview/.
 
 import 'package:flutter/material.dart';
@@ -15,9 +16,9 @@ import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/dashboard/events_screen.dart';
 import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
-import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
+import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
@@ -41,8 +42,10 @@ class StaffHomeScreen extends StatefulWidget {
 class _StaffHomeScreenState extends State<StaffHomeScreen> {
   final _api = ApiService();
   int? _activeToday, _flagsPending, _upcomingEvents;
-  List<Map<String, dynamic>> _needs = [];
   bool _loading = true;
+
+  final _cohortCtrl = PageController(viewportFraction: 0.82);
+  int _cohortPage = 0;
 
   @override
   void initState() {
@@ -50,33 +53,25 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _cohortCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     try {
-      final results = await Future.wait([
-        _api.get('/moderation/staff/overview/'),
-        _api.get('/moderation/staff/needs-attention/')
-            .catchError((_) => <String, dynamic>{}),
-      ]);
+      final d = (await _api.get('/moderation/staff/overview/') as Map)
+          .cast<String, dynamic>();
       if (!mounted) return;
-      final d = (results[0] as Map).cast<String, dynamic>();
-      final n = (results[1] as Map).cast<String, dynamic>();
       setState(() {
         _activeToday    = (d['active_today'] as num?)?.toInt();
         _flagsPending   = (d['flags_pending'] as num?)?.toInt();
         _upcomingEvents = (d['upcoming_events'] as num?)?.toInt();
-        _needs = ((n['results'] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _openTarget(String target) {
-    if (target == 'moderation') {
-      _push(const StaffModerationScreen());
-    } else if (target == 'wellbeing') {
-      _push(const StaffWellbeingScreen());
     }
   }
 
@@ -114,14 +109,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               child: Column(children: [
                 _pulseStrip(),
                 const SizedBox(height: 24),
-                _sectionLabel('Needs attention'),
-                _needsAttention(),
-                const SizedBox(height: 24),
                 _sectionLabel('Quick actions'),
                 _quickActions(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 26),
                 _sectionLabel('Run your cohort'),
-                _controls(),
+                _cohort(),
                 const SizedBox(height: 40),
               ]),
             ),
@@ -131,6 +123,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
+  // ── Header ────────────────────────────────────────────────
   Widget _header() {
     return StaffHeader(
       bottomPad: 26,
@@ -143,31 +136,34 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.workspace_premium_rounded,
-                  color: Colors.white, size: 12),
-              const SizedBox(width: 5),
-              const Text('STAFF',
+            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+              Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 12),
+              SizedBox(width: 5),
+              Text('STAFF',
                   style: TextStyle(fontFamily: 'Arch', fontSize: 9,
                       fontWeight: FontWeight.bold, letterSpacing: 1.5,
                       color: Colors.white)),
             ]),
           ),
           const Spacer(),
-          Text(_today,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.85))),
+          _headerButton(Icons.notifications_rounded,
+              () => _push(const StaffNeedsAttentionScreen()),
+              dot: (_flagsPending ?? 0) > 0),
+          const SizedBox(width: 10),
+          _headerButton(Icons.auto_awesome_rounded,
+              () => _push(const StaffKnowledgeScreen())),
         ]),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Text('$_greeting,',
             style: TextStyle(fontFamily: 'Momo', fontSize: 14,
                 color: Colors.white.withValues(alpha: 0.85))),
+        const SizedBox(height: 12),
         Text(_firstName,
             style: const TextStyle(fontFamily: 'Alfa', fontSize: 30,
                 color: Colors.white, height: 1.05,
                 shadows: [Shadow(color: Colors.black26, blurRadius: 8,
                     offset: Offset(0, 3))])),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Row(children: [
           const Icon(Icons.bolt_rounded, color: Colors.white70, size: 14),
           const SizedBox(width: 5),
@@ -175,25 +171,41 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
                   color: Colors.white.withValues(alpha: 0.85))),
         ]),
+        const SizedBox(height: 10),
       ]),
     );
   }
 
-  String get _today {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep',
-        'Oct','Nov','Dec'];
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    final n = DateTime.now();
-    return '${days[n.weekday - 1]} ${n.day} ${months[n.month - 1]}';
+  Widget _headerButton(IconData icon, VoidCallback onTap, {bool dot = false}) {
+    return GestureDetector(
+      onTap: () { HapticFeedback.selectionClick(); onTap(); },
+      child: Stack(clipBehavior: Clip.none, children: [
+        Container(
+          width: 42, height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+          child: Icon(icon, color: Colors.white, size: 20)),
+        if (dot)
+          Positioned(right: -1, top: -1, child: Container(
+            width: 12, height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE11D48), shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 1.6)))),
+      ]),
+    );
   }
 
+  // ── Pulse strip ───────────────────────────────────────────
   Widget _pulseStrip() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
         _pulseTile('Active today', _activeToday, Icons.bolt_rounded,
             const Color(0xFF22C55E),
-            onTap: () => _push(const StaffOversightScreen(initialFilter: 'active'))),
+            onTap: () => _push(
+                const StaffOversightScreen(initialFilter: 'active'))),
         const SizedBox(width: 10),
         _pulseTile('Flags pending', _flagsPending, Icons.flag_rounded,
             const Color(0xFFE11D48),
@@ -238,139 +250,56 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   Widget _sectionLabel(String t) => StaffSectionLabel(t);
 
-  ({IconData icon, Color color}) _needStyle(String type) {
-    switch (type) {
-      case 'escalation':
-        return (icon: Icons.priority_high_rounded, color: const Color(0xFFE11D48));
-      case 'flag':
-        return (icon: Icons.flag_rounded, color: const Color(0xFFF59E0B));
-      case 'wellbeing':
-        return (icon: Icons.favorite_rounded, color: const Color(0xFF0EA5A4));
-      default:
-        return (icon: Icons.notifications_rounded, color: _kIndigo);
-    }
-  }
-
-  Widget _needsAttention() {
-    if (_loading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          height: 64,
-          decoration: BoxDecoration(
-            color: AppC.card, borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppC.border)),
-          child: const Center(child: SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: _kDeep))),
-        ),
-      );
-    }
-    if (_needs.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppC.card, borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppC.border)),
-          child: Row(children: [
-            const Icon(Icons.check_circle_rounded,
-                color: Color(0xFF22C55E), size: 22),
-            const SizedBox(width: 12),
-            Expanded(child: Text("You're all caught up — nothing needs you right now.",
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                    color: AppC.sub))),
-          ]),
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(children: _needs.map((it) {
-        final st = _needStyle((it['type'] ?? '').toString());
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              _openTarget((it['target'] ?? '').toString());
-            },
-            child: Container(
-              padding: const EdgeInsets.all(13),
-              decoration: staffCard(border: st.color.withValues(alpha: 0.30)),
-              child: Row(children: [
-                Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
-                    color: st.color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(11)),
-                  child: Icon(st.icon, color: st.color, size: 19)),
-                const SizedBox(width: 12),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text((it['title'] ?? '').toString(),
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: 'Arch',
-                            fontWeight: FontWeight.bold, fontSize: 13.5,
-                            color: AppC.text)),
-                    const SizedBox(height: 2),
-                    Text((it['subtitle'] ?? '').toString(),
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
-                            color: AppC.sub)),
-                  ],
-                )),
-                Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 20),
-              ]),
-            ),
-          ),
-        );
-      }).toList()),
-    );
-  }
-
+  // ── Quick actions (gradient tiles) ────────────────────────
   Widget _quickActions() {
-    final actions = [
-      (Icons.campaign_rounded, 'Post\nannouncement', const Color(0xFF8E54E9),
+    final actions = <(IconData, String, List<Color>, VoidCallback)>[
+      (Icons.campaign_rounded, 'Post\nannouncement',
+          [const Color(0xFFA78BFA), const Color(0xFF8E54E9)],
           () => _push(const StaffAnnouncementsScreen())),
-      (Icons.warning_amber_rounded, 'Send scam\nalert', const Color(0xFFE11D48),
+      (Icons.warning_amber_rounded, 'Send scam\nalert',
+          [const Color(0xFFFB7185), const Color(0xFFE11D48)],
           () => _push(const StaffAnnouncementsScreen())),
-      (Icons.event_available_rounded, 'Create\nevent', const Color(0xFFF59E0B),
+      (Icons.event_available_rounded, 'Create\nevent',
+          [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
           () => _push(const EventsScreen())),
-      (Icons.school_rounded, 'Train\nDale', const Color(0xFF0EA5A4),
+      (Icons.school_rounded, 'Train\nDale',
+          [const Color(0xFF2DD4BF), const Color(0xFF0EA5A4)],
           () => _push(const StaffKnowledgeScreen())),
     ];
     return SizedBox(
-      height: 104,
+      height: 118,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: actions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (_, i) {
           final a = actions[i];
           return GestureDetector(
             onTap: () { HapticFeedback.selectionClick(); a.$4(); },
             child: Container(
-              width: 96,
-              padding: const EdgeInsets.all(12),
-              decoration: staffCard(),
+              width: 114,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: a.$3,
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(
+                    color: a.$3.last.withValues(alpha: 0.35),
+                    blurRadius: 16, offset: const Offset(0, 8))]),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 34, height: 34,
+                    width: 38, height: 38,
                     decoration: BoxDecoration(
-                      color: a.$3.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10)),
-                    child: Icon(a.$1, color: a.$3, size: 19)),
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(12)),
+                    child: Icon(a.$1, color: Colors.white, size: 20)),
                   const Spacer(),
-                  Text(a.$2, style: TextStyle(fontFamily: 'Arch',
-                      fontSize: 11, fontWeight: FontWeight.bold, height: 1.2,
-                      color: AppC.text)),
+                  Text(a.$2, style: const TextStyle(fontFamily: 'Arch',
+                      fontSize: 12, fontWeight: FontWeight.bold, height: 1.2,
+                      color: Colors.white)),
                 ],
               ),
             ),
@@ -380,55 +309,150 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  Widget _controls() {
-    final items = [
-      (Icons.shield_rounded, 'Moderation', 'Flags, hide & remove',
-          const Color(0xFFE11D48), () => _push(const StaffModerationScreen())),
-      (Icons.lightbulb_rounded, 'Suggestions', 'Student ideas to the school',
-          const Color(0xFF4F46E5), () => _push(const StaffSuggestionsScreen())),
-      (Icons.campaign_rounded, 'Announcements', 'Official posts & push',
-          const Color(0xFF8E54E9), () => _push(const StaffAnnouncementsScreen())),
-      (Icons.school_rounded, 'Train Dale', 'Tutor from your notes',
-          const Color(0xFF0EA5A4), () => _push(const StaffKnowledgeScreen())),
-      (Icons.insights_rounded, 'Oversight', 'Student roster & engagement',
-          const Color(0xFF2575FC), () => _push(const StaffOversightScreen())),
-      (Icons.receipt_long_rounded, 'Audit log', 'Every staff action, logged',
-          const Color(0xFF64748B), () => _push(const StaffAuditScreen())),
-      if (widget.role.toLowerCase().trim() == 'admin')
-        (Icons.key_rounded, 'Permissions', 'Assign staff tiers',
-            const Color(0xFFB45309), () => _push(const StaffPermissionsScreen())),
+  // ── Run your cohort (carousel) ────────────────────────────
+  List<_CohortItem> _cohortItems() {
+    final items = <_CohortItem>[
+      _CohortItem(Icons.shield_rounded, 'Moderation', 'Flags, hide & remove',
+          [const Color(0xFFFB7185), const Color(0xFFE11D48)],
+          () => _push(const StaffModerationScreen())),
+      _CohortItem(Icons.lightbulb_rounded, 'Suggestions',
+          'Student ideas to the school',
+          [const Color(0xFF818CF8), const Color(0xFF4F46E5)],
+          () => _push(const StaffSuggestionsScreen())),
+      _CohortItem(Icons.campaign_rounded, 'Announcements',
+          'Official posts & push',
+          [const Color(0xFFA78BFA), const Color(0xFF8E54E9)],
+          () => _push(const StaffAnnouncementsScreen())),
+      _CohortItem(Icons.school_rounded, 'Train Dale', 'Tutor from your notes',
+          [const Color(0xFF2DD4BF), const Color(0xFF0EA5A4)],
+          () => _push(const StaffKnowledgeScreen())),
+      _CohortItem(Icons.insights_rounded, 'Oversight', 'Roster & engagement',
+          [const Color(0xFF60A5FA), const Color(0xFF2575FC)],
+          () => _push(const StaffOversightScreen())),
+      _CohortItem(Icons.receipt_long_rounded, 'Audit log',
+          'Every staff action, logged',
+          [const Color(0xFF94A3B8), const Color(0xFF64748B)],
+          () => _push(const StaffAuditScreen())),
     ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(children: items.map((it) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: GestureDetector(
-          onTap: () { HapticFeedback.selectionClick(); it.$5(); },
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: staffCard(),
-            child: Row(children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: it.$4.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(13)),
-                child: Icon(it.$1, color: it.$4, size: 22)),
-              const SizedBox(width: 14),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(it.$2, style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 14.5,
-                    color: AppC.text)),
-                const SizedBox(height: 2),
-                Text(it.$3, style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 11.5, color: AppC.sub)),
-              ])),
-              Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 22),
-            ]),
+    if (widget.role.toLowerCase().trim() == 'admin') {
+      items.add(_CohortItem(Icons.key_rounded, 'Permissions',
+          'Assign staff tiers',
+          [const Color(0xFFFBBF24), const Color(0xFFB45309)],
+          () => _push(const StaffPermissionsScreen())));
+    }
+    return items;
+  }
+
+  Widget _cohort() {
+    final items = _cohortItems();
+    return Column(children: [
+      SizedBox(
+        height: 196,
+        child: PageView.builder(
+          controller: _cohortCtrl,
+          onPageChanged: (i) => setState(() => _cohortPage = i),
+          itemCount: items.length,
+          itemBuilder: (_, i) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: _cohortTile(items[i]),
           ),
         ),
-      )).toList()),
+      ),
+      const SizedBox(height: 14),
+      _dots(items.length),
+    ]);
+  }
+
+  Widget _cohortTile(_CohortItem it) {
+    return GestureDetector(
+      onTap: () { HapticFeedback.selectionClick(); it.onTap(); },
+      child: Container(
+        // Gradient border = gradient container with a small padding wrapping
+        // an inner card-coloured container.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: it.gradient,
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(
+              color: it.gradient.last.withValues(alpha: 0.22),
+              blurRadius: 22, offset: const Offset(0, 12))]),
+        padding: const EdgeInsets.all(1.6),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppC.card,
+            borderRadius: BorderRadius.circular(22.6)),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: it.gradient,
+                      begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [BoxShadow(
+                      color: it.gradient.last.withValues(alpha: 0.40),
+                      blurRadius: 14, offset: const Offset(0, 6))]),
+                child: Icon(it.icon, color: Colors.white, size: 28)),
+              const Spacer(),
+              Text(it.title,
+                  style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
+                      color: AppC.text)),
+              const SizedBox(height: 6),
+              Text(it.subtitle,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                      color: AppC.sub, height: 1.3)),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: it.gradient.last.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('Open',
+                      style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold, fontSize: 11.5,
+                          color: it.gradient.last)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 13,
+                      color: it.gradient.last),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+
+  Widget _dots(int n) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(n, (i) {
+        final active = i == _cohortPage;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: active ? 22 : 7,
+          height: 7,
+          decoration: BoxDecoration(
+            gradient: active
+                ? const LinearGradient(colors: [_kIndigo, _kDeep])
+                : null,
+            color: active ? null : AppC.faint.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(4)),
+        );
+      }),
+    );
+  }
+}
+
+class _CohortItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+  _CohortItem(this.icon, this.title, this.subtitle, this.gradient, this.onTap);
 }
