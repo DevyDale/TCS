@@ -27,6 +27,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/services/notification_Service.dart';
+import 'package:tcs_app/services/app_warmup.dart';
 
 // ─── Config ───────────────────────────────────────────────────
 class ApiConfig {
@@ -275,6 +276,9 @@ class AuthService {
     // so the service stops cleanly without trying to reconnect with stale auth.
     await NotificationService.instance.disposeAll();
     await clearTokens();
+    // Drop the in-memory SWR cache and re-arm warmup so the next user
+    // who logs in never sees the previous user's cached data.
+    await AppWarmup.reset();
   }
 
   // ── Helpers ─────────────────────────────────────────────────

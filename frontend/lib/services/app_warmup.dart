@@ -27,20 +27,20 @@ class AppWarmup {
     final api = ApiService();
     final c   = CacheStore.I;
 
-    // cache-key → fetcher. Keys MUST match what each screen passes to
-    // CacheStore.swr(). Add every endpoint a screen loads on open.
+    // cache-key → fetcher. Keys MUST match EXACTLY what each screen passes
+    // to CacheStore.swr(). These call the same ApiService helpers the
+    // screens call, so the primed value is identical to what the screen
+    // would fetch itself. Add every endpoint a screen loads on open.
     final targets = <String, Fetcher>{
-      '/arcade/games/':       () => api.get('/arcade/games/'),
-      '/arcade/leaderboard/': () => api.get('/arcade/leaderboard/'),
-      '/arcade/stats/':       () => api.get('/arcade/stats/'),
-      '/arcade/tokens/':      () => api.get('/arcade/tokens/'),
-      '/ai/status/':          () => api.get('/ai/status/'),
+      // Arcade screen (keys mirror lib/screens/arcade/arcade_screen.dart).
+      'arcade:games':          () => api.getGames(),
+      'arcade:stats':          () => api.getPlayerStats(),
+      'arcade:leaderboard:15': () => api.getLeaderboard(limit: 15),
+      'arcade:requests':       () => api.getGameRequests(),
 
-      // ── Add the rest of your hot endpoints here ──
-      // '/posts/feed/':   () => api.get('/posts/feed/'),
-      // '/clubs/':        () => api.get('/clubs/'),
-      // '/events/':       () => api.get('/events/'),
-      // '/users/me/':     () => api.get('/users/me/'),
+      // ── Add the rest of your hot endpoints here, one per screen ──
+      // 'feed:home':   () => api.getFeed(),
+      // 'profile:me':  () => api.getMyProfile(),
     };
 
     await Future.wait(

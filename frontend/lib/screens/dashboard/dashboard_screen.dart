@@ -20,9 +20,12 @@
 //     radiusMd).
 //   • Welcome banner, animations, and routing logic are untouched.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
+import 'package:tcs_app/services/app_warmup.dart';
 import 'package:tcs_app/services/app_localisations.dart';
 import '../feed/feed_screen.dart';
 import '../arcade/arcade_screen.dart';
@@ -83,6 +86,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+
+    // Warm the hot endpoints once, right after the user lands on the
+    // dashboard (the shared destination for both splash-resume and
+    // fresh login). Fire-and-forget: failures just fall back to each
+    // screen's normal first-load fetch.
+    unawaited(AppWarmup.run());
 
     _tabSwitchCtrl = AnimationController(
       vsync: this,

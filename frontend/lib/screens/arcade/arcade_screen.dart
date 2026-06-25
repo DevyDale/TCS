@@ -11,6 +11,7 @@
 // Avatar system uses the shared kAvatars list (100 presets) from
 // data/avators.dart, rendered via AvatarView.preset(). _avatarId is int?.
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ import 'package:tcs_app/data/avators.dart';
 import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 
 import 'arcade_Effects.dart';
 import 'campus_Craft_game.dart';
@@ -271,43 +273,96 @@ class _ArcadeScreenState extends State<ArcadeScreen>
     _loadAll();
   }
 
-  Future<void> _loadStats() async {
-    try {
-      final data = await _api.getPlayerStats() as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() { _stats = data; _loadingStats = false; });
-      if ((data['gamer_tag'] as String? ?? '').isEmpty && mounted) {
-        _promptPlayerTag();
-      }
-    } catch (_) { if (mounted) setState(() => _loadingStats = false); }
+  // ── Cached loads (stale-while-revalidate) ─────────────────
+  // Each paints INSTANTLY from cache (warmed at login by AppWarmup),
+  // then silently revalidates. The returned Future completes when the
+  // fresh value (or an error) lands, so _loadAll()/_refresh() still
+  // await a real network round-trip for pull-to-refresh.
+
+  Future<void> _loadStats() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'arcade:stats',
+      fetch: () => _api.getPlayerStats(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final stats = (data as Map).cast<String, dynamic>();
+        setState(() { _stats = stats; _loadingStats = false; });
+        // Only prompt off the authoritative network value, never the
+        // cached paint — avoids a double-prompt and stale prompts.
+        if (fresh && (stats['gamer_tag'] as String? ?? '').isEmpty && mounted) {
+          _promptPlayerTag();
+        }
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingStats = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
-  Future<void> _loadGames() async {
-    try {
-      final data = await _api.getGames() as List;
-      if (!mounted) return;
-      setState(() { _games = data.cast<Map<String, dynamic>>(); _loadingGames = false; });
-    } catch (_) { if (mounted) setState(() => _loadingGames = false); }
+  Future<void> _loadGames() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'arcade:games',
+      fetch: () => _api.getGames(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        setState(() {
+          _games = (data as List).cast<Map<String, dynamic>>();
+          _loadingGames = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingGames = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
-  Future<void> _loadLeaderboard() async {
-    try {
-      final data = await _api.getLeaderboard(limit: 15) as List;
-      if (!mounted) return;
-      setState(() {
-        _leaderboard = data.cast<Map<String, dynamic>>();
-        _topGamers   = data.take(10).cast<Map<String, dynamic>>().toList();
-        _loadingLb   = false;
-      });
-    } catch (_) { if (mounted) setState(() => _loadingLb = false); }
+  Future<void> _loadLeaderboard() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'arcade:leaderboard:15',
+      fetch: () => _api.getLeaderboard(limit: 15),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final list = (data as List).cast<Map<String, dynamic>>();
+        setState(() {
+          _leaderboard = list;
+          _topGamers   = list.take(10).toList();
+          _loadingLb   = false;
+        });
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loadingLb = false);
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
-  Future<void> _loadPendingRequests() async {
-    try {
-      final data = await _api.getGameRequests() as List? ?? const [];
-      if (!mounted) return;
-      setState(() => _pendingRequests = data.length);
-    } catch (_) {}
+  Future<void> _loadPendingRequests() {
+    final c = Completer<void>();
+    CacheStore.I.swr(
+      'arcade:requests',
+      fetch: () => _api.getGameRequests(),
+      onData: (data, fresh) {
+        if (!mounted) return;
+        final list = (data as List?) ?? const [];
+        setState(() => _pendingRequests = list.length);
+        if (fresh && !c.isCompleted) c.complete();
+      },
+      onError: (_) {
+        if (!c.isCompleted) c.complete();
+      },
+    );
+    return c.future;
   }
 
   // ── Navigation ────────────────────────────────────────────
