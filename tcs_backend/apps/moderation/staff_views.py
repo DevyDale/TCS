@@ -25,6 +25,20 @@ def _is_elevated(user):
         (getattr(user, "role", "") or "").lower() in _ELEVATED_ROLES
 
 
+def record_audit(actor, action, summary, target_type="", target_id=""):
+    """Append a staff action to the audit log (best-effort, never blocks)."""
+    try:
+        from .models import AuditEvent
+        AuditEvent.objects.create(
+            actor=actor,
+            actor_name=(getattr(actor, "display_name", "") or
+                        getattr(actor, "name", "") or ""),
+            action=action, summary=(summary or "")[:300],
+            target_type=target_type, target_id=str(target_id) if target_id else "")
+    except Exception:
+        logger.exception("audit write failed for %s", action)
+
+
 def _owner_of(obj):
     """Best-effort: the user who owns/authored a reported object."""
     if obj is None:
@@ -182,6 +196,10 @@ def report_action(request, pk):
     report.reviewed_at = now
     report.reviewed_by = request.user
     report.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+    record_audit(request.user, f"report.{action}",
+                 f"{action.replace('_', ' ')} on {report.content_type.model} "
+                 f"“{_preview(report.content_object)[:60]}”",
+                 "report", report.id)
     return Response(_serialize(report))
 
 
@@ -239,6 +257,9 @@ def restore_user(request, pk):
     u.suspended_reason = ""
     u.suspended_at     = None
     u.save(update_fields=["is_suspended", "suspended_reason", "suspended_at"])
+    record_audit(request.user, "user.restore",
+                 f"Restored {getattr(u, 'display_name', '') or 'a user'}",
+                 "user", u.id)
     return Response({"ok": True, "id": str(u.id)})
 
 
@@ -351,6 +372,10 @@ def wellbeing_action(request, pk):
 
     WellbeingAction.objects.create(
         student=student, staff=request.user, kind=action, note=note)
+    record_audit(request.user, f"wellbeing.{action}",
+                 f"{action.replace('_', ' ')} for "
+                 f"{getattr(student, 'display_name', '') or 'a student'}",
+                 "user", student.id)
 
     if action == "escalate":
         try:
@@ -440,3 +465,28 @@ def needs_attention(request):
 
     items.sort(key=lambda x: x["priority"])
     return Response({"results": items[:8]})
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def audit_log(request):
+    """GET /api/moderation/staff/audit/?q=  — searchable staff action log."""
+    from django.db.models import Q
+    from .models import AuditEvent
+
+    q = (request.GET.get("q") or "").strip()
+    qs = AuditEvent.objects.all()
+    if q:
+        qs = qs.filter(Q(actor_name__icontains=q) |
+                       Q(summary__icontains=q) |
+                       Q(action__icontains=q))
+    qs = qs.order_by("-created_at")[:300]
+    return Response({"results": [{
+        "id":          str(e.id),
+        "actor_name":  e.actor_name or "System",
+        "action":      e.action,
+        "summary":     e.summary,
+        "target_type": e.target_type,
+        "target_id":   e.target_id,
+        "created_at":  e.created_at.isoformat(),
+    } for e in qs]})

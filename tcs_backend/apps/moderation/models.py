@@ -133,3 +133,23 @@ class WellbeingAction(models.Model):
         db_table = "moderation_wellbeing_action"
         ordering = ["-created_at"]
         indexes  = [models.Index(fields=["student", "-created_at"])]
+
+
+class AuditEvent(models.Model):
+    """Append-only log of staff actions — the accountability layer. Written by
+    record_audit() from the staff action endpoints. actor_name is denormalised
+    so the trail survives account deletion."""
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor       = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    actor_name  = models.CharField(max_length=120, blank=True, default="")
+    action      = models.CharField(max_length=64, db_index=True)
+    summary     = models.CharField(max_length=300, blank=True, default="")
+    target_type = models.CharField(max_length=32, blank=True, default="")
+    target_id   = models.CharField(max_length=64, blank=True, default="")
+    created_at  = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "moderation_audit_event"
+        ordering = ["-created_at"]
