@@ -10,7 +10,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsStaff
-from .knowledge import ingest_text
+from .knowledge import bump_kb_version, ingest_text
 from .models import KnowledgeDoc
 
 
@@ -69,6 +69,7 @@ def knowledge_upload(request):
         title=str(title)[:200], subject=subject[:80],
         filename=(f.name or "")[:255], uploaded_by=request.user)
     ingest_text(doc, text)
+    bump_kb_version()
     doc.refresh_from_db()
     return Response(_doc_dict(doc), status=status.HTTP_201_CREATED)
 
@@ -81,6 +82,7 @@ def knowledge_toggle(request, pk):
         return Response({"error": "Not found."}, status=404)
     d.is_active = not d.is_active
     d.save(update_fields=["is_active"])
+    bump_kb_version()
     return Response(_doc_dict(d))
 
 
@@ -91,4 +93,5 @@ def knowledge_delete(request, pk):
     if not d:
         return Response({"error": "Not found."}, status=404)
     d.delete()  # cascades chunks
+    bump_kb_version()
     return Response(status=status.HTTP_204_NO_CONTENT)

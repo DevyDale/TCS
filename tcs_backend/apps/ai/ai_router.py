@@ -119,16 +119,70 @@ def available(task=None):
     return out
 
 
+# ── Circuit breaker ──────────────────────────────────────────
+# When a provider errors, skip it for a short cooldown so we don't re-incur its
+# timeout/failure on every request — the lane jumps straight to a healthy
+# provider and feels instant. Backed by the Django cache (Redis); degrades to
+# no-op if the cache isn't available, so the router stays importable anywhere.
+_BREAKER_TTL = 60  # seconds a failed provider is skipped
+
+
+def _cache():
+    try:
+        from django.core.cache import cache
+        return cache
+    except Exception:
+        return None
+
+
+def _breaker_open(name):
+    c = _cache()
+    try:
+        return bool(c and c.get(f"ai_breaker_{name}"))
+    except Exception:
+        return False
+
+
+def _trip_breaker(name):
+    c = _cache()
+    if not c:
+        return
+    try:
+        c.set(f"ai_breaker_{name}", 1, _BREAKER_TTL)
+    except Exception:
+        pass
+
+
+def _clear_breaker(name):
+    c = _cache()
+    if not c:
+        return
+    try:
+        c.delete(f"ai_breaker_{name}")
+    except Exception:
+        pass
+
+
+def _healthy_lane(task):
+    """Configured providers minus those in cooldown. Never returns empty while
+    any provider is configured (a stale breaker must not take a lane fully dark)."""
+    configured = available(task)
+    healthy = [n for n in configured if not _breaker_open(n)]
+    return healthy or configured
+
+
 def status():
     """Diagnostic snapshot — which providers/lanes are live. Never leaks keys."""
     return {
         "providers": {
             n: {"configured": is_configured(n), "env": p["env"],
-                "model": p["model"], "kind": p["kind"]}
+                "model": p["model"], "kind": p["kind"],
+                "cooling_down": _breaker_open(n)}
             for n, p in PROVIDERS.items()
         },
         "lanes": {
-            task: {"order": names, "active": available(task)}
+            task: {"order": names, "active": available(task),
+                   "healthy": _healthy_lane(task)}
             for task, names in TASK_LANES.items()
         },
     }
@@ -246,18 +300,19 @@ def complete(task, messages, max_tokens=1024, temperature=0.7, response_format=N
     Pass response_format={"type": "json_object"} to request JSON output.
     """
     last_err = None
-    for name in available(task):
+    for name in _healthy_lane(task):
         p, key = PROVIDERS[name], key_for(name)
         try:
             fn = _gemini_complete if p["kind"] == "gemini" else _openai_complete
             text = fn(p, key, messages, max_tokens, temperature, response_format)
             if text:
+                _clear_breaker(name)
                 return {"text": text, "provider": name, "error": None}
         except urllib.error.HTTPError as e:
-            last_err = f"{name}: HTTP {e.code}"
+            last_err = f"{name}: HTTP {e.code}"; _trip_breaker(name)
             logger.warning("ai lane '%s' provider '%s' failed: %s", task, name, last_err)
         except Exception as e:  # noqa: BLE001 — fail over on anything
-            last_err = f"{name}: {e}"
+            last_err = f"{name}: {e}"; _trip_breaker(name)
             logger.warning("ai lane '%s' provider '%s' failed: %s", task, name, e)
     return {"text": "", "provider": None,
             "error": last_err or "No AI providers configured for this task."}
@@ -271,18 +326,20 @@ def stream(task, messages, max_tokens=1024, temperature=0.7):
     provider fails, yields nothing — callers should treat empty as an error.
     """
     last_err = None
-    for name in available(task):
+    for name in _healthy_lane(task):
         p, key = PROVIDERS[name], key_for(name)
         fn = _gemini_stream if p["kind"] == "gemini" else _openai_stream
         try:
             gen = fn(p, key, messages, max_tokens, temperature)
             first = next(gen)        # open + first token; raises → fail over
         except StopIteration:
+            _clear_breaker(name)
             return                   # provider succeeded but produced nothing
         except Exception as e:       # noqa: BLE001
-            last_err = f"{name}: {e}"
+            last_err = f"{name}: {e}"; _trip_breaker(name)
             logger.warning("ai stream lane '%s' provider '%s' failed: %s", task, name, e)
             continue
+        _clear_breaker(name)
         yield first
         yield from gen
         return

@@ -7,14 +7,31 @@
 # Free by design — keyword full-text search, no embeddings/vector DB. The
 # upgrade path is NVIDIA's baai/bge-m3 for semantic retrieval (later phase).
 
+import hashlib
 import logging
 import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+from django.core.cache import cache
 
 from .models import KnowledgeChunk
 
 logger = logging.getLogger(__name__)
+
+_RETRIEVE_TTL = 300  # cache a query's retrieved context for 5 min
+
+
+def kb_version():
+    """A counter bumped whenever the knowledge base changes — folded into the
+    retrieval cache key so an upload/toggle/delete invalidates cached lookups."""
+    return cache.get("ai_kb_version", 0)
+
+
+def bump_kb_version():
+    try:
+        cache.incr("ai_kb_version")
+    except ValueError:
+        cache.set("ai_kb_version", 1)
 
 _CHUNK_CHARS   = 900
 _CHUNK_OVERLAP = 120
@@ -67,6 +84,16 @@ def retrieve_context(query, limit=4, max_chars=2200):
     q = (query or "").strip()
     if not q:
         return ""
+
+    ckey = "ai_kb_ret_%s_%s" % (kb_version(),
+                                hashlib.md5(q.lower().encode("utf-8")).hexdigest())
+    try:
+        hit = cache.get(ckey)
+        if hit is not None:
+            return hit
+    except Exception:
+        pass
+
     try:
         rows = (KnowledgeChunk.objects
                 .filter(doc__is_active=True)
@@ -80,7 +107,12 @@ def retrieve_context(query, limit=4, max_chars=2200):
             total += len(c.content)
             if total >= max_chars:
                 break
-        return "\n\n".join(out)
+        result = "\n\n".join(out)
+        try:
+            cache.set(ckey, result, _RETRIEVE_TTL)
+        except Exception:
+            pass
+        return result
     except Exception as e:  # noqa: BLE001 — never break chat over retrieval
         logger.warning("retrieve_context failed: %s", e)
         return ""
