@@ -980,24 +980,90 @@ class _GroupScreenState extends State<GroupScreen>
     );
   }
 
+  // Segmented animated tab bar — a sliding gradient pill that tracks swipes
+  // and taps, with icon+label segments that light up as they're selected.
   Widget _buildTabBar() {
+    const labels = ['Chat', 'Members', 'Materials'];
+    const icons = [
+      Icons.forum_rounded,
+      Icons.people_alt_rounded,
+      Icons.folder_rounded,
+    ];
+    const count = 3;
     return Container(
       color: AppC.card,
-      child: TabBar(
-        controller: _tabCtrl,
-        labelColor: _indigo,
-        unselectedLabelColor: AppC.faint,
-        indicatorColor: _indigo,
-        indicatorSize: TabBarIndicatorSize.label,
-        labelStyle: const TextStyle(
-            fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 13),
-        unselectedLabelStyle:
-            const TextStyle(fontFamily: 'Arch', fontSize: 13),
-        tabs: const [
-          Tab(text: 'Chat'),
-          Tab(text: 'Members'),
-          Tab(text: 'Materials'),
-        ],
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppC.card2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppC.border),
+        ),
+        child: AnimatedBuilder(
+          animation: _tabCtrl.animation ?? _tabCtrl,
+          builder: (context, _) {
+            // Continuous 0..(count-1) position so the pill glides with swipes.
+            final pos = (_tabCtrl.animation?.value ?? _tabCtrl.index.toDouble())
+                .clamp(0.0, (count - 1).toDouble());
+            final align = count > 1 ? (pos / (count - 1)) * 2 - 1 : 0.0;
+            return Stack(children: [
+              // Sliding gradient indicator — exactly one segment wide.
+              Align(
+                alignment: Alignment(align, 0),
+                child: FractionallySizedBox(
+                  widthFactor: 1 / count,
+                  heightFactor: 1,
+                  child: Container(
+                    margin: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [_indigo, _deep],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight),
+                      borderRadius: BorderRadius.circular(11),
+                      boxShadow: [BoxShadow(
+                          color: _indigo.withOpacity(0.35),
+                          blurRadius: 8, offset: const Offset(0, 3))],
+                    ),
+                  ),
+                ),
+              ),
+              Row(children: List.generate(count, (i) {
+                // 1.0 when fully selected, 0.0 when fully unselected.
+                final sel = (1.0 - (pos - i).abs()).clamp(0.0, 1.0);
+                final fg = Color.lerp(AppC.sub, Colors.white, sel)!;
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _tabCtrl.animateTo(i);
+                    },
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icons[i], size: 15, color: fg),
+                            const SizedBox(width: 6),
+                            Text(labels[i],
+                                style: TextStyle(
+                                    fontFamily: 'Arch',
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: fg)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              })),
+            ]);
+          },
+        ),
       ),
     );
   }
