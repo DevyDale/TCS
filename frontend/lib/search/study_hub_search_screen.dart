@@ -1,5 +1,6 @@
 // lib/screens/groups/study_hub_search_screen.dart
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -78,7 +79,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
                 onChanged: _onChanged,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: 'Search groups, buddies, subjects...',
+                  hintText: TranslationService.I.tr('Search groups, buddies, subjects...'),
                   hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade400),
                   prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
                   border: InputBorder.none,

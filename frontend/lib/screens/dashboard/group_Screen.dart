@@ -1,5 +1,6 @@
 // lib/screens/groups/group_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -336,8 +337,8 @@ class _GroupScreenState extends State<GroupScreen>
                 autofocus: true,
                 keyboardType: TextInputType.url,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
-                decoration: const InputDecoration(
-                  hintText: 'https://example.com',
+                decoration: InputDecoration(
+                  hintText: TranslationService.I.tr('https://example.com'),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 14, vertical: 14),
@@ -727,7 +728,7 @@ class _GroupScreenState extends State<GroupScreen>
                 controller: reasonCtrl, autofocus: true, maxLines: 3,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Reason for dissolving...',
+                  hintText: TranslationService.I.tr('Reason for dissolving...'),
                   hintStyle: TextStyle(fontFamily: 'Momo',
                       color: Colors.grey.shade400),
                   border: InputBorder.none,
@@ -1343,7 +1344,7 @@ class _GroupScreenState extends State<GroupScreen>
             onChanged: (v) => setState(() => _memberQuery = v),
             style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Search members...',
+              hintText: TranslationService.I.tr('Search members...'),
               hintStyle: TextStyle(
                   fontFamily: 'Momo', color: Colors.grey.shade400),
               prefixIcon: const Icon(Icons.search_rounded, color: _indigo),
@@ -1376,7 +1377,7 @@ class _GroupScreenState extends State<GroupScreen>
               onChanged: _searchToAdd,
               style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Search & add members...',
+                hintText: TranslationService.I.tr('Search & add members...'),
                 hintStyle: TextStyle(
                     fontFamily: 'Momo', color: Colors.grey.shade400),
                 prefixIcon: _searchingAdd

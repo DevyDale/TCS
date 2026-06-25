@@ -18,6 +18,7 @@
 // Original light palette preserved (_kBg / _kIndigo / _kDeep / gradient _kG1-_kG4).
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -2225,11 +2226,11 @@ class _ClubScreenState extends State<ClubScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const T('Edit About', style: TextStyle(fontFamily: 'Alfa', fontSize: 20)),
           const SizedBox(height: 16),
-          TextField(controller: descCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
+          TextField(controller: descCtrl, maxLines: 4, decoration: InputDecoration(labelText: TranslationService.I.tr('Description'), border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(controller: missCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Mission', border: OutlineInputBorder())),
+          TextField(controller: missCtrl, maxLines: 3, decoration: InputDecoration(labelText: TranslationService.I.tr('Mission'), border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(controller: ruleCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Rules', border: OutlineInputBorder())),
+          TextField(controller: ruleCtrl, maxLines: 3, decoration: InputDecoration(labelText: TranslationService.I.tr('Rules'), border: OutlineInputBorder())),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel'))),
@@ -2688,7 +2689,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
               style: const TextStyle(
                   fontFamily: 'Momo', fontSize: 14, color: _kInk),
               decoration: InputDecoration(
-                hintText: 'Search by name…',
+                hintText: TranslationService.I.tr('Search by name…'),
                 hintStyle: TextStyle(
                     fontFamily: 'Momo', fontSize: 13,
                     color: Colors.grey.shade400),
@@ -3392,7 +3393,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                 controller: _commentCtrl,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Add a comment...',
+                  hintText: TranslationService.I.tr('Add a comment...'),
                   hintStyle: TextStyle(
                       fontFamily: 'Momo', fontSize: 13,
                       color: Colors.grey.shade400),

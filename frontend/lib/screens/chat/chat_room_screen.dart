@@ -19,6 +19,7 @@
 //   • DELETE endpoint POST /chat/messages/<id>/delete/ {scope: me|everyone}.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:io';
 
@@ -1504,7 +1505,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
-                  hintText: 'Type a message…',
+                  hintText: TranslationService.I.tr('Type a message…'),
                   hintStyle: TextStyle(
                       color: _kSlate.withOpacity(0.8),
                       fontFamily: 'Momo',

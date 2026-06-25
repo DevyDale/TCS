@@ -5,6 +5,7 @@
 // fetches /quiz/<id>/play/. Handles MCQ, true/false, and short-answer.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
@@ -411,7 +412,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         style: const TextStyle(fontFamily: 'Momo',
             fontSize: 13, color: _kInk, height: 1.5),
         decoration: InputDecoration(
-          hintText: 'Type your answer here…',
+          hintText: TranslationService.I.tr('Type your answer here…'),
           hintStyle: const TextStyle(fontFamily: 'Momo', color: _kInkLight),
           filled: true, fillColor: _kPaper,
           contentPadding: const EdgeInsets.all(14),

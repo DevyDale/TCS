@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -202,7 +203,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
-          hintText: 'DD/MM/YYYY',
+          hintText: TranslationService.I.tr('DD/MM/YYYY'),
           hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
           prefixIcon: Container(
             margin: const EdgeInsets.all(10),
@@ -225,7 +226,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
               size: 22,
             ),
             onPressed: _selectDate,
-            tooltip: 'Pick from calendar',
+            tooltip: TranslationService.I.tr('Pick from calendar'),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(

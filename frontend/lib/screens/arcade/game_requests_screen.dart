@@ -9,6 +9,7 @@
 // SOLO_ONLY games.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -501,7 +502,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
           style: const TextStyle(color: Colors.white,
               fontFamily: 'Momo', fontSize: 14),
           decoration: InputDecoration(
-            hintText:  'Search by gamer tag or name...',
+            hintText: TranslationService.I.tr('Search by gamer tag or name...'),
             hintStyle: TextStyle(fontFamily: 'Momo',
                 color: Colors.white.withOpacity(0.3)),
             filled: true, fillColor: _kDarkCard,

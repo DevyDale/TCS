@@ -18,6 +18,7 @@
 //     events can show up in the profile screen's favorites tab.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -2876,7 +2877,7 @@ class _ShareSheetState extends State<_ShareSheet> {
                   style: const TextStyle(
                       fontFamily: 'Momo', fontSize: 14, color: _kInk),
                   decoration: InputDecoration(
-                    hintText: 'Search people...',
+                    hintText: TranslationService.I.tr('Search people...'),
                     hintStyle: TextStyle(
                         fontFamily: 'Momo', color: _kSlate.withOpacity(0.7)),
                     prefixIcon: const Icon(Icons.search_rounded, color: _kViolet),

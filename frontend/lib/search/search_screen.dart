@@ -14,6 +14,7 @@
 // People results (enforced in `_people`, and server-side too).
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -1808,7 +1809,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
                     minLines: 1, maxLines: 4,
                     style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Add a comment…',
+                      hintText: TranslationService.I.tr('Add a comment…'),
                       hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
                           color: Colors.grey.shade400),
                       filled: true,
@@ -2119,7 +2120,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
                   style: const TextStyle(
                       fontFamily: 'Momo', fontSize: 14, color: _kInk),
                   decoration: InputDecoration(
-                    hintText: 'Search people…',
+                    hintText: TranslationService.I.tr('Search people…'),
                     hintStyle: TextStyle(
                         fontFamily: 'Momo', color: _kSlate.withOpacity(0.7)),
                     prefixIcon: const Icon(Icons.search_rounded, color: _kG2),

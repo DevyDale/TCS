@@ -11,6 +11,7 @@
 // create a new club.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -315,7 +316,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
           onChanged: (q) => setState(() => _searchQuery = q.trim().toLowerCase()),
           style: const TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
-            hintText: 'Search clubs by name or tagline...',
+            hintText: TranslationService.I.tr('Search clubs by name or tagline...'),
             hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
                 color: _kSlate.withOpacity(0.5)),
             prefixIcon: const Icon(Icons.search_rounded, color: _kIndigo),

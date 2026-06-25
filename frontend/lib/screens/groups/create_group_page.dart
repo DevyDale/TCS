@@ -1,5 +1,6 @@
 // lib/screens/groups/create_group_page.dart
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 
@@ -364,7 +365,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           },
           style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Search by name or ID...',
+            hintText: TranslationService.I.tr('Search by name or ID...'),
             hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade400),
             prefixIcon: _searching
                 ? const Padding(padding: EdgeInsets.all(12),

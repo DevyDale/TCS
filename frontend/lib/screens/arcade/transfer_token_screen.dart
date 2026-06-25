@@ -9,6 +9,7 @@
 //   • Live wallet balance + recent transfer history below
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -281,7 +282,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
             style: const TextStyle(color: Colors.white,
                 fontFamily: 'Momo', fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Search by gamer tag or name...',
+              hintText: TranslationService.I.tr('Search by gamer tag or name...'),
               hintStyle: TextStyle(fontFamily: 'Momo',
                   color: Colors.white.withOpacity(0.3)),
               filled: true, fillColor: _kDarkCard,
@@ -353,7 +354,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
               style: const TextStyle(color: Colors.white,
                   fontFamily: 'Alfa', fontSize: 22),
               decoration: InputDecoration(
-                hintText: '0',
+                hintText: TranslationService.I.tr('0'),
                 hintStyle: TextStyle(fontFamily: 'Alfa',
                     color: Colors.white.withOpacity(0.2),
                     fontSize: 22),
@@ -398,7 +399,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
             style: const TextStyle(color: Colors.white,
                 fontFamily: 'Momo', fontSize: 13),
             decoration: InputDecoration(
-              hintText: 'For pizza? 🍕',
+              hintText: TranslationService.I.tr('For pizza? 🍕'),
               hintStyle: TextStyle(fontFamily: 'Momo',
                   color: Colors.white.withOpacity(0.3), fontSize: 13),
               counterStyle: TextStyle(fontFamily: 'Momo',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:intl/intl.dart';
 
@@ -164,7 +165,7 @@ class _BioPageState extends State<BioPage> {
                         controller: _dobController,
                         readOnly: true,
                         decoration: InputDecoration(
-                          labelText: 'Date of Birth (required)',
+                          labelText: TranslationService.I.tr('Date of Birth (required)'),
                           suffixIcon: const Icon(Icons.calendar_today_rounded),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
@@ -184,7 +185,7 @@ class _BioPageState extends State<BioPage> {
                         items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                         onChanged: (v) => setState(() => _country = v),
                         decoration: InputDecoration(
-                          labelText: 'Country (required)',
+                          labelText: TranslationService.I.tr('Country (required)'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -196,14 +197,14 @@ class _BioPageState extends State<BioPage> {
                         items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                         onChanged: (v) => setState(() => _year = v),
                         decoration: InputDecoration(
-                          labelText: 'Year / Grade (required)',
+                          labelText: TranslationService.I.tr('Year / Grade (required)'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
                       const SizedBox(height: 12),
                       InputDecorator(
                         decoration: InputDecoration(
-                          labelText: 'Course / Subjects (required)',
+                          labelText: TranslationService.I.tr('Course / Subjects (required)'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         child: Wrap(
@@ -235,7 +236,7 @@ class _BioPageState extends State<BioPage> {
                         items: [null, ..._majors].map((m) => DropdownMenuItem(value: m, child: Text(m ?? 'None'))).toList(),
                         onChanged: (v) => setState(() => _major = v),
                         decoration: InputDecoration(
-                          labelText: 'Major / Stream / Focus (optional)',
+                          labelText: TranslationService.I.tr('Major / Stream / Focus (optional)'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -243,7 +244,7 @@ class _BioPageState extends State<BioPage> {
                       TextField(
                         controller: _schoolController,
                         decoration: InputDecoration(
-                          labelText: 'School / Campus (required)',
+                          labelText: TranslationService.I.tr('School / Campus (required)'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -294,7 +295,7 @@ class _BioPageState extends State<BioPage> {
                         maxLength: 150,
                         maxLines: 2,
                         decoration: InputDecoration(
-                          hintText: 'One sentence about yourself or your study goals',
+                          hintText: TranslationService.I.tr('One sentence about yourself or your study goals'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           counterText: '',
                         ),
@@ -306,7 +307,7 @@ class _BioPageState extends State<BioPage> {
                         controller: _achievementsController,
                         maxLines: 2,
                         decoration: InputDecoration(
-                          hintText: 'E.g. Top Math Student, Debate Club Captain',
+                          hintText: TranslationService.I.tr('E.g. Top Math Student, Debate Club Captain'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -316,7 +317,7 @@ class _BioPageState extends State<BioPage> {
                       TextField(
                         controller: _pronounsController,
                         decoration: InputDecoration(
-                          labelText: 'Preferred pronouns',
+                          labelText: TranslationService.I.tr('Preferred pronouns'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -324,7 +325,7 @@ class _BioPageState extends State<BioPage> {
                       TextField(
                         controller: _quoteController,
                         decoration: InputDecoration(
-                          labelText: 'Favorite study quote or motto',
+                          labelText: TranslationService.I.tr('Favorite study quote or motto'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
@@ -334,7 +335,7 @@ class _BioPageState extends State<BioPage> {
                         items: [null, ..._profileColors].map((c) => DropdownMenuItem(value: c, child: Text(c ?? 'Default'))).toList(),
                         onChanged: (v) => setState(() => _profileColor = v),
                         decoration: InputDecoration(
-                          labelText: 'Profile color theme',
+                          labelText: TranslationService.I.tr('Profile color theme'),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),

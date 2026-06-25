@@ -16,6 +16,7 @@
 //     picked label when it closes.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -480,7 +481,7 @@ const SizedBox(width: 12),
         height:     1.55,
       ),
       decoration: InputDecoration(
-        hintText: 'Share a quick thought with the campus...',
+        hintText: TranslationService.I.tr('Share a quick thought with the campus...'),
         hintStyle: TextStyle(fontFamily: 'Momo',
           color:      _hasBg
               ? _textColor.withOpacity(0.55)

@@ -16,6 +16,7 @@
 // UI. That keeps this file purely visual.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -209,7 +210,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                   style: const TextStyle(
                       fontFamily: 'Momo', fontSize: 14, color: _kInk),
                   decoration: InputDecoration(
-                    hintText: 'Ask Dale a question…',
+                    hintText: TranslationService.I.tr('Ask Dale a question…'),
                     hintStyle: TextStyle(
                         fontFamily: 'Momo',
                         color: Colors.grey.shade400,

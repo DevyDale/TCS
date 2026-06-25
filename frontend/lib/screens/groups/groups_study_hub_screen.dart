@@ -1,5 +1,6 @@
 // lib/screens/groups/groups_study_hub_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -369,8 +370,8 @@ class _GroupsStudyHubScreenState
               child: TextField(
                 controller: reasonCtrl, autofocus: true, maxLines: 3,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
-                decoration: const InputDecoration(
-                  hintText: 'Reason for deleting...',
+                decoration: InputDecoration(
+                  hintText: TranslationService.I.tr('Reason for deleting...'),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(14)),
               ),
@@ -619,7 +620,7 @@ class _GroupsStudyHubScreenState
               autofocus: true,
               style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'e.g. Math, Physics, Chemistry',
+                hintText: TranslationService.I.tr('e.g. Math, Physics, Chemistry'),
                 hintStyle: TextStyle(fontFamily: 'Momo',
                     color: Colors.grey.shade400),
                 border: InputBorder.none,
@@ -1116,7 +1117,7 @@ class _GroupsStudyHubScreenState
               onChanged: (v) => setState(() => _buddyQuery = v),
               style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Search study buddies...',
+                hintText: TranslationService.I.tr('Search study buddies...'),
                 hintStyle: TextStyle(
                     fontFamily: 'Momo', color: Colors.grey.shade400),
                 prefixIcon: const Icon(Icons.search_rounded, color: _indigo),

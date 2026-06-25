@@ -13,6 +13,7 @@
 // reachable via its own list screen.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -205,7 +206,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
           style: const TextStyle(
               fontFamily: 'Momo', fontSize: 14, color: _kInk),
           decoration: InputDecoration(
-            hintText: 'Search clubs by name or tagline...',
+            hintText: TranslationService.I.tr('Search clubs by name or tagline...'),
             hintStyle: TextStyle(
               fontFamily: 'Momo',
               fontSize: 13,

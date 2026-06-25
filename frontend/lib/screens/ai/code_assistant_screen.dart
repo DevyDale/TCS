@@ -16,6 +16,7 @@
 //                    AI Assistant screen).
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -993,14 +994,14 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
                 style: const TextStyle(color: _kInk, fontSize: 14, height: 1.4),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   filled: false,
                   isDense: true,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
-                  hintText: 'Ask for code, paste a snippet…',
+                  hintText: TranslationService.I.tr('Ask for code, paste a snippet…'),
                   hintStyle: TextStyle(color: _kSlate2, fontSize: 14),
                   contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),

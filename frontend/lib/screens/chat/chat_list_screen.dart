@@ -26,6 +26,7 @@
 // preview, FAB navigation) is untouched.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
@@ -489,7 +490,7 @@ Widget _buildSearchField() {
                 )
               : null,
 
-          hintText: 'Search your chats…',
+          hintText: TranslationService.I.tr('Search your chats…'),
           hintStyle: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import '../../services/auth_service.dart';
 
@@ -49,8 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
               if (widget.loginType == 'id') ...[
                 TextFormField(
                   controller: _userIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'User ID',
+                  decoration: InputDecoration(
+                    labelText: TranslationService.I.tr('User ID'),
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.badge),
                   ),
@@ -68,8 +69,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (date != null) setState(() => _selectedDate = date);
                   },
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Date of Birth',
+                    decoration: InputDecoration(
+                      labelText: TranslationService.I.tr('Date of Birth'),
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.calendar_today),
                     ),
@@ -79,8 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ] else ...[
                 TextFormField(
                   controller: _identifierController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email or Username',
+                  decoration: InputDecoration(
+                    labelText: TranslationService.I.tr('Email or Username'),
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
@@ -90,8 +91,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
+                  decoration: InputDecoration(
+                    labelText: TranslationService.I.tr('Password'),
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.lock),
                   ),

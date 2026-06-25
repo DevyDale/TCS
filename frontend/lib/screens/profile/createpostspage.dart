@@ -1,5 +1,6 @@
 // lib/screens/create_post_page.dart
 import 'dart:io';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -963,7 +964,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             style: const TextStyle(fontFamily: 'Momo', fontSize: 15,
                 color: _kInk, height: 1.5),
             decoration: InputDecoration(
-              hintText: 'Write a caption...',
+              hintText: TranslationService.I.tr('Write a caption...'),
               hintStyle: TextStyle(fontFamily: 'Momo',
                   color: Colors.grey.shade400, fontSize: 15),
               border: InputBorder.none))),

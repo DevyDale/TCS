@@ -7,6 +7,7 @@
 // Club map (the caller in ClubsListScreen pushes ClubScreen with it).
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -775,8 +776,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                     style: const TextStyle(
                         fontFamily: 'Momo', fontSize: 14, color: _kInk),
                     decoration: InputDecoration(
-                      hintText: 'e.g. minimalist owl mascot, navy blue and '
-                          'gold, modern flat illustration',
+                      hintText: TranslationService.I.tr('e.g. minimalist owl mascot, navy blue and gold, modern flat illustration'),
                       hintStyle: TextStyle(
                           fontFamily: 'Momo', fontSize: 13,
                           color: Colors.grey.shade400),

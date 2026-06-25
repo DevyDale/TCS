@@ -11,6 +11,7 @@
 // the migration explicit and avoid silent import collisions.
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -187,7 +188,7 @@ class _EventsScreenState extends State<EventsScreen> {
         onChanged: (v) => setState(() => _searchQuery = v),
         style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
         decoration: InputDecoration(
-          hintText: 'Search for events...',
+          hintText: TranslationService.I.tr('Search for events...'),
           hintStyle: TextStyle(
               fontFamily: 'Momo', color: Colors.grey.shade400, fontSize: 13),
           prefixIcon: const Icon(Icons.search_rounded, color: _kG2),

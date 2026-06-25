@@ -18,6 +18,7 @@
 // so the quiz engine can read it.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
@@ -489,7 +490,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
                             icon: const Icon(Icons.clear_rounded,
                                 color: _kSlate2, size: 16),
                             onPressed: () { _search.clear(); _filter(); }),
-                    hintText: 'Search title, subject, group…',
+                    hintText: TranslationService.I.tr('Search title, subject, group…'),
                     hintStyle: const TextStyle(color: _kSlate2, fontSize: 13),
                     border:         rounded,
                     enabledBorder:  rounded,

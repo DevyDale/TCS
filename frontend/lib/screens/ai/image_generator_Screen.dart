@@ -6,6 +6,7 @@
 // selection states + the Generate button.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
@@ -306,7 +307,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                       color: _kInkSoft,
                       size: 20,
                     ),
-                    tooltip: 'Refresh',
+                    tooltip: TranslationService.I.tr('Refresh'),
                     onPressed: _loadHistory,
                   ),
                 ],
@@ -458,8 +459,8 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
             maxLines: 6,
             cursorColor: _kImg1,
             style: const TextStyle(color: _kInk, fontSize: 14, height: 1.4),
-            decoration: const InputDecoration(
-              hintText: 'Describe the image you want…',
+            decoration: InputDecoration(
+              hintText: TranslationService.I.tr('Describe the image you want…'),
               hintStyle: TextStyle(color: _kSlate2),
               border: InputBorder.none,
               isDense: true,
@@ -832,7 +833,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                           color: _kImg1,
                           size: 22,
                         ),
-                        tooltip: 'Generate variation',
+                        tooltip: TranslationService.I.tr('Generate variation'),
                         onPressed: () {
                           _promptCtrl.text = g.prompt;
                           _generate();
@@ -997,7 +998,7 @@ class _FullScreenImage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.copy_rounded),
-            tooltip: 'Copy prompt',
+            tooltip: TranslationService.I.tr('Copy prompt'),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: image.prompt));
               if (context.mounted) {

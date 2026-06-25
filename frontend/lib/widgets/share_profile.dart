@@ -26,6 +26,7 @@
 //   );
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -281,7 +282,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
           controller: _searchCtrl,
           style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Search recent chats...',
+            hintText: TranslationService.I.tr('Search recent chats...'),
             hintStyle: TextStyle(
               fontFamily: 'Momo',
               fontSize: 13,

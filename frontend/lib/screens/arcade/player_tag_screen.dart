@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -291,7 +292,7 @@ Future<void> _pickAvatar() async {
                       ),
                       decoration: InputDecoration(
                         filled: false,
-                        hintText: 'Enter your gamer tag...',
+                        hintText: TranslationService.I.tr('Enter your gamer tag...'),
                         hintStyle: TextStyle(
                             fontFamily: 'Arch',
                             fontSize:   r.body + 1,

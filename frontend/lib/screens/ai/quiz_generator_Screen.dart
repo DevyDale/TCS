@@ -11,6 +11,7 @@
 // returns a quiz, then we push the play screen.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
@@ -351,7 +352,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
                   fontSize: 10, color: _kInkLight)),
         ])),
         IconButton(
-            tooltip: 'Change',
+            tooltip: TranslationService.I.tr('Change'),
             onPressed: () => setState(() => _selected = null),
             icon: const Icon(Icons.swap_horiz_rounded, color: _kWood)),
       ]),
@@ -365,7 +366,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
       style: const TextStyle(fontFamily: 'Momo',
           fontSize: 14, color: _kInk),
       decoration: InputDecoration(
-        hintText: 'e.g. Mathematics, Biology, Programming…',
+        hintText: TranslationService.I.tr('e.g. Mathematics, Biology, Programming…'),
         hintStyle: const TextStyle(fontFamily: 'Momo',
             color: _kInkLight, fontSize: 13),
         filled: true, fillColor: _kPaper,

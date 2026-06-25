@@ -14,6 +14,7 @@
 //   if (picked != null) setState(() => _selected = picked);
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -214,7 +215,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
         controller: _qCtrl, autofocus: true,
         style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
         decoration: InputDecoration(
-          hintText: 'Search by name or ID',
+          hintText: TranslationService.I.tr('Search by name or ID'),
           hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500),
           prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade500),
           suffixIcon: _qCtrl.text.isEmpty

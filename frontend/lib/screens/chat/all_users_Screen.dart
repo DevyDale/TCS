@@ -11,6 +11,7 @@
 //     viewer-side filter still drops them.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
@@ -306,7 +307,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                     onChanged: (_) => _applyFilter(),
                     style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Search by name...',
+                      hintText: TranslationService.I.tr('Search by name...'),
                       hintStyle: TextStyle(
                           fontFamily: 'Momo', color: Colors.grey.shade400,
                           fontSize: 13),

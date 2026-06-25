@@ -10,6 +10,7 @@
 // Recents loader is defensive — silent if the endpoint shape differs.
 
 import 'dart:async';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -401,7 +402,7 @@ Widget _buildSearchBar() {
             decoration: InputDecoration(
               filled: true,
               fillColor: _kCard,
-              hintText: 'Search by name or student ID...',
+              hintText: TranslationService.I.tr('Search by name or student ID...'),
               hintStyle: const TextStyle(
                   fontFamily: 'Momo', fontSize: 14,
                   color: _kSlate2),

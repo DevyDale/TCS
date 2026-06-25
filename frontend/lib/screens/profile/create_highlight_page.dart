@@ -17,6 +17,7 @@
 // Self-contained: only depends on image_picker + ApiService.
 
 import 'dart:io';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
@@ -284,8 +285,8 @@ class _CreateHighlightPageState extends State<CreateHighlightPage> {
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14, color: _kInk),
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Orientation',
+                      decoration: InputDecoration(
+                        hintText: TranslationService.I.tr('e.g. Orientation'),
                         hintStyle: TextStyle(color: _kSlate2,
                           fontWeight: FontWeight.w600),
                         counterText: '',

@@ -3,6 +3,7 @@
 // Modal bottom sheet for reporting a post, comment, or user.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
@@ -170,7 +171,7 @@ class _ReportSheetState extends State<ReportSheet> {
                     maxLength: 500,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      hintText: 'Add details (optional)',
+                      hintText: TranslationService.I.tr('Add details (optional)'),
                       filled: true,
                       fillColor: Colors.grey.shade50,
                       border: OutlineInputBorder(
