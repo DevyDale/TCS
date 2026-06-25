@@ -34,7 +34,6 @@ import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../staff/staff_console_screen.dart';
-import '../../widgets/ai_assistant_fab.dart';
 import '../../utils/responsive_helper.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
@@ -44,13 +43,10 @@ const _kAmber  = Color(0xFFF59E0B);
 const _kCoral  = Color(0xFFFF4F6E);
 
 // Legacy aliases — welcome banner gradient still references these
-const _kG1 = _kBlue;
-const _kG2 = Color(0xFF8E54E9);
 
 // Light theme surfaces (matches arcade + profile)
 Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
-Color get _kBorder => AppC.border;
 Color get _kInk => AppC.text;
 Color get _kSlate2 => AppC.sub;
 
@@ -76,12 +72,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   late final AnimationController _tabSwitchCtrl;
   late final Animation<double>   _tabScaleAnim;
-
-  // Welcome banner controllers (preserved)
-  late final AnimationController _welcomeCtrl;
-  late final Animation<Offset>   _welcomeSlide;
-  late final Animation<double>   _welcomeFade;
-  bool _welcomeVisible = false;
 
   // Sweep gradient controller for the centre Arcade button
   late final AnimationController _shimmerCtrl;
@@ -113,56 +103,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       duration: const Duration(seconds: 4),
     )..repeat();
 
-    _welcomeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 650),
-    );
-    _welcomeSlide = Tween<Offset>(
-      begin: const Offset(0, -1.6),
-      end:   Offset.zero,
-    ).animate(CurvedAnimation(
-      parent:       _welcomeCtrl,
-      curve:        Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    ));
-    _welcomeFade = CurvedAnimation(
-      parent:       _welcomeCtrl,
-      curve:        const Interval(0.0, 0.6, curve: Curves.easeOut),
-      reverseCurve: const Interval(0.4, 1.0, curve: Curves.easeIn),
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => _runWelcome());
   }
 
-  Future<void> _runWelcome() async {
-    if (!mounted) return;
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-
-    setState(() => _welcomeVisible = true);
-    HapticFeedback.lightImpact();
-    await _welcomeCtrl.forward();
-
-    await Future.delayed(const Duration(milliseconds: 2400));
-    if (!mounted) return;
-
-    await _welcomeCtrl.reverse();
-    if (!mounted) return;
-    setState(() => _welcomeVisible = false);
-  }
-
-  Future<void> _dismissWelcome() async {
-    if (!_welcomeVisible || !mounted) return;
-    HapticFeedback.selectionClick();
-    await _welcomeCtrl.reverse();
-    if (!mounted) return;
-    setState(() => _welcomeVisible = false);
-  }
-
-  @override
+      @override
   void dispose() {
     _tabSwitchCtrl.dispose();
-    _welcomeCtrl.dispose();
     _shimmerCtrl.dispose();
     super.dispose();
   }
@@ -211,7 +156,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   int  get _navIndex => _currentIndex >= 2 ? _currentIndex + 1 : _currentIndex;
-  bool get _showFab  => _currentIndex == 0 || _currentIndex == 1;
 
   // Staff-only: additive entry point to the command-center console. Students
   // never see it; staff keep the normal dashboard as home.
@@ -227,7 +171,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             scale: _tabScaleAnim,
             child: _screens[_currentIndex],
           ),
-          if (_welcomeVisible) _buildWelcomeBanner(context),
         ],
       ),
       // Body still draws behind the bar so transparent scrims and gradients
@@ -263,113 +206,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // ── Welcome banner (preserved) ────────────────────────────
 
-  Widget _buildWelcomeBanner(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final raw  = widget.preferredName.trim();
-    final full = widget.fullName.trim();
-    final name = raw.isNotEmpty
-        ? raw
-        : (full.isNotEmpty ? full.split(' ').first : 'there');
-
-    return Positioned(
-      top: 0, left: 0, right: 0,
-      child: SafeArea(
-        bottom: false,
-        child: SlideTransition(
-          position: _welcomeSlide,
-          child: FadeTransition(
-            opacity: _welcomeFade,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-              child: GestureDetector(
-                onTap: _dismissWelcome,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_kG1, _kG2],
-                      begin: Alignment.topLeft,
-                      end:   Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kG2.withOpacity(isDark ? 0.45 : 0.32),
-                        blurRadius: 28,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 46, height: 46,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.45),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Center(
-                          child: T('👋', style: TextStyle(fontSize: 22)),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            T(
-                              'WELCOME BACK',
-                              style: TextStyle(
-                                fontFamily:    'Arch',
-                                fontSize:      10,
-                                fontWeight:    FontWeight.bold,
-                                color:         Colors.white.withOpacity(0.85),
-                                letterSpacing: 1.6,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Alfa',
-                                fontSize:   19,
-                                color:      Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 28, height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.18),
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: Colors.white.withOpacity(0.85),
-                          size: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Flush-bottom nav bar (responsive via R helpers) ───────
+    // ── Flush-bottom nav bar (responsive via R helpers) ───────
   //
   // Every dimension below derives from R(context) so the bar scales
   // automatically when the device class changes. Phone values are the
