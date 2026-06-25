@@ -20,7 +20,16 @@ class QuizShareCard extends StatelessWidget {
   /// uses a translucent-white treatment for contrast.
   final bool onAccent;
 
-  const QuizShareCard({super.key, required this.quiz, this.onAccent = false});
+  /// Who shared the quiz — shown on the card so multi-person bubbles always
+  /// say who it came from. Null/empty hides the label.
+  final String? sharedBy;
+
+  const QuizShareCard({
+    super.key,
+    required this.quiz,
+    this.onAccent = false,
+    this.sharedBy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +60,18 @@ class QuizShareCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (sharedBy != null && sharedBy!.trim().isNotEmpty) ...[
+              Row(children: [
+                Icon(Icons.person_rounded, size: 12,
+                    color: onAccent ? Colors.white70 : AppC.sub),
+                const SizedBox(width: 4),
+                Flexible(child: Text('${sharedBy!.trim()} shared a quiz',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
+                        color: onAccent ? Colors.white70 : AppC.sub))),
+              ]),
+              const SizedBox(height: 8),
+            ],
             Row(children: [
               Container(
                 width: 38, height: 38,

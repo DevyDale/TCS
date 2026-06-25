@@ -1092,7 +1092,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     final Widget bubble;
     if (quizShare != null) {
-      bubble = QuizShareCard(quiz: quizShare);
+      bubble = QuizShareCard(
+          quiz: quizShare, sharedBy: isMe ? null : senderName);
     } else if (sharedProfileId != null) {
       bubble = _profileShareCard(sharedProfileId, _sharedProfileName(txt), isMe);
     } else if (msgType == 'sticker') {
@@ -1127,7 +1128,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 crossAxisAlignment:
                     isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  if (first && !isMe)
+                  if (first && !isMe && quizShare == null)
                     Padding(
                       padding: const EdgeInsets.only(left: 6, bottom: 4),
                       child: Text(senderName,
