@@ -697,6 +697,7 @@ Widget _buildSearchField() {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black, width: 1.5),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 8, offset: const Offset(0, 2))],
         ),

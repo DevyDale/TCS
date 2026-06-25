@@ -6,6 +6,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'translation_service.dart';
+
 class AppSettings extends ChangeNotifier {
   // Singleton
   static final AppSettings _i = AppSettings._();
@@ -76,6 +78,7 @@ class AppSettings extends ChangeNotifier {
     if (_lang == v) return;
     _lang = v;
     (await SharedPreferences.getInstance()).setString('language', v);
+    await TranslationService.I.setLanguage(v); // re-localize the whole app
     notifyListeners();
   }
 
