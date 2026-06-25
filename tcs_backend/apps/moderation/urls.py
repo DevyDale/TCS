@@ -4,6 +4,7 @@ from .staff_views import (
     report_queue, report_action, staff_overview,
     suspended_users, restore_user, staff_roster,
     wellbeing_queue, wellbeing_action, needs_attention, audit_log,
+    staff_members, set_user_role,
 )
 
 urlpatterns = [
@@ -22,4 +23,6 @@ urlpatterns = [
     path("staff/wellbeing/<uuid:pk>/action/", wellbeing_action, name="moderation-staff-wellbeing-action"),
     path("staff/needs-attention/",          needs_attention, name="moderation-staff-needs"),
     path("staff/audit/",                    audit_log, name="moderation-staff-audit"),
+    path("staff/members/",                  staff_members, name="moderation-staff-members"),
+    path("staff/members/<uuid:pk>/role/",   set_user_role, name="moderation-staff-set-role"),
 ]

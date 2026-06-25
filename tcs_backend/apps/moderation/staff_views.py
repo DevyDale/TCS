@@ -490,3 +490,61 @@ def audit_log(request):
         "target_id":   e.target_id,
         "created_at":  e.created_at.isoformat(),
     } for e in qs]})
+
+
+def _is_admin(user):
+    return bool(getattr(user, "is_superuser", False)) or \
+        (getattr(user, "role", "") or "").lower() == "admin"
+
+
+_ASSIGNABLE_ROLES = ("student", "non_teaching_staff", "teaching_staff", "admin")
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def staff_members(request):
+    """GET /api/moderation/staff/members/ — staff list for permission mgmt."""
+    qs = (User.objects
+          .filter(role__in=("teaching_staff", "non_teaching_staff", "admin"),
+                  is_active=True)
+          .order_by("name"))
+    return Response({
+        "can_edit": _is_admin(request.user),
+        "me": str(request.user.id),
+        "results": [{
+            "id":         str(u.id),
+            "user_id":    getattr(u, "user_id", ""),
+            "name":       getattr(u, "display_name", "") or getattr(u, "name", "")
+                          or "Staff",
+            "role":       getattr(u, "role", ""),
+            "avatar_url": request.build_absolute_uri(u.avatar.url)
+                          if getattr(u, "avatar", None) else None,
+        } for u in qs],
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsStaff])
+def set_user_role(request, pk):
+    """POST /api/moderation/staff/members/<id>/role/  body: {role}  (admin only)"""
+    if not _is_admin(request.user):
+        return Response({"error": "Admin access required."}, status=403)
+    role = (request.data.get("role") or "").strip()
+    if role not in _ASSIGNABLE_ROLES:
+        return Response({"error": "Invalid role."}, status=400)
+    try:
+        u = User.objects.get(id=pk)
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=404)
+    if str(u.id) == str(request.user.id) and role != "admin":
+        return Response(
+            {"error": "You can't remove your own admin access."}, status=400)
+    old = getattr(u, "role", "")
+    if old == role:
+        return Response({"ok": True, "role": role})
+    u.role = role
+    u.save(update_fields=["role"])
+    record_audit(request.user, "permission.set_role",
+                 f"Changed {getattr(u, 'display_name', '') or 'a user'} "
+                 f"from {old} to {role}", "user", u.id)
+    return Response({"ok": True, "role": role})

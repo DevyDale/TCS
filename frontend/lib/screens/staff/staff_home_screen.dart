@@ -17,6 +17,7 @@ import 'package:tcs_app/screens/dashboard/events_screen.dart';
 import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
+import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -379,6 +380,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           const Color(0xFF2575FC), () => _push(const StaffOversightScreen())),
       (Icons.receipt_long_rounded, 'Audit log', 'Every staff action, logged',
           const Color(0xFF64748B), () => _push(const StaffAuditScreen())),
+      if (widget.role.toLowerCase().trim() == 'admin')
+        (Icons.key_rounded, 'Permissions', 'Assign staff tiers',
+            const Color(0xFFB45309), () => _push(const StaffPermissionsScreen())),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
