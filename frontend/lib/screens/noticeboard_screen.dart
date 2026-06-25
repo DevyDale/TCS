@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
+import 'package:tcs_app/services/translation_service.dart';
+import 'package:tcs_app/widgets/t_text.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -147,13 +149,13 @@ class _NoticeboardScreenState extends State<NoticeboardScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.maybePop(context),
         ),
-        const Expanded(child: Text('Notices',
+        const Expanded(child: T('Notices',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white))),
       ]),
       const SizedBox(height: 6),
       const Padding(
         padding: EdgeInsets.symmetric(horizontal: 4),
-        child: Text('Digital Notice Board',
+        child: T('Digital Notice Board',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 26, color: Colors.white)),
       ),
       const SizedBox(height: 12),
@@ -166,7 +168,7 @@ class _NoticeboardScreenState extends State<NoticeboardScreen> {
           style: const TextStyle(fontFamily: 'Momo', color: Colors.white, fontSize: 14),
           cursorColor: _kG1,
           decoration: InputDecoration(
-            hintText: 'Search notices',
+            hintText: TranslationService.I.tr('Search notices'),
             hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.5)),
             prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(.6)),
             border: InputBorder.none,
@@ -182,11 +184,12 @@ class _NoticeboardScreenState extends State<NoticeboardScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Text('📌', style: TextStyle(fontSize: 52)),
       const SizedBox(height: 12),
-      Text('No notices yet',
+      T('No notices yet',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
               color: Colors.white.withOpacity(.9))),
       const SizedBox(height: 6),
-      Text('Announcements from staff will appear here',
+      T('Announcements from staff will appear here',
+          textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
               color: Colors.white.withOpacity(.5))),
     ]),
