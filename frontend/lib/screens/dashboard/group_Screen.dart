@@ -1136,11 +1136,11 @@ class _GroupScreenState extends State<GroupScreen>
               ),
               child: Text(
                 senderName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: Colors.black,
+                  color: AppC.text,
                 ),
               ),
             ),
