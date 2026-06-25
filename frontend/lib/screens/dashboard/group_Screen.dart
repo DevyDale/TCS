@@ -1,5 +1,6 @@
 // lib/screens/groups/group_screen.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -304,15 +305,15 @@ class _GroupScreenState extends State<GroupScreen>
         padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppC.card,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             Row(children: [
               Container(
@@ -331,7 +332,7 @@ class _GroupScreenState extends State<GroupScreen>
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F8FA),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200)),
+                border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: ctrl,
                 autofocus: true,
@@ -353,7 +354,7 @@ class _GroupScreenState extends State<GroupScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
                   child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
@@ -369,10 +370,10 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_indigo, _deep]),
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Share',
+                  child: Center(child: T('Share',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
             ]),
@@ -466,8 +467,8 @@ class _GroupScreenState extends State<GroupScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(top: false, child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -475,7 +476,7 @@ class _GroupScreenState extends State<GroupScreen>
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(top: 10, bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
@@ -566,8 +567,8 @@ class _GroupScreenState extends State<GroupScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(top: false, child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -575,7 +576,7 @@ class _GroupScreenState extends State<GroupScreen>
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(top: 10, bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
@@ -622,7 +623,7 @@ class _GroupScreenState extends State<GroupScreen>
                   fontWeight: FontWeight.bold,
                   fontSize: 14, color: Color(0xFF1A1A2E)))),
           Icon(Icons.chevron_right_rounded,
-              color: Colors.grey.shade400, size: 20),
+              color: AppC.faint, size: 20),
         ]),
       ),
     );
@@ -689,15 +690,15 @@ class _GroupScreenState extends State<GroupScreen>
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppC.card,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 40, height: 4,
               margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2))),
             Row(children: [
               Container(
@@ -717,20 +718,20 @@ class _GroupScreenState extends State<GroupScreen>
               'All shared materials will be saved to your Digital Library '
               'before the group is removed.',
               style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12.5, color: Colors.grey.shade600, height: 1.4)),
+                  fontSize: 12.5, color: AppC.sub, height: 1.4)),
             const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F8FA),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200)),
+                border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: reasonCtrl, autofocus: true, maxLines: 3,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
                 decoration: InputDecoration(
                   hintText: TranslationService.I.tr('Reason for dissolving...'),
                   hintStyle: TextStyle(fontFamily: 'Momo',
-                      color: Colors.grey.shade400),
+                      color: AppC.faint),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(14)),
               ),
@@ -742,7 +743,7 @@ class _GroupScreenState extends State<GroupScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
                   child: const Center(child: T('Cancel',
                       style: TextStyle(fontFamily: 'Arch',
@@ -761,10 +762,10 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: _kG4,
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: T('Dissolve',
+                  child: Center(child: T('Dissolve',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, fontSize: 13))),
+                          color: AppC.text, fontSize: 13))),
                 ),
               )),
             ]),
@@ -782,14 +783,14 @@ class _GroupScreenState extends State<GroupScreen>
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(20)),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const CircularProgressIndicator(color: _kG4),
             const SizedBox(height: 16),
             T('Archiving materials & dissolving...',
               style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 13, color: Colors.grey.shade700)),
+                  fontSize: 13, color: AppC.sub)),
           ]),
         ),
       ),
@@ -849,7 +850,7 @@ class _GroupScreenState extends State<GroupScreen>
     return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor: AppC.card,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16)),
             title: Text(msg,
@@ -930,11 +931,11 @@ class _GroupScreenState extends State<GroupScreen>
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(_groupName,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 18, color: Colors.white)),
+                style: TextStyle(fontFamily: 'Alfa',
+                    fontSize: 18, color: AppC.text)),
             Text('${_members.length} members',
                 style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 12, color: Colors.white.withOpacity(0.7))),
+                    fontSize: 12, color: AppC.text.withOpacity(0.7))),
           ]),
         ),
         if (_isCreator)
@@ -963,11 +964,11 @@ class _GroupScreenState extends State<GroupScreen>
 
   Widget _buildTabBar() {
     return Container(
-      color: Colors.white,
+      color: AppC.card,
       child: TabBar(
         controller: _tabCtrl,
         labelColor: _indigo,
-        unselectedLabelColor: Colors.grey.shade500,
+        unselectedLabelColor: AppC.faint,
         indicatorColor: _indigo,
         indicatorSize: TabBarIndicatorSize.label,
         labelStyle: const TextStyle(
@@ -993,7 +994,7 @@ class _GroupScreenState extends State<GroupScreen>
                     child: T('No posts yet — start the conversation!',
                         style: TextStyle(
                             fontFamily: 'Momo',
-                            color: Colors.grey.shade400)))
+                            color: AppC.faint)))
                 : ListView.builder(
                     reverse: true,
                     padding: const EdgeInsets.all(16),
@@ -1012,15 +1013,15 @@ class _GroupScreenState extends State<GroupScreen>
         padding: EdgeInsets.fromLTRB(
             12, 10, 12, MediaQuery.of(context).padding.bottom + 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100))),
+          color: AppC.card,
+          border: Border(top: BorderSide(color: AppC.card2))),
         child: Row(children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F8FA),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.shade200)),
+                border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: _msgCtrl,
                 enableSuggestions: false,
@@ -1031,7 +1032,7 @@ class _GroupScreenState extends State<GroupScreen>
                       ? 'Post to the group...'
                       : 'Reply to ${_replyingTo!['author_name'] ?? 'message'}...',
                   hintStyle: TextStyle(
-                      fontFamily: 'Momo', color: Colors.grey.shade400),
+                      fontFamily: 'Momo', color: AppC.faint),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 12)),
@@ -1071,8 +1072,8 @@ class _GroupScreenState extends State<GroupScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade100))),
+        color: AppC.card,
+        border: Border(top: BorderSide(color: AppC.card2))),
       child: Row(children: [
         Container(width: 3, height: 36,
           decoration: BoxDecoration(
@@ -1089,7 +1090,7 @@ class _GroupScreenState extends State<GroupScreen>
             Text(text,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: 'Momo',
-                    color: Colors.grey.shade600, fontSize: 12)),
+                    color: AppC.sub, fontSize: 12)),
           ])),
         IconButton(
           onPressed: () => setState(() => _replyingTo = null),
@@ -1190,7 +1191,7 @@ class _GroupScreenState extends State<GroupScreen>
                       fontSize: 10,
                       color: isMe
                           ? Colors.white.withOpacity(0.85)
-                          : Colors.grey.shade400,
+                          : AppC.faint,
                     ),
                   ),
                 ],
@@ -1267,7 +1268,7 @@ class _GroupScreenState extends State<GroupScreen>
                   fontSize: 12,
                   color: isMe
                       ? Colors.white.withOpacity(0.9)
-                      : Colors.grey.shade700)),
+                      : AppC.sub)),
         ],
       ),
     );
@@ -1279,14 +1280,14 @@ class _GroupScreenState extends State<GroupScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
         child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min,
           children: [
             Container(margin: const EdgeInsets.only(top: 10),
               width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 8),
             ListTile(
@@ -1334,9 +1335,9 @@ class _GroupScreenState extends State<GroupScreen>
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200)),
+            border: Border.all(color: AppC.border)),
           child: TextField(
             controller: _memberSearchCtrl,
             enableSuggestions: false,
@@ -1346,7 +1347,7 @@ class _GroupScreenState extends State<GroupScreen>
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('Search members...'),
               hintStyle: TextStyle(
-                  fontFamily: 'Momo', color: Colors.grey.shade400),
+                  fontFamily: 'Momo', color: AppC.faint),
               prefixIcon: const Icon(Icons.search_rounded, color: _indigo),
               suffixIcon: _memberQuery.isEmpty
                   ? null
@@ -1367,9 +1368,9 @@ class _GroupScreenState extends State<GroupScreen>
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200)),
+              border: Border.all(color: AppC.border)),
             child: TextField(
               controller: _addCtrl,
               enableSuggestions: false,
@@ -1379,7 +1380,7 @@ class _GroupScreenState extends State<GroupScreen>
               decoration: InputDecoration(
                 hintText: TranslationService.I.tr('Search & add members...'),
                 hintStyle: TextStyle(
-                    fontFamily: 'Momo', color: Colors.grey.shade400),
+                    fontFamily: 'Momo', color: AppC.faint),
                 prefixIcon: _searchingAdd
                     ? const Padding(
                         padding: EdgeInsets.all(12),
@@ -1397,9 +1398,9 @@ class _GroupScreenState extends State<GroupScreen>
           Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200)),
+              border: Border.all(color: AppC.border)),
             child: Column(
               children: _addResults.take(5).map((u) {
                 final name    = u['name'] as String? ?? '';
@@ -1412,8 +1413,8 @@ class _GroupScreenState extends State<GroupScreen>
                       gradient: LinearGradient(colors: [_kG1, _kG2])),
                     child: Center(
                       child: Text(initial,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: AppC.text,
                               fontFamily: 'Arch',
                               fontWeight: FontWeight.bold)))),
                   title: Text(name,
@@ -1425,7 +1426,7 @@ class _GroupScreenState extends State<GroupScreen>
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 11,
-                          color: Colors.grey.shade500)),
+                          color: AppC.faint)),
                   trailing: GestureDetector(
                     onTap: () => _addMember(u['user_id'] as String? ?? ''),
                     child: Container(
@@ -1452,7 +1453,7 @@ class _GroupScreenState extends State<GroupScreen>
                     q.isEmpty ? 'No members yet' : 'No members match',
                     style: TextStyle(
                         fontFamily: 'Momo',
-                        color: Colors.grey.shade400)))
+                        color: AppC.faint)))
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                 itemCount: visibleMembers.length,
@@ -1471,8 +1472,8 @@ class _GroupScreenState extends State<GroupScreen>
                         gradient: LinearGradient(colors: [_kG1, _kG2])),
                       child: Center(
                         child: Text(initial,
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: AppC.text,
                                 fontFamily: 'Arch',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 17)))),
@@ -1486,7 +1487,7 @@ class _GroupScreenState extends State<GroupScreen>
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 12,
-                            color: Colors.grey.shade500)),
+                            color: AppC.faint)),
                     trailing: isAdm
                         ? Container(
                             padding: const EdgeInsets.symmetric(
@@ -1541,19 +1542,19 @@ class _GroupScreenState extends State<GroupScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.folder_open_rounded,
-                            size: 52, color: Colors.grey.shade300),
+                            size: 52, color: AppC.border),
                         const SizedBox(height: 14),
                         T('No materials yet',
                             style: TextStyle(
                                 fontFamily: 'Alfa',
                                 fontSize: 16,
-                                color: Colors.grey.shade400)),
+                                color: AppC.faint)),
                         const SizedBox(height: 6),
                         T('Upload photos, videos, docs or links',
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,
-                                color: Colors.grey.shade400)),
+                                color: AppC.faint)),
                       ],
                     ))
                 : ListView.builder(
@@ -1567,7 +1568,7 @@ class _GroupScreenState extends State<GroupScreen>
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppC.card,
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [BoxShadow(
                               color: Colors.black.withOpacity(0.03),
@@ -1603,7 +1604,7 @@ class _GroupScreenState extends State<GroupScreen>
                                   style: TextStyle(
                                       fontFamily: 'Momo',
                                       fontSize: 11,
-                                      color: Colors.grey.shade500)),
+                                      color: AppC.faint)),
                               ],
                             ),
                           ),

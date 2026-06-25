@@ -1,5 +1,6 @@
 // lib/screens/bio.dart
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -216,7 +217,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                                 Expanded(child: T(
                                   'All fields are optional. Fill in whatever you\'re comfortable sharing.',
                                   style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                                      color: Colors.white.withOpacity(0.85)),
+                                      color: AppC.text.withOpacity(0.85)),
                                 )),
                               ]),
                             ),
@@ -275,13 +276,13 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 T('Edit Bio', style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 22,
-                  color: Colors.white, fontWeight: FontWeight.bold,
+                  color: AppC.text, fontWeight: FontWeight.bold,
                 )),
                 T('Everything here is optional',
                     style: TextStyle(fontFamily: 'Momo',
@@ -299,9 +300,9 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
-              child: const T('Save', style: TextStyle(
+              child: T('Save', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.white, fontSize: 14,
+                color: AppC.text, fontSize: 14,
               )),
             ),
           ),
@@ -403,16 +404,16 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: sel ? _kG1 : Colors.grey.shade100,
+                color: sel ? _kG1 : AppC.card2,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: sel ? _kG1 : Colors.grey.shade300, width: 1.5),
+                border: Border.all(color: sel ? _kG1 : AppC.border, width: 1.5),
                 boxShadow: sel ? [BoxShadow(color: _kG1.withOpacity(0.3),
                     blurRadius: 8, offset: const Offset(0, 2))] : [],
               ),
               child: Text(s, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 13,
                 fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                color: sel ? Colors.white : Colors.grey.shade600,
+                color: sel ? Colors.white : AppC.sub,
               )),
             ),
           );
@@ -470,14 +471,14 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: sel ? _kG3 : Colors.grey.shade100,
+                    color: sel ? _kG3 : AppC.card2,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: sel ? _kG3 : Colors.grey.shade300, width: 1.5),
+                        color: sel ? _kG3 : AppC.border, width: 1.5),
                   ),
                   child: Center(child: Text(d, style: TextStyle(
                     fontFamily: 'Momo', fontSize: 11, fontWeight: FontWeight.bold,
-                    color: sel ? Colors.white : Colors.grey.shade500,
+                    color: sel ? Colors.white : AppC.faint,
                   ))),
                 ),
               ),
@@ -575,7 +576,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Text(item.$1, style: TextStyle(
                   fontFamily: 'Momo', fontSize: 12,
-                  color: item.$2 ? const Color(0xFF1A1A2E) : Colors.grey.shade400,
+                  color: item.$2 ? const Color(0xFF1A1A2E) : AppC.faint,
                   decoration: item.$2 ? null : TextDecoration.lineThrough,
                 )),
               ]),
@@ -600,7 +601,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
           boxShadow: [BoxShadow(color: _kG2.withOpacity(0.4),
               blurRadius: 16, offset: const Offset(0, 6))],
         ),
-        child: const Center(
+        child: Center(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -608,7 +609,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
               SizedBox(width: 10),
               T('Save Profile', style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.white, fontSize: 16,
+                color: AppC.text, fontSize: 16,
               )),
             ],
           ),
@@ -653,7 +654,7 @@ class _Field extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        border: Border.all(color: AppC.border, width: 1.5),
       ),
       child: Row(
         crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
@@ -670,7 +671,7 @@ class _Field extends StatelessWidget {
                   color: Color(0xFF1A1A2E)),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
+                hintStyle: TextStyle(color: AppC.faint, fontFamily: 'Momo'),
                 border: InputBorder.none, counterText: '',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
@@ -701,7 +702,7 @@ class _Dropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        border: Border.all(color: AppC.border, width: 1.5),
       ),
       child: Row(children: [
         Padding(padding: const EdgeInsets.only(left: 12),
@@ -711,7 +712,7 @@ class _Dropdown extends StatelessWidget {
             initialValue: value, isExpanded: true,
             decoration: const InputDecoration(border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
-            hint: Text(hint, style: TextStyle(color: Colors.grey.shade400,
+            hint: Text(hint, style: TextStyle(color: AppC.faint,
                 fontFamily: 'Momo', fontSize: 14)),
             style: const TextStyle(fontFamily: 'Momo', fontSize: 14,
                 color: Color(0xFF1A1A2E)),
@@ -719,7 +720,7 @@ class _Dropdown extends StatelessWidget {
             onChanged: onChanged,
             dropdownColor: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade400),
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppC.faint),
           ),
         ),
       ]),
@@ -752,16 +753,16 @@ class _ChipGroup extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: sel ? color : Colors.grey.shade100,
+                color: sel ? color : AppC.card2,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: sel ? color : Colors.grey.shade300, width: 1.5),
+                border: Border.all(color: sel ? color : AppC.border, width: 1.5),
                 boxShadow: sel ? [BoxShadow(color: color.withOpacity(0.25),
                     blurRadius: 8, offset: const Offset(0, 2))] : [],
               ),
               child: Text(opt, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 13,
                 fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                color: sel ? Colors.white : Colors.grey.shade600,
+                color: sel ? Colors.white : AppC.sub,
               )),
             ),
           );
@@ -793,16 +794,16 @@ class _Switch extends StatelessWidget {
                 fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
             const SizedBox(height: 2),
             Text(subtitle, style: TextStyle(fontFamily: 'Momo',
-                fontSize: 12, color: Colors.grey.shade500)),
+                fontSize: 12, color: AppC.faint)),
           ])),
           Switch(
             value: value, onChanged: onChanged,
             activeThumbColor: Colors.white, activeTrackColor: color,
-            inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade300,
+            inactiveThumbColor: Colors.white, inactiveTrackColor: AppC.border,
           ),
         ]),
       ),
-      if (showDivider) Divider(height: 1, color: Colors.grey.shade100),
+      if (showDivider) Divider(height: 1, color: AppC.card2),
     ]);
   }
 }

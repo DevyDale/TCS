@@ -1,6 +1,7 @@
 // lib/screens/role_selection_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
@@ -135,16 +136,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight).createShader(b),
                     blendMode: BlendMode.srcIn,
-                    child: const T('TCS', style: TextStyle(
+                    child: T('TCS', style: TextStyle(
                         fontFamily: 'Alfa', fontSize: 38,
                         fontWeight: FontWeight.bold, letterSpacing: 1.2,
-                        color: Colors.white)),
+                        color: AppC.text)),
                   ),
                   const SizedBox(height: 8),
                   T('One platform for every student.\nLearn, play, connect.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'Momo', fontSize: 14,
-                        color: Colors.grey.shade500, height: 1.5)),
+                        color: AppC.faint, height: 1.5)),
                 ]),
               ),
             ),
@@ -164,7 +165,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                 const SizedBox(width: 10),
                 T('Who are you?', style: TextStyle(
                     fontFamily: 'Alfa', fontSize: 18,
-                    color: Colors.grey.shade800, letterSpacing: 0.5)),
+                    color: AppC.sub, letterSpacing: 0.5)),
               ]),
             ),
 
@@ -203,15 +204,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
               child: Column(children: [
                 T('Powered by LUMORA', style: TextStyle(
                     fontFamily: 'Momo', fontSize: 12,
-                    color: Colors.grey.shade400, letterSpacing: 2)),
+                    color: AppC.faint, letterSpacing: 2)),
                 const SizedBox(height: 6),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.shield_rounded, size: 13,
-                      color: Colors.grey.shade400),
+                      color: AppC.faint),
                   const SizedBox(width: 5),
                   T('Secured · Role-verified · GDPR compliant',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                        color: Colors.grey.shade400)),
+                        color: AppC.faint)),
                 ]),
               ]),
             ),
@@ -285,7 +286,7 @@ class _RoleCardState extends State<_RoleCard>
         scale: _pressCtrl,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(color: widget.gradientColors.last.withOpacity(0.15),
@@ -333,7 +334,7 @@ class _RoleCardState extends State<_RoleCard>
                     const SizedBox(height: 5),
                     Text(widget.subtitle, style: TextStyle(
                         fontFamily: 'Momo', fontSize: 13,
-                        color: Colors.grey.shade500)),
+                        color: AppC.faint)),
                   ]),
               )),
               Padding(padding: const EdgeInsets.only(right: 16),

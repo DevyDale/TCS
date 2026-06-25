@@ -24,6 +24,7 @@ import 'dart:math' as math;
 import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -332,14 +333,14 @@ class _EulaScreenState extends State<EulaScreen>
                       color: Colors.white, size: 28),
                 ),
                 const SizedBox(height: 16),
-                const T(
+                T(
                   'Terms of Use &\nCommunity Rules',
                   style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                     height: 1.15,
-                    color: Colors.white,
+                    color: AppC.text,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -348,7 +349,7 @@ class _EulaScreenState extends State<EulaScreen>
                   style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.85),
+                    color: AppC.text.withOpacity(0.85),
                   ),
                 ),
               ],
@@ -404,14 +405,14 @@ class _EulaScreenState extends State<EulaScreen>
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     T(
                       'Skip to end',
                       style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.white,
+                        color: AppC.text,
                       ),
                     ),
                     SizedBox(width: 6),
@@ -433,7 +434,7 @@ class _EulaScreenState extends State<EulaScreen>
       padding: EdgeInsets.fromLTRB(
           20, 14, 20, 14 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius:
             const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
@@ -484,14 +485,14 @@ class _EulaScreenState extends State<EulaScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.menu_book_rounded,
-                    size: 16, color: Colors.grey.shade500),
+                    size: 16, color: AppC.faint),
                 const SizedBox(width: 8),
                 Text(
                   'Scroll to read all terms · ${(_progress * 100).round()}%',
                   style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 12.5,
-                    color: Colors.grey.shade500,
+                    color: AppC.faint,
                   ),
                 ),
               ],
@@ -523,7 +524,7 @@ class _EulaScreenState extends State<EulaScreen>
                     ? Colors.transparent
                     : (enabled
                         ? _kG2.withOpacity(0.55)
-                        : Colors.grey.shade300),
+                        : AppC.border),
                 width: 2,
               ),
             ),
@@ -541,7 +542,7 @@ class _EulaScreenState extends State<EulaScreen>
                 fontFamily: 'Momo',
                 fontSize: 12.5,
                 height: 1.4,
-                color: enabled ? _kInk : Colors.grey.shade400,
+                color: enabled ? _kInk : AppC.faint,
               ),
             ),
           ),
@@ -568,7 +569,7 @@ class _EulaScreenState extends State<EulaScreen>
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: Colors.grey.shade600,
+                color: AppC.sub,
               ),
             ),
           ),
@@ -600,13 +601,13 @@ class _EulaScreenState extends State<EulaScreen>
                           ]
                         : null,
                   ),
-                  child: const T(
+                  child: T(
                     'Agree & Continue',
                     style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: Colors.white,
+                      color: AppC.text,
                     ),
                   ),
                 ),
@@ -722,7 +723,7 @@ class _SectionCard extends StatelessWidget {
                     fontFamily: 'Momo',
                     fontSize: 13,
                     height: 1.5,
-                    color: Colors.grey.shade700,
+                    color: AppC.sub,
                   ),
                 ),
               ],

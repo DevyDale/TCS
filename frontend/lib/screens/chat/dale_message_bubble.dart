@@ -12,6 +12,7 @@
 // regular media renderer.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
@@ -82,9 +83,9 @@ class DaleMessageBubble extends StatelessWidget {
                   width: 36,
                   height: 36,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stack) => const Icon(
+                  errorBuilder: (context, error, stack) => Icon(
                       Icons.smart_toy_rounded,
-                      color: Colors.white,
+                      color: AppC.card,
                       size: 18),
                 ),
               ),
@@ -107,13 +108,13 @@ class DaleMessageBubble extends StatelessWidget {
                           shaderCallback: (rect) => const LinearGradient(
                             colors: [_kG1, _kG2],
                           ).createShader(rect),
-                          child: const T(
+                          child: T(
                             'Dale',
                             style: TextStyle(
                               fontFamily: 'Arch',
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: Colors.white,
+                              color: AppC.text,
                             ),
                           ),
                         ),
@@ -147,7 +148,7 @@ class DaleMessageBubble extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppC.card,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(collapseHeader ? 18 : 3),
                           topRight: const Radius.circular(18),
@@ -173,7 +174,7 @@ class DaleMessageBubble extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: 'Momo',
                               fontSize: 10.5,
-                              color: Colors.grey.shade500,
+                              color: AppC.faint,
                             ),
                           ),
                         ],

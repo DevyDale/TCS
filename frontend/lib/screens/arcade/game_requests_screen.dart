@@ -12,14 +12,15 @@ import 'dart:async';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 
 
 const _kDarkBg     = Color(0xFF0D0D1A);
-const _kDarkCard   = Color(0xFF161628);
-const _kDarkCard2  = Color(0xFF1E1E38);
+Color get _kDarkCard => AppC.card;
+Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
 const _kNeonPurple = Color(0xFF8E54E9);
 const _kNeonOrange = Color(0xFFF7971E);
@@ -128,8 +129,8 @@ class _GameRequestsScreenState extends State<GameRequestsScreen>
       appBar: AppBar(
         backgroundColor: _kDarkBg,
         elevation: 0,
-        title: const T('Challenges',
-          style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+        title: T('Challenges',
+          style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
         bottom: TabBar(
           controller: _tab,
           indicatorColor: _kNeonPurple,
@@ -266,7 +267,7 @@ class _IncomingCard extends StatelessWidget {
             child: req.senderAvatar.isEmpty
                 ? Text(req.senderName.isNotEmpty
                     ? req.senderName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white,
+                  style: TextStyle(color: AppC.text,
                       fontFamily: 'Arch', fontWeight: FontWeight.bold,
                       fontSize: 18))
                 : null,
@@ -275,12 +276,12 @@ class _IncomingCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment:
               CrossAxisAlignment.start, children: [
             Text('@${req.senderTag.isNotEmpty ? req.senderTag : req.senderName}',
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold, fontSize: 15,
-                  color: Colors.white)),
+                  color: AppC.text)),
             Text('Lv ${req.senderLevel} · challenged you',
               style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                  color: Colors.white.withOpacity(0.5))),
+                  color: AppC.text.withOpacity(0.5))),
           ])),
           Container(padding: const EdgeInsets.symmetric(
               horizontal: 12, vertical: 6),
@@ -301,9 +302,9 @@ class _IncomingCard extends StatelessWidget {
             const T('🎮', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 8),
             Text(req.gameName,
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold, fontSize: 14,
-                  color: Colors.white)),
+                  color: AppC.text)),
           ])),
         const SizedBox(height: 10),
         Text(canAfford
@@ -330,10 +331,10 @@ class _IncomingCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [
                     Color(0xFF388E3C), Color(0xFF1B5E20)]),
                   borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: T('⚔  Accept',
+                child: Center(child: T('⚔  Accept',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14,
-                      color: Colors.white)))))))
+                      color: AppC.text)))))))
         ]),
       ]),
     );
@@ -499,12 +500,12 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
         TextField(
           controller: _search,
           onChanged:  _onSearchChange,
-          style: const TextStyle(color: Colors.white,
+          style: TextStyle(color: AppC.text,
               fontFamily: 'Momo', fontSize: 14),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search by gamer tag or name...'),
             hintStyle: TextStyle(fontFamily: 'Momo',
-                color: Colors.white.withOpacity(0.3)),
+                color: AppC.text.withOpacity(0.3)),
             filled: true, fillColor: _kDarkCard,
             prefixIcon: const Icon(Icons.search, color: Colors.white54),
             suffixIcon: _searching
@@ -554,16 +555,16 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                       backgroundImage: av.isNotEmpty ? NetworkImage(av) : null,
                       child: av.isEmpty ? Text(
                         n.isNotEmpty ? n[0].toUpperCase() : '?',
-                        style: const TextStyle(color: Colors.white,
+                        style: TextStyle(color: AppC.text,
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold)) : null),
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment:
                         CrossAxisAlignment.start, children: [
                       Text('@${tag.isNotEmpty ? tag : n}',
-                        style: const TextStyle(fontFamily: 'Arch',
+                        style: TextStyle(fontFamily: 'Arch',
                             fontWeight: FontWeight.bold, fontSize: 13,
-                            color: Colors.white)),
+                            color: AppC.text)),
                       Text(n, style: TextStyle(fontFamily: 'Momo',
                           fontSize: 10, color: Colors.white38)),
                     ])),
@@ -672,9 +673,9 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2.5))
-                : const T('⚔  Send Challenge',
+                : T('⚔  Send Challenge',
                     style: TextStyle(fontFamily: 'Alfa',
-                        fontSize: 16, color: Colors.white))))),
+                        fontSize: 16, color: AppC.text))))),
         ),
         const SizedBox(height: 32),
       ],
@@ -693,9 +694,9 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
           border: Border.all(color: _kNeonPurple.withOpacity(0.5))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text('@${tag.isNotEmpty ? tag : n}',
-            style: const TextStyle(fontFamily: 'Arch',
+            style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
-                fontSize: 12, color: Colors.white)),
+                fontSize: 12, color: AppC.text)),
           const SizedBox(width: 6),
           const Icon(Icons.close, size: 14, color: Colors.white70),
         ])));
@@ -707,10 +708,10 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
         gradient: const LinearGradient(colors: [_kNeonBlue, _kNeonPurple]),
         shape: BoxShape.circle),
       child: Center(child: Text(num,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
+        style: TextStyle(color: AppC.text, fontFamily: 'Arch',
             fontWeight: FontWeight.bold, fontSize: 12)))),
     const SizedBox(width: 8),
-    Text(text, style: const TextStyle(fontFamily: 'Alfa',
-        fontSize: 16, color: Colors.white)),
+    Text(text, style: TextStyle(fontFamily: 'Alfa',
+        fontSize: 16, color: AppC.text)),
   ]);
 }

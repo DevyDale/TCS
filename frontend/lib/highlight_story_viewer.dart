@@ -30,6 +30,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:video_player/video_player.dart';
@@ -483,9 +484,9 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
               Text(
                 name.isEmpty ? 'Highlight' : name,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                  fontSize: 14, color: Colors.white,
+                  fontSize: 14, color: AppC.text,
                 ),
               ),
               if (story.createdAt != null)
@@ -493,7 +494,7 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
                   _ago(story.createdAt!),
                   style: TextStyle(
                     fontFamily: 'Momo', fontSize: 11,
-                    color: Colors.white.withOpacity(0.7),
+                    color: AppC.text.withOpacity(0.7),
                   ),
                 ),
             ],
@@ -514,8 +515,8 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
   Widget _avatarFallback(String initial) => Center(
         child: Text(
           initial,
-          style: const TextStyle(
-            color: Colors.white, fontFamily: 'Arch',
+          style: TextStyle(
+            color: AppC.text, fontFamily: 'Arch',
             fontWeight: FontWeight.bold, fontSize: 16,
           ),
         ),
@@ -574,11 +575,11 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Alfa',
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
-                          color: Colors.white,
+                          color: AppC.text,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -591,10 +592,10 @@ class _HighlightStoryViewerState extends State<HighlightStoryViewer>
             if (caption.isNotEmpty)
               Text(
                 caption,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 14,
-                  color: Colors.white,
+                  color: AppC.text,
                   height: 1.45,
                 ),
               ),

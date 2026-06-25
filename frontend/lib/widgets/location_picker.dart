@@ -62,6 +62,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:http/http.dart' as http;
@@ -335,8 +336,8 @@ class _LocationPickerState extends State<LocationPicker> {
       maxChildSize:     0.94,
       expand:           false,
       builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(children: [
@@ -355,7 +356,7 @@ class _LocationPickerState extends State<LocationPicker> {
     margin: const EdgeInsets.only(top: 10),
     width: 40, height: 4,
     decoration: BoxDecoration(
-      color: Colors.grey.shade300,
+      color: AppC.border,
       borderRadius: BorderRadius.circular(2),
     ),
   );
@@ -370,7 +371,7 @@ class _LocationPickerState extends State<LocationPicker> {
       const Spacer(),
       IconButton(
         onPressed: () => Navigator.pop(context),
-        icon: Icon(Icons.close_rounded, color: Colors.grey.shade500),
+        icon: Icon(Icons.close_rounded, color: AppC.faint),
       ),
     ]),
   );
@@ -381,7 +382,7 @@ class _LocationPickerState extends State<LocationPicker> {
       decoration: BoxDecoration(
         color: _kBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppC.border),
       ),
       child: TextField(
         controller: _ctrl,
@@ -402,14 +403,14 @@ class _LocationPickerState extends State<LocationPicker> {
           hintStyle: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,
-            color: Colors.grey.shade400,
+            color: AppC.faint,
           ),
           prefixIcon: Icon(Icons.search_rounded,
-              color: Colors.grey.shade400),
+              color: AppC.faint),
           suffixIcon: _ctrl.text.isNotEmpty
               ? IconButton(
                   icon: Icon(Icons.close_rounded,
-                      color: Colors.grey.shade400, size: 18),
+                      color: AppC.faint, size: 18),
                   onPressed: () { _ctrl.clear(); },
                 )
               : null,
@@ -470,7 +471,7 @@ class _LocationPickerState extends State<LocationPicker> {
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: AppC.faint,
                     )),
               ],
             ),
@@ -492,13 +493,13 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Center(
       child: Column(children: [
         Icon(Icons.cloud_off_rounded,
-            size: 38, color: Colors.grey.shade300),
+            size: 38, color: AppC.border),
         const SizedBox(height: 10),
         Text(_error!, textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 12,
-              color: Colors.grey.shade500,
+              color: AppC.faint,
             )),
       ]),
     ),
@@ -514,7 +515,7 @@ class _LocationPickerState extends State<LocationPicker> {
               fontFamily: 'Arch',
               fontWeight: FontWeight.bold,
               fontSize: 10,
-              color: Colors.grey.shade500,
+              color: AppC.faint,
               letterSpacing: 1.2,
             )),
       ),
@@ -556,7 +557,7 @@ class _LocationPickerState extends State<LocationPicker> {
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: AppC.faint,
                     )),
               ],
             ],
@@ -578,7 +579,7 @@ class _LocationPickerState extends State<LocationPicker> {
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
-                color: Colors.grey.shade500,
+                color: AppC.faint,
                 letterSpacing: 1.2,
               )),
         ),
@@ -595,9 +596,9 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        border: Border.all(color: AppC.border, width: 1.5),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.school_rounded, size: 13, color: _kG2),
@@ -618,13 +619,13 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Center(
       child: Column(children: [
         Icon(Icons.travel_explore_rounded,
-            size: 48, color: Colors.grey.shade300),
+            size: 48, color: AppC.border),
         const SizedBox(height: 12),
         T('Type a place to search',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 12,
-              color: Colors.grey.shade500,
+              color: AppC.faint,
             )),
       ]),
     ),
@@ -633,7 +634,7 @@ class _LocationPickerState extends State<LocationPicker> {
   Widget _buildAttribution() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
-      border: Border(top: BorderSide(color: Colors.grey.shade100)),
+      border: Border(top: BorderSide(color: AppC.card2)),
     ),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -642,20 +643,20 @@ class _LocationPickerState extends State<LocationPicker> {
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,
-              color: Colors.grey.shade400,
+              color: AppC.faint,
             )),
         T('OpenStreetMap',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,
-              color: Colors.grey.shade500,
+              color: AppC.faint,
               fontWeight: FontWeight.bold,
             )),
         T(' contributors',
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 10,
-              color: Colors.grey.shade400,
+              color: AppC.faint,
             )),
       ],
     ),
@@ -759,7 +760,7 @@ class _LocationFieldButtonState extends State<LocationFieldButton> {
           border: Border.all(
             color: hasValue || _picking
                 ? accent.withOpacity(0.30)
-                : Colors.grey.shade200,
+                : AppC.border,
             width: 1.5,
           ),
         ),
@@ -790,7 +791,7 @@ class _LocationFieldButtonState extends State<LocationFieldButton> {
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
-                color: hasValue || _picking ? _kInk : Colors.grey.shade600,
+                color: hasValue || _picking ? _kInk : AppC.sub,
               ),
             ),
           ),
@@ -801,7 +802,7 @@ class _LocationFieldButtonState extends State<LocationFieldButton> {
             GestureDetector(
               onTap: _clear,
               child: Icon(Icons.close_rounded,
-                  size: 13, color: Colors.grey.shade500),
+                  size: 13, color: AppC.faint),
             ),
           ],
         ]),

@@ -16,6 +16,7 @@
 // reaches the end and stops (user can tap to replay).
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -103,8 +104,8 @@ class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
               // ── Video / loading / error ──────────────────────
               Center(
                 child: _initFailed
-                    ? const T('Couldn\'t load video.',
-                        style: TextStyle(color: Colors.white,
+                    ? T('Couldn\'t load video.',
+                        style: TextStyle(color: AppC.text,
                             fontFamily: 'Momo', fontSize: 14))
                     : !_ctrl.value.isInitialized
                         ? const SizedBox(width: 40, height: 40,
@@ -191,11 +192,11 @@ class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(children: [
                         Text(_fmt(_ctrl.value.position),
-                            style: const TextStyle(color: Colors.white,
+                            style: TextStyle(color: AppC.text,
                                 fontFamily: 'Momo', fontSize: 12)),
                         const Spacer(),
                         Text(_fmt(_ctrl.value.duration),
-                            style: const TextStyle(color: Colors.white,
+                            style: TextStyle(color: AppC.text,
                                 fontFamily: 'Momo', fontSize: 12)),
                       ]),
                     ),

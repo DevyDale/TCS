@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:get/get.dart'
     hide ContextExtensionss; // hide only GetX's context extension so its
                              // isPhone/isTablet don't clash with R(context)
@@ -299,7 +300,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     style: TextStyle(
                                       fontFamily: 'Alfa',
                                       fontSize: titleSize,
-                                      color: Colors.white,
+                                      color: AppC.text,
                                       height: 1.05,
                                       letterSpacing: 0.5,
                                     ),
@@ -310,7 +311,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     style: TextStyle(
                                       fontFamily: 'Alfa',
                                       fontSize: titleSize,
-                                      color: Colors.white,
+                                      color: AppC.text,
                                       height: 1.05,
                                       letterSpacing: 0.5,
                                     ),
@@ -381,13 +382,13 @@ class _SplashScreenState extends State<SplashScreen>
                           T('POWERED BY LUMORA',
                               style: TextStyle(
                                 fontFamily: 'Momo', fontSize: 10,
-                                color: Colors.white.withOpacity(0.3), letterSpacing: 3.5,
+                                color: AppC.text.withOpacity(0.3), letterSpacing: 3.5,
                               )),
                           const SizedBox(height: 4),
                           T('Taylors College Social & Arcade',
                               style: TextStyle(
                                 fontFamily: 'Momo', fontSize: context.isPhone ? 12 : 13,
-                                color: Colors.white.withOpacity(0.45), letterSpacing: 1,
+                                color: AppC.text.withOpacity(0.45), letterSpacing: 1,
                               )),
                         ],
                       ),

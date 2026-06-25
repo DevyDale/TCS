@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:intl/intl.dart';
@@ -99,10 +100,10 @@ class _BioPageState extends State<BioPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const T(
+        title: T(
           'Student Bio',
           style: TextStyle(
-            color: Colors.white,
+            color: AppC.text,
             fontWeight: FontWeight.bold,
             fontSize: 22,
             letterSpacing: 1.1,
@@ -142,7 +143,7 @@ class _BioPageState extends State<BioPage> {
                   constraints: const BoxConstraints(maxWidth: 500),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppC.card,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
@@ -214,7 +215,7 @@ class _BioPageState extends State<BioPage> {
                             return FilterChip(
                               label: Text(subject),
                               selected: selected,
-                              backgroundColor: selected ? Colors.blue.shade100 : Colors.grey.shade100,
+                              backgroundColor: selected ? Colors.blue.shade100 : AppC.card2,
                               selectedColor: Colors.blue.shade300,
                               labelStyle: TextStyle(color: selected ? Colors.blue.shade900 : Colors.black87),
                               onSelected: (val) {
@@ -272,7 +273,7 @@ class _BioPageState extends State<BioPage> {
                             return FilterChip(
                               label: Text(d),
                               selected: selected,
-                              backgroundColor: selected ? Colors.orange.shade100 : Colors.grey.shade100,
+                              backgroundColor: selected ? Colors.orange.shade100 : AppC.card2,
                               selectedColor: Colors.orange.shade300,
                               labelStyle: TextStyle(color: selected ? Colors.orange.shade900 : Colors.black87),
                               onSelected: (val) {
@@ -393,14 +394,14 @@ class _BioPageState extends State<BioPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _completion == 1.0
                                 ? Colors.blue.shade700
-                                : Colors.grey.shade400,
+                                : AppC.faint,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             elevation: 4,
                           ),
                           child: Text(
                             _completion == 1.0 ? 'Save Profile' : 'Complete required fields',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppC.text),
                           ),
                         ),
                       ),
@@ -437,8 +438,8 @@ class _BioPageState extends State<BioPage> {
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: AppC.text,
           fontWeight: FontWeight.bold,
           fontSize: 17,
           letterSpacing: 0.5,

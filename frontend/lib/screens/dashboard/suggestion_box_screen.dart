@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 
@@ -299,7 +300,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
     final bg     = isDark ? const Color(0xFF0F0F1F) : const Color(0xFFF7F7FB);
     final card   = isDark ? const Color(0xFF1A1A2E) : Colors.white;
     final text   = isDark ? Colors.white               : const Color(0xFF1A1A2E);
-    final sub    = isDark ? Colors.white60             : Colors.grey.shade500;
+    final sub    = isDark ? Colors.white60             : AppC.faint;
 
     return Scaffold(
       backgroundColor: bg,
@@ -334,15 +335,15 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               child: const Icon(Icons.check_rounded,
                   color: Colors.white, size: 60))),
           const SizedBox(height: 28),
-          const T('Thank you! 🙏',
+          T('Thank you! 🙏',
               style: TextStyle(fontFamily: 'Alfa',
-                  fontSize: 36, color: Colors.white)),
+                  fontSize: 36, color: AppC.text)),
           const SizedBox(height: 12),
           T('Your suggestion has been received.\n'
               'We appreciate your feedback!',
             textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo', fontSize: 15,
-                color: Colors.white.withOpacity(0.85), height: 1.6)),
+                color: AppC.text.withOpacity(0.85), height: 1.6)),
           const SizedBox(height: 36),
           GestureDetector(
             onTap: () {
@@ -361,10 +362,10 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.4))),
-              child: const T('Submit another',
+              child: T('Submit another',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 15, color: Colors.white)),
+                    fontSize: 15, color: AppC.text)),
             ),
           ),
           const SizedBox(height: 12),
@@ -415,8 +416,8 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                         color: Colors.white.withOpacity(0.25))),
                   child: Text(
                     '${_currentCat!.emoji} ${_currentCat!.label}',
-                    style: const TextStyle(fontFamily: 'Momo',
-                        fontSize: 12, color: Colors.white))),
+                    style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 12, color: AppC.text))),
             ]),
           ),
           Padding(
@@ -428,12 +429,12 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                   child: const T('📬',
                       style: TextStyle(fontSize: 52)))),
               const SizedBox(height: 12),
-              const T('Suggestion Box', style: TextStyle(
-                  fontFamily: 'Alfa', fontSize: 28, color: Colors.white)),
+              T('Suggestion Box', style: TextStyle(
+                  fontFamily: 'Alfa', fontSize: 28, color: AppC.text)),
               const SizedBox(height: 6),
               T('Your name will be attached — speak freely!',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    color: Colors.white.withOpacity(0.8))),
+                    color: AppC.text.withOpacity(0.8))),
             ])),
         ])),
       ),
@@ -545,7 +546,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
           color: card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: isDark ? Colors.white12 : Colors.grey.shade200,
+              color: isDark ? Colors.white12 : AppC.border,
               width: 1.5)),
         child: Center(child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -588,7 +589,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: sel ? Colors.transparent
-                      : isDark ? Colors.white12 : Colors.grey.shade200,
+                      : isDark ? Colors.white12 : AppC.border,
                   width: 1.5),
                 boxShadow: sel ? [BoxShadow(
                   color: c.gradient.first.withOpacity(0.35),
@@ -648,7 +649,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               ? LinearGradient(colors: grad,
                   begin: Alignment.centerLeft, end: Alignment.centerRight)
               : LinearGradient(colors: [
-                  Colors.grey.shade400, Colors.grey.shade500]),
+                  AppC.faint, AppC.faint]),
           borderRadius: BorderRadius.circular(18),
           boxShadow: canSubmit ? [BoxShadow(
             color: grad.first.withOpacity(0.4),
@@ -666,9 +667,9 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 Text(_formEnabled
                         ? 'Send Suggestion'
                         : 'Choose a category',
-                  style: const TextStyle(fontFamily: 'Arch',
+                  style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 16, color: Colors.white)),
+                    fontSize: 16, color: AppC.text)),
               ])),
       ),
     );
@@ -683,7 +684,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
         color: card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            color: isDark ? Colors.white12 : AppC.border,
             width: 1.5)),
       child: Column(children: [
 
@@ -878,7 +879,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
           color: card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            color: isDark ? Colors.white12 : AppC.border,
             width: 1.5),
           boxShadow: [BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0 : 0.03),

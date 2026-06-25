@@ -5,6 +5,7 @@
 // or suspend the offending user. Backed by /moderation/staff/reports/.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
@@ -13,8 +14,8 @@ import 'package:tcs_app/services/cache_store.dart';
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kRed = Color(0xFFFF5858);
-const _bg = Color(0xFF0B0B16);
-const _card = Color(0xFF15152A);
+Color get _bg => AppC.bg;
+Color get _card => AppC.card;
 const _kCacheKey = 'moderation:queue';
 
 class StaffModerationScreen extends StatefulWidget {
@@ -92,8 +93,8 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
         backgroundColor: _bg, elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Row(children: [
-          const T('Moderation',
-              style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+          T('Moderation',
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
           if (_pending > 0) ...[
             const SizedBox(width: 10),
             Container(
@@ -101,8 +102,8 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
               decoration: BoxDecoration(color: _kRed,
                   borderRadius: BorderRadius.circular(10)),
               child: Text('$_pending',
-                  style: const TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                  style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 12, color: AppC.text)),
             ),
           ],
         ]),
@@ -131,12 +132,12 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.verified_user_rounded, size: 52, color: _kG1),
       const SizedBox(height: 12),
-      const T('Queue clear',
-          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+      T('Queue clear',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
       const SizedBox(height: 6),
       T('No pending reports to review',
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-              color: Colors.white.withOpacity(.5))),
+              color: AppC.text.withOpacity(.5))),
     ]),
   );
 
@@ -165,7 +166,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
             const SizedBox(width: 8),
             Text((isUser ? 'USER' : (r['content_type'] ?? '').toString()).toUpperCase(),
                 style: TextStyle(fontFamily: 'Arch', fontSize: 9,
-                    fontWeight: FontWeight.bold, color: Colors.white.withOpacity(.4))),
+                    fontWeight: FontWeight.bold, color: AppC.text.withOpacity(.4))),
             const Spacer(),
             if (suspended)
               const T('SUSPENDED', style: TextStyle(fontFamily: 'Arch',
@@ -176,18 +177,18 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
               maxLines: 3, overflow: TextOverflow.ellipsis,
               style: TextStyle(fontFamily: 'Momo', fontSize: 13,
                   fontStyle: gone ? FontStyle.italic : FontStyle.normal,
-                  color: Colors.white.withOpacity(gone ? .4 : .85))),
+                  color: AppC.text.withOpacity(gone ? .4 : .85))),
           if ((r['description'] ?? '').toString().isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('“${r['description']}”',
                 maxLines: 2, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                    color: Colors.white.withOpacity(.5))),
+                    color: AppC.text.withOpacity(.5))),
           ],
           const SizedBox(height: 10),
           Text('by ${r['owner_name'] ?? '—'}  ·  reported by ${r['reporter_name'] ?? '—'}',
               style: TextStyle(fontFamily: 'Momo', fontSize: 10,
-                  color: Colors.white.withOpacity(.4))),
+                  color: AppC.text.withOpacity(.4))),
         ]),
       ),
     );
@@ -202,7 +203,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(color: _card,
+        decoration: BoxDecoration(color: _card,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min,
           children: [
@@ -236,7 +237,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
     return ListTile(
       leading: Icon(icon, color: color),
       title: Text(label,
-          style: const TextStyle(fontFamily: 'Arch', fontSize: 14, color: Colors.white)),
+          style: TextStyle(fontFamily: 'Arch', fontSize: 14, color: AppC.text)),
       onTap: () { Navigator.pop(context); onTap(); },
     );
   }
@@ -246,10 +247,10 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const T('Confirm',
-            style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 18)),
+        title: T('Confirm',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 18)),
         content: Text(message,
-            style: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.8))),
+            style: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
               child: const T('Cancel', style: TextStyle(color: Colors.white54))),

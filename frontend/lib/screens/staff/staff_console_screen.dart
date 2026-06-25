@@ -4,6 +4,7 @@
 // now wired to the live module; the rest open placeholders until built.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
@@ -14,9 +15,9 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
-const _bg = Color(0xFF0B0B16);
-const _card = Color(0xFF15152A);
-const _card2 = Color(0xFF1E1E3A);
+Color get _bg => AppC.bg;
+Color get _card => AppC.card;
+Color get _card2 => AppC.card2;
 
 class StaffConsoleScreen extends StatelessWidget {
   final String fullName;
@@ -107,17 +108,17 @@ class StaffConsoleScreen extends StatelessWidget {
         ),
         child: Center(child: Text(
           _firstName.isNotEmpty ? _firstName[0].toUpperCase() : 'S',
-          style: const TextStyle(fontFamily: 'Alfa', fontSize: 24, color: Colors.white),
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 24, color: AppC.text),
         )),
       ),
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         T('Staff Console',
             style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                color: Colors.white.withOpacity(.45), letterSpacing: 2)),
+                color: AppC.text.withOpacity(.45), letterSpacing: 2)),
         const SizedBox(height: 2),
         Text('Hi, $_firstName',
-            style: const TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white)),
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: AppC.text)),
       ])),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -130,8 +131,8 @@ class StaffConsoleScreen extends StatelessWidget {
           const Icon(Icons.verified_rounded, size: 14, color: _kG1),
           const SizedBox(width: 5),
           Text(role.isEmpty ? 'Staff' : role,
-              style: const TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+              style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 12, color: AppC.text)),
         ]),
       ),
     ]),
@@ -157,7 +158,7 @@ class StaffConsoleScreen extends StatelessWidget {
               begin: Alignment.topCenter, end: Alignment.bottomCenter),
           borderRadius: BorderRadius.circular(2))),
       const SizedBox(width: 10),
-      Text(t, style: const TextStyle(fontFamily: 'Alfa', fontSize: 16, color: Colors.white)),
+      Text(t, style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: AppC.text)),
     ]),
   );
 }
@@ -210,11 +211,11 @@ class _PillarCard extends StatelessWidget {
           ),
           const Spacer(),
           Text(pillar.title,
-              style: const TextStyle(fontFamily: 'Alfa', fontSize: 16, color: Colors.white)),
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 16, color: AppC.text)),
           const SizedBox(height: 4),
           Text(pillar.subtitle,
               style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: Colors.white.withOpacity(.5), height: 1.3)),
+                  color: AppC.text.withOpacity(.5), height: 1.3)),
         ]),
       ),
     );
@@ -239,11 +240,11 @@ class _StatTile extends StatelessWidget {
       child: Column(children: [
         Icon(icon, color: accent, size: 18),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+        Text(value, style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
         const SizedBox(height: 2),
         Text(label, textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo', fontSize: 9,
-                color: Colors.white.withOpacity(.45))),
+                color: AppC.text.withOpacity(.45))),
       ]),
     ));
   }
@@ -260,7 +261,7 @@ class _StaffSection extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
         title: Text(pillar.title,
-            style: const TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -274,11 +275,11 @@ class _StaffSection extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(pillar.title,
-            style: const TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white)),
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: AppC.text)),
         const SizedBox(height: 8),
         T('This module is being wired up.',
             style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                color: Colors.white.withOpacity(.5))),
+                color: AppC.text.withOpacity(.5))),
       ])),
     );
   }

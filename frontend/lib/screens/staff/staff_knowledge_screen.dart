@@ -5,6 +5,7 @@
 // Staff can toggle a doc active/inactive or delete it.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,8 +15,8 @@ import 'package:tcs_app/services/cache_store.dart';
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 const _kRed = Color(0xFFFF5858);
-const _bg = Color(0xFF0B0B16);
-const _card = Color(0xFF15152A);
+Color get _bg => AppC.bg;
+Color get _card => AppC.card;
 const _kCacheKey = 'ai:knowledge';
 
 class StaffKnowledgeScreen extends StatefulWidget {
@@ -74,17 +75,17 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const T('Add to Dale\'s knowledge',
-            style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 17)),
+        title: T('Add to Dale\'s knowledge',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: titleCtrl, style: const TextStyle(color: Colors.white),
+          TextField(controller: titleCtrl, style: TextStyle(color: AppC.text),
               decoration: _dec('Title')),
           const SizedBox(height: 10),
-          TextField(controller: subjectCtrl, style: const TextStyle(color: Colors.white),
+          TextField(controller: subjectCtrl, style: TextStyle(color: AppC.text),
               decoration: _dec('Subject (optional)')),
           const SizedBox(height: 8),
           Text(pf.name, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-              color: Colors.white.withOpacity(.5))),
+              color: AppC.text.withOpacity(.5))),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
@@ -133,10 +134,10 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const T('Delete document?',
-            style: TextStyle(fontFamily: 'Alfa', color: Colors.white, fontSize: 17)),
+        title: T('Delete document?',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
         content: Text('"${d['title']}" will be removed from Dale\'s knowledge.',
-            style: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.8))),
+            style: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
               child: const T('Cancel', style: TextStyle(color: Colors.white54))),
@@ -159,7 +160,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
 
   InputDecoration _dec(String label) => InputDecoration(
     labelText: label,
-    labelStyle: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.6)),
+    labelStyle: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.6)),
     filled: true, fillColor: _bg,
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none),
@@ -180,15 +181,15 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const T('Dale Knowledge',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+        title: T('Dale Knowledge',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _kG2,
         onPressed: _busy ? null : _upload,
         icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
-        label: const T('Upload material',
-            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: Colors.white)),
+        label: T('Upload material',
+            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: AppC.text)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _kG2))
@@ -200,7 +201,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
                   const SizedBox(width: 6),
                   Text('Dale is tutoring from $_activeChunks active passages',
                       style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                          color: Colors.white.withOpacity(.55))),
+                          color: AppC.text.withOpacity(.55))),
                 ]),
               ),
               Expanded(
@@ -225,13 +226,13 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.menu_book_rounded, size: 52, color: _kG1),
       const SizedBox(height: 12),
-      const T('No material yet',
-          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+      T('No material yet',
+          style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
       const SizedBox(height: 6),
       T('Upload notes so Dale tutors from your course content',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-              color: Colors.white.withOpacity(.5))),
+              color: AppC.text.withOpacity(.5))),
     ]),
   );
 
@@ -247,7 +248,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text((d['title'] ?? '').toString(),
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontFamily: 'Alfa', fontSize: 14, color: Colors.white)),
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 14, color: AppC.text)),
           const SizedBox(height: 4),
           Text([
             if ((d['subject'] ?? '').toString().isNotEmpty) d['subject'],
@@ -255,7 +256,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
             d['uploaded_by'] ?? '',
           ].where((e) => (e ?? '').toString().isNotEmpty).join('  ·  '),
               style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
-                  color: Colors.white.withOpacity(.45))),
+                  color: AppC.text.withOpacity(.45))),
         ])),
         Switch(
           value: active, activeThumbColor: _kG1,

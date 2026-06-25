@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import '../services/api_service.dart';
 
 const _kG2 = Color(0xFF8E54E9);
@@ -60,12 +61,12 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
           padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 10,
               left: 8, right: 16, bottom: 14),
-          color: Colors.white,
+          color: AppC.card,
           child: Row(children: [
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(width: 40, height: 40,
-                  decoration: BoxDecoration(color: Colors.grey.shade100,
+                  decoration: BoxDecoration(color: AppC.card2,
                       borderRadius: BorderRadius.circular(12)),
                   child: const Icon(Icons.arrow_back_rounded, size: 20)),
             ),
@@ -73,15 +74,15 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
             Expanded(child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F8FA), borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200)),
+                border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: _ctrl, autofocus: true, enableSuggestions: false,
                 onChanged: _onChanged,
                 style: const TextStyle(fontFamily: 'Momo', fontSize: 15),
                 decoration: InputDecoration(
                   hintText: TranslationService.I.tr('Search groups, buddies, subjects...'),
-                  hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade400),
-                  prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
+                  hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
+                  prefixIcon: Icon(Icons.search_rounded, color: AppC.faint),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 13),
                 ),
@@ -100,7 +101,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
                 color: _indigo.withOpacity(0.5))),
             const SizedBox(height: 6),
             T('Find groups, study buddies, or subjects',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: Colors.grey.shade400)),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: AppC.faint)),
           ])))
         else
           Expanded(child: ListView(
@@ -122,10 +123,10 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
               if (_groups.isEmpty && _buddies.isEmpty) ...[
                 const SizedBox(height: 60),
                 Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+                  Icon(Icons.search_off_rounded, size: 48, color: AppC.border),
                   const SizedBox(height: 12),
                   T('No results found', style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 16, color: Colors.grey.shade400)),
+                      fontSize: 16, color: AppC.faint)),
                 ])),
               ],
             ],
@@ -153,7 +154,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
           Text(g['name'] as String? ?? '', style: const TextStyle(fontFamily: 'Arch',
               fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
           Text('${g['members_count'] ?? 0} members · ${g['category'] ?? ''}',
-              style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade500)),
+              style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.faint)),
         ])),
         GestureDetector(
           onTap: () async {
@@ -185,18 +186,18 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
       child: Row(children: [
         Container(width: 44, height: 44, decoration: BoxDecoration(shape: BoxShape.circle,
             gradient: const LinearGradient(colors: [_kG2, _indigo])),
-          child: Center(child: Text(initial, style: const TextStyle(color: Colors.white,
+          child: Center(child: Text(initial, style: TextStyle(color: AppC.text,
               fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 18)))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(name, style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
               fontSize: 14, color: Color(0xFF1A1A2E))),
           Text(b['subjects'] as String? ?? '', style: TextStyle(fontFamily: 'Momo',
-              fontSize: 12, color: Colors.grey.shade500)),
+              fontSize: 12, color: AppC.faint)),
         ])),
         Container(width: 10, height: 10,
           decoration: BoxDecoration(color: b['is_online'] == true
-              ? Colors.green.shade500 : Colors.grey.shade400, shape: BoxShape.circle)),
+              ? Colors.green.shade500 : AppC.faint, shape: BoxShape.circle)),
       ]),
     );
   }

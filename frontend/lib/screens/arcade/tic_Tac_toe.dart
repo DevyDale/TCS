@@ -18,6 +18,7 @@ import 'dart:async';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'game_engine.dart';
 import 'level_system.dart';
@@ -143,13 +144,13 @@ class _TicTacToeGameState extends State<TicTacToeGame>
                       ? ShaderMask(shaderCallback: (b) => const LinearGradient(
                             colors: [kNeonBlue, kNeonPurple]).createShader(b),
                           blendMode: BlendMode.srcIn,
-                          child: const T('X', style: TextStyle(fontFamily: 'Alfa',
-                              fontSize: 42, color: Colors.white)))
+                          child: T('X', style: TextStyle(fontFamily: 'Alfa',
+                              fontSize: 42, color: AppC.text)))
                       : isO ? ShaderMask(shaderCallback: (b) => const LinearGradient(
                             colors: [kNeonOrange, kNeonRed]).createShader(b),
                           blendMode: BlendMode.srcIn,
-                          child: const T('O', style: TextStyle(fontFamily: 'Alfa',
-                              fontSize: 42, color: Colors.white)))
+                          child: T('O', style: TextStyle(fontFamily: 'Alfa',
+                              fontSize: 42, color: AppC.text)))
                       : null),
                 ),
               );
@@ -322,8 +323,8 @@ class _TicTacToeGameState extends State<TicTacToeGame>
           const Spacer(),
           ShaderMask(shaderCallback: (b) => const LinearGradient(
               colors: [kNeonOrange, kNeonRed]).createShader(b), blendMode: BlendMode.srcIn,
-            child: Text('VS  $opp', style: const TextStyle(fontFamily: 'Alfa',
-                fontSize: 16, color: Colors.white))),
+            child: Text('VS  $opp', style: TextStyle(fontFamily: 'Alfa',
+                fontSize: 16, color: AppC.text))),
           const Spacer(),
           Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(color: kDarkCard2, borderRadius: BorderRadius.circular(10)),
@@ -332,7 +333,7 @@ class _TicTacToeGameState extends State<TicTacToeGame>
         ]),
         const SizedBox(height: 6),
         Text('You are $_mySym', style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-            color: Colors.white.withOpacity(0.4))),
+            color: AppC.text.withOpacity(0.4))),
         const SizedBox(height: 18),
         AnimatedSwitcher(duration: const Duration(milliseconds: 300),
           child: Text(status, key: ValueKey(status),
@@ -347,8 +348,8 @@ class _TicTacToeGameState extends State<TicTacToeGame>
           child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
             const CircularProgressIndicator(color: kNeonOrange),
             const SizedBox(height: 16),
-            Text('Waiting for $opp…', style: const TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+            Text('Waiting for $opp…', style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 16, color: AppC.text)),
           ]))),
       if (_settled)
         Container(color: Colors.black.withOpacity(0.8),
@@ -362,15 +363,15 @@ class _TicTacToeGameState extends State<TicTacToeGame>
               Text(_settledWin ? '🏆' : '🤝', style: const TextStyle(fontSize: 56)),
               const SizedBox(height: 12),
               Text(_settledText, textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Colors.white)),
+                  style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: AppC.text)),
               const SizedBox(height: 20),
               GestureDetector(onTap: () => Navigator.of(context).maybePop(),
                 child: Container(padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                   decoration: BoxDecoration(
                       gradient: const LinearGradient(colors: [kNeonOrange, kNeonRed]),
                       borderRadius: BorderRadius.circular(14)),
-                  child: const T('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)))),
+                  child: T('Back to Arcade', style: TextStyle(fontFamily: 'Arch',
+                      fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text)))),
             ])))),
     ]);
   }
@@ -503,13 +504,13 @@ class _TicTacToeGameState extends State<TicTacToeGame>
     const SizedBox(height: 16),
     ShaderMask(shaderCallback: (b) => const LinearGradient(
         colors: [kNeonOrange, kNeonRed]).createShader(b), blendMode: BlendMode.srcIn,
-      child: const T('Tic Tac Toe', style: TextStyle(fontFamily: 'Alfa', fontSize: 38,
-          color: Colors.white))),
+      child: T('Tic Tac Toe', style: TextStyle(fontFamily: 'Alfa', fontSize: 38,
+          color: AppC.text))),
     const SizedBox(height: 10),
     T('Beat the bot — it gets smarter every level.\nLv.10 plays perfectly: a draw is a win.',
       textAlign: TextAlign.center,
       style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-          color: Colors.white.withOpacity(0.5), height: 1.6)),
+          color: AppC.text.withOpacity(0.5), height: 1.6)),
     const SizedBox(height: 24),
     MiniLeaderboard(gameSlug: 'tic-tac-toe', gameName: 'Tic Tac Toe'),
     const Spacer(),
@@ -520,8 +521,8 @@ class _TicTacToeGameState extends State<TicTacToeGame>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: kNeonOrange.withOpacity(0.4),
               blurRadius: 20, offset: const Offset(0, 6))]),
-        child: const Center(child: T('Choose Level ▶', style: TextStyle(
-            fontFamily: 'Alfa', fontSize: 20, color: Colors.white))))),
+        child: Center(child: T('Choose Level ▶', style: TextStyle(
+            fontFamily: 'Alfa', fontSize: 20, color: AppC.text))))),
   ]));
 
   Widget _buildGame() {

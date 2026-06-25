@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -196,7 +197,7 @@ Future<void> _pickAvatar() async {
                                   style: TextStyle(
                                     fontFamily: 'Alfa',
                                     fontSize: r.avatarSize * 0.85,
-                                    color: Colors.white,
+                                    color: AppC.text,
                                   ),
                                 ),
                               ),
@@ -227,7 +228,7 @@ Future<void> _pickAvatar() async {
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: r.caption,
-                        color: Colors.white.withOpacity(0.35))),
+                        color: AppC.text.withOpacity(0.35))),
 
                 SizedBox(height: r.md),
 
@@ -241,7 +242,7 @@ Future<void> _pickAvatar() async {
                         style: TextStyle(
                             fontFamily: 'Alfa',
                             fontSize: r.heading,
-                            color: Colors.white)),
+                            color: AppC.text)),
                   ),
 
                 SizedBox(height: 6),
@@ -249,7 +250,7 @@ Future<void> _pickAvatar() async {
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: r.subheading - 2,
-                        color: Colors.white.withOpacity(0.4))),
+                        color: AppC.text.withOpacity(0.4))),
 
                 SizedBox(height: r.xl),
 
@@ -298,7 +299,7 @@ Future<void> _pickAvatar() async {
                             fontSize:   r.body + 1,
                             color:      Colors.white.withOpacity(0.30)),
                         counterStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.35),
+                            color: AppC.text.withOpacity(0.35),
                             fontFamily: 'Momo'),
                         border:        InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -332,7 +333,7 @@ Future<void> _pickAvatar() async {
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: r.caption,
-                          color: Colors.white.withOpacity(0.4))),
+                          color: AppC.text.withOpacity(0.4))),
                 ),
                 SizedBox(height: r.sm),
 
@@ -370,7 +371,7 @@ Future<void> _pickAvatar() async {
                       style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: r.caption,
-                          color: Colors.white.withOpacity(0.4))),
+                          color: AppC.text.withOpacity(0.4))),
                 ),
                 SizedBox(height: r.sm),
 
@@ -417,7 +418,7 @@ Future<void> _pickAvatar() async {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                           colors: _checking
-                              ? [Colors.grey.shade700, Colors.grey.shade600]
+                              ? [AppC.sub, AppC.sub]
                               : grad),
                       borderRadius: BorderRadius.circular(r.radiusLg),
                       boxShadow: _checking
@@ -440,7 +441,7 @@ Future<void> _pickAvatar() async {
                               style: TextStyle(
                                   fontFamily: 'Alfa',
                                   fontSize: r.heading - 4,
-                                  color: Colors.white)),
+                                  color: AppC.text)),
                     ),
                   ),
                 ),

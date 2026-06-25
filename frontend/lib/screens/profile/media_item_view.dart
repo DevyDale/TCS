@@ -15,6 +15,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 import '../dashboard/full_screen_video_player.dart';
 
@@ -74,7 +75,7 @@ class MediaItemView extends StatelessWidget {
         color: const Color(0xFFF0F0F5),
         child: Center(child: Icon(
             _isVideo ? Icons.videocam_off_outlined : Icons.image_outlined,
-            size: 48, color: Colors.grey.shade300))),
+            size: 48, color: AppC.border))),
     );
 
     if (!_isVideo) return image;

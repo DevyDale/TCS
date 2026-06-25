@@ -16,6 +16,7 @@
 // UI. That keeps this file purely visual.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +27,7 @@ import 'package:lottie/lottie.dart';
 const _kG1   = Color(0xFFA9BC95); // sage
 const _kG2   = Color(0xFF6E8159); // sage dark
 const _kInk  = Color(0xFF2E3A24);
-const _kSlate = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 const _kRed  = Color(0xFFFF4F6E);
 
 /// Public entry — call this. Returns immediately; the parent's
@@ -84,13 +85,13 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         title: const T('Remove Dale from this chat?',
             style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
-        content: const T(
+        content: T(
           "Dale will stop participating. You can add him back any time.",
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate),
@@ -98,7 +99,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const T('Cancel',
+            child: T('Cancel',
                 style: TextStyle(color: _kSlate)),
           ),
           TextButton(
@@ -123,8 +124,8 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppC.card,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
@@ -140,7 +141,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                 child: Container(
                   width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppC.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -165,15 +166,15 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                       width: 38,
                       height: 38,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stack) => const Icon(
+                      errorBuilder: (context, error, stack) => Icon(
                           Icons.smart_toy_rounded,
-                          color: Colors.white,
+                          color: AppC.card,
                           size: 20),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(child: Column(
+                Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     T('Dale is here',
@@ -213,7 +214,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                     hintText: TranslationService.I.tr('Ask Dale a question…'),
                     hintStyle: TextStyle(
                         fontFamily: 'Momo',
-                        color: Colors.grey.shade400,
+                        color: AppC.faint,
                         fontSize: 13),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -233,9 +234,9 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppC.card,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: AppC.border),
                       ),
                       child: const Center(
                         child: T('Catch me up',
@@ -275,12 +276,12 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                                 width: 18, height: 18,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2))
-                            : const T('Ask Dale',
+                            : T('Ask Dale',
                                 style: TextStyle(
                                     fontFamily: 'Arch',
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: Colors.white)),
+                                    color: AppC.text)),
                       ),
                     ),
                   ),
@@ -288,7 +289,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
               ]),
 
               const SizedBox(height: 14),
-              Divider(color: Colors.grey.shade200, height: 1),
+              Divider(color: AppC.border, height: 1),
               const SizedBox(height: 6),
 
               // Remove option

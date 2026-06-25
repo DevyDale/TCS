@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/app_settings.dart';
 
@@ -15,7 +16,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
   Color get _bg   => _dark ? const Color(0xFF0D0D1A) : const Color(0xFFF2F4F8);
   Color get _card => _dark ? const Color(0xFF161628) : Colors.white;
   Color get _text => _dark ? Colors.white            : const Color(0xFF1A1A2E);
-  Color get _sub  => _dark ? Colors.white70          : Colors.grey.shade700;
+  Color get _sub  => _dark ? Colors.white70          : AppC.sub;
 
   @override
   Widget build(BuildContext context) {

@@ -24,6 +24,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -48,7 +49,7 @@ const _kSage   = Color(0xFFA9BC95);
 const _kSageDk = Color(0xFF6E8159);
 const _kSageLt = Color(0xFFE7E8DD);
 const _kInk    = Color(0xFF2E3A24);
-const _kSlate  = Color(0xFF7C846F);
+Color get _kSlate => AppC.sub;
 const _kHair   = Color(0xFFE3E2DA);
 const _kWarm   = Color(0xFFC9A24B);
 const _kDanger = Color(0xFFC0392B);
@@ -670,7 +671,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
@@ -683,7 +684,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 color: _kHair, borderRadius: BorderRadius.circular(2)),
           ),
           ListTile(
-            leading: const Icon(Icons.delete_outline_rounded, color: _kSlate),
+            leading: Icon(Icons.delete_outline_rounded, color: _kSlate),
             title: const T('Delete for me',
                 style: TextStyle(fontFamily: 'Momo', color: _kInk)),
             onTap: () {
@@ -697,7 +698,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   const Icon(Icons.delete_forever_rounded, color: _kDanger),
               title: const T('Delete for everyone',
                   style: TextStyle(fontFamily: 'Momo', color: _kDanger)),
-              subtitle: const T('Within 10 minutes of sending',
+              subtitle: T('Within 10 minutes of sending',
                   style: TextStyle(
                       fontFamily: 'Momo', fontSize: 11, color: _kSlate)),
               onTap: () {
@@ -788,8 +789,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Widget _buildAppBar() {
     final status = _statusLine();
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppC.card,
         border: Border(bottom: BorderSide(color: _kHair)),
       ),
       child: SafeArea(
@@ -888,9 +889,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           borderRadius: BorderRadius.circular(14),
                           child: Lottie.asset(
                             'assets/images/robot.json',
-                            errorBuilder: (context, error, stack) => const Icon(
+                            errorBuilder: (context, error, stack) => Icon(
                                 Icons.smart_toy_rounded,
-                                color: Colors.white,
+                                color: AppC.card,
                                 size: 22),
                           ),
                         ),
@@ -935,8 +936,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ? const Icon(Icons.bubble_chart_rounded,
                         color: Colors.white, size: 19)
                     : Text(initial,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: AppC.text,
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
@@ -1004,7 +1005,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     _isStudyBuddy
                         ? Icons.menu_book_rounded
                         : Icons.waving_hand_rounded,
-                    color: Colors.white,
+                    color: AppC.card,
                     size: 40),
               ),
               const SizedBox(height: 22),
@@ -1023,7 +1024,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         ? 'Start your study session here — share notes, ask questions, work through problems together.'
                         : 'This is the beginning of the conversation. Say hello, share materials, or tap ✨ to bring in Dale.'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13.5,
                     color: _kSlate,
                     fontFamily: 'Momo',
@@ -1124,7 +1125,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     Padding(
                       padding: const EdgeInsets.only(left: 6, bottom: 4),
                       child: Text(senderName,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: 'Arch',
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -1205,8 +1206,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             child: Center(
               child: Text(initial,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: AppC.text,
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 18)),
@@ -1329,7 +1330,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           placeholder: (_, __) => Container(
             width: 220,
             height: 220,
-            color: Colors.grey.shade200,
+            color: AppC.border,
             child: const Center(child: CircularProgressIndicator()),
           ),
           errorWidget: (_, __, ___) =>
@@ -1354,10 +1355,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: const Icon(Icons.play_arrow_rounded,
                 color: Colors.white, size: 32),
           ),
-          const Positioned(
+          Positioned(
             bottom: 8,
             child:
-                T('Uploading video...', style: TextStyle(color: Colors.white)),
+                T('Uploading video...', style: TextStyle(color: AppC.text)),
           ),
         ]);
       }
@@ -1370,11 +1371,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             width: 220,
             height: 220,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: Colors.grey.shade800),
+            placeholder: (_, __) => Container(color: AppC.sub),
             errorWidget: (_, __, ___) => Container(
               width: 220,
               height: 220,
-              color: Colors.grey.shade800,
+              color: AppC.sub,
               child: const Icon(Icons.videocam_off_rounded, color: Colors.white),
             ),
           ),
@@ -1427,8 +1428,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       ),
       child: Center(
           child: Text(initial,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: AppC.text,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   fontFamily: 'Arch'))),
@@ -1473,8 +1474,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Widget _buildInputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppC.card,
         border: Border(top: BorderSide(color: _kHair)),
       ),
       child: SafeArea(
@@ -1588,7 +1589,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 11.5,
                   color: _kSlate,

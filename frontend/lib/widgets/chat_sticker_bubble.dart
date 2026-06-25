@@ -22,6 +22,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 class ChatStickerBubble extends StatelessWidget {
   final Map<String, dynamic>  message;
@@ -84,7 +85,7 @@ class ChatStickerBubble extends StatelessWidget {
                 broken
                     ? Icons.broken_image_rounded
                     : Icons.emoji_emotions_rounded,
-                color: Colors.grey.shade400,
+                color: AppC.faint,
                 size: 32,
               ),
       ),

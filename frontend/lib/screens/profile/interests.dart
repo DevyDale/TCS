@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
@@ -256,20 +257,20 @@ class _InterestsPageState extends State<InterestsPage>
                     border: Border.all(
                         color: Colors.white.withOpacity(0.3)),
                   ),
-                  child: const Icon(
+                  child: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
+                      color: AppC.card,
                       size: 18),
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: T(
                   'Your Interests',
                   style: TextStyle(
                     fontFamily: 'Alfa',
                     fontSize: 22,
-                    color: Colors.white,
+                    color: AppC.text,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -285,7 +286,7 @@ class _InterestsPageState extends State<InterestsPage>
             style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 13,
-              color: Colors.white.withOpacity(0.8),
+              color: AppC.text.withOpacity(0.8),
             ),
           ),
 
@@ -295,7 +296,7 @@ class _InterestsPageState extends State<InterestsPage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -319,18 +320,18 @@ class _InterestsPageState extends State<InterestsPage>
                             end: Alignment.bottomRight,
                           )
                         : LinearGradient(colors: [
-                            Colors.grey.shade300,
-                            Colors.grey.shade400,
+                            AppC.border,
+                            AppC.faint,
                           ]),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
                       '$count',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Alfa',
                         fontSize: 22,
-                        color: Colors.white,
+                        color: AppC.text,
                       ),
                     ),
                   ),
@@ -352,7 +353,7 @@ class _InterestsPageState extends State<InterestsPage>
                           fontSize: 14,
                           color: _canSave
                               ? const Color(0xFF1A1A2E)
-                              : Colors.grey.shade600,
+                              : AppC.sub,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -361,7 +362,7 @@ class _InterestsPageState extends State<InterestsPage>
                         child: LinearProgressIndicator(
                           value: count / _max,
                           minHeight: 6,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: AppC.border,
                           valueColor: AlwaysStoppedAnimation(
                             _canSave ? _kG2 : _kG3,
                           ),
@@ -385,7 +386,7 @@ class _InterestsPageState extends State<InterestsPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -421,18 +422,18 @@ class _InterestsPageState extends State<InterestsPage>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(s,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'Momo',
                                       fontSize: 12,
-                                      color: Colors.white,
+                                      color: AppC.text,
                                       fontWeight: FontWeight.w600,
                                     )),
                                 const SizedBox(width: 6),
                                 GestureDetector(
                                   onTap: () => _toggle(s),
-                                  child: const Icon(
+                                  child: Icon(
                                       Icons.close_rounded,
-                                      color: Colors.white,
+                                      color: AppC.card,
                                       size: 14),
                                 ),
                               ],
@@ -479,10 +480,10 @@ class _InterestsPageState extends State<InterestsPage>
                         : count < _min
                             ? 'Select ${_min - count} more'
                             : 'Max reached',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppC.text,
                       fontSize: 15,
                     ),
                   ),
@@ -535,7 +536,7 @@ class _CategorySectionState extends State<_CategorySection> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -607,11 +608,11 @@ class _CategorySectionState extends State<_CategorySection> {
                       ),
                       child: Text(
                         '$selectedInCat',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Momo',
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppC.text,
                         ),
                       ),
                     ),
@@ -666,7 +667,7 @@ class _CategorySectionState extends State<_CategorySection> {
                         border: Border.all(
                           color: sel
                               ? Colors.transparent
-                              : Colors.grey.shade200,
+                              : AppC.border,
                           width: 1.5,
                         ),
                         boxShadow: sel
@@ -691,7 +692,7 @@ class _CategorySectionState extends State<_CategorySection> {
                               : FontWeight.normal,
                           color: sel
                               ? Colors.white
-                              : Colors.grey.shade600,
+                              : AppC.sub,
                         ),
                       ),
                     ),

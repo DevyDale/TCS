@@ -12,14 +12,15 @@ import 'dart:async';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 
 
 const _kDarkBg     = Color(0xFF0D0D1A);
-const _kDarkCard   = Color(0xFF161628);
-const _kDarkCard2  = Color(0xFF1E1E38);
+Color get _kDarkCard => AppC.card;
+Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
 const _kNeonPurple = Color(0xFF8E54E9);
 const _kNeonOrange = Color(0xFFF7971E);
@@ -160,19 +161,19 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
         backgroundColor: _kDarkCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const T('Confirm transfer',
+        title: T('Confirm transfer',
           style: TextStyle(fontFamily: 'Alfa',
-              color: Colors.white, fontSize: 18)),
+              color: AppC.text, fontSize: 18)),
         content: Column(mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
           Text('Send 🪙 $amt to @${tag.isNotEmpty ? tag : n}?',
-            style: const TextStyle(fontFamily: 'Momo',
-                color: Colors.white, fontSize: 14)),
+            style: TextStyle(fontFamily: 'Momo',
+                color: AppC.text, fontSize: 14)),
           const SizedBox(height: 8),
           T('This is final. Tokens move immediately.',
             style: TextStyle(fontFamily: 'Momo',
-                color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                color: AppC.text.withOpacity(0.4), fontSize: 11)),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
@@ -186,10 +187,10 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                 gradient: const LinearGradient(
                     colors: [_kNeonOrange, _kNeonRed]),
                 borderRadius: BorderRadius.circular(10)),
-              child: const T('Send',
+              child: T('Send',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    color: Colors.white, fontSize: 13)))),
+                    color: AppC.text, fontSize: 13)))),
           const SizedBox(width: 12),
         ],
       ),
@@ -238,8 +239,8 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
       backgroundColor: _kDarkBg,
       appBar: AppBar(
         backgroundColor: _kDarkBg, elevation: 0,
-        title: const T('Send Tokens',
-          style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+        title: T('Send Tokens',
+          style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -259,16 +260,16 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                 T('YOUR BALANCE',
                   style: TextStyle(fontFamily: 'Momo',
                       letterSpacing: 2, fontSize: 10,
-                      color: Colors.white.withOpacity(0.7))),
+                      color: AppC.text.withOpacity(0.7))),
                 const SizedBox(height: 6),
                 Text('🪙 $_myTokens',
-                  style: const TextStyle(fontFamily: 'Alfa',
-                      fontSize: 36, color: Colors.white)),
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 36, color: AppC.text)),
                 const SizedBox(height: 4),
                 T('Daily cap: 500 · Max per send: 200',
                   style: TextStyle(fontFamily: 'Momo',
                       fontSize: 11,
-                      color: Colors.white.withOpacity(0.7))),
+                      color: AppC.text.withOpacity(0.7))),
               ]),
           ),
           const SizedBox(height: 22),
@@ -279,12 +280,12 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
             controller: _search,
             onChanged:  _onSearchChange,
             enabled:    _selectedRecipient == null,
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: AppC.text,
                 fontFamily: 'Momo', fontSize: 14),
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('Search by gamer tag or name...'),
               hintStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.white.withOpacity(0.3)),
+                  color: AppC.text.withOpacity(0.3)),
               filled: true, fillColor: _kDarkCard,
               prefixIcon: const Icon(Icons.search, color: Colors.white54),
               suffixIcon: _searching
@@ -323,16 +324,16 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                             ? NetworkImage(av) : null,
                         child: av.isEmpty ? Text(
                           n.isNotEmpty ? n[0].toUpperCase() : '?',
-                          style: const TextStyle(color: Colors.white,
+                          style: TextStyle(color: AppC.text,
                               fontFamily: 'Arch',
                               fontWeight: FontWeight.bold)) : null),
                       const SizedBox(width: 10),
                       Expanded(child: Column(crossAxisAlignment:
                           CrossAxisAlignment.start, children: [
                         Text('@${tag.isNotEmpty ? tag : n}',
-                          style: const TextStyle(fontFamily: 'Arch',
+                          style: TextStyle(fontFamily: 'Arch',
                               fontWeight: FontWeight.bold, fontSize: 13,
-                              color: Colors.white)),
+                              color: AppC.text)),
                         Text(n, style: const TextStyle(fontFamily: 'Momo',
                             fontSize: 10, color: Colors.white38)),
                       ])),
@@ -351,12 +352,12 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
               controller: _amount,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(color: Colors.white,
+              style: TextStyle(color: AppC.text,
                   fontFamily: 'Alfa', fontSize: 22),
               decoration: InputDecoration(
                 hintText: TranslationService.I.tr('0'),
                 hintStyle: TextStyle(fontFamily: 'Alfa',
-                    color: Colors.white.withOpacity(0.2),
+                    color: AppC.text.withOpacity(0.2),
                     fontSize: 22),
                 prefixText: '🪙  ',
                 prefixStyle: const TextStyle(fontSize: 18),
@@ -396,14 +397,14 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
           TextField(
             controller: _note,
             maxLength: _kNoteMaxLen,
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: AppC.text,
                 fontFamily: 'Momo', fontSize: 13),
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('For pizza? 🍕'),
               hintStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.white.withOpacity(0.3), fontSize: 13),
+                  color: AppC.text.withOpacity(0.3), fontSize: 13),
               counterStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.white.withOpacity(0.3), fontSize: 10),
+                  color: AppC.text.withOpacity(0.3), fontSize: 10),
               filled: true, fillColor: _kDarkCard,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -427,9 +428,9 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   ? const SizedBox(width: 22, height: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.5))
-                  : const T('💸  Send Tokens',
+                  : T('💸  Send Tokens',
                       style: TextStyle(fontFamily: 'Alfa',
-                          fontSize: 16, color: Colors.white)))))),
+                          fontSize: 16, color: AppC.text)))))),
 
           const SizedBox(height: 28),
           _sectionLabel('Recent transfers'),
@@ -442,7 +443,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
             Padding(padding: const EdgeInsets.all(20),
               child: Center(child: T('No transfers yet',
                   style: TextStyle(fontFamily: 'Momo',
-                      color: Colors.white.withOpacity(0.3))))),
+                      color: AppC.text.withOpacity(0.3))))),
           ..._history.map(_historyTile),
           const SizedBox(height: 30),
         ],
@@ -473,7 +474,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
           backgroundImage: av.isNotEmpty ? NetworkImage(av) : null,
           child: av.isEmpty ? Text(
             name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: AppC.text,
                 fontFamily: 'Arch', fontWeight: FontWeight.bold)) : null),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment:
@@ -481,23 +482,23 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
           Row(children: [
             Text(outgoing ? 'Sent to ' : 'From ',
               style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: Colors.white.withOpacity(0.4))),
+                  color: AppC.text.withOpacity(0.4))),
             Text('@${tag.isNotEmpty ? tag : name}',
-              style: const TextStyle(fontFamily: 'Arch',
+              style: TextStyle(fontFamily: 'Arch',
                   fontWeight: FontWeight.bold, fontSize: 13,
-                  color: Colors.white)),
+                  color: AppC.text)),
           ]),
           if (note.isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 2),
               child: Text(note, maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                    color: Colors.white.withOpacity(0.5)))),
+                    color: AppC.text.withOpacity(0.5)))),
           if (ts.isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 2),
               child: Text(_ago(ts),
                 style: TextStyle(fontFamily: 'Momo', fontSize: 9,
-                    color: Colors.white.withOpacity(0.3)))),
+                    color: AppC.text.withOpacity(0.3)))),
         ])),
         Text('${outgoing ? "-" : "+"}🪙 $amount',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 16,
@@ -513,11 +514,11 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
         gradient: LinearGradient(colors: [_kNeonOrange, _kNeonRed]),
         shape: BoxShape.circle),
       child: Center(child: Text(n,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
+        style: TextStyle(color: AppC.text, fontFamily: 'Arch',
             fontWeight: FontWeight.bold, fontSize: 12)))),
     const SizedBox(width: 8),
-    Text(text, style: const TextStyle(fontFamily: 'Alfa',
-        fontSize: 16, color: Colors.white)),
+    Text(text, style: TextStyle(fontFamily: 'Alfa',
+        fontSize: 16, color: AppC.text)),
   ]);
 
   Widget _sectionLabel(String t) => Text(t.toUpperCase(),

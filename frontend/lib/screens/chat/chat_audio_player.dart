@@ -5,12 +5,13 @@
 // Sage reskin only — the just_audio playback logic is unchanged.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:just_audio/just_audio.dart';
 
 // ── Sage palette ──
 const _kSageDk = Color(0xFF6E8159);
 const _kInk    = Color(0xFF2E3A24);
-const _kSlate  = Color(0xFF7C846F);
+Color get _kSlate => AppC.sub;
 
 class ChatAudioPlayer extends StatefulWidget {
   final String url;

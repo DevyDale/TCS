@@ -16,6 +16,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcs_app/avator/avator_view.dart';
@@ -422,7 +423,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
         backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
         content: Text('⚔ Match starting · pot 🪙 ${session?['pot'] ?? 0}',
-            style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
+            style: TextStyle(fontFamily: 'Momo', color: AppC.text)),
         duration: const Duration(seconds: 2),
       ));
       Future.delayed(const Duration(milliseconds: 250),
@@ -558,9 +559,9 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight).createShader(b),
               blendMode: BlendMode.srcIn,
-              child: const T('ARCADE',
+              child: T('ARCADE',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
-                      letterSpacing: 3, color: Colors.white)))),
+                      letterSpacing: 3, color: AppC.text)))),
             _circleIconButton(
               t: t,
               icon: Icons.groups_rounded,
@@ -809,8 +810,8 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                       color: _kCoral.withOpacity(0.4), blurRadius: 10)]),
                 child: Center(child: Text(
                   badge > 99 ? '99+' : '$badge',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, color: Colors.white,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800, color: AppC.text,
                       fontSize: 10, fontFamily: 'monospace'))))),
           ],
         ),
@@ -1049,7 +1050,7 @@ class _ArcadeScreenState extends State<ArcadeScreen>
                       name.isNotEmpty
                           ? name[name.startsWith('#') ? 1 : 0].toUpperCase()
                           : '?',
-                      style: const TextStyle(color: Colors.white,
+                      style: TextStyle(color: AppC.text,
                           fontWeight: FontWeight.w800, fontSize: 14)))),
                 const SizedBox(width: 12),
                 Expanded(child: Column(
@@ -1374,7 +1375,7 @@ class _GamerCard extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: LinearGradient(colors: [accent.withOpacity(0.85), accent])),
             child: Center(child: Text(initial,
-                style: const TextStyle(color: Colors.white,
+                style: TextStyle(color: AppC.text,
                     fontWeight: FontWeight.w800, fontSize: 15)))),
           const SizedBox(height: 7),
           Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -1501,8 +1502,8 @@ class _FeaturedTile extends StatelessWidget {
                 begin: Alignment.topLeft, end: Alignment.bottomRight),
             borderRadius: BorderRadius.circular(10)),
           child: Text(playable ? 'Play' : 'Soon',
-              style: const TextStyle(fontSize: 12,
-                  fontWeight: FontWeight.w800, color: Colors.white))),
+              style: TextStyle(fontSize: 12,
+                  fontWeight: FontWeight.w800, color: AppC.text))),
       ]),
     );
 
@@ -1586,8 +1587,8 @@ class _GameGridCard extends StatelessWidget {
                         begin: Alignment.topLeft, end: Alignment.bottomRight),
                     borderRadius: BorderRadius.circular(8)),
                   child: Text(isPlayable ? 'Play' : 'Soon',
-                      style: const TextStyle(fontSize: 9,
-                          fontWeight: FontWeight.w800, color: Colors.white))),
+                      style: TextStyle(fontSize: 9,
+                          fontWeight: FontWeight.w800, color: AppC.text))),
               ]),
             ]))),
         ])));

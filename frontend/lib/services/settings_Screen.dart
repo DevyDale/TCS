@@ -12,6 +12,7 @@
 //   update the moment a switch is flipped
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/main.dart'; // for syncFcmTopics()
@@ -77,8 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Color get _bg   => _dark ? const Color(0xFF0D0D1A) : const Color(0xFFF2F4F8);
   Color get _card => _dark ? const Color(0xFF161628) : Colors.white;
   Color get _text => _dark ? Colors.white            : const Color(0xFF1A1A2E);
-  Color get _sub  => _dark ? Colors.white70          : Colors.grey.shade600;
-  Color get _divC => _dark ? Colors.white12          : Colors.grey.shade200;
+  Color get _sub  => _dark ? Colors.white70          : AppC.sub;
+  Color get _divC => _dark ? Colors.white12          : AppC.border;
 
   void _snack(String msg, {Color? color}) {
     if (!mounted) return;
@@ -211,10 +212,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 boxShadow: [BoxShadow(
                     color: _kG4.withOpacity(0.35),
                     blurRadius: 12, offset: const Offset(0, 4))]),
-              child: const Center(child: T('Log out',
+              child: Center(child: T('Log out',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    color: Colors.white, fontSize: 14))),
+                    color: AppC.text, fontSize: 14))),
             ),
           )),
         ]),
@@ -384,8 +385,8 @@ Future<void> _performLogout() async {
                 gradient: const LinearGradient(colors: [_kG2, _kG1]),
                 borderRadius: BorderRadius.circular(14)),
               child: Center(child: Text(AppL10n.of(context).btnGotIt,
-                style: const TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, color: Colors.white))))),
+                style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, color: AppC.text))))),
         ])),
     );
   }
@@ -566,7 +567,7 @@ _group([
                     }
                     await syncFcmTopics(); // re-subscribe / unsubscribe FCM
                     _snack(granted ? '🔔 ${l.settingsPushOn}' : '🔕 ${l.settingsPushOff}',
-                        color: granted ? Colors.green.shade600 : Colors.grey.shade600);
+                        color: granted ? Colors.green.shade600 : AppC.sub);
                   },
                 ),
                 _divLine(),
@@ -669,13 +670,13 @@ _group([
                   onTap: () => Navigator.push(context, MaterialPageRoute(
                       builder: (_) => const TermsOfServiceScreen())),
                   child: _info(Icons.gavel_rounded, l.settingsTerms,
-                      l.settingsView, Colors.grey.shade600)),
+                      l.settingsView, AppC.sub)),
                 _divLine(),
                 GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(
                       builder: (_) => const PrivacyPolicyScreen())),
                   child: _info(Icons.privacy_tip_rounded, l.settingsPrivacyPol,
-                      l.settingsView, Colors.grey.shade600)),
+                      l.settingsView, AppC.sub)),
                 _divLine(),
                 GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(
@@ -756,7 +757,7 @@ _group([
           value: value, onChanged: onChanged,
           activeThumbColor: Colors.white, activeTrackColor: iconColor,
           inactiveThumbColor: Colors.white,
-          inactiveTrackColor: _dark ? Colors.white24 : Colors.grey.shade300,
+          inactiveTrackColor: _dark ? Colors.white24 : AppC.border,
         ),
       ]),
     ),

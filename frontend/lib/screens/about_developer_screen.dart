@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 class AboutDeveloperScreen extends StatefulWidget {
   const AboutDeveloperScreen({super.key});
@@ -91,7 +92,7 @@ class _AboutDeveloperScreenState extends State<AboutDeveloperScreen>
                 return T('Lumora', style: TextStyle(
                   fontFamily: 'Alfa',
                   fontSize: 64,
-                  color: Colors.white,
+                  color: AppC.text,
                   letterSpacing: 4,
                   shadows: [
                     Shadow(color: const Color(0xFF6DD5FA)
@@ -108,7 +109,7 @@ class _AboutDeveloperScreenState extends State<AboutDeveloperScreen>
             T('A studio under the stars',
               style: TextStyle(fontFamily: 'Momo',
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.55),
+                color: AppC.text.withOpacity(0.55),
                 letterSpacing: 2.4)),
           ],
         )),

@@ -4,6 +4,7 @@
 // auto-declines all recipients and refunds my escrowed wager.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 
@@ -11,8 +12,8 @@ import '../../services/api_service.dart';
 
 
 const _kDarkBg     = Color(0xFF0D0D1A);
-const _kDarkCard   = Color(0xFF161628);
-const _kDarkCard2  = Color(0xFF1E1E38);
+Color get _kDarkCard => AppC.card;
+Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
 const _kNeonPurple = Color(0xFF8E54E9);
 const _kNeonOrange = Color(0xFFF7971E);
@@ -54,8 +55,8 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
         backgroundColor: _kDarkCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
-        title: const T('Cancel challenge?',
-          style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+        title: T('Cancel challenge?',
+          style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
         content: const T(
           'Your wager will be refunded. Recipients will see this challenge '
           'as cancelled.',
@@ -69,9 +70,9 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
                 horizontal: 16, vertical: 9),
               decoration: BoxDecoration(color: _kNeonRed,
                   borderRadius: BorderRadius.circular(10)),
-              child: const T('Cancel',
+              child: T('Cancel',
                 style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, color: Colors.white)))),
+                    fontWeight: FontWeight.bold, color: AppC.text)))),
           const SizedBox(width: 12),
         ],
       ),
@@ -103,8 +104,8 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
       backgroundColor: _kDarkBg,
       appBar: AppBar(
         backgroundColor: _kDarkBg, elevation: 0,
-        title: const T('Sent Challenges',
-          style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+        title: T('Sent Challenges',
+          style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
       ),
       body: RefreshIndicator(
         color: _kNeonBlue,
@@ -172,8 +173,8 @@ class _InviteCard extends StatelessWidget {
         children: [
           Row(children: [
             Expanded(child: Text(game,
-              style: const TextStyle(fontFamily: 'Alfa',
-                  color: Colors.white, fontSize: 16))),
+              style: TextStyle(fontFamily: 'Alfa',
+                  color: AppC.text, fontSize: 16))),
             Container(padding: const EdgeInsets.symmetric(
                 horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -211,7 +212,7 @@ class _InviteCard extends StatelessWidget {
             Text('$accepted accepted · $pending pending',
               style: TextStyle(fontFamily: 'Momo',
                   fontSize: 10,
-                  color: Colors.white.withOpacity(0.4))),
+                  color: AppC.text.withOpacity(0.4))),
           ]),
           const SizedBox(height: 12),
           // Recipient pills

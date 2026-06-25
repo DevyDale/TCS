@@ -10,6 +10,7 @@
 // rows so the eye reads them as ambient state changes, not chat.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 class SystemMessagePill extends StatelessWidget {
   final String text;
@@ -36,7 +37,7 @@ class SystemMessagePill extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 11.5,
-                  color: Colors.grey.shade700,
+                  color: AppC.sub,
                   fontStyle: FontStyle.italic,
                   height: 1.3,
                 ),

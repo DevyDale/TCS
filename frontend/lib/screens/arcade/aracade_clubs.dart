@@ -23,6 +23,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -415,9 +416,9 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
               begin: Alignment.centerLeft,
               end: Alignment.centerRight).createShader(b),
           blendMode: BlendMode.srcIn,
-          child: const T('Clubs',
+          child: T('Clubs',
               style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900,
-                  letterSpacing: -1.2, height: 1.0, color: Colors.white)),
+                  letterSpacing: -1.2, height: 1.0, color: AppC.text)),
         ),
         const SizedBox(height: 8),
         Text(sub,
@@ -779,7 +780,7 @@ Widget _logoFallback(String initial, {double fontSize = 16}) => Container(
           gradient: LinearGradient(colors: [_kPurple, _kBlue])),
       child: Center(child: Text(initial, style: TextStyle(
           fontSize: fontSize, fontWeight: FontWeight.w800,
-          color: Colors.white))));
+          color: AppC.text))));
 
 Widget _clubLogo(String? url, String initial,
     {required double size, double radius = 12, double fontSize = 16}) {
@@ -938,8 +939,8 @@ class _FeaturedClubCard extends StatelessWidget {
                         size: 11, color: Colors.white),
                     const SizedBox(width: 4),
                     Text('$memberCount',
-                        style: const TextStyle(fontSize: 10,
-                            fontWeight: FontWeight.w800, color: Colors.white,
+                        style: TextStyle(fontSize: 10,
+                            fontWeight: FontWeight.w800, color: AppC.text,
                             fontFamily: 'monospace')),
                   ])),
               ])),
@@ -964,8 +965,8 @@ class _FeaturedClubCard extends StatelessWidget {
                     Expanded(child: Row(children: [
                       Flexible(child: Text(name,
                           maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 16,
-                              fontWeight: FontWeight.w900, color: Colors.white,
+                          style: TextStyle(fontSize: 16,
+                              fontWeight: FontWeight.w900, color: AppC.text,
                               letterSpacing: -0.4))),
                       if (isVerified) ...[
                         const SizedBox(width: 4),
@@ -978,7 +979,7 @@ class _FeaturedClubCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(tagline, maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 11.5,
-                            color: Colors.white.withOpacity(0.85),
+                            color: AppC.text.withOpacity(0.85),
                             height: 1.35)),
                   ],
                 ]),
@@ -993,8 +994,8 @@ class _FeaturedClubCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: color.withOpacity(0.92),
       borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: const TextStyle(fontSize: 8.5,
-        fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.6)));
+    child: Text(label, style: TextStyle(fontSize: 8.5,
+        fontWeight: FontWeight.w900, color: AppC.text, letterSpacing: 0.6)));
 
   Widget _coverFallback() => Container(
         decoration: const BoxDecoration(

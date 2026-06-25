@@ -17,6 +17,7 @@
 // itself from the visual tree when dismissed.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -174,10 +175,10 @@ class _WelcomeBannerState extends State<WelcomeBanner>
                               _line,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Alfa',
                                 fontSize: 16,
-                                color: Colors.white,
+                                color: AppC.text,
                                 height: 1.1,
                               ),
                             ),

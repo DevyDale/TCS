@@ -27,6 +27,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 
 import '../data/avators.dart';
 
@@ -214,7 +215,7 @@ class _CircularNetworkImage extends StatelessWidget {
           imageUrl: url,
           fit: BoxFit.cover,
           placeholder: (_, __) => Container(
-            color: Colors.grey.shade200,
+            color: AppC.border,
             child: const Center(
               child: SizedBox(
                 width: 18, height: 18,
@@ -278,7 +279,7 @@ class _InitialAvatar extends StatelessWidget {
           style: TextStyle(
             fontSize: size * 0.42,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppC.text,
             fontFamily: 'Arch',
           ),
         ),

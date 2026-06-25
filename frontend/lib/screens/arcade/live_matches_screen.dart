@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
@@ -14,8 +15,8 @@ import 'spectator_screen.dart';
 
 
 const _kDarkBg     = Color(0xFF0D0D1A);
-const _kDarkCard   = Color(0xFF161628);
-const _kDarkCard2  = Color(0xFF1E1E38);
+Color get _kDarkCard => AppC.card;
+Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
 const _kNeonPurple = Color(0xFF8E54E9);
 const _kNeonOrange = Color(0xFFF7971E);
@@ -80,12 +81,12 @@ class _LiveMatchesScreenState extends State<LiveMatchesScreen> {
         title: Row(children: [
           _LiveDot(),
           const SizedBox(width: 8),
-          const T('Live Matches',
-            style: TextStyle(fontFamily: 'Alfa', color: Colors.white)),
+          T('Live Matches',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
           const SizedBox(width: 10),
           Text('${_sessions.length}',
             style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                color: Colors.white.withOpacity(0.5))),
+                color: AppC.text.withOpacity(0.5))),
         ]),
       ),
       body: RefreshIndicator(
@@ -158,7 +159,7 @@ class _MatchCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text('· $watchers watching',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                        color: Colors.white.withOpacity(0.4))),
+                        color: AppC.text.withOpacity(0.4))),
                   const Spacer(),
                   Container(padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
@@ -173,8 +174,8 @@ class _MatchCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 10),
                 Text(game,
-                  style: const TextStyle(fontFamily: 'Alfa',
-                      fontSize: 18, color: Colors.white)),
+                  style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 18, color: AppC.text)),
                 const SizedBox(height: 12),
                 // Participant pills
                 Wrap(spacing: 8, runSpacing: 8,
@@ -187,7 +188,7 @@ class _MatchCard extends StatelessWidget {
                       gradient: const LinearGradient(
                           colors: [_kNeonBlue, _kNeonPurple]),
                       borderRadius: BorderRadius.circular(10)),
-                    child: const Row(mainAxisSize: MainAxisSize.min,
+                    child: Row(mainAxisSize: MainAxisSize.min,
                         children: [
                       Icon(Icons.visibility_rounded,
                           color: Colors.white, size: 14),
@@ -195,7 +196,7 @@ class _MatchCard extends StatelessWidget {
                       T('Watch',
                         style: TextStyle(fontFamily: 'Arch',
                             fontWeight: FontWeight.bold, fontSize: 12,
-                            color: Colors.white)),
+                            color: AppC.text)),
                     ])),
                 ]),
               ]),
@@ -219,7 +220,7 @@ class _MatchCard extends StatelessWidget {
           backgroundImage: av.isNotEmpty ? NetworkImage(av) : null,
           child: av.isEmpty ? Text(
             name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: const TextStyle(color: Colors.white,
+            style: TextStyle(color: AppC.text,
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
                 fontSize: 10)) : null),
         const SizedBox(width: 6),

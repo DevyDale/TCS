@@ -6,6 +6,7 @@
 import 'dart:io';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
@@ -13,8 +14,8 @@ import 'package:tcs_app/services/cache_store.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
-const _bg = Color(0xFF0B0B16);
-const _card = Color(0xFF15152A);
+Color get _bg => AppC.bg;
+Color get _card => AppC.card;
 const _kCacheKey = '/announcements/';
 
 class StaffAnnouncementsScreen extends StatefulWidget {
@@ -61,17 +62,17 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
-        title: const T('Announcements',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+        title: T('Announcements',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _kG2,
         onPressed: _compose,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const T('New notice',
+        label: T('New notice',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.white)),
+                color: AppC.text)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _kG2))
@@ -79,7 +80,7 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
               ? Center(child: T('No announcements yet.\nTap New notice to post one.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                      color: Colors.white.withOpacity(.5))))
+                      color: AppC.text.withOpacity(.5))))
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                   itemCount: _items.length,
@@ -98,22 +99,22 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
                             const Padding(padding: EdgeInsets.only(right: 6),
                                 child: Icon(Icons.star_rounded, size: 16, color: _kG1)),
                           Expanded(child: Text((a['title'] ?? '').toString(),
-                              style: const TextStyle(fontFamily: 'Alfa', fontSize: 15,
-                                  color: Colors.white))),
+                              style: TextStyle(fontFamily: 'Alfa', fontSize: 15,
+                                  color: AppC.text))),
                           Text((a['category_label'] ?? '').toString(),
                               style: TextStyle(fontFamily: 'Arch', fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white.withOpacity(.5))),
+                                  color: AppC.text.withOpacity(.5))),
                         ]),
                         const SizedBox(height: 6),
                         Text((a['body'] ?? '').toString(), maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                                color: Colors.white.withOpacity(.7))),
+                                color: AppC.text.withOpacity(.7))),
                         const SizedBox(height: 8),
                         Text('${a['view_count'] ?? 0} views  ·  ${a['audience'] ?? 'all'}',
                             style: TextStyle(fontFamily: 'Momo', fontSize: 10,
-                                color: Colors.white.withOpacity(.4))),
+                                color: AppC.text.withOpacity(.4))),
                       ]),
                     );
                   },
@@ -205,7 +206,7 @@ class _StaffAnnouncementComposeScreenState
 
   InputDecoration _dec(String label) => InputDecoration(
     labelText: label,
-    labelStyle: TextStyle(fontFamily: 'Momo', color: Colors.white.withOpacity(.6)),
+    labelStyle: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.6)),
     filled: true, fillColor: _card,
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none),
@@ -217,20 +218,20 @@ class _StaffAnnouncementComposeScreenState
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
-        title: const T('New notice',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: Colors.white)),
+        title: T('New notice',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        TextField(controller: _title, style: const TextStyle(color: Colors.white),
+        TextField(controller: _title, style: TextStyle(color: AppC.text),
             decoration: _dec('Title')),
         const SizedBox(height: 12),
         TextField(controller: _body, maxLines: 6,
-            style: const TextStyle(color: Colors.white), decoration: _dec('Body')),
+            style: TextStyle(color: AppC.text), decoration: _dec('Body')),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: _category, dropdownColor: _card,
-          style: const TextStyle(color: Colors.white, fontFamily: 'Momo'),
+          style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
           decoration: _dec('Category'),
           items: _categories.map((c) =>
               DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
@@ -239,7 +240,7 @@ class _StaffAnnouncementComposeScreenState
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: _audience, dropdownColor: _card,
-          style: const TextStyle(color: Colors.white, fontFamily: 'Momo'),
+          style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
           decoration: _dec('Audience'),
           items: _audiences.map((c) =>
               DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
@@ -247,7 +248,7 @@ class _StaffAnnouncementComposeScreenState
         ),
         if (_audience == 'year_group') ...[
           const SizedBox(height: 12),
-          TextField(controller: _year, style: const TextStyle(color: Colors.white),
+          TextField(controller: _year, style: TextStyle(color: AppC.text),
               decoration: _dec('Year group (e.g. Y12)')),
         ],
         const SizedBox(height: 12),
@@ -261,7 +262,7 @@ class _StaffAnnouncementComposeScreenState
             child: _image == null
                 ? Center(child: T('+ Add image (optional)',
                     style: TextStyle(fontFamily: 'Momo',
-                        color: Colors.white.withOpacity(.6))))
+                        color: AppC.text.withOpacity(.6))))
                 : ClipRRect(borderRadius: BorderRadius.circular(14),
                     child: Image.file(_image!, fit: BoxFit.cover, width: double.infinity)),
           ),
@@ -269,17 +270,17 @@ class _StaffAnnouncementComposeScreenState
         const SizedBox(height: 8),
         SwitchListTile(
           value: _pinned, activeColor: _kG1,
-          title: const T('Pin to top',
-              style: TextStyle(fontFamily: 'Arch', color: Colors.white)),
+          title: T('Pin to top',
+              style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
           onChanged: (v) => setState(() => _pinned = v),
         ),
         SwitchListTile(
           value: _publishNow, activeColor: _kG1,
-          title: const T('Publish now (push to students)',
-              style: TextStyle(fontFamily: 'Arch', color: Colors.white)),
+          title: T('Publish now (push to students)',
+              style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
           subtitle: Text(_publishNow ? 'Sends a notification immediately' : 'Saves as draft',
               style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: Colors.white.withOpacity(.5))),
+                  color: AppC.text.withOpacity(.5))),
           onChanged: (v) => setState(() => _publishNow = v),
         ),
         const SizedBox(height: 16),
@@ -292,8 +293,8 @@ class _StaffAnnouncementComposeScreenState
             child: _submitting
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const T('Post announcement',
-                    style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: Colors.white)),
+                : T('Post announcement',
+                    style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: AppC.text)),
           ),
         ),
       ]),

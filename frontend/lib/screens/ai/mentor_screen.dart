@@ -18,6 +18,7 @@
 // support one glance away.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -26,13 +27,13 @@ import 'package:tcs_app/services/api_service.dart';
 
 // ── Light palette ─────────────────────────────────────────────
 const _kBg = Color(0xFFFAFBF8);
-const _kCard = Color(0xFFFFFFFF);
-const _kInk = Color(0xFF26301C);
+Color get _kCard => AppC.card;
+Color get _kInk => AppC.text;
 const _kInkSoft = Color(0xFF3C4A30);
-const _kSlate = Color(0xFF6B7280);
-const _kSlateLight = Color(0xFF9CA3AF);
-const _kBorder = Color(0xFFE3E7DA);
-const _kBorderSoft = Color(0xFFF1F3EC);
+Color get _kSlate => AppC.sub;
+Color get _kSlateLight => AppC.sub;
+Color get _kBorder => AppC.border;
+Color get _kBorderSoft => AppC.border;
 const _kInputBg = Color(0xFFF5F7F1);
 const _kDanger = Color(0xFFC0563B);
 
@@ -228,15 +229,15 @@ class _MentorScreenState extends State<MentorScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const T('Start fresh with Sage?',
+        title: T('Start fresh with Sage?',
             style: TextStyle(
                 fontFamily: 'Arch',
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: _kInk)),
-        content: const T(
+        content: T(
           'This clears your conversation so far. Sage will start with a clean slate.',
           style: TextStyle(
               fontFamily: 'Momo', fontSize: 13, color: _kSlate, height: 1.4),
@@ -244,7 +245,7 @@ class _MentorScreenState extends State<MentorScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const T('Keep',
+            child: T('Keep',
                 style: TextStyle(fontFamily: 'Momo', color: _kSlate)),
           ),
           TextButton(
@@ -358,7 +359,7 @@ class _MentorScreenState extends State<MentorScreen>
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.refresh_rounded, color: _kInkSoft, size: 15),
@@ -427,7 +428,7 @@ class _MentorScreenState extends State<MentorScreen>
             child: Padding(
               padding: const EdgeInsets.all(6),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _kCard,
                 ),
@@ -459,17 +460,17 @@ class _MentorScreenState extends State<MentorScreen>
           child: Text(
             _greeting,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Alfa',
               fontSize: 26,
-              color: Colors.white,
+              color: AppC.text,
               height: 1.15,
               letterSpacing: -0.3,
             ),
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           "I'm Sage, your personal mentor.\nThis is your space — what's on your mind? 🌿",
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -624,7 +625,7 @@ class _MentorScreenState extends State<MentorScreen>
       width: double.infinity,
       color: _kBg,
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-      child: const T(
+      child: T(
         'Sage is an AI companion for support, not a substitute for professional care. '
         'In a crisis call 000 or Lifeline 13 11 14.',
         textAlign: TextAlign.center,
@@ -648,7 +649,7 @@ class _MentorScreenState extends State<MentorScreen>
         14,
         MediaQuery.of(context).padding.bottom + 10,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _kCard,
         border: Border(top: BorderSide(color: _kBorder)),
       ),
@@ -678,7 +679,7 @@ class _MentorScreenState extends State<MentorScreen>
                 cursorWidth: 2,
                 cursorRadius: const Radius.circular(2),
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 14,
                   color: _kInk,
@@ -692,7 +693,7 @@ class _MentorScreenState extends State<MentorScreen>
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   hintText: _sending ? 'Sage is thinking…' : "Tell Sage what's on your mind…",
-                  hintStyle: const TextStyle(
+                  hintStyle: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 14,
                     color: _kSlateLight,
@@ -732,7 +733,7 @@ class _MentorScreenState extends State<MentorScreen>
                     : null,
               ),
               child: _sending
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(14),
                       child: CircularProgressIndicator(
                           color: _kSlate, strokeWidth: 2),

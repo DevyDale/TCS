@@ -16,6 +16,7 @@
 //     picked label when it closes.
 
 import 'package:flutter/material.dart';
+import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
@@ -159,7 +160,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   Color get _counterColor {
     if (_remaining < 0)  return _kG4;
     if (_remaining < 20) return _kG3;
-    return _hasBg ? Colors.white54 : Colors.grey.shade400;
+    return _hasBg ? Colors.white54 : AppC.faint;
   }
 
   /// The full _Feeling object for the currently selected slug, or
@@ -310,7 +311,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
 
   Widget _buildAppBar() {
     final onBg  = _hasBg ? Colors.white : const Color(0xFF1A1A2E);
-    final dimBg = _hasBg ? Colors.white.withOpacity(0.18) : Colors.grey.shade100;
+    final dimBg = _hasBg ? Colors.white.withOpacity(0.18) : AppC.card2;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
@@ -339,7 +340,7 @@ const SizedBox(width: 12),
             CircularProgressIndicator(
               value: (_ctrl.text.length / _maxChars).clamp(0.0, 1.0),
               strokeWidth: 3,
-              backgroundColor: (_hasBg ? Colors.white : Colors.grey.shade200)
+              backgroundColor: (_hasBg ? Colors.white : AppC.border)
                   .withOpacity(0.3),
               valueColor: AlwaysStoppedAnimation(
                   _remaining < 0 ? _kG4
@@ -395,7 +396,7 @@ const SizedBox(width: 12),
                   ? (_hasBg ? Colors.white : _kG2)
                   : (_hasBg
                       ? Colors.white.withOpacity(0.3)
-                      : Colors.grey.shade300),
+                      : AppC.border),
               borderRadius: BorderRadius.circular(10),
             ),
             child: _isPosting
@@ -485,7 +486,7 @@ const SizedBox(width: 12),
         hintStyle: TextStyle(fontFamily: 'Momo',
           color:      _hasBg
               ? _textColor.withOpacity(0.55)
-              : Colors.grey.shade300,
+              : AppC.border,
           fontSize:   centered ? 20 : 16,
           fontWeight: centered ? FontWeight.bold : FontWeight.normal,
         ),
@@ -555,7 +556,7 @@ const SizedBox(width: 12),
         border: Border(top: BorderSide(
             color: _hasBg
                 ? Colors.white.withOpacity(0.15)
-                : Colors.grey.shade200)),
+                : AppC.border)),
       ),
       child: SafeArea(top: false,
         child: Row(children: [
@@ -609,14 +610,14 @@ const SizedBox(width: 12),
 
   void _pickVisibility() {
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.white,
+      context: context, backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           const T('Who can see this Fweet?',
@@ -641,18 +642,18 @@ const SizedBox(width: 12),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _visibility == opt.$1
-                      ? _kG2.withOpacity(0.3) : Colors.grey.shade200,
+                      ? _kG2.withOpacity(0.3) : AppC.border,
                   width: _visibility == opt.$1 ? 1.5 : 1),
               ),
               child: Row(children: [
                 Container(width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: (_visibility == opt.$1 ? _kG2 : Colors.grey.shade300)
+                    color: (_visibility == opt.$1 ? _kG2 : AppC.border)
                         .withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10)),
                   child: Icon(opt.$2,
                       color: _visibility == opt.$1
-                          ? _kG2 : Colors.grey.shade500, size: 20)),
+                          ? _kG2 : AppC.faint, size: 20)),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(opt.$1, style: TextStyle(fontFamily: 'Arch',
@@ -660,7 +661,7 @@ const SizedBox(width: 12),
                       color: _visibility == opt.$1
                           ? _kG2 : const Color(0xFF1A1A2E))),
                   Text(opt.$3, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
+                      fontSize: 12, color: AppC.faint)),
                 ]),
                 const Spacer(),
                 if (_visibility == opt.$1)
@@ -675,7 +676,7 @@ const SizedBox(width: 12),
 
   void _pickFeeling() {
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.white,
+      context: context, backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       isScrollControlled: true,
@@ -683,7 +684,7 @@ const SizedBox(width: 12),
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           const T('How are you feeling?',
@@ -701,11 +702,11 @@ const SizedBox(width: 12),
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(children: [
                 Icon(Icons.cloud_off_rounded,
-                    color: Colors.grey.shade400, size: 28),
+                    color: AppC.faint, size: 28),
                 const SizedBox(height: 8),
                 Text("Couldn't load feelings.",
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 13, color: Colors.grey.shade500)),
+                        fontSize: 13, color: AppC.faint)),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () { Navigator.pop(context); _fetchFeelings(); },
@@ -739,7 +740,7 @@ const SizedBox(width: 12),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: _feelingSlug == f.slug
-                          ? _kG3.withOpacity(0.35) : Colors.grey.shade200)),
+                          ? _kG3.withOpacity(0.35) : AppC.border)),
                   child: Text(f.display,
                       style: TextStyle(fontFamily: 'Momo',
                           fontWeight: FontWeight.w600, fontSize: 14,
@@ -755,14 +756,14 @@ const SizedBox(width: 12),
 
   void _showBgPicker() {
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.white,
+      context: context, backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           Row(children: [
@@ -827,13 +828,13 @@ const SizedBox(width: 12),
                   border: Border.all(
                       color: sel
                           ? (opt['color'] as Color).withOpacity(0.3)
-                          : Colors.grey.shade200)),
+                          : AppC.border)),
                 child: Text(opt['name'] as String,
                     style: TextStyle(fontFamily: 'Momo',
                         fontSize: 10, fontWeight: FontWeight.w600,
                         color: sel
                             ? opt['color'] as Color
-                            : Colors.grey.shade500)),
+                            : AppC.faint)),
               );
             }).toList()),
           const SizedBox(height: 8),
@@ -916,7 +917,7 @@ class _ToolPill extends StatelessWidget {
       // White page, inactive — outlined with a hint of category colour.
       fg = gradient.first;
       deco = BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
             color: gradient.first.withOpacity(0.25), width: 1.5),
