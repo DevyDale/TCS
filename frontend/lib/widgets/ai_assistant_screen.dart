@@ -24,6 +24,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/widgets/markdown_text.dart';
 
 // ── Light palette ─────────────────────────────────────────────
 const _kBg = Color(0xFFFAFAFC);
@@ -1167,17 +1168,27 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                           const SizedBox(width: 6),
                         ],
                         Flexible(
-                          child: Text(
-                            msg.content,
-                            style: TextStyle(
-                              fontFamily: 'Momo',
-                              fontSize: 13.5,
-                              color: isUser
-                                  ? Colors.white
-                                  : (msg.isError ? _kDanger : _kInk),
-                              height: 1.5,
-                            ),
-                          ),
+                          // Assistant replies are markdown — render them so
+                          // **bold**, lists and code show properly (no literal ****).
+                          child: (!isUser && !msg.isError)
+                              ? MarkdownText(
+                                  msg.content,
+                                  color: _kInk,
+                                  fontSize: 13.5,
+                                  fontFamily: 'Momo',
+                                  height: 1.5,
+                                )
+                              : Text(
+                                  msg.content,
+                                  style: TextStyle(
+                                    fontFamily: 'Momo',
+                                    fontSize: 13.5,
+                                    color: isUser
+                                        ? Colors.white
+                                        : (msg.isError ? _kDanger : _kInk),
+                                    height: 1.5,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
