@@ -304,7 +304,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           _buildAppBar(),
@@ -328,8 +328,8 @@ class _ChatListScreenState extends State<ChatListScreen>
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
-      decoration: const BoxDecoration(color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
+      decoration: BoxDecoration(color: AppC.card,
+          border: Border(bottom: BorderSide(color: AppC.border, width: 1))),
       child: Row(children: [
         Expanded(child: T('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
@@ -338,10 +338,10 @@ class _ChatListScreenState extends State<ChatListScreen>
           onTap: _openRequests,
           child: Stack(clipBehavior: Clip.none, children: [
             Container(width: 40, height: 40,
-                decoration: BoxDecoration(color: Colors.grey.shade100,
+                decoration: BoxDecoration(color: AppC.card2,
                     borderRadius: BorderRadius.circular(12)),
                 child: Icon(Icons.mark_email_unread_rounded,
-                    color: Colors.grey.shade600, size: 20)),
+                    color: AppC.sub, size: 20)),
             if (_totalRequests > 0)
               Positioned(top: -4, right: -4, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -382,7 +382,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   Widget _buildTabBar() {
     return Container(
       // White surround so the segmented bar sits cleanly under the app bar.
-      color: Colors.white,
+      color: AppC.card,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
       child: SizedBox(
         // SegmentedTabControl wants a bounded height. 48 matches its default
@@ -398,9 +398,9 @@ class _ChatListScreenState extends State<ChatListScreen>
 
           // Bar (the unselected track behind the pill indicator).
           barDecoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppC.card2,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200, width: 1),
+            border: Border.all(color: AppC.border, width: 1),
           ),
 
           // Indicator (the moving pill). Uses our brand gradient so it
@@ -422,7 +422,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           ),
 
           // Text styling: brand fonts on both states; just swap the color.
-          tabTextColor: Colors.grey.shade600,
+          tabTextColor: AppC.sub,
           selectedTabTextColor: Colors.white,
           textStyle: const TextStyle(
             fontFamily: 'Arch',
@@ -453,7 +453,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Search field ──────────────────────────────────────────
 Widget _buildSearchField() {
   return Container(
-    color: Colors.white,
+    color: AppC.card,
     padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
     child: SizedBox(
       height: 46,
@@ -468,11 +468,11 @@ Widget _buildSearchField() {
         ),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.grey.shade100,
+          fillColor: AppC.card2,
 
           prefixIcon: Icon(
             Icons.search_rounded,
-            color: Colors.grey.shade500,
+            color: AppC.faint,
             size: 20,
           ),
 
@@ -482,7 +482,7 @@ Widget _buildSearchField() {
                   icon: Icon(
                     Icons.close_rounded,
                     size: 18,
-                    color: Colors.grey.shade500,
+                    color: AppC.faint,
                   ),
                   onPressed: () {
                     _searchCtrl.clear();
@@ -495,7 +495,7 @@ Widget _buildSearchField() {
           hintStyle: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,
-            color: Colors.grey.shade500,
+            color: AppC.faint,
           ),
 
           contentPadding: const EdgeInsets.symmetric(
@@ -506,14 +506,14 @@ Widget _buildSearchField() {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(
-              color: Colors.grey.shade200,
+              color: AppC.border,
             ),
           ),
 
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(
-              color: Colors.grey.shade200,
+              color: AppC.border,
             ),
           ),
 
@@ -596,14 +596,14 @@ Widget _buildSearchField() {
           children: [
             const SizedBox(height: 100),
             Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, size: 52, color: Colors.grey.shade300),
+              Icon(icon, size: 52, color: AppC.border),
               const SizedBox(height: 16),
               Text(title, style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 20, color: _kInk)),
               const SizedBox(height: 8),
               Text(sub, textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontFamily: 'Momo', color: Colors.grey.shade500)),
+                      fontFamily: 'Momo', color: AppC.faint)),
             ]),
           ],
         ),
@@ -699,8 +699,8 @@ Widget _buildSearchField() {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black, width: 1.5),
+          color: AppC.card, borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppC.ink, width: 1.5),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 8, offset: const Offset(0, 2))],
         ),
@@ -761,14 +761,14 @@ Widget _buildSearchField() {
                         errorBuilder: (_, __, ___) => Icon(
                             Icons.smart_toy_rounded, size: 13,
                             color: preview.color
-                                ?? (unread > 0 ? _kG2 : Colors.grey.shade400))),
+                                ?? (unread > 0 ? _kG2 : AppC.faint))),
                   ),
                   const SizedBox(width: 4),
                 ] else if (preview.icon != null) ...[
                   Icon(preview.icon,
                       size: 13,
                       color: preview.color
-                          ?? (unread > 0 ? _kG2 : Colors.grey.shade400)),
+                          ?? (unread > 0 ? _kG2 : AppC.faint)),
                   const SizedBox(width: 4),
                 ],
                 Expanded(
@@ -780,8 +780,8 @@ Widget _buildSearchField() {
                       fontSize: 13,
                       color: preview.color
                           ?? (unread > 0
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade500),
+                              ? AppC.sub
+                              : AppC.faint),
                       fontWeight: preview.bold || unread > 0
                           ? FontWeight.w600
                           : FontWeight.normal,
@@ -803,7 +803,7 @@ Widget _buildSearchField() {
                     fontSize: 11,
                     color: isOnline
                         ? Colors.green.shade600
-                        : Colors.grey.shade400,
+                        : AppC.faint,
                     fontWeight: isOnline ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -814,7 +814,7 @@ Widget _buildSearchField() {
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(lastTime, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                color: unread > 0 ? _kG2 : Colors.grey.shade400,
+                color: unread > 0 ? _kG2 : AppC.faint,
                 fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal)),
             const SizedBox(height: 6),
             if (unread > 0)
@@ -877,7 +877,7 @@ Widget _buildSearchField() {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -889,7 +889,7 @@ Widget _buildSearchField() {
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppC.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -921,7 +921,7 @@ Widget _buildSearchField() {
                     : 'Removes this conversation from your chats.',
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 11.5,
-                  color: Colors.grey.shade600),
+                  color: AppC.sub),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -941,7 +941,7 @@ Widget _buildSearchField() {
                   "$name won't be able to message you or send requests.",
                   style: TextStyle(
                     fontFamily: 'Momo', fontSize: 11.5,
-                    color: Colors.grey.shade600),
+                    color: AppC.sub),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -949,12 +949,12 @@ Widget _buildSearchField() {
                 },
               ),
             ListTile(
-              leading: Icon(Icons.close_rounded, color: Colors.grey.shade500),
+              leading: Icon(Icons.close_rounded, color: AppC.faint),
               title: T(
                 'Cancel',
                 style: TextStyle(
                   fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                  fontSize: 14.5, color: Colors.grey.shade600),
+                  fontSize: 14.5, color: AppC.sub),
               ),
               onTap: () => Navigator.pop(ctx),
             ),
@@ -982,7 +982,7 @@ Widget _buildSearchField() {
           'unblock them anytime from Settings → Blocked users.',
           style: TextStyle(
             fontFamily: 'Momo', fontSize: 13,
-            color: Colors.grey.shade700, height: 1.5,
+            color: AppC.sub, height: 1.5,
           ),
         ),
         actions: [
@@ -991,7 +991,7 @@ Widget _buildSearchField() {
             child: T('Cancel',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.grey.shade600,
+                color: AppC.sub,
               )),
           ),
           TextButton(
@@ -1062,7 +1062,7 @@ Widget _buildSearchField() {
               : 'Your conversation with $name will be removed from your chats. This can\'t be undone.',
           style: TextStyle(
             fontFamily: 'Momo', fontSize: 13,
-            color: Colors.grey.shade700, height: 1.5,
+            color: AppC.sub, height: 1.5,
           ),
         ),
         actions: [
@@ -1071,7 +1071,7 @@ Widget _buildSearchField() {
             child: T('Cancel',
               style: TextStyle(
                 fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.grey.shade600,
+                color: AppC.sub,
               )),
           ),
           TextButton(
