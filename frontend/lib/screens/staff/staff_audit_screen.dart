@@ -11,9 +11,10 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/csv_export.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
-const _kIndigo = Color(0xFF3F51B5);
-const _kDeep   = Color(0xFF512DA8);
+const _kIndigo = kStaffG1;
+const _kDeep   = kStaffG2;
 
 class StaffAuditScreen extends StatefulWidget {
   const StaffAuditScreen({super.key});
@@ -121,14 +122,9 @@ class _StaffAuditScreenState extends State<StaffAuditScreen> {
   }
 
   Widget _header() {
-    return Container(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 10,
-          left: 6, right: 14, bottom: 12),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_kIndigo, _kDeep],
-          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    return StaffHeader(
+      bottomPad: 12,
+      horizontal: const EdgeInsets.only(left: 6, right: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           IconButton(

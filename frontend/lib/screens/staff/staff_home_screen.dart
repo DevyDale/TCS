@@ -18,6 +18,7 @@ import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -108,18 +109,22 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             _header(),
-            const SizedBox(height: 16),
-            _pulseStrip(),
-            const SizedBox(height: 22),
-            _sectionLabel('Needs attention'),
-            _needsAttention(),
-            const SizedBox(height: 22),
-            _sectionLabel('Quick actions'),
-            _quickActions(),
-            const SizedBox(height: 22),
-            _sectionLabel('Run your cohort'),
-            _controls(),
-            const SizedBox(height: 40),
+            Transform.translate(
+              offset: const Offset(0, -26),
+              child: Column(children: [
+                _pulseStrip(),
+                const SizedBox(height: 24),
+                _sectionLabel('Needs attention'),
+                _needsAttention(),
+                const SizedBox(height: 24),
+                _sectionLabel('Quick actions'),
+                _quickActions(),
+                const SizedBox(height: 24),
+                _sectionLabel('Run your cohort'),
+                _controls(),
+                const SizedBox(height: 40),
+              ]),
+            ),
           ],
         ),
       ),
@@ -127,42 +132,59 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   }
 
   Widget _header() {
-    return Container(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 18,
-          left: 20, right: 20, bottom: 22),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_kIndigo, _kDeep],
-          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+    return StaffHeader(
+      bottomPad: 26,
+      horizontal: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(20)),
-            child: const Text('STAFF',
-                style: TextStyle(fontFamily: 'Arch', fontSize: 9,
-                    fontWeight: FontWeight.bold, letterSpacing: 1.5,
-                    color: Colors.white)),
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.workspace_premium_rounded,
+                  color: Colors.white, size: 12),
+              const SizedBox(width: 5),
+              const Text('STAFF',
+                  style: TextStyle(fontFamily: 'Arch', fontSize: 9,
+                      fontWeight: FontWeight.bold, letterSpacing: 1.5,
+                      color: Colors.white)),
+            ]),
           ),
           const Spacer(),
-          const Text('🎓', style: TextStyle(fontSize: 22)),
+          Text(_today,
+              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.85))),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         Text('$_greeting,',
             style: TextStyle(fontFamily: 'Momo', fontSize: 14,
-                color: Colors.white.withOpacity(0.85))),
+                color: Colors.white.withValues(alpha: 0.85))),
         Text(_firstName,
-            style: const TextStyle(fontFamily: 'Alfa', fontSize: 28,
-                color: Colors.white, height: 1.1)),
-        const SizedBox(height: 6),
-        Text("Here's what needs you today.",
-            style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                color: Colors.white.withOpacity(0.8))),
+            style: const TextStyle(fontFamily: 'Alfa', fontSize: 30,
+                color: Colors.white, height: 1.05,
+                shadows: [Shadow(color: Colors.black26, blurRadius: 8,
+                    offset: Offset(0, 3))])),
+        const SizedBox(height: 8),
+        Row(children: [
+          const Icon(Icons.bolt_rounded, color: Colors.white70, size: 14),
+          const SizedBox(width: 5),
+          Text("Here's what needs you today",
+              style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                  color: Colors.white.withValues(alpha: 0.85))),
+        ]),
       ]),
     );
+  }
+
+  String get _today {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep',
+        'Oct','Nov','Dec'];
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    final n = DateTime.now();
+    return '${days[n.weekday - 1]} ${n.day} ${months[n.month - 1]}';
   }
 
   Widget _pulseStrip() {
@@ -190,20 +212,22 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-          decoration: BoxDecoration(
-            color: AppC.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppC.border)),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+          decoration: staffCard(),
           child: Column(children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 8),
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, color: color, size: 18)),
+            const SizedBox(height: 9),
             Text(_loading ? '—' : '${value ?? 0}',
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
-                    color: AppC.text)),
-            const SizedBox(height: 2),
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 23,
+                    color: AppC.text, height: 1)),
+            const SizedBox(height: 3),
             Text(label, textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Arch', fontSize: 9.5,
+                style: TextStyle(fontFamily: 'Arch', fontSize: 9,
                     fontWeight: FontWeight.bold, letterSpacing: 0.3,
                     color: AppC.sub)),
           ]),
@@ -212,11 +236,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  Widget _sectionLabel(String t) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-        child: Text(t, style: TextStyle(fontFamily: 'Alfa',
-            fontSize: 16, color: AppC.text)),
-      );
+  Widget _sectionLabel(String t) => StaffSectionLabel(t);
 
   ({IconData icon, Color color}) _needStyle(String type) {
     switch (type) {
@@ -277,10 +297,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             },
             child: Container(
               padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: AppC.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: st.color.withOpacity(0.30))),
+              decoration: staffCard(border: st.color.withValues(alpha: 0.30)),
               child: Row(children: [
                 Container(
                   width: 38, height: 38,
@@ -339,10 +356,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             child: Container(
               width: 96,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppC.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppC.border)),
+              decoration: staffCard(),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,15 +406,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           onTap: () { HapticFeedback.selectionClick(); it.$5(); },
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppC.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppC.border)),
+            decoration: staffCard(),
             child: Row(children: [
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: it.$4.withOpacity(0.12),
+                  color: it.$4.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13)),
                 child: Icon(it.$1, color: it.$4, size: 22)),
               const SizedBox(width: 14),

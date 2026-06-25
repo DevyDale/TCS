@@ -10,9 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
-const _kIndigo = Color(0xFF3F51B5);
-const _kDeep   = Color(0xFF512DA8);
+const _kIndigo = kStaffG1;
+const _kDeep   = kStaffG2;
 
 class StaffSeg {
   final String label;
@@ -62,28 +63,24 @@ class _StaffTabHostState extends State<StaffTabHost> {
   }
 
   Widget _header() {
-    return Container(
-      padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 10,
-          left: 14, right: 14, bottom: 10),
-      decoration: BoxDecoration(
-        color: AppC.card,
-        border: Border(bottom: BorderSide(color: AppC.border))),
+    return StaffHeader(
+      bottomPad: 12,
+      horizontal: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text(widget.emoji, style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 8),
           Text(widget.title,
-              style: TextStyle(fontFamily: 'Alfa', fontSize: 20,
-                  color: AppC.text)),
+              style: const TextStyle(fontFamily: 'Alfa', fontSize: 21,
+                  color: Colors.white)),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Container(
           height: 42,
           decoration: BoxDecoration(
-            color: AppC.card2,
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: AppC.border)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
           child: Row(children: List.generate(widget.segments.length, (i) {
             final sel = _i == i;
             final s = widget.segments[i];
@@ -99,11 +96,10 @@ class _StaffTabHostState extends State<StaffTabHost> {
                   margin: const EdgeInsets.all(3),
                   decoration: sel
                       ? BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [_kIndigo, _kDeep]),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [BoxShadow(
-                              color: _kIndigo.withOpacity(0.30),
+                              color: Colors.black.withValues(alpha: 0.12),
                               blurRadius: 8, offset: const Offset(0, 2))])
                       : null,
                   child: Center(
@@ -111,12 +107,12 @@ class _StaffTabHostState extends State<StaffTabHost> {
                       fit: BoxFit.scaleDown,
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(s.icon, size: 15,
-                            color: sel ? Colors.white : AppC.sub),
+                            color: sel ? _kDeep : Colors.white70),
                         const SizedBox(width: 6),
                         Text(s.label,
                             style: TextStyle(fontFamily: 'Arch', fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: sel ? Colors.white : AppC.sub)),
+                                color: sel ? _kDeep : Colors.white70)),
                       ]),
                     ),
                   ),

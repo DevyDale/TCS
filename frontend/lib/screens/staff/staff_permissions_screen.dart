@@ -9,9 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
-const _kIndigo = Color(0xFF3F51B5);
-const _kDeep   = Color(0xFF512DA8);
+const _kIndigo = kStaffG1;
+const _kDeep   = kStaffG2;
 
 // role key -> (label, tier blurb, colour)
 const _kRoles = <String, ({String label, String tier, Color color})>{
@@ -177,13 +178,9 @@ class _StaffPermissionsScreenState extends State<StaffPermissionsScreen> {
     );
   }
 
-  Widget _header() => Container(
-    padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 10,
-        left: 6, right: 14, bottom: 12),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(colors: [_kIndigo, _kDeep],
-          begin: Alignment.topLeft, end: Alignment.bottomRight)),
+  Widget _header() => StaffHeader(
+    bottomPad: 12,
+    horizontal: const EdgeInsets.only(left: 6, right: 14),
     child: Row(children: [
       IconButton(
         icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
