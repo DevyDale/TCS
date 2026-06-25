@@ -459,6 +459,23 @@ _group([
   ),
 ]),
 
+              // ── APPEARANCE ────────────────────────────────
+              _section(l.settingsAppearance),
+              _group([
+                _toggle(
+                  icon: _dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  iconColor: const Color(0xFF8E54E9),
+                  title: l.settingsDarkMode,
+                  subtitle: _dark ? l.settingsDarkOn : l.settingsDarkOff,
+                  value: _dark,
+                  onChanged: (v) async {
+                    HapticFeedback.lightImpact();
+                    await _s.setDark(v);          // re-themes the whole app
+                    if (mounted) setState(() => _dark = v);
+                  },
+                ),
+              ]),
+
               // ── LANGUAGE ──────────────────────────────────
               _section(l.settingsLanguage),
               _group([
