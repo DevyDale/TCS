@@ -714,7 +714,20 @@ class _ClubScreenState extends State<ClubScreen> {
                             ),
                           ),
                         ])
-                      : Container(color: Colors.white),
+                      : Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [_kG2, _kIndigo, _kG1],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight),
+                          ),
+                          child: Center(
+                            child: Icon(
+                                Icons.groups_rounded,
+                                size: 64,
+                                color: Colors.white.withOpacity(0.22)),
+                          ),
+                        ),
                 ),
               ),
               Positioned(
@@ -828,18 +841,41 @@ class _ClubScreenState extends State<ClubScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _metaItem(Icons.calendar_today_rounded,
-                  _foundedYear.isEmpty ? '—' : _foundedYear),
-              _metaItem(Icons.place_outlined,
-                  _location.isEmpty ? '—' : _location),
-              _metaItem(Icons.people_alt_outlined,
-                  '$_memberCount Members'),
-            ],
+          const SizedBox(height: 16),
+          // Social-proof stats — at a glance, this club is alive and worth time.
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: AppC.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppC.border),
+              boxShadow: [BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: Row(children: [
+              Expanded(child: _statCol('$_memberCount', 'Members',
+                  Icons.people_alt_rounded, _kIndigo)),
+              _statDivider(),
+              Expanded(child: _statCol('${_feedEvents.length}', 'Events',
+                  Icons.event_rounded, _kG3)),
+              _statDivider(),
+              Expanded(child: _statCol('${_feedPosts.length}', 'Posts',
+                  Icons.forum_rounded, _kG2)),
+            ]),
           ),
+          if (_foundedYear.isNotEmpty || _location.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (_foundedYear.isNotEmpty)
+                _metaItem(Icons.calendar_today_rounded, 'Est. $_foundedYear'),
+              if (_foundedYear.isNotEmpty && _location.isNotEmpty)
+                const SizedBox(width: 18),
+              if (_location.isNotEmpty)
+                _metaItem(Icons.place_outlined, _location),
+            ]),
+          ],
           const SizedBox(height: 4),
         ],
       ),
@@ -890,6 +926,24 @@ class _ClubScreenState extends State<ClubScreen> {
                   fontFamily: 'Alfa', fontSize: 32, color: Colors.white)),
         ),
       );
+
+  Widget _statCol(String value, String label, IconData icon, Color color) =>
+      Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 6),
+        Text(value,
+            style: TextStyle(
+                fontFamily: 'Alfa', fontSize: 19, color: _kInk,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 2),
+        Text(label.toUpperCase(),
+            style: const TextStyle(
+                fontFamily: 'Arch', fontSize: 9.5, color: _kSlate,
+                fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+      ]);
+
+  Widget _statDivider() => Container(
+      width: 1, height: 36, color: AppC.border);
 
   Widget _metaItem(IconData icon, String label) => Row(
         mainAxisSize: MainAxisSize.min,
