@@ -548,3 +548,43 @@ def set_user_role(request, pk):
                  f"Changed {getattr(u, 'display_name', '') or 'a user'} "
                  f"from {old} to {role}", "user", u.id)
     return Response({"ok": True, "role": role})
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def engagement_trend(request):
+    """GET /api/moderation/staff/engagement/  — 14-day cohort activity trend
+    (posts + chat messages per day)."""
+    from datetime import timedelta
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+    from apps.posts.models import Post
+    from apps.chat.models import Message
+
+    days  = 14
+    today = timezone.localdate()
+    start = today - timedelta(days=days - 1)
+
+    posts = dict(Post.objects.filter(created_at__date__gte=start)
+                 .annotate(d=TruncDate("created_at")).values("d")
+                 .annotate(n=Count("id")).values_list("d", "n"))
+    msgs  = dict(Message.objects.filter(created_at__date__gte=start)
+                 .annotate(d=TruncDate("created_at")).values("d")
+                 .annotate(n=Count("id")).values_list("d", "n"))
+
+    series = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        p, m = posts.get(d, 0), msgs.get(d, 0)
+        series.append({
+            "date":  d.isoformat(),
+            "label": d.strftime("%a"),
+            "posts": p, "messages": m, "total": p + m,
+        })
+    return Response({
+        "days": days,
+        "series": series,
+        "total": sum(s["total"] for s in series),
+        "posts_total": sum(posts.values()),
+        "messages_total": sum(msgs.values()),
+    })

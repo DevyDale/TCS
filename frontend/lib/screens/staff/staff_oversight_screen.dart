@@ -34,12 +34,22 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
   bool _loading = true;
   late String _filter;
   Timer? _debounce;
+  Map<String, dynamic>? _engagement;
 
   @override
   void initState() {
     super.initState();
     _filter = widget.initialFilter;
     _load();
+    _loadEngagement();
+  }
+
+  Future<void> _loadEngagement() async {
+    try {
+      final d = await _api.get('/moderation/staff/engagement/')
+          as Map<String, dynamic>;
+      if (mounted) setState(() => _engagement = d);
+    } catch (_) {}
   }
 
   @override
@@ -101,12 +111,18 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
                   ? _empty()
                   : RefreshIndicator(
                       color: _kDeep,
-                      onRefresh: _load,
-                      child: ListView.separated(
+                      onRefresh: () async {
+                        await Future.wait([_load(), _loadEngagement()]);
+                      },
+                      child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
-                        itemCount: _students.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _studentCard(_students[i]),
+                        itemCount: _students.length + 1,
+                        itemBuilder: (_, i) {
+                          if (i == 0) return _engagementCard();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _studentCard(_students[i - 1]));
+                        },
                       ),
                     ),
         ),
@@ -210,6 +226,68 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
     ]),
   );
 
+  Widget _engagementCard() {
+    final e = _engagement;
+    if (e == null) {
+      return const SizedBox.shrink();
+    }
+    final series = ((e['series'] as List?) ?? []).cast<Map<String, dynamic>>();
+    final total = (e['total'] as num?)?.toInt() ?? 0;
+    final posts = (e['posts_total'] as num?)?.toInt() ?? 0;
+    final msgs = (e['messages_total'] as num?)?.toInt() ?? 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppC.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          T('Cohort activity',
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 15,
+                  color: AppC.text)),
+          const Spacer(),
+          Text('last 14 days', style: TextStyle(fontFamily: 'Momo',
+              fontSize: 10.5, color: AppC.faint)),
+        ]),
+        const SizedBox(height: 2),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('$total', style: TextStyle(fontFamily: 'Alfa', fontSize: 26,
+              color: AppC.text)),
+          const SizedBox(width: 6),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Text('actions · $posts posts · $msgs messages',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
+                    color: AppC.sub)),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 70,
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _BarChartPainter(
+              values: series.map((s) => (s['total'] as num?)?.toDouble() ?? 0)
+                  .toList(),
+              barColor: _kIndigo,
+              trackColor: AppC.card2),
+          ),
+        ),
+        const SizedBox(height: 4),
+        if (series.isNotEmpty)
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text((series.first['label'] ?? '').toString(),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 9,
+                    color: AppC.faint)),
+            Text('today', style: TextStyle(fontFamily: 'Momo', fontSize: 9,
+                color: AppC.faint)),
+          ]),
+      ]),
+    );
+  }
+
   Widget _studentCard(Map<String, dynamic> s) {
     final name = (s['name'] ?? 'Student').toString();
     final uid = (s['user_id'] ?? '').toString();
@@ -295,4 +373,43 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
     if (d.inDays < 7) return 'seen ${d.inDays}d ago';
     return 'quiet ${d.inDays}d';
   }
+}
+
+class _BarChartPainter extends CustomPainter {
+  final List<double> values;
+  final Color barColor, trackColor;
+  _BarChartPainter({
+    required this.values,
+    required this.barColor,
+    required this.trackColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    final maxV = values.reduce((a, b) => a > b ? a : b);
+    final n = values.length;
+    final gap = 4.0;
+    final barW = (size.width - gap * (n - 1)) / n;
+    final track = Paint()..color = trackColor;
+    final bar = Paint()..color = barColor;
+    for (var i = 0; i < n; i++) {
+      final x = i * (barW + gap);
+      final r = RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, 0, barW, size.height),
+          const Radius.circular(3));
+      canvas.drawRRect(r, track);
+      final h = maxV <= 0 ? 0.0 : (values[i] / maxV) * size.height;
+      // Fade older bars slightly so "today" pops.
+      bar.color = barColor.withValues(alpha: 0.45 + 0.55 * (i / (n - 1)));
+      final br = RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, size.height - h, barW, h),
+          const Radius.circular(3));
+      canvas.drawRRect(br, bar);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarChartPainter old) =>
+      old.values != values || old.barColor != barColor;
 }
