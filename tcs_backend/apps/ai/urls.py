@@ -1,12 +1,16 @@
 # apps/ai/urls.py
 from django.urls import path
 from . import views
+from .router_views import ai_router_status
 
 urlpatterns = [
     # Text tools
     path("chat/",   views.ai_chat,   name="ai-chat"),
     path("code/",   views.ai_code,   name="ai-code"),
     path("status/", views.ai_status, name="ai-status"),
+
+    # Phase 1 router diagnostics (staff-only)
+    path("router/", ai_router_status, name="ai-router-status"),
 
     # Companions
     path("companions/",                                   views.companion_list,           name="ai-companion-list"),
