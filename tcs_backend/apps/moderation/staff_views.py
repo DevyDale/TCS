@@ -63,6 +63,10 @@ def _serialize(report):
         "content_hidden":  bool(getattr(obj, "is_flagged", False)
                                 or getattr(obj, "is_hidden", False))
                            if obj is not None else False,
+        "flag_count":      Report.objects.filter(
+                               content_type=report.content_type,
+                               object_id=report.object_id,
+                               status=Report.Status.PENDING).count(),
         "reporter_name":   getattr(report.reporter, "display_name", "") or "",
         "owner_id":        str(owner.id) if owner else "",
         "owner_name":      (getattr(owner, "display_name", "") or "") if owner else "",
@@ -199,3 +203,37 @@ def staff_overview(request):
         "flags_pending":   flags_pending,
         "upcoming_events": upcoming_events,
     })
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def suspended_users(request):
+    """GET /api/moderation/staff/suspended/  — list currently suspended users."""
+    qs = User.objects.filter(is_suspended=True).order_by("-suspended_at")
+    return Response([{
+        "id":           str(u.id),
+        "user_id":      getattr(u, "user_id", ""),
+        "name":         getattr(u, "display_name", "") or getattr(u, "name", "")
+                        or "User",
+        "reason":       getattr(u, "suspended_reason", "") or "",
+        "suspended_at": u.suspended_at.isoformat() if u.suspended_at else None,
+        "avatar_url":   request.build_absolute_uri(u.avatar.url)
+                        if getattr(u, "avatar", None) else None,
+    } for u in qs])
+
+
+@api_view(["POST"])
+@permission_classes([IsStaff])
+def restore_user(request, pk):
+    """POST /api/moderation/staff/suspended/<id>/restore/  — lift a suspension."""
+    if not _is_elevated(request.user):
+        return Response({"error": "Elevated staff access required."}, status=403)
+    try:
+        u = User.objects.get(id=pk)
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=404)
+    u.is_suspended     = False
+    u.suspended_reason = ""
+    u.suspended_at     = None
+    u.save(update_fields=["is_suspended", "suspended_reason", "suspended_at"])
+    return Response({"ok": True, "id": str(u.id)})

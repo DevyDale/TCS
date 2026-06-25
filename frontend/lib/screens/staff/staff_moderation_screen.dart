@@ -32,8 +32,39 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
   bool _loading = true;
   bool _busy = false;
 
+  String _tab = 'reports'; // 'reports' | 'suspended'
+  List<Map<String, dynamic>> _suspended = [];
+  bool _loadingSusp = false;
+
   @override
   void initState() { super.initState(); _load(); }
+
+  Future<void> _loadSuspended() async {
+    setState(() => _loadingSusp = true);
+    try {
+      final d = await _api.get('/moderation/staff/suspended/') as List;
+      if (mounted) setState(() {
+        _suspended = d.cast<Map<String, dynamic>>();
+        _loadingSusp = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingSusp = false);
+    }
+  }
+
+  Future<void> _restore(Map<String, dynamic> u) async {
+    setState(() => _busy = true);
+    HapticFeedback.mediumImpact();
+    try {
+      await _api.post('/moderation/staff/suspended/${u['id']}/restore/');
+      _snack('${u['name'] ?? 'User'} restored');
+      _loadSuspended();
+    } catch (e) {
+      _snack('Failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   void _load() {
     CacheStore.I.swr(
@@ -111,23 +142,155 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
           ],
         ]),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kG2))
-          : _reports.isEmpty
-              ? _empty()
-              : RefreshIndicator(
-                  color: _kG2,
-                  onRefresh: () async {
-                    await CacheStore.I.invalidate(_kCacheKey);
-                    _load();
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
-                    itemCount: _reports.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _reportCard(_reports[i]),
-                  ),
+      body: Column(children: [
+        _toggle(),
+        Expanded(child: _tab == 'reports' ? _reportsBody() : _suspendedBody()),
+      ]),
+    );
+  }
+
+  Widget _toggle() {
+    Widget pill(String key, String label, {int? badge}) {
+      final sel = _tab == key;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () {
+            if (_tab == key) return;
+            HapticFeedback.selectionClick();
+            setState(() => _tab = key);
+            if (key == 'suspended' && _suspended.isEmpty) _loadSuspended();
+          },
+          child: Container(
+            margin: const EdgeInsets.all(3),
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: sel
+                ? BoxDecoration(
+                    gradient: const LinearGradient(colors: [_kG1, _kG2]),
+                    borderRadius: BorderRadius.circular(10))
+                : null,
+            child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(label, style: TextStyle(fontFamily: 'Arch', fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: sel ? Colors.white : AppC.sub)),
+              if (badge != null && badge > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                      color: sel ? Colors.white24 : _kRed,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text('$badge', style: const TextStyle(fontFamily: 'Arch',
+                      fontSize: 10, fontWeight: FontWeight.bold,
+                      color: Colors.white)),
                 ),
+              ],
+            ])),
+          ),
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppC.border)),
+      child: Row(children: [
+        pill('reports', 'Reports', badge: _pending),
+        pill('suspended', 'Suspended'),
+      ]),
+    );
+  }
+
+  Widget _reportsBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: _kG2));
+    }
+    if (_reports.isEmpty) return _empty();
+    return RefreshIndicator(
+      color: _kG2,
+      onRefresh: () async {
+        await CacheStore.I.invalidate(_kCacheKey);
+        _load();
+      },
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+        itemCount: _reports.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (_, i) => _reportCard(_reports[i]),
+      ),
+    );
+  }
+
+  Widget _suspendedBody() {
+    if (_loadingSusp) {
+      return const Center(child: CircularProgressIndicator(color: _kG2));
+    }
+    if (_suspended.isEmpty) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.lock_open_rounded, size: 52, color: _kG1),
+        const SizedBox(height: 12),
+        T('No suspended students',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
+      ]));
+    }
+    return RefreshIndicator(
+      color: _kG2,
+      onRefresh: _loadSuspended,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+        itemCount: _suspended.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, i) => _suspendedCard(_suspended[i]),
+      ),
+    );
+  }
+
+  Widget _suspendedCard(Map<String, dynamic> u) {
+    final name = (u['name'] ?? 'User').toString();
+    final reason = (u['reason'] ?? '').toString();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppC.border)),
+      child: Row(children: [
+        Container(
+          width: 42, height: 42,
+          decoration: const BoxDecoration(
+              color: Color(0xFFB23A48), shape: BoxShape.circle),
+          child: Center(child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+          Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                  fontSize: 14, color: AppC.text)),
+          if (reason.isNotEmpty)
+            Text(reason, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                    color: AppC.sub)),
+        ])),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _busy ? null : () => _restore(u),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kG1, _kG2]),
+                borderRadius: BorderRadius.circular(11)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.lock_open_rounded, color: Colors.white, size: 14),
+              SizedBox(width: 5),
+              T('Restore', style: TextStyle(fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -148,6 +311,8 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
     final isUser    = r['is_user_report'] == true;
     final suspended = r['owner_suspended'] == true;
     final gone      = r['content_exists'] != true;
+    final flags     = (r['flag_count'] as num?)?.toInt() ?? 0;
+    final hidden    = r['content_hidden'] == true;
     return GestureDetector(
       onTap: _busy ? null : () => _openActions(r),
       child: Container(
@@ -170,7 +335,26 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
             Text((isUser ? 'USER' : (r['content_type'] ?? '').toString()).toUpperCase(),
                 style: TextStyle(fontFamily: 'Arch', fontSize: 9,
                     fontWeight: FontWeight.bold, color: AppC.text.withOpacity(.4))),
+            if (flags > 1) ...[
+              const SizedBox(width: 8),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.flag_rounded, size: 11, color: _kRed),
+                const SizedBox(width: 2),
+                Text('$flags', style: const TextStyle(fontFamily: 'Arch',
+                    fontSize: 10, fontWeight: FontWeight.bold, color: _kRed)),
+              ]),
+            ],
             const Spacer(),
+            if (hidden) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(color: _kAmber.withOpacity(.18),
+                    borderRadius: BorderRadius.circular(7)),
+                child: const Text('HIDDEN', style: TextStyle(fontFamily: 'Arch',
+                    fontSize: 8.5, fontWeight: FontWeight.bold, color: _kAmber)),
+              ),
+              const SizedBox(width: 6),
+            ],
             if (suspended)
               const T('SUSPENDED', style: TextStyle(fontFamily: 'Arch',
                   fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFFAB91))),

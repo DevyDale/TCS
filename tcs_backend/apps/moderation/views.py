@@ -14,12 +14,37 @@ class ReportCreateView(generics.CreateAPIView):
     serializer_class   = ReportCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    # Auto-hide content once this many distinct users flag it (pending).
+    AUTO_HIDE_THRESHOLD = 3
+
     def perform_create(self, serializer):
         report = serializer.save()
         try:
             notify_admin_new_report(report)
         except Exception:
             pass
+        try:
+            self._maybe_auto_hide(report)
+        except Exception:
+            pass
+
+    def _maybe_auto_hide(self, report):
+        from .models import Report
+        obj = report.content_object
+        if obj is None:
+            return
+        distinct_flaggers = (Report.objects
+            .filter(content_type=report.content_type,
+                    object_id=report.object_id,
+                    status=Report.Status.PENDING)
+            .values("reporter").distinct().count())
+        if distinct_flaggers < self.AUTO_HIDE_THRESHOLD:
+            return
+        field = next((f for f in ("is_flagged", "is_hidden", "is_removed")
+                      if hasattr(obj, f)), None)
+        if field and not getattr(obj, field, False):
+            setattr(obj, field, True)
+            obj.save(update_fields=[field])
 
 
 class BlockListCreateView(generics.ListCreateAPIView):
