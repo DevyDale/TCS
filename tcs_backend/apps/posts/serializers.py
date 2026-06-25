@@ -206,13 +206,13 @@ class PostSerializer(serializers.ModelSerializer):
             "media", "hashtags", "feeling",
             "background_color", "location",
             "like_count", "comment_count", "share_count", "views_count",
-            "is_liked", "is_bookmarked", "is_pinned", "is_flagged",
+            "is_liked", "is_bookmarked", "is_pinned", "is_flagged", "is_ai",
             "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "author_name", "author_role", "author_avatar",
             "like_count", "comment_count", "share_count", "views_count",
-            "created_at", "updated_at",
+            "is_ai", "created_at", "updated_at",
         ]
 
     def get_is_liked(self, obj):

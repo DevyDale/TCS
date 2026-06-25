@@ -35,7 +35,8 @@ const _kRed  = Color(0xFFFF4F6E);
 Future<void> showAskDaleSheet(
   BuildContext context, {
   required Future<void> Function(String message) onAsk,
-  required Future<void> Function() onRemove,
+  Future<void> Function()? onRemove,
+  String subtitle = 'Ask anything based on the chat',
 }) {
   return showModalBottomSheet(
     context: context,
@@ -45,17 +46,20 @@ Future<void> showAskDaleSheet(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: _AskDaleSheet(onAsk: onAsk, onRemove: onRemove),
+      child: _AskDaleSheet(
+          onAsk: onAsk, onRemove: onRemove, subtitle: subtitle),
     ),
   );
 }
 
 class _AskDaleSheet extends StatefulWidget {
   final Future<void> Function(String) onAsk;
-  final Future<void> Function() onRemove;
+  final Future<void> Function()? onRemove;
+  final String subtitle;
   const _AskDaleSheet({
     required this.onAsk,
-    required this.onRemove,
+    this.onRemove,
+    this.subtitle = 'Ask anything based on the chat',
   });
 
   @override
@@ -114,7 +118,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
 
     setState(() => _busy = true);
     try {
-      await widget.onRemove();
+      await widget.onRemove!();
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
@@ -183,7 +187,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                             fontSize: 16,
                             color: _kInk)),
                     SizedBox(height: 1),
-                    T('Ask anything based on the chat',
+                    T(widget.subtitle,
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 12,
@@ -288,28 +292,30 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
                 ),
               ]),
 
-              const SizedBox(height: 14),
-              Divider(color: AppC.border, height: 1),
-              const SizedBox(height: 6),
-
-              // Remove option
-              TextButton.icon(
-                onPressed: _busy ? null : _confirmRemove,
-                icon: const Icon(Icons.exit_to_app_rounded,
-                    color: _kRed, size: 18),
-                label: const T('Remove Dale from chat',
-                    style: TextStyle(
-                      fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.5,
-                      color: _kRed,
-                    )),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  alignment: Alignment.centerLeft,
-                  minimumSize: const Size(0, 36),
+              // Remove option — only when the parent supports removing Dale
+              // (chat rooms). Study groups summon Dale on demand, so it's hidden.
+              if (widget.onRemove != null) ...[
+                const SizedBox(height: 14),
+                Divider(color: AppC.border, height: 1),
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  onPressed: _busy ? null : _confirmRemove,
+                  icon: const Icon(Icons.exit_to_app_rounded,
+                      color: _kRed, size: 18),
+                  label: const T('Remove Dale from chat',
+                      style: TextStyle(
+                        fontFamily: 'Arch',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                        color: _kRed,
+                      )),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    alignment: Alignment.centerLeft,
+                    minimumSize: const Size(0, 36),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

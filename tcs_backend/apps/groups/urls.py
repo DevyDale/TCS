@@ -11,6 +11,7 @@ urlpatterns = [
     path("<uuid:group_id>/members/add/",    views.add_group_member,               name="group-member-add"),
     path("<uuid:group_id>/members/remove/", views.remove_group_member,            name="group-member-remove"),
     path("<uuid:group_id>/materials/",      views.group_materials,                name="group-materials"),
+    path("<uuid:group_id>/ai/summon/",      views.summon_dale_in_group_view,      name="group-ai-summon"),
     path("buddies/",                        views.study_buddies,                  name="study-buddies"),
     path("buddies/me/",                     views.update_study_buddy,             name="update-buddy"),
     path("<uuid:group_id>/materials/<uuid:material_id>/save/",

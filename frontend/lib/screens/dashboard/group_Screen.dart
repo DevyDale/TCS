@@ -9,7 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/widgets/uploading_delay.dart';
-import 'package:tcs_app/widgets/ai_assistant_screen.dart';
+import 'package:tcs_app/widgets/ask_dale_sheet.dart';
 import 'package:lottie/lottie.dart';
 import '../../services/api_service.dart';
 
@@ -54,6 +54,7 @@ class _GroupScreenState extends State<GroupScreen>
   bool _loadingMsgs  = true;
   bool _loadingMats  = true;
   bool _sendingMsg   = false;
+  bool _aiBusy       = false;   // Dale is generating a reply for the group
   bool _searchingAdd = false;
   bool _isAdmin      = false;
 
@@ -247,6 +248,36 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   // ── Send post (with optional reply) ───────────────────────
+
+  // ── Dale AI in the group (same mechanism as chat rooms) ──────
+  void _handleDaleTap() {
+    HapticFeedback.lightImpact();
+    showAskDaleSheet(
+      context,
+      onAsk: _askDaleInGroup,
+      subtitle: 'Ask anything based on the group chat',
+      // No onRemove: Dale isn't a persistent member here, he's summoned
+      // on demand — so the sheet hides the "Remove Dale" option.
+    );
+  }
+
+  Future<void> _askDaleInGroup(String message) async {
+    setState(() => _aiBusy = true);
+    try {
+      final post = await _api.post(
+        '/groups/$_groupId/ai/summon/',
+        body: {if (message.isNotEmpty) 'message': message},
+      ) as Map<String, dynamic>;
+      if (!mounted) return;
+      // Drop Dale's reply straight into the thread, then reconcile via reload.
+      setState(() => _messages.insert(0, post));
+      await _loadMessages();
+    } catch (_) {
+      if (mounted) _snack('Dale couldn\'t reply right now.');
+    } finally {
+      if (mounted) setState(() => _aiBusy = false);
+    }
+  }
 
   Future<void> _sendPost() async {
     final text = _msgCtrl.text.trim();
@@ -1099,13 +1130,10 @@ class _GroupScreenState extends State<GroupScreen>
           color: AppC.card,
           border: Border(top: BorderSide(color: AppC.card2))),
         child: Row(children: [
-          // Dale AI — right here in the chat room. Tap to ask Dale anything.
+          // Dale AI — lives in the group chat. Tap to summon Dale, who reads
+          // the recent conversation and replies inline for everyone to see.
           GestureDetector(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const AiAssistantScreen()));
-            },
+            onTap: _aiBusy ? null : _handleDaleTap,
             child: Container(
               width: 44, height: 44,
               margin: const EdgeInsets.only(right: 10),
@@ -1119,10 +1147,16 @@ class _GroupScreenState extends State<GroupScreen>
                     color: const Color(0xFF8E54E9).withOpacity(0.30),
                     blurRadius: 8, offset: const Offset(0, 2))]),
               child: Center(
-                child: Lottie.asset('assets/images/robot.json',
-                    width: 30, height: 30, fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                        Icons.smart_toy_rounded, color: Colors.white, size: 22)),
+                child: _aiBusy
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2.2))
+                    : Lottie.asset('assets/images/robot.json',
+                        width: 30, height: 30, fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.smart_toy_rounded,
+                            color: Colors.white, size: 22)),
               ),
             ),
           ),
@@ -1279,6 +1313,7 @@ class _GroupScreenState extends State<GroupScreen>
   // long-press for the reply / copy menu.
   Widget _buildMessageBubble(Map<String, dynamic> m, bool isMe) {
     final reply = m['reply_to'] as Map?;
+    final isAi  = m['is_ai'] == true;   // Dale's group replies
 
     var content = (m['content'] as String?) ?? '';
     if (reply == null && content.startsWith('↩️ @')) {
@@ -1288,11 +1323,13 @@ class _GroupScreenState extends State<GroupScreen>
 
     // Sender label — shown on EVERY message, both sides.
     final rawName = (m['author_name'] as String?)?.trim();
-    final senderName = isMe
-        ? ((rawName != null && rawName.isNotEmpty)
-            ? rawName
-            : (_myDisplayName ?? 'You'))
-        : ((rawName != null && rawName.isNotEmpty) ? rawName : 'Unknown');
+    final senderName = isAi
+        ? 'Dale'
+        : (isMe
+            ? ((rawName != null && rawName.isNotEmpty)
+                ? rawName
+                : (_myDisplayName ?? 'You'))
+            : ((rawName != null && rawName.isNotEmpty) ? rawName : 'Unknown'));
 
     final bubble = GestureDetector(
       onLongPress: () => _showMessageActions(m),
@@ -1302,22 +1339,55 @@ class _GroupScreenState extends State<GroupScreen>
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Sender name — OUTSIDE the bubble, on top, in black
+            // Sender name — OUTSIDE the bubble, on top. Dale gets a robot badge.
             Padding(
               padding: EdgeInsets.only(
                 left:   isMe ? 0 : 4,
                 right:  isMe ? 4 : 0,
                 bottom: 3,
               ),
-              child: Text(
-                senderName,
-                style: TextStyle(
-                  fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: AppC.text,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (isAi) ...[
+                  Container(
+                    width: 18, height: 18,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                          colors: [Color(0xFF6DD5FA), Color(0xFF8E54E9)])),
+                    child: Center(
+                      child: Lottie.asset('assets/images/robot.json',
+                          width: 14, height: 14, fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.smart_toy_rounded,
+                              color: Colors.white, size: 11)),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  senderName,
+                  style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: isAi ? const Color(0xFF8E54E9) : AppC.text,
+                  ),
                 ),
-              ),
+                if (isAi) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8E54E9).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(5)),
+                    child: const Text('AI',
+                        style: TextStyle(fontFamily: 'Arch', fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF8E54E9))),
+                  ),
+                ],
+              ]),
             ),
 
             // The message bubble itself
@@ -1329,13 +1399,19 @@ class _GroupScreenState extends State<GroupScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? _indigo : AppC.card,
+                color: isAi
+                    ? const Color(0xFF8E54E9).withOpacity(0.07)
+                    : (isMe ? _indigo : AppC.card),
                 borderRadius: BorderRadius.only(
                   topLeft:     const Radius.circular(16),
                   topRight:    const Radius.circular(16),
                   bottomLeft:  Radius.circular(isMe ? 16 : 4),
                   bottomRight: Radius.circular(isMe ? 4  : 16),
                 ),
+                border: isAi
+                    ? Border.all(
+                        color: const Color(0xFF8E54E9).withOpacity(0.30))
+                    : null,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),

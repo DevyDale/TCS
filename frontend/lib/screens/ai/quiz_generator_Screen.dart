@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
+import 'package:tcs_app/widgets/ai_spinner.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/ai/quiz_play_Screen.dart';
 
@@ -550,10 +551,7 @@ class _QuizGeneratorScreenState extends State<QuizGeneratorScreen> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               const T('🧠', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 28),
-              const SizedBox(
-                width: 36, height: 36,
-                child: CircularProgressIndicator(
-                    color: _kGold, strokeWidth: 3)),
+              const AiSpinner(color: _kGold),
               const SizedBox(height: 28),
               T('Generating your quiz',
                   style: TextStyle(fontFamily: 'Alfa',

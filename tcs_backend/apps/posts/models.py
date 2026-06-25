@@ -64,6 +64,9 @@ class Post(models.Model):
 
     is_flagged = models.BooleanField(default=False)
     is_pinned  = models.BooleanField(default=False)
+    # Marks a post authored by Dale (the in-group AI). The frontend renders
+    # any is_ai post as a Dale bubble, mirroring is_ai on chat Messages.
+    is_ai      = models.BooleanField(default=False, db_index=True)
 
     likes_count    = models.PositiveIntegerField(default=0)
     comments_count = models.PositiveIntegerField(default=0)

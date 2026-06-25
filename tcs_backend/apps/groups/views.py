@@ -435,3 +435,42 @@ def search_users_for_group(request):
         }
         for u in users
     ]})
+
+# ─────────────────────────────────────────────────────────────
+# Dale AI in study groups — mirrors /chat/rooms/<id>/ai/summon/
+# ─────────────────────────────────────────────────────────────
+import logging as _logging
+_logger = _logging.getLogger(__name__)
+
+
+@api_view(["POST"])
+def summon_dale_in_group_view(request, group_id):
+    """POST /api/groups/<id>/ai/summon/  — body: {"message": "..."} (optional).
+
+    Summons Dale to read the recent group chat and reply as an is_ai Post,
+    visible to everyone in the group. Same mechanism as the chat-room summon.
+    """
+    try:
+        group = Group.objects.get(id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    is_member = group.memberships.filter(
+        user=request.user, status="active").exists()
+    if not (is_member or group.created_by == request.user):
+        return Response({"error": "Join the group to chat with Dale."}, status=403)
+
+    user_msg = (request.data.get("message") or "").strip()
+    try:
+        from .ai_in_group import summon_dale_in_group, AIError
+        post = summon_dale_in_group(
+            group, request.user, asker_message=user_msg or None)
+    except AIError as e:
+        return Response({"error": str(e)}, status=503)
+    except Exception:
+        _logger.exception("summon_dale_in_group failed")
+        return Response({"error": "Dale couldn't reply right now."}, status=500)
+
+    from apps.posts.serializers import PostSerializer
+    return Response(
+        PostSerializer(post, context={"request": request}).data, status=201)
