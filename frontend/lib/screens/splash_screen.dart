@@ -4,7 +4,12 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'
+    hide ContextExtensionss; // hide only GetX's context extension so its
+                             // isPhone/isTablet don't clash with R(context)
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'noticeboard_screen.dart';
 
 import '../services/api_service.dart';
 import '../utils/responsive_helper.dart';
@@ -167,6 +172,14 @@ class _SplashScreenState extends State<SplashScreen>
           FadeTransition(opacity: anim, child: child),
       transitionDuration: const Duration(milliseconds: 600),
     ));
+
+    // Cold-launched from an announcement push? Open the board on top of the
+    // dashboard now that we've routed there. Logged-in users only.
+    if (hasSession && pendingAnnouncementId != null) {
+      final id = pendingAnnouncementId;
+      pendingAnnouncementId = null;
+      Get.to(() => NoticeboardScreen(highlightId: id));
+    }
   }
 
   @override

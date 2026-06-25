@@ -18,6 +18,11 @@ const _bgBot = Color(0xFF130A26);
 
 const _kCacheKey = '/announcements/';
 
+/// Set by the FCM handler in main.dart when the app is cold-launched by an
+/// announcement push (terminated state). Consumed once by the splash after it
+/// routes to the dashboard, then cleared. Null when there is nothing pending.
+String? pendingAnnouncementId;
+
 class NoticeboardScreen extends StatefulWidget {
   final String? highlightId;
   const NoticeboardScreen({super.key, this.highlightId});

@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tcs_app/screens/splash_screen.dart';
+import 'package:tcs_app/screens/noticeboard_screen.dart';
 
 import 'package:tcs_app/services/auth_service.dart';
 import 'package:tcs_app/services/notification_Service.dart';
@@ -98,7 +99,25 @@ Future<void> _initFcm() async {
     try { await ApiService().updateFcmToken(token); } catch (_) {}
   });
 
+  // Deep-link announcement push taps → Noticeboard.
+  // • App in background: route immediately (GetMaterialApp is mounted).
+  // • App launched from terminated state: stash the id; the splash opens the
+  //   board once it has routed to the dashboard (avoids a navigation race).
+  FirebaseMessaging.onMessageOpenedApp.listen((msg) => _routeAnnouncement(msg.data));
+  final initialMsg = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMsg != null && initialMsg.data['type'] == 'announcement') {
+    pendingAnnouncementId = (initialMsg.data['announcement_id'] ?? '').toString();
+  }
+
   await syncFcmTopics(); // honor saved user prefs on cold start
+}
+
+/// Routes an FCM data payload to the Noticeboard when it is an announcement.
+/// Used for the background-tap (onMessageOpenedApp) path while the app runs.
+void _routeAnnouncement(Map<String, dynamic> data) {
+  if (data['type'] != 'announcement') return;
+  final id = (data['announcement_id'] ?? '').toString();
+  Get.to(() => NoticeboardScreen(highlightId: id.isEmpty ? null : id));
 }
 
 /// Registers THIS device's FCM token with the backend (POST
