@@ -15,36 +15,13 @@ import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
 import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
 import 'package:tcs_app/screens/arcade/arcade_screen.dart';
-import 'package:tcs_app/services/settings_Screen.dart';
+import 'package:tcs_app/screens/staff/staff_settings_screen.dart';
 
 class StaffConnectScreen extends StatelessWidget {
   const StaffConnectScreen({super.key});
 
   void _push(BuildContext context, Widget s) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
-
-  // GroupsStudyHubScreen is a root tab with no back button of its own — wrap it
-  // in a slim back-bar scaffold so it's escapable when pushed.
-  void _pushTab(BuildContext context, Widget child) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (ctx) => Scaffold(
-        backgroundColor: AppC.bg,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_rounded, color: AppC.text),
-                onPressed: () => Navigator.of(ctx).maybePop(),
-              ),
-            ),
-            Expanded(child: child),
-          ]),
-        ),
-      ),
-    ));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +46,7 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Messages',
                   subtitle: 'DMs and group chats with your colleagues.',
                   gradient: const [Color(0xFF60A5FA), Color(0xFF2563EB)],
-                  onTap: () => _pushTab(context, const ChatListScreen())),
+                  onTap: () => _push(context, const ChatListScreen())),
               const SizedBox(height: 12),
 
               // Feed (full width).
@@ -93,7 +70,7 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Study groups',
                   subtitle: 'Student study groups across the cohort',
                   color: const Color(0xFF059669),
-                  onTap: () => _pushTab(context, const GroupsStudyHubScreen())),
+                  onTap: () => _push(context, const GroupsStudyHubScreen())),
               const SizedBox(height: 10),
               _communityRow(context,
                   icon: Icons.local_activity_rounded,
@@ -151,7 +128,7 @@ class StaffConnectScreen extends StatelessWidget {
           onTap: () {
             HapticFeedback.selectionClick();
             Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const SettingsScreen()));
+                builder: (_) => const StaffSettingsScreen()));
           },
           child: Container(
             width: 42, height: 42,

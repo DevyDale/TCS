@@ -331,6 +331,12 @@ class _ChatListScreenState extends State<ChatListScreen>
       decoration: BoxDecoration(color: AppC.card,
           border: Border(bottom: BorderSide(color: AppC.border, width: 1))),
       child: Row(children: [
+        if (Navigator.of(context).canPop()) ...[
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Icon(Icons.arrow_back_rounded, color: _kInk, size: 24)),
+          const SizedBox(width: 12),
+        ],
         Expanded(child: T('Messages', style: TextStyle(fontFamily: 'Alfa',
             fontSize: 22, color: _kInk))),
         // Requests button (opens the Requests page) with pending badge

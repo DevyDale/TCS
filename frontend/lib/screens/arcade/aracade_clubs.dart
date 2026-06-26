@@ -133,7 +133,7 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
   late final AnimationController _shimmerCtrl;
   late final Animation<double> _fadeAnim;
 
-  bool _isDark = false;
+  bool _isDark = AppC.isDark;  // follow the app theme by default
 
   bool _loadingClubs = true;
   bool _loadingHub   = false;
@@ -170,8 +170,8 @@ class _ArcadeClubsScreenState extends State<ArcadeClubsScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!mounted) return;
-      setState(() => _isDark = prefs.getBool(_kPrefDark) ?? false);
-    } catch (_) {/* default light */}
+      setState(() => _isDark = prefs.getBool(_kPrefDark) ?? AppC.isDark);
+    } catch (_) {/* fall back to app theme */}
   }
 
   // ── Data loading ──────────────────────────────────────────

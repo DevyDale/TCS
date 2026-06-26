@@ -802,6 +802,12 @@ class _GroupsStudyHubScreenState
         border: Border(bottom: BorderSide(color: AppC.border)),
       ),
       child: Row(children: [
+        if (Navigator.of(context).canPop()) ...[
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Icon(Icons.arrow_back_rounded, color: AppC.text, size: 24)),
+          const SizedBox(width: 12),
+        ],
         Container(
           width: 40, height: 40,
           decoration: BoxDecoration(

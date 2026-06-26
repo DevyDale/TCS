@@ -95,9 +95,6 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                     subtitle: 'Student ideas raised to the school.',
                     gradient: const [Color(0xFF818CF8), Color(0xFF4F46E5)],
                     onTap: () => _push(context, const SuggestionsReviewScreen())),
-                const SizedBox(height: 22),
-                const StaffSectionLabel('Scam safety'),
-                _scamTile(context),
                 const SizedBox(height: 40),
               ]),
             ),
@@ -136,6 +133,25 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
                     color: Colors.white.withValues(alpha: 0.85))),
           ],
+        )),
+        Builder(builder: (context) => GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _push(context, const ScamWatchScreen());
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+              Icon(Icons.radar_rounded, color: Colors.white, size: 16),
+              SizedBox(width: 6),
+              Text('Scam', style: TextStyle(fontFamily: 'Arch', fontSize: 11,
+                  fontWeight: FontWeight.bold, color: Colors.white)),
+            ]),
+          ),
         )),
       ]),
     );
@@ -301,45 +317,5 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
     );
   }
 
-  Widget _scamTile(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          _push(context, const ScamWatchScreen());
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: staffCard(),
-          child: Row(children: [
-            Container(
-              width: 48, height: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.radar_rounded,
-                  color: Color(0xFFF59E0B), size: 24)),
-            const SizedBox(width: 14),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Scam watch', style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, fontSize: 14.5,
-                    color: AppC.text)),
-                const SizedBox(height: 3),
-                Text('Triage reports & warn the campus about scams.',
-                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
-                        color: AppC.sub)),
-              ],
-            )),
-            Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 22),
-          ]),
-        ),
-      ),
-    );
-  }
 }
 
