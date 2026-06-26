@@ -15,7 +15,10 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Answer, Question, Resource, TeacherAvailability
+from django.db import transaction
+
+from .models import (Answer, Question, Quiz, QuizAttempt, QuizQuestion,
+                     Resource, TeacherAvailability)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -316,3 +319,303 @@ def my_availability(request):
         return Response({"error": "Teachers only."}, status=403)
     av, _ = TeacherAvailability.objects.get_or_create(teacher=request.user)
     return Response(_availability_dict(av))
+
+
+# ── Quizzes (spec §4) ─────────────────────────────────────────────────────
+def _quiz_dict(q, *, include_answers=False, with_questions=False):
+    d = {
+        "id":           str(q.id),
+        "subject":      q.subject,
+        "title":        q.title,
+        "description":  q.description,
+        "source":       q.source,
+        "is_published": q.is_published,
+        "owner":        _name(q.owner),
+        "owner_id":     str(q.owner_id),
+        "time_limit_s": q.time_limit_s,
+        "xp_reward":    q.xp_reward,
+        "question_count": q.questions.count(),
+        "created_at":   q.created_at.isoformat(),
+    }
+    if with_questions:
+        d["questions"] = [_question_q_dict(qq, include_answers=include_answers)
+                          for qq in q.questions.all()]
+    return d
+
+
+def _question_q_dict(qq, *, include_answers=False):
+    d = {
+        "id":      str(qq.id),
+        "text":    qq.text,
+        "options": qq.options,
+        "order":   qq.order,
+    }
+    if include_answers:
+        d["correct_index"] = qq.correct_index
+        d["explanation"]   = qq.explanation
+    return d
+
+
+def _clean_questions_payload(raw):
+    """Normalise an incoming questions list to MCQ rows. Returns list of dicts."""
+    out = []
+    for i, q in enumerate(raw or []):
+        if not isinstance(q, dict):
+            continue
+        text = (q.get("text") or q.get("question") or "").strip()
+        opts = q.get("options") or []
+        if not text or not isinstance(opts, list) or len(opts) < 2:
+            continue
+        opts = [str(o).strip() for o in opts][:6]
+        ci = q.get("correct_index")
+        if ci is None and isinstance(q.get("correct_answer"), str):
+            # map "A"/"B"/"C"/"D" -> index
+            letter = q["correct_answer"].strip().upper()
+            ci = "ABCDEF".find(letter) if letter in "ABCDEF" else 0
+        try:
+            ci = int(ci)
+        except (TypeError, ValueError):
+            ci = 0
+        ci = max(0, min(ci, len(opts) - 1))
+        out.append({
+            "text": text[:1000], "options": opts, "correct_index": ci,
+            "explanation": (q.get("explanation") or "").strip()[:500],
+            "order": i,
+        })
+    return out
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def quiz_generate(request):
+    """Dale drafts an MCQ set from a topic. Returns a DRAFT (not saved) for the
+    teacher to review/edit before saving + publishing (the accuracy gate)."""
+    if not _is_teacher(request.user):
+        return Response({"error": "Only teachers can generate quizzes."}, status=403)
+    topic = (request.data.get("topic") or "").strip()
+    subject = (request.data.get("subject") or "").strip()
+    if not topic:
+        return Response({"error": "Give Dale a topic to build from."}, status=400)
+    count = max(3, min(int(request.data.get("count") or 5), 15))
+    difficulty = (request.data.get("difficulty") or "medium").lower()
+    if difficulty not in ("easy", "medium", "hard"):
+        difficulty = "medium"
+
+    try:
+        from apps.ai import ai_router
+        from apps.quiz.services import _validate_questions, GenerationError
+        sys = (
+            "You are an expert academic quiz writer. Write multiple-choice "
+            "questions on the given topic. Each question has exactly 4 options "
+            "labelled A, B, C, D with one unambiguously correct answer and three "
+            "plausible distractors. Include a brief explanation (<=30 words). "
+            "Output ONLY valid JSON: "
+            '{"questions":[{"id":"q1","type":"mcq","question":"...",'
+            '"options":["..","..","..",".."],"correct_answer":"B","explanation":".."}]}'
+        )
+        user = (f"Topic: {topic}\n"
+                f"{('Subject context: ' + subject) if subject else ''}\n"
+                f"Generate exactly {count} multiple-choice questions at "
+                f"{difficulty} difficulty.")
+        result = ai_router.complete(
+            "quiz",
+            messages=[{"role": "system", "content": sys},
+                      {"role": "user", "content": user}],
+            max_tokens=2048, temperature=0.5,
+            response_format={"type": "json_object"})
+        raw = result.get("text") or ""
+        if not raw:
+            return Response({"error": result.get("error") or "Dale returned nothing."},
+                            status=502)
+        questions = _validate_questions(raw, max_q=count)
+    except GenerationError as e:
+        return Response({"error": str(e)}, status=502)
+    except Exception as e:
+        logger.exception("quiz generate failed")
+        return Response({"error": f"Generation failed: {e}"}, status=502)
+
+    # Map the quiz-service shape (correct_answer "A".."D") to our index form.
+    drafts = []
+    for i, q in enumerate(questions):
+        if q.get("type") != "mcq":
+            continue
+        letter = str(q.get("correct_answer") or "A").upper()
+        ci = "ABCD".find(letter)
+        drafts.append({
+            "text": q["question"], "options": q.get("options", []),
+            "correct_index": ci if ci >= 0 else 0,
+            "explanation": q.get("explanation", ""), "order": i,
+        })
+    return Response({"source": "ai", "subject": subject, "topic": topic,
+                     "questions": drafts})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def quizzes(request):
+    if request.method == "GET":
+        mine = request.query_params.get("mine") == "1"
+        if mine:
+            if not _is_teacher(request.user):
+                return Response({"error": "Teachers only."}, status=403)
+            qs = Quiz.objects.filter(owner=request.user)
+        else:
+            qs = Quiz.objects.filter(is_published=True)
+            subject = request.query_params.get("subject")
+            if subject:
+                qs = qs.filter(subject__iexact=subject)
+        qs = qs.prefetch_related("questions").select_related("owner")
+        return Response({"results": [_quiz_dict(q) for q in qs[:200]]})
+
+    # POST — create/save (teacher); may be a manual build or an edited AI draft
+    if not _is_teacher(request.user):
+        return Response({"error": "Only teachers can create quizzes."}, status=403)
+    title   = (request.data.get("title") or "").strip()
+    subject = (request.data.get("subject") or "").strip()
+    if not title or not subject:
+        return Response({"error": "Title and subject are required."}, status=400)
+    questions = _clean_questions_payload(request.data.get("questions"))
+    if not questions:
+        return Response({"error": "Add at least one valid question."}, status=400)
+
+    with transaction.atomic():
+        quiz = Quiz.objects.create(
+            owner=request.user, title=title[:160], subject=subject,
+            description=(request.data.get("description") or "")[:300],
+            source=("ai" if request.data.get("source") == "ai" else "manual"),
+            time_limit_s=request.data.get("time_limit_s") or None,
+            xp_reward=max(0, min(int(request.data.get("xp_reward") or 20), 200)),
+            is_published=False)
+        QuizQuestion.objects.bulk_create([
+            QuizQuestion(quiz=quiz, text=q["text"], options=q["options"],
+                         correct_index=q["correct_index"],
+                         explanation=q["explanation"], order=q["order"])
+            for q in questions])
+    return Response(_quiz_dict(quiz, with_questions=True, include_answers=True),
+                    status=201)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def quiz_detail(request, pk):
+    q = get_object_or_404(Quiz.objects.prefetch_related("questions"), pk=pk)
+    is_owner = q.owner_id == request.user.id
+    if not q.is_published and not is_owner and not _is_teacher(request.user):
+        return Response({"error": "This quiz isn't published yet."}, status=403)
+    # Owners/teachers see answers (to review); students take it blind.
+    show = is_owner or _is_teacher(request.user)
+    return Response(_quiz_dict(q, with_questions=True, include_answers=show))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def quiz_publish(request, pk):
+    q = get_object_or_404(Quiz, pk=pk)
+    if q.owner_id != request.user.id and not _is_teacher(request.user):
+        return Response({"error": "Not allowed."}, status=403)
+    if not q.questions.exists():
+        return Response({"error": "Add questions before publishing."}, status=400)
+    q.is_published = not q.is_published   # toggle (unpublish to revise)
+    q.save(update_fields=["is_published"])
+    return Response(_quiz_dict(q))
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def quiz_delete(request, pk):
+    q = get_object_or_404(Quiz, pk=pk)
+    if q.owner_id != request.user.id and not _is_teacher(request.user):
+        return Response({"error": "Not allowed."}, status=403)
+    q.delete()
+    return Response(status=204)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def quiz_attempt(request, pk):
+    """Auto-grade an attempt. First-ever attempt awards XP/tokens (anti-farm)."""
+    q = get_object_or_404(Quiz.objects.prefetch_related("questions"), pk=pk)
+    if not q.is_published and q.owner_id != request.user.id:
+        return Response({"error": "This quiz isn't published yet."}, status=403)
+    answers = request.data.get("answers") or {}
+    if not isinstance(answers, dict):
+        return Response({"error": "answers must be an object."}, status=400)
+
+    qns = list(q.questions.all())
+    correct = 0
+    review = []
+    for qq in qns:
+        chosen = answers.get(str(qq.id))
+        try:
+            chosen = int(chosen)
+        except (TypeError, ValueError):
+            chosen = -1
+        ok = chosen == qq.correct_index
+        if ok:
+            correct += 1
+        review.append({
+            "id": str(qq.id), "chosen": chosen,
+            "correct_index": qq.correct_index, "is_correct": ok,
+            "explanation": qq.explanation})
+
+    total = len(qns)
+    first_time = not QuizAttempt.objects.filter(quiz=q, user=request.user).exists()
+    xp = 0
+    if first_time and total and q.xp_reward:
+        xp = round(q.xp_reward * correct / total)
+
+    attempt = QuizAttempt.objects.create(
+        quiz=q, user=request.user, score=correct, total=total,
+        answers={str(k): v for k, v in answers.items()}, xp_awarded=xp)
+
+    if xp > 0:
+        try:
+            from apps.arcade.services import credit
+            with transaction.atomic():
+                credit(request.user, xp, reason="studyhub_quiz",
+                       reference_type="studyhub_quiz", reference_id=str(q.id))
+        except Exception:
+            logger.exception("quiz XP award failed (non-fatal)")
+
+    return Response({
+        "attempt_id": str(attempt.id),
+        "score": correct, "total": total,
+        "percentage": round(100 * correct / total) if total else 0,
+        "xp_awarded": xp, "review": review,
+    }, status=201)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def quiz_analytics(request, pk):
+    """Teacher view: attempts, average score, hardest questions (spec §4)."""
+    q = get_object_or_404(Quiz.objects.prefetch_related("questions"), pk=pk)
+    if q.owner_id != request.user.id and not _is_teacher(request.user):
+        return Response({"error": "Teachers only."}, status=403)
+
+    attempts = list(q.attempts.all())
+    n = len(attempts)
+    avg = round(sum(100 * a.score / a.total for a in attempts if a.total) / n) if n else 0
+
+    # Per-question miss rate, only counting attempts that answered it.
+    rows = []
+    for qq in q.questions.all():
+        answered = missed = 0
+        for a in attempts:
+            if str(qq.id) in (a.answers or {}):
+                answered += 1
+                try:
+                    if int(a.answers[str(qq.id)]) != qq.correct_index:
+                        missed += 1
+                except (TypeError, ValueError):
+                    missed += 1
+        rows.append({
+            "id": str(qq.id), "text": qq.text,
+            "answered": answered, "missed": missed,
+            "miss_rate": round(100 * missed / answered) if answered else 0,
+        })
+    rows.sort(key=lambda r: r["miss_rate"], reverse=True)
+    return Response({
+        "attempts": n, "average_score": avg,
+        "question_count": q.questions.count(), "hardest": rows,
+    })

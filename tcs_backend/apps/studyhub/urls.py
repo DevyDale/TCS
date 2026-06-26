@@ -20,4 +20,12 @@ urlpatterns = [
     # Office hours
     path("teachers/",                     views.teachers),
     path("teachers/me/",                  views.my_availability),
+    # Quizzes
+    path("quizzes/generate/",             views.quiz_generate),
+    path("quizzes/",                      views.quizzes),
+    path("quizzes/<uuid:pk>/",            views.quiz_detail),
+    path("quizzes/<uuid:pk>/publish/",    views.quiz_publish),
+    path("quizzes/<uuid:pk>/delete/",     views.quiz_delete),
+    path("quizzes/<uuid:pk>/attempt/",    views.quiz_attempt),
+    path("quizzes/<uuid:pk>/analytics/",  views.quiz_analytics),
 ]

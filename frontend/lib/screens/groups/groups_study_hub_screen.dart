@@ -9,6 +9,7 @@ import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
 import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
 import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
+import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 
 import 'dart:async';
 import '../../services/api_service.dart';
@@ -880,17 +881,24 @@ class _GroupsStudyHubScreenState
       child: Row(children: [
         Expanded(child: _bridgeCard(
           icon: Icons.menu_book_rounded,
-          label: 'Resource\nLibrary',
+          label: 'Resources',
           color: _indigo,
           onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const ResourceLibraryScreen(isTeacher: false))))),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(child: _bridgeCard(
           icon: Icons.forum_rounded,
           label: 'Ask a\nTeacher',
           color: _deepPurple,
           onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const QaBoardScreen(isTeacher: false))))),
+        const SizedBox(width: 8),
+        Expanded(child: _bridgeCard(
+          icon: Icons.quiz_rounded,
+          label: 'Quizzes',
+          color: const Color(0xFF7C3AED),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const QuizzesScreen(isTeacher: false))))),
       ]),
     );
   }

@@ -74,6 +74,67 @@ class Question(models.Model):
         indexes = [models.Index(fields=["status", "-created_at"], name="sh_q_status_idx")]
 
 
+class Quiz(models.Model):
+    """Teacher-authored quiz. AI drafts stay unpublished until the teacher
+    reviews them — the teacher is the accuracy gate (spec §4). MCQ-only so
+    auto-grading and per-question analytics stay clean."""
+    class Source(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        AI     = "ai",     "AI-generated"
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                     related_name="study_quizzes")
+    subject      = models.CharField(max_length=80, db_index=True)
+    title        = models.CharField(max_length=160)
+    description  = models.CharField(max_length=300, blank=True, default="")
+    source       = models.CharField(max_length=6, choices=Source.choices,
+                                    default=Source.MANUAL)
+    group        = models.ForeignKey("groups.Group", null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name="study_quizzes")
+    is_published = models.BooleanField(default=False)   # AI drafts stay False until reviewed
+    time_limit_s = models.PositiveIntegerField(null=True, blank=True)
+    xp_reward    = models.PositiveIntegerField(default=20)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "studyhub_quiz"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["is_published", "-created_at"],
+                                name="sh_quiz_pub_idx")]
+
+
+class QuizQuestion(models.Model):
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quiz          = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    text          = models.TextField()
+    options       = models.JSONField(default=list)       # ["A", "B", "C", "D"]
+    correct_index = models.PositiveSmallIntegerField(default=0)
+    explanation   = models.TextField(blank=True, default="")
+    order         = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = "studyhub_quiz_question"
+        ordering = ["order"]
+
+
+class QuizAttempt(models.Model):
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quiz         = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="attempts")
+    user         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                     related_name="study_quiz_attempts")
+    score        = models.PositiveSmallIntegerField(default=0)   # correct count
+    total        = models.PositiveSmallIntegerField(default=0)
+    answers      = models.JSONField(default=dict)        # {question_id: chosen_index}
+    xp_awarded   = models.PositiveIntegerField(default=0)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "studyhub_quiz_attempt"
+        ordering = ["-completed_at"]
+        indexes = [models.Index(fields=["quiz", "-completed_at"], name="sh_qa_quiz_idx")]
+
+
 class Answer(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     question    = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")

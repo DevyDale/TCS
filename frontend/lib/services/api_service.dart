@@ -1399,6 +1399,39 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
   }) => post('/studyhub/teachers/', body: {
         'subjects': subjects, 'is_open': isOpen, 'note': note,
       });
+
+  // ── Quizzes (Study Hub teacher quizzes) ──────────────────
+  Future<dynamic> generateStudyQuiz({
+    required String topic, String subject = '',
+    int count = 5, String difficulty = 'medium',
+  }) => post('/studyhub/quizzes/generate/', body: {
+        'topic': topic, 'subject': subject,
+        'count': count, 'difficulty': difficulty,
+      });
+
+  Future<dynamic> listQuizzes({bool mine = false, String? subject}) =>
+      get('/studyhub/quizzes/', query: {
+        if (mine) 'mine': '1',
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      });
+
+  Future<dynamic> saveQuiz({
+    required String title, required String subject,
+    required List<Map<String, dynamic>> questions,
+    String description = '', String source = 'manual', int xpReward = 20,
+  }) => post('/studyhub/quizzes/', body: {
+        'title': title, 'subject': subject, 'description': description,
+        'source': source, 'xp_reward': xpReward, 'questions': questions,
+      });
+
+  Future<dynamic> getQuiz(String id) => get('/studyhub/quizzes/$id/');
+  Future<dynamic> publishQuiz(String id) => post('/studyhub/quizzes/$id/publish/');
+  Future<dynamic> deleteStudyQuiz(String id) =>
+      delete('/studyhub/quizzes/$id/delete/');
+  Future<dynamic> attemptQuiz(String id, Map<String, int> answers) =>
+      post('/studyhub/quizzes/$id/attempt/', body: {'answers': answers});
+  Future<dynamic> quizAnalytics(String id) =>
+      get('/studyhub/quizzes/$id/analytics/');
 }
 
 // ─────────────────────────────────────────────────────────────

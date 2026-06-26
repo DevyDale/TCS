@@ -12,6 +12,7 @@ import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
 import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
+import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 
 class StaffStudyHubScreen extends StatefulWidget {
   const StaffStudyHubScreen({super.key});
@@ -137,11 +138,16 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
                 subtitle: 'Answer once — the whole cohort sees it',
                 grad: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
                 onTap: () => _push(const QaBoardScreen(isTeacher: true))),
+              const SizedBox(height: 12),
+              _tile(
+                icon: Icons.quiz_rounded,
+                title: 'Quizzes',
+                subtitle: 'Build or generate-with-Dale · review · publish · analytics',
+                grad: const [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+                onTap: () => _push(const QuizzesScreen(isTeacher: true))),
               const SizedBox(height: 18),
               const StaffSectionLabel('Coming next',
                   subtitle: 'On the Study-Hub roadmap'),
-              _soon(Icons.quiz_rounded, 'Quizzes',
-                  'Build or generate-with-Dale, review, publish, analytics'),
               _soon(Icons.event_available_rounded, 'Study Sessions',
                   'Schedule revision sessions · RSVPs · reminders'),
               _soon(Icons.insights_rounded, 'Demand Insights',
