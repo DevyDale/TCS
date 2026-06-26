@@ -13,6 +13,7 @@ import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.cache import cache
+from django.db.models import F
 
 from .models import KnowledgeChunk
 
@@ -101,13 +102,25 @@ def retrieve_context(query, limit=4, max_chars=2200):
                                           SearchQuery(q, search_type="websearch")))
                 .filter(rank__gt=0)
                 .order_by("-rank")[:limit])
-        out, total = [], 0
+        out, total, used_docs = [], 0, set()
         for c in rows:
             out.append(c.content)
+            used_docs.add(c.doc_id)
             total += len(c.content)
             if total >= max_chars:
                 break
         result = "\n\n".join(out)
+        # Record that Dale drew on these materials (training analytics). Cheap
+        # single UPDATE, never raises into the chat path.
+        if used_docs:
+            try:
+                from django.utils import timezone
+                from .models import KnowledgeDoc
+                KnowledgeDoc.objects.filter(id__in=used_docs).update(
+                    retrieval_count=F("retrieval_count") + 1,
+                    last_retrieved_at=timezone.now())
+            except Exception:
+                pass
         try:
             cache.set(ckey, result, _RETRIEVE_TTL)
         except Exception:

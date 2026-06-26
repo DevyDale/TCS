@@ -25,6 +25,9 @@ def _doc_dict(d):
         "is_active":   d.is_active,
         "uploaded_by": getattr(d.uploaded_by, "display_name", "") or "",
         "created_at":  d.created_at.isoformat(),
+        "retrieval_count":   d.retrieval_count,
+        "last_retrieved_at": d.last_retrieved_at.isoformat()
+                             if d.last_retrieved_at else None,
     }
 
 
@@ -72,6 +75,61 @@ def knowledge_upload(request):
     bump_kb_version()
     doc.refresh_from_db()
     return Response(_doc_dict(doc), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def knowledge_analytics(request):
+    """Training analytics for the Dale knowledge base: totals, who trained it
+    last + what they added, a recent training-activity feed, and usage — how
+    often Dale has actually drawn on each material to answer students."""
+    docs = list(KnowledgeDoc.objects.select_related("uploaded_by")
+                .order_by("-created_at")[:200])
+
+    active = [d for d in docs if d.is_active]
+    contributors = {d.uploaded_by_id for d in docs if d.uploaded_by_id}
+    total_retrievals = sum(d.retrieval_count for d in docs)
+
+    def _name(d):
+        return getattr(d.uploaded_by, "display_name", "") or "Staff"
+
+    def _activity(d):
+        return {
+            "id":          str(d.id),
+            "title":       d.title,
+            "subject":     d.subject,
+            "by":          _name(d),
+            "chunk_count": d.chunk_count,
+            "char_count":  d.char_count,
+            "is_active":   d.is_active,
+            "created_at":  d.created_at.isoformat(),
+        }
+
+    last = docs[0] if docs else None
+    # Most-used materials (how Dale has responded with the trained content).
+    most_used = sorted([d for d in docs if d.retrieval_count > 0],
+                       key=lambda d: d.retrieval_count, reverse=True)[:5]
+
+    return Response({
+        "totals": {
+            "documents":     len(docs),
+            "active":        len(active),
+            "active_chunks": sum(d.chunk_count for d in active),
+            "total_chars":   sum(d.char_count for d in docs),
+            "contributors":  len(contributors),
+            "retrievals":    total_retrievals,
+        },
+        "last_trained": _activity(last) if last else None,
+        "recent": [_activity(d) for d in docs[:10]],
+        "most_used": [{
+            "id":                str(d.id),
+            "title":             d.title,
+            "by":                _name(d),
+            "retrieval_count":   d.retrieval_count,
+            "last_retrieved_at": d.last_retrieved_at.isoformat()
+                                 if d.last_retrieved_at else None,
+        } for d in most_used],
+    })
 
 
 @api_view(["GET"])

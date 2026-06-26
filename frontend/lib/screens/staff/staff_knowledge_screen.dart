@@ -36,8 +36,10 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
   String _query = '';
   bool _activeOnly = false;
 
+  Map<String, dynamic>? _analytics;
+
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() { super.initState(); _load(); _loadAnalytics(); }
 
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
@@ -59,9 +61,19 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
     );
   }
 
+  Future<void> _loadAnalytics() async {
+    try {
+      final d = (await _api.get('/ai/knowledge/analytics/')
+          .catchError((_) => <String, dynamic>{}) as Map)
+          .cast<String, dynamic>();
+      if (mounted) setState(() => _analytics = d);
+    } catch (_) {/* analytics is best-effort */}
+  }
+
   Future<void> _refresh() async {
     await CacheStore.I.invalidate(_kCacheKey);
     _load();
+    _loadAnalytics();
   }
 
   Future<void> _upload() async {
@@ -257,6 +269,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
                     children: [
                       _statsHeader(totalActive, lastTrained),
                       const SizedBox(height: 14),
+                      _analyticsSection(),
                       _searchBar(),
                       const SizedBox(height: 12),
                       if (subjects.isEmpty)
@@ -279,6 +292,167 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  // ── Training activity & analytics ─────────────────────────
+  Widget _analyticsSection() {
+    final a = _analytics;
+    if (a == null) return const SizedBox.shrink();
+    final totals = (a['totals'] as Map?)?.cast<String, dynamic>() ?? {};
+    final last = (a['last_trained'] as Map?)?.cast<String, dynamic>();
+    final recent = ((a['recent'] as List?) ?? []).cast<Map<String, dynamic>>();
+    final mostUsed = ((a['most_used'] as List?) ?? []).cast<Map<String, dynamic>>();
+    final contributors = (totals['contributors'] as int?) ?? 0;
+    final retrievals = (totals['retrievals'] as int?) ?? 0;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.insights_rounded, size: 16, color: _kG2),
+        const SizedBox(width: 6),
+        Text('Training activity',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: AppC.text)),
+      ]),
+      const SizedBox(height: 10),
+
+      // How Dale uses it: contributors + times drawn on.
+      Row(children: [
+        _miniStat(Icons.people_alt_rounded, '$contributors',
+            contributors == 1 ? 'contributor' : 'contributors',
+            const Color(0xFF6366F1)),
+        const SizedBox(width: 10),
+        _miniStat(Icons.auto_awesome_rounded, _comma(retrievals),
+            'times Dale used it', const Color(0xFF0EA5A4)),
+      ]),
+      const SizedBox(height: 10),
+
+      // Who last trained it + what they added + when.
+      if (last != null)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _card, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _kG2.withOpacity(.25))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(Icons.history_rounded, size: 13, color: _kG1),
+              const SizedBox(width: 5),
+              Text('LAST TRAINED', style: TextStyle(fontFamily: 'Arch',
+                  fontSize: 8.5, fontWeight: FontWeight.bold, letterSpacing: 1,
+                  color: AppC.text.withOpacity(.45))),
+              const Spacer(),
+              Text(_ago((last['created_at'] ?? '').toString()),
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 10.5,
+                      color: AppC.text.withOpacity(.5))),
+            ]),
+            const SizedBox(height: 7),
+            Text(last['title']?.toString() ?? '',
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                    fontSize: 13.5, color: AppC.text)),
+            const SizedBox(height: 2),
+            Text('by ${last['by'] ?? 'Staff'}  ·  '
+                '${last['chunk_count'] ?? 0} passages',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                    color: AppC.text.withOpacity(.5))),
+          ]),
+        ),
+
+      // Recent activity feed.
+      if (recent.length > 1) ...[
+        const SizedBox(height: 12),
+        Text('RECENT', style: TextStyle(fontFamily: 'Arch', fontSize: 8.5,
+            fontWeight: FontWeight.bold, letterSpacing: 1,
+            color: AppC.text.withOpacity(.4))),
+        const SizedBox(height: 6),
+        for (final r in recent.take(5))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: Row(children: [
+              Container(width: 6, height: 6,
+                  decoration: BoxDecoration(
+                      color: r['is_active'] == true ? _kG1 : AppC.text.withOpacity(.25),
+                      shape: BoxShape.circle)),
+              const SizedBox(width: 9),
+              Expanded(child: Text.rich(TextSpan(children: [
+                TextSpan(text: '${r['by'] ?? 'Staff'} ',
+                    style: TextStyle(fontFamily: 'Arch', fontSize: 11.5,
+                        fontWeight: FontWeight.bold, color: AppC.text)),
+                TextSpan(text: 'added ',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                        color: AppC.text.withOpacity(.5))),
+                TextSpan(text: (r['title'] ?? '').toString(),
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                        color: AppC.text.withOpacity(.8))),
+              ]), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 6),
+              Text(_ago((r['created_at'] ?? '').toString()),
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 9.5,
+                      color: AppC.text.withOpacity(.4))),
+            ]),
+          ),
+      ],
+
+      // How Dale responded — most-used materials.
+      if (mostUsed.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Text('DALE LEANS ON', style: TextStyle(fontFamily: 'Arch', fontSize: 8.5,
+            fontWeight: FontWeight.bold, letterSpacing: 1,
+            color: AppC.text.withOpacity(.4))),
+        const SizedBox(height: 6),
+        for (final m in mostUsed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(children: [
+              const Icon(Icons.auto_awesome_rounded, size: 12, color: Color(0xFF0EA5A4)),
+              const SizedBox(width: 8),
+              Expanded(child: Text((m['title'] ?? '').toString(),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                      color: AppC.text.withOpacity(.8)))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0EA5A4).withOpacity(.12),
+                  borderRadius: BorderRadius.circular(7)),
+                child: Text('${m['retrieval_count'] ?? 0}×',
+                    style: const TextStyle(fontFamily: 'Arch', fontSize: 10,
+                        fontWeight: FontWeight.bold, color: Color(0xFF0EA5A4))),
+              ),
+            ]),
+          ),
+      ],
+      const SizedBox(height: 16),
+    ]);
+  }
+
+  Widget _miniStat(IconData icon, String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: _card, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppC.border)),
+        child: Row(children: [
+          Container(
+            width: 32, height: 32, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.12),
+              borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 16)),
+          const SizedBox(width: 9),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, children: [
+              Text(value, style: TextStyle(fontFamily: 'Alfa', fontSize: 16,
+                  color: AppC.text, height: 1)),
+              const SizedBox(height: 1),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 9.5,
+                      color: AppC.text.withOpacity(.5))),
+            ])),
+        ]),
+      ),
     );
   }
 

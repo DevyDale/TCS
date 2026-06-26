@@ -199,6 +199,10 @@ class KnowledgeDoc(models.Model):
     char_count  = models.PositiveIntegerField(default=0)
     chunk_count = models.PositiveIntegerField(default=0)
     is_active   = models.BooleanField(default=True, db_index=True)
+    # How often Dale has drawn on this material to answer a student, and when
+    # it last did — the "how Dale responded" signal for the training analytics.
+    retrieval_count   = models.PositiveIntegerField(default=0)
+    last_retrieved_at = models.DateTimeField(null=True, blank=True)
     created_at  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
