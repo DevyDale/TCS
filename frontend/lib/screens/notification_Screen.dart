@@ -217,7 +217,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _kBg,
         elevation: 0,
         centerTitle: true,
         title: T('Notifications',
@@ -306,7 +306,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildTabBar() {
     return Container(
-      color: Colors.white,
+      color: _kBg,
       padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
       child: Row(children: [
         _tab('Today', 'today'),
@@ -340,7 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             fontFamily: 'Arch',
             fontSize: 13,
             fontWeight: sel ? FontWeight.bold : FontWeight.w600,
-            color: sel ? Colors.white : _kSlate,
+            color: sel ? _kBg : _kSlate,
           ),
         ),
       ),

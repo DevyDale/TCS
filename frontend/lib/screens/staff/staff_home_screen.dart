@@ -26,6 +26,8 @@ import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
 import 'package:tcs_app/screens/notification_Screen.dart';
 import 'package:tcs_app/screens/staff/staff_dale_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+import 'package:tcs_app/widgets/welcome_banner.dart';
+import 'package:tcs_app/widgets/dale_greeting_cloud.dart';
 
 // Dale animation — the same robot Lottie used across the app. Falls back to an
 // icon if the asset is ever missing.
@@ -54,6 +56,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   final _cohortCtrl = PageController(viewportFraction: 0.82);
   int _cohortPage = 0;
   Timer? _autoTimer;
+  bool _showWelcome = true; // welcome banner, once per app launch
+  bool _showDaleCloud = false; // Dale greeting cloud, after the welcome banner
 
   @override
   void initState() {
@@ -160,28 +164,52 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
     return Scaffold(
       backgroundColor: AppC.bg,
-      body: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics()),
-        padding: EdgeInsets.zero,
-        children: [
-          _header(),
-          Transform.translate(
-            offset: const Offset(0, -26),
-            child: Column(children: [
-              _pulseStrip(),
-              const SizedBox(height: 24),
-              _sectionLabel('Quick actions'),
-              _quickActions(),
-              const SizedBox(height: 26),
-              _sectionLabel('Run your cohort'),
-              const SizedBox(height: 6),
-              SizedBox(height: cohortHeight, child: _cohort()),
-              SizedBox(height: navBarHeight + bottomInset + 12),
-            ]),
+      body: Stack(children: [
+        ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.zero,
+          children: [
+            _header(),
+            Transform.translate(
+              offset: const Offset(0, -26),
+              child: Column(children: [
+                _pulseStrip(),
+                const SizedBox(height: 24),
+                _sectionLabel('Quick actions'),
+                _quickActions(),
+                const SizedBox(height: 26),
+                _sectionLabel('Run your cohort'),
+                const SizedBox(height: 6),
+                SizedBox(height: cohortHeight, child: _cohort()),
+                SizedBox(height: navBarHeight + bottomInset + 12),
+              ]),
+            ),
+          ],
+        ),
+        if (_showWelcome)
+          WelcomeBanner(
+            name: _firstName,
+            onDismissed: () {
+              if (mounted) setState(() {
+                _showWelcome = false;
+                _showDaleCloud = true; // then Dale pops out of his button
+              });
+            },
           ),
-        ],
-      ),
+        if (_showDaleCloud)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 60,
+            right: 16,
+            child: DaleGreetingCloud(
+              tailFromRight: 26,
+              onTap: () => _push(const StaffDaleScreen()),
+              onDismiss: () {
+                if (mounted) setState(() => _showDaleCloud = false);
+              },
+            ),
+          ),
+      ]),
     );
   }
 
