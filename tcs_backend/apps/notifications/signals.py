@@ -110,7 +110,12 @@ def on_group_member_added(sender, instance, created, **kwargs):
     if instance.group.created_by_id == instance.user_id:
         return
 
-    from .tasks import push_study_group_invite_notification
+    # The invite task was removed in a refactor; guard the import so a missing
+    # function can never crash a group join (members are still added regardless).
+    try:
+        from .tasks import push_study_group_invite_notification
+    except ImportError:
+        return
 
     # We can't always know who added them from inside a signal, so we
     # pass None — the task will produce a generic "you've been added" message.
