@@ -23,6 +23,7 @@ import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
+import 'package:tcs_app/screens/notification_Screen.dart';
 import 'package:tcs_app/screens/staff/staff_dale_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
@@ -210,7 +211,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           _headerButton(
               child: const Icon(Icons.notifications_rounded,
                   color: Colors.white, size: 20),
-              onTap: () => _push(const StaffNeedsAttentionScreen()),
+              onTap: () => _push(const NotificationsScreen()),
               dot: (_flagsPending ?? 0) > 0),
           const SizedBox(width: 10),
           _headerButton(
@@ -283,7 +284,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         const SizedBox(width: 10),
         _pulseTile('Flags pending', _flagsPending, Icons.flag_rounded,
             const Color(0xFFE11D48),
-            onTap: () => _push(const StaffModerationScreen())),
+            onTap: () => _push(const StaffNeedsAttentionScreen())),
         const SizedBox(width: 10),
         _pulseTile('Upcoming', _upcomingEvents, Icons.event_rounded,
             const Color(0xFFF59E0B),
