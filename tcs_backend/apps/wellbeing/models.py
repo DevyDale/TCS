@@ -31,8 +31,8 @@ class WellbeingSignal(models.Model):
         db_table = "wellbeing_signal"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["tier", "created_at"]),
-            models.Index(fields=["student", "created_at"]),
+            models.Index(fields=["tier", "created_at"], name="wb_sig_tier_idx"),
+            models.Index(fields=["student", "created_at"], name="wb_sig_student_idx"),
         ]
 
 
