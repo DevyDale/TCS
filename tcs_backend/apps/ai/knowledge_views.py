@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from apps.accounts.permissions import IsStaff
 from .knowledge import bump_kb_version, ingest_text
-from .models import KnowledgeDoc
+from .models import KnowledgeChunk, KnowledgeDoc
 
 
 def _doc_dict(d):
@@ -72,6 +72,22 @@ def knowledge_upload(request):
     bump_kb_version()
     doc.refresh_from_db()
     return Response(_doc_dict(doc), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def knowledge_chunks(request, pk):
+    """Preview the passages Dale actually learned from a document."""
+    d = KnowledgeDoc.objects.filter(id=pk).first()
+    if not d:
+        return Response({"error": "Not found."}, status=404)
+    chunks = KnowledgeChunk.objects.filter(doc=d).order_by("ordinal")[:60]
+    return Response({
+        "id":       str(d.id),
+        "title":    d.title,
+        "subject":  d.subject,
+        "chunks":   [{"ordinal": c.ordinal, "content": c.content} for c in chunks],
+    })
 
 
 @api_view(["POST"])
