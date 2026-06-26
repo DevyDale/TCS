@@ -113,3 +113,66 @@ class StaffSectionLabel extends StatelessWidget {
     );
   }
 }
+
+/// Empty state shown when a search filter matches nothing.
+Widget staffNoResults([String msg = 'Nothing matches your search.']) => Padding(
+      padding: const EdgeInsets.only(top: 50),
+      child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.search_off_rounded, size: 44, color: AppC.faint),
+        const SizedBox(height: 10),
+        Text(msg, style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+            color: AppC.sub)),
+      ])),
+    );
+
+/// Shared search field used across the Connect inner pages. Filtering stays in
+/// the screen — this is just the consistent input surface (with a clear button).
+class StaffSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final String hint;
+  const StaffSearchBar({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+    this.hint = 'Search…',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppC.card,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: AppC.border)),
+        child: Row(children: [
+          Icon(Icons.search_rounded, size: 19, color: AppC.sub),
+          const SizedBox(width: 8),
+          Expanded(child: TextField(
+            controller: controller,
+            onChanged: onChanged,
+            style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: AppC.text),
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle: TextStyle(
+                  fontFamily: 'Momo', fontSize: 13, color: AppC.faint)),
+          )),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, v, __) => v.text.isEmpty
+                ? const SizedBox.shrink()
+                : GestureDetector(
+                    onTap: () { controller.clear(); onChanged(''); },
+                    child: Icon(Icons.close_rounded, size: 17, color: AppC.sub)),
+          ),
+        ]),
+      ),
+    );
+  }
+}

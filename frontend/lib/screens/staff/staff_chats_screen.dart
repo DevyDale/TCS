@@ -20,6 +20,8 @@ class StaffChatsScreen extends StatefulWidget {
 
 class _StaffChatsScreenState extends State<StaffChatsScreen> {
   final _api = ApiService();
+  final _search = TextEditingController();
+  String _query = '';
   List<Map<String, dynamic>> _rooms = [];
   bool _loading = true;
 
@@ -27,6 +29,30 @@ class _StaffChatsScreenState extends State<StaffChatsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  String _roomName(Map<String, dynamic> c) {
+    final isGroup = (c['room_type'] ?? 'direct').toString() != 'direct';
+    final other = c['other_user'] as Map?;
+    return isGroup
+        ? (c['name'] ?? 'Group').toString()
+        : (other?['display_name'] ?? other?['name'] ?? 'Chat').toString();
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _rooms;
+    return _rooms.where((c) {
+      final last = (c['last_message'] as Map?);
+      final hay = '${_roomName(c)} ${last?['content'] ?? ''}'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
   }
 
   Future<void> _load() async {
@@ -97,17 +123,26 @@ class _StaffChatsScreenState extends State<StaffChatsScreen> {
           children: [
             _header(),
             const SizedBox(height: 14),
+            if (!_loading && _rooms.isNotEmpty) ...[
+              StaffSearchBar(
+                  controller: _search,
+                  hint: 'Search conversations…',
+                  onChanged: (v) => setState(() => _query = v)),
+              const SizedBox(height: 12),
+            ],
             if (_loading)
               const Padding(padding: EdgeInsets.all(30),
                   child: Center(child: CircularProgressIndicator(
                       color: Color(0xFF2563EB))))
             else if (_rooms.isEmpty)
               _empty()
+            else if (_filtered.isEmpty)
+              staffNoResults('No conversations match.')
             else
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
                 child: Column(children: [
-                  for (final c in _rooms) ...[
+                  for (final c in _filtered) ...[
                     _roomRow(c),
                     const SizedBox(height: 10),
                   ],

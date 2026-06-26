@@ -1,7 +1,8 @@
 // lib/screens/staff/staff_announcements_screen.dart
 //
-// Staff Announcements module: lists all announcements and opens a composer
-// that posts to /announcements/create/ (which fans out push notifications).
+// Staff Announcements: a staff-kit landing that lists notices (with search)
+// and a composer that posts to /announcements/create/ (fans out push
+// notifications). Restyled with StaffHeader / staffCard.
 
 import 'dart:io';
 import 'package:tcs_app/widgets/t_text.dart';
@@ -11,12 +12,21 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
-const _kG1 = Color(0xFF6DD5FA);
-const _kG2 = Color(0xFF8E54E9);
-Color get _bg => AppC.bg;
-Color get _card => AppC.card;
+const _kAmber = Color(0xFFD97706);
 const _kCacheKey = '/announcements/';
+
+Color _catColor(String c) {
+  switch (c) {
+    case 'urgent': return const Color(0xFFDC2626);
+    case 'academic': return const Color(0xFF2563EB);
+    case 'event': return const Color(0xFF7C3AED);
+    case 'job': return const Color(0xFF059669);
+    case 'community': return const Color(0xFFDB2777);
+    default: return _kAmber;
+  }
+}
 
 class StaffAnnouncementsScreen extends StatefulWidget {
   const StaffAnnouncementsScreen({super.key});
@@ -26,11 +36,16 @@ class StaffAnnouncementsScreen extends StatefulWidget {
 
 class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
   final _api = ApiService();
+  final _search = TextEditingController();
+  String _query = '';
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
 
   @override
   void initState() { super.initState(); _load(); }
+
+  @override
+  void dispose() { _search.dispose(); super.dispose(); }
 
   void _load() {
     CacheStore.I.swr(
@@ -47,6 +62,13 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
     );
   }
 
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _items;
+    return _items.where((a) =>
+        '${a['title']} ${a['body']}'.toLowerCase().contains(q)).toList();
+  }
+
   Future<void> _compose() async {
     final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
         builder: (_) => const StaffAnnouncementComposeScreen()));
@@ -59,66 +81,161 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: _bg, elevation: 0,
-        title: T('Announcements',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: AppC.bg,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _kG2,
+        backgroundColor: _kAmber,
         onPressed: _compose,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: T('New notice',
+        label: const Text('New notice',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: AppC.text)),
+                color: Colors.white)),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kG2))
-          : _items.isEmpty
-              ? Center(child: T('No announcements yet.\nTap New notice to post one.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                      color: AppC.text.withOpacity(.5))))
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) {
-                    final a = _items[i];
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _card, borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _kG2.withOpacity(.18)),
-                      ),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Row(children: [
-                          if (a['is_pinned'] == true)
-                            const Padding(padding: EdgeInsets.only(right: 6),
-                                child: Icon(Icons.star_rounded, size: 16, color: _kG1)),
-                          Expanded(child: Text((a['title'] ?? '').toString(),
-                              style: TextStyle(fontFamily: 'Alfa', fontSize: 15,
-                                  color: AppC.text))),
-                          Text((a['category_label'] ?? '').toString(),
-                              style: TextStyle(fontFamily: 'Arch', fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppC.text.withOpacity(.5))),
-                        ]),
-                        const SizedBox(height: 6),
-                        Text((a['body'] ?? '').toString(), maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                                color: AppC.text.withOpacity(.7))),
-                        const SizedBox(height: 8),
-                        Text('${a['view_count'] ?? 0} views  ·  ${a['audience'] ?? 'all'}',
-                            style: TextStyle(fontFamily: 'Momo', fontSize: 10,
-                                color: AppC.text.withOpacity(.4))),
-                      ]),
-                    );
-                  },
+      body: RefreshIndicator(
+        color: _kAmber,
+        onRefresh: () async { await CacheStore.I.invalidate(_kCacheKey); _load(); },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.zero,
+          children: [
+            _header(),
+            const SizedBox(height: 14),
+            if (_loading)
+              const Padding(padding: EdgeInsets.all(30),
+                  child: Center(child: CircularProgressIndicator(color: _kAmber)))
+            else ...[
+              if (_items.isNotEmpty) ...[
+                StaffSearchBar(
+                    controller: _search,
+                    hint: 'Search notices…',
+                    onChanged: (v) => setState(() => _query = v)),
+                const SizedBox(height: 12),
+              ],
+              if (_items.isEmpty)
+                _empty()
+              else if (_filtered.isEmpty)
+                staffNoResults('No notices match.')
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                  child: Column(children: [
+                    for (final a in _filtered) ...[
+                      _card(a),
+                      const SizedBox(height: 10),
+                    ],
+                  ]),
                 ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return StaffHeader(
+      bottomPad: 22,
+      horizontal: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+              child: const Icon(Icons.arrow_back_rounded,
+                  color: Colors.white, size: 20)),
+          ),
+          const Spacer(),
+          const Icon(Icons.campaign_rounded, color: Colors.white70, size: 22),
+        ]),
+        const SizedBox(height: 14),
+        const Text('Announcements',
+            style: TextStyle(fontFamily: 'Alfa', fontSize: 24,
+                color: Colors.white, height: 1.05,
+                shadows: [Shadow(color: Colors.black26, blurRadius: 8,
+                    offset: Offset(0, 3))])),
+        const SizedBox(height: 6),
+        Text('Notices you push to students',
+            style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                color: Colors.white.withValues(alpha: 0.85))),
+      ]),
+    );
+  }
+
+  Widget _empty() => Padding(
+        padding: const EdgeInsets.only(top: 50),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.campaign_rounded, size: 52, color: AppC.faint),
+          const SizedBox(height: 12),
+          Text('No announcements yet',
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
+          const SizedBox(height: 6),
+          Text('Tap "New notice" to post one.',
+              style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.sub)),
+        ])),
+      );
+
+  Widget _card(Map<String, dynamic> a) {
+    final pinned = a['is_pinned'] == true;
+    final cat = (a['category'] ?? 'general').toString();
+    final catLabel = (a['category_label'] ?? cat).toString();
+    final color = _catColor(cat);
+    final published = a['is_published'] != false;
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: staffCard(border: pinned ? _kAmber.withValues(alpha: 0.4) : null),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          if (pinned) ...[
+            const Icon(Icons.push_pin_rounded, size: 14, color: _kAmber),
+            const SizedBox(width: 6),
+          ],
+          Expanded(child: Text((a['title'] ?? '').toString(),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: AppC.text))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(7)),
+            child: Text(catLabel.toUpperCase(),
+                style: TextStyle(fontFamily: 'Arch', fontSize: 8.5,
+                    fontWeight: FontWeight.bold, letterSpacing: 0.3, color: color)),
+          ),
+        ]),
+        const SizedBox(height: 7),
+        Text((a['body'] ?? '').toString(), maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: 'Momo', fontSize: 12, height: 1.35,
+                color: AppC.sub)),
+        const SizedBox(height: 10),
+        Row(children: [
+          Icon(Icons.visibility_rounded, size: 13, color: AppC.faint),
+          const SizedBox(width: 4),
+          Text('${a['view_count'] ?? 0}', style: TextStyle(fontFamily: 'Momo',
+              fontSize: 10.5, color: AppC.faint)),
+          const SizedBox(width: 12),
+          Icon(Icons.group_rounded, size: 13, color: AppC.faint),
+          const SizedBox(width: 4),
+          Text('${a['audience'] ?? 'all'}', style: TextStyle(fontFamily: 'Momo',
+              fontSize: 10.5, color: AppC.faint)),
+          const Spacer(),
+          if (!published)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppC.faint.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6)),
+              child: Text('DRAFT', style: TextStyle(fontFamily: 'Arch',
+                  fontSize: 8, fontWeight: FontWeight.bold, color: AppC.sub)),
+            ),
+        ]),
+      ]),
     );
   }
 }
@@ -199,15 +316,16 @@ class _StaffAnnouncementComposeScreenState
   void _snack(String m, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(m, style: const TextStyle(fontFamily: 'Momo')),
-      backgroundColor: error ? const Color(0xFFFF5858) : _kG2,
+      content: Text(m, style: const TextStyle(fontFamily: 'Momo',
+          color: Colors.white)),
+      backgroundColor: error ? const Color(0xFFB3261E) : _kAmber,
       behavior: SnackBarBehavior.floating));
   }
 
   InputDecoration _dec(String label) => InputDecoration(
     labelText: label,
-    labelStyle: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.6)),
-    filled: true, fillColor: _card,
+    labelStyle: TextStyle(fontFamily: 'Momo', color: AppC.sub),
+    filled: true, fillColor: AppC.card,
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none),
   );
@@ -215,88 +333,112 @@ class _StaffAnnouncementComposeScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: _bg, elevation: 0,
-        title: T('New notice',
-            style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        TextField(controller: _title, style: TextStyle(color: AppC.text),
-            decoration: _dec('Title')),
-        const SizedBox(height: 12),
-        TextField(controller: _body, maxLines: 6,
-            style: TextStyle(color: AppC.text), decoration: _dec('Body')),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: _category, dropdownColor: _card,
-          style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
-          decoration: _dec('Category'),
-          items: _categories.map((c) =>
-              DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
-          onChanged: (v) => setState(() => _category = v ?? 'general'),
+      backgroundColor: AppC.bg,
+      body: ListView(padding: EdgeInsets.zero, children: [
+        StaffHeader(
+          bottomPad: 20,
+          horizontal: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            GestureDetector(
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25))),
+                child: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white, size: 20)),
+            ),
+            const SizedBox(width: 14),
+            const Text('New notice',
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
+                    color: Colors.white)),
+          ]),
         ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: _audience, dropdownColor: _card,
-          style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
-          decoration: _dec('Audience'),
-          items: _audiences.map((c) =>
-              DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
-          onChanged: (v) => setState(() => _audience = v ?? 'all'),
-        ),
-        if (_audience == 'year_group') ...[
+        Padding(padding: const EdgeInsets.all(16), child: Column(children: [
+          TextField(controller: _title, style: TextStyle(color: AppC.text),
+              decoration: _dec('Title')),
           const SizedBox(height: 12),
-          TextField(controller: _year, style: TextStyle(color: AppC.text),
-              decoration: _dec('Year group (e.g. Y12)')),
-        ],
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: _pickImage,
-          child: Container(
-            height: _image == null ? 60 : 160,
-            decoration: BoxDecoration(color: _card,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _kG2.withOpacity(.3))),
-            child: _image == null
-                ? Center(child: T('+ Add image (optional)',
-                    style: TextStyle(fontFamily: 'Momo',
-                        color: AppC.text.withOpacity(.6))))
-                : ClipRRect(borderRadius: BorderRadius.circular(14),
-                    child: Image.file(_image!, fit: BoxFit.cover, width: double.infinity)),
+          TextField(controller: _body, maxLines: 6,
+              style: TextStyle(color: AppC.text), decoration: _dec('Body')),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _category, dropdownColor: AppC.card,
+            style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
+            decoration: _dec('Category'),
+            items: _categories.map((c) =>
+                DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
+            onChanged: (v) => setState(() => _category = v ?? 'general'),
           ),
-        ),
-        const SizedBox(height: 8),
-        SwitchListTile(
-          value: _pinned, activeColor: _kG1,
-          title: T('Pin to top',
-              style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
-          onChanged: (v) => setState(() => _pinned = v),
-        ),
-        SwitchListTile(
-          value: _publishNow, activeColor: _kG1,
-          title: T('Publish now (push to students)',
-              style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
-          subtitle: Text(_publishNow ? 'Sends a notification immediately' : 'Saves as draft',
-              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: AppC.text.withOpacity(.5))),
-          onChanged: (v) => setState(() => _publishNow = v),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _submitting ? null : _submit,
-            style: ElevatedButton.styleFrom(backgroundColor: _kG2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            child: _submitting
-                ? const SizedBox(width: 22, height: 22,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : T('Post announcement',
-                    style: TextStyle(fontFamily: 'Alfa', fontSize: 15, color: AppC.text)),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _audience, dropdownColor: AppC.card,
+            style: TextStyle(color: AppC.text, fontFamily: 'Momo'),
+            decoration: _dec('Audience'),
+            items: _audiences.map((c) =>
+                DropdownMenuItem(value: c[0], child: Text(c[1]))).toList(),
+            onChanged: (v) => setState(() => _audience = v ?? 'all'),
           ),
-        ),
+          if (_audience == 'year_group') ...[
+            const SizedBox(height: 12),
+            TextField(controller: _year, style: TextStyle(color: AppC.text),
+                decoration: _dec('Year group (e.g. Y12)')),
+          ],
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              height: _image == null ? 60 : 160,
+              decoration: BoxDecoration(color: AppC.card,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _kAmber.withValues(alpha: 0.3))),
+              child: _image == null
+                  ? Center(child: T('+ Add image (optional)',
+                      style: TextStyle(fontFamily: 'Momo', color: AppC.sub)))
+                  : ClipRRect(borderRadius: BorderRadius.circular(14),
+                      child: Image.file(_image!, fit: BoxFit.cover,
+                          width: double.infinity)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            value: _pinned, activeThumbColor: _kAmber,
+            contentPadding: EdgeInsets.zero,
+            title: T('Pin to top',
+                style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
+            onChanged: (v) => setState(() => _pinned = v),
+          ),
+          SwitchListTile(
+            value: _publishNow, activeThumbColor: _kAmber,
+            contentPadding: EdgeInsets.zero,
+            title: T('Publish now (push to students)',
+                style: TextStyle(fontFamily: 'Arch', color: AppC.text)),
+            subtitle: Text(_publishNow
+                ? 'Sends a notification immediately' : 'Saves as draft',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: AppC.sub)),
+            onChanged: (v) => setState(() => _publishNow = v),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 52, width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submitting ? null : _submit,
+              style: ElevatedButton.styleFrom(backgroundColor: _kAmber,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16))),
+              child: _submitting
+                  ? const SizedBox(width: 22, height: 22,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text('Post announcement',
+                      style: TextStyle(fontFamily: 'Arch', fontSize: 15,
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 30),
+        ])),
       ]),
     );
   }

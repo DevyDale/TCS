@@ -21,11 +21,22 @@ class StaffFeedScreen extends StatefulWidget {
 class _StaffFeedScreenState extends State<StaffFeedScreen> {
   final _api = ApiService();
   final _scroll = ScrollController();
+  final _search = TextEditingController();
+  String _query = '';
   final List<Map<String, dynamic>> _posts = [];
   bool _loading = true;
   bool _loadingMore = false;
   bool _end = false;
   int _page = 1;
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _posts;
+    return _posts.where((p) {
+      final hay = '${p['author_name']} ${p['text']}'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -43,6 +54,7 @@ class _StaffFeedScreenState extends State<StaffFeedScreen> {
   @override
   void dispose() {
     _scroll.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -103,6 +115,14 @@ class _StaffFeedScreenState extends State<StaffFeedScreen> {
               parent: BouncingScrollPhysics()),
           slivers: [
             SliverToBoxAdapter(child: _header()),
+            if (!_loading && _posts.isNotEmpty)
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: StaffSearchBar(
+                    controller: _search,
+                    hint: 'Search posts & authors…',
+                    onChanged: (v) => setState(() => _query = v)),
+              )),
             if (_loading)
               const SliverFillRemaining(
                   hasScrollBody: false,
@@ -110,12 +130,17 @@ class _StaffFeedScreenState extends State<StaffFeedScreen> {
                       color: Color(0xFF7C3AED))))
             else if (_posts.isEmpty)
               SliverFillRemaining(hasScrollBody: false, child: _empty())
+            else if (_filtered.isEmpty)
+              SliverToBoxAdapter(child: staffNoResults('No posts match.'))
             else
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 sliver: SliverList(delegate: SliverChildBuilderDelegate(
                   (ctx, i) {
-                    if (i == _posts.length) {
+                    final list = _filtered;
+                    if (i == list.length) {
+                      // Only paginate when not actively filtering.
+                      if (_query.isNotEmpty) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         child: Center(child: _end
@@ -129,10 +154,10 @@ class _StaffFeedScreenState extends State<StaffFeedScreen> {
                     }
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _postCard(_posts[i]),
+                      child: _postCard(list[i]),
                     );
                   },
-                  childCount: _posts.length + 1,
+                  childCount: _filtered.length + 1,
                 )),
               ),
           ],

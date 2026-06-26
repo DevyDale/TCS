@@ -18,6 +18,8 @@ class StaffGroupsScreen extends StatefulWidget {
 
 class _StaffGroupsScreenState extends State<StaffGroupsScreen> {
   final _api = ApiService();
+  final _search = TextEditingController();
+  String _query = '';
   List<Map<String, dynamic>> _groups = [];
   bool _loading = true;
 
@@ -25,6 +27,22 @@ class _StaffGroupsScreenState extends State<StaffGroupsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _groups;
+    return _groups.where((g) {
+      final hay = '${g['name']} ${g['subject']} ${g['display_subject']}'
+          .toLowerCase();
+      return hay.contains(q);
+    }).toList();
   }
 
   Future<void> _load() async {
@@ -69,15 +87,23 @@ class _StaffGroupsScreenState extends State<StaffGroupsScreen> {
             else ...[
               _stats(),
               const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                child: Column(children: [
-                  for (final g in _groups) ...[
-                    _groupCard(g),
-                    const SizedBox(height: 10),
-                  ],
-                ]),
-              ),
+              StaffSearchBar(
+                  controller: _search,
+                  hint: 'Search study groups…',
+                  onChanged: (v) => setState(() => _query = v)),
+              const SizedBox(height: 12),
+              if (_filtered.isEmpty)
+                staffNoResults('No study groups match.')
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                  child: Column(children: [
+                    for (final g in _filtered) ...[
+                      _groupCard(g),
+                      const SizedBox(height: 10),
+                    ],
+                  ]),
+                ),
             ],
           ],
         ),

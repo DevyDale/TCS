@@ -258,15 +258,20 @@ class ClubDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         club = self.get_object()
-        if not _is_president(club, request.user):
+        u = request.user
+        is_staff = bool(getattr(u, "is_superuser", False)) or \
+            (getattr(u, "role", "") or "").lower() in ("teaching_staff", "admin")
+        if not (_is_president(club, u) or is_staff):
             return Response(
-                {"error": "Only the president can dissolve this club."},
+                {"error": "Only the president or staff can remove this club."},
                 status=403)
         reason = (request.data.get("reason", "").strip()
                   if request.data else "")
+        staff_removed = is_staff and not _is_president(club, u)
         club.is_active       = False
         club.dissolved_at    = timezone.now()
-        club.dissolve_reason = reason or "Dissolved by president."
+        club.dissolve_reason = reason or (
+            "Removed by staff." if staff_removed else "Dissolved by president.")
         club.save(update_fields=[
             "is_active", "dissolved_at", "dissolve_reason"])
         return Response({"success": True, "message": "Club dissolved."})
