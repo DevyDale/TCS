@@ -59,6 +59,8 @@ class _GroupScreenState extends State<GroupScreen>
   bool _aiBusy       = false;   // Dale is generating a reply for the group
   bool _searchingAdd = false;
   bool _isAdmin      = false;
+  bool _isTeacher    = false;   // teaching_staff/admin → can join as mentor
+  bool _mentorBusy   = false;
 
   @override
   void initState() {
@@ -100,6 +102,9 @@ class _GroupScreenState extends State<GroupScreen>
     }
 
     // Every key the backend might call the user's name
+    final role = (me['role'] as String? ?? '').toLowerCase();
+    _isTeacher = role == 'teaching_staff' || role == 'admin';
+
     const nameKeys = [
       'display_name', 'preferred_name', 'name',
       'full_name', 'first_name', 'username',
@@ -214,6 +219,37 @@ class _GroupScreenState extends State<GroupScreen>
       final data = await _api.get('/groups/$_groupId/members/');
       setState(() => _members = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {}
+  }
+
+  // Am I currently a mentor in this group? (membership badge, not platform role)
+  bool get _amMentor => _members.any((m) =>
+      (m['is_mentor'] as bool? ?? false) &&
+      _myIds.contains((m['user_id'] as String? ?? '')));
+
+  Future<void> _toggleMentor() async {
+    setState(() => _mentorBusy = true);
+    HapticFeedback.selectionClick();
+    final wasMentor = _amMentor;
+    try {
+      if (wasMentor) {
+        await _api.stepDownMentor(_groupId);
+      } else {
+        await _api.joinGroupAsMentor(_groupId);
+      }
+      await _loadMembers();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+            wasMentor ? 'Stepped down as mentor.'
+                : "You're now a mentor in this group.")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _mentorBusy = false);
+    }
   }
 
   Future<void> _loadMaterials() async {
@@ -994,6 +1030,35 @@ class _GroupScreenState extends State<GroupScreen>
             ]),
           ]),
         ),
+        if (_isTeacher)
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: GestureDetector(
+              onTap: _mentorBusy ? null : _toggleMentor,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: _amMentor
+                      ? const Color(0xFF0EA5A4)
+                      : Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.25))),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  _mentorBusy
+                      ? const SizedBox(width: 13, height: 13,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Icon(_amMentor
+                          ? Icons.check_rounded : Icons.school_rounded,
+                          color: Colors.white, size: 14),
+                  const SizedBox(width: 5),
+                  T(_amMentor ? 'Mentor' : 'Mentor?',
+                      style: const TextStyle(fontFamily: 'Arch', fontSize: 11,
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                ]),
+              ),
+            ),
+          ),
         if (_isCreator)
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
@@ -1730,6 +1795,7 @@ class _GroupScreenState extends State<GroupScreen>
                   final name    = m['name'] as String? ?? '';
                   final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
                   final isAdm   = m['is_admin'] as bool? ?? false;
+                  final isMentor = m['is_mentor'] as bool? ?? false;
                   final userId  = m['user_id'] as String? ?? '';
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(vertical: 4),
@@ -1756,27 +1822,44 @@ class _GroupScreenState extends State<GroupScreen>
                             fontFamily: 'Momo',
                             fontSize: 12,
                             color: AppC.faint)),
-                    trailing: isAdm
+                    trailing: isMentor
                         ? Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _indigo.withOpacity(0.1),
+                              color: const Color(0xFF0EA5A4).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(6)),
-                            child: const T('Admin',
-                                style: TextStyle(
-                                    fontFamily: 'Momo',
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: _indigo)))
-                        : _isAdmin
-                            ? GestureDetector(
-                                onTap: () => _removeMember(userId),
-                                child: Icon(
-                                    Icons.remove_circle_outline_rounded,
-                                    color: _kG4.withOpacity(0.6),
-                                    size: 22))
-                            : null,
+                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                              Icon(Icons.school_rounded,
+                                  size: 12, color: Color(0xFF0EA5A4)),
+                              SizedBox(width: 4),
+                              T('Mentor',
+                                  style: TextStyle(
+                                      fontFamily: 'Momo', fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0EA5A4))),
+                            ]))
+                        : isAdm
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: _indigo.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6)),
+                                child: const T('Admin',
+                                    style: TextStyle(
+                                        fontFamily: 'Momo',
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: _indigo)))
+                            : _isAdmin
+                                ? GestureDetector(
+                                    onTap: () => _removeMember(userId),
+                                    child: Icon(
+                                        Icons.remove_circle_outline_rounded,
+                                        color: _kG4.withOpacity(0.6),
+                                        size: 22))
+                                : null,
                   );
                 },
               ),

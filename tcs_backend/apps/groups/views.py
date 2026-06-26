@@ -67,10 +67,12 @@ class GroupMemberSerializer(serializers.ModelSerializer):
     role       = serializers.CharField(source="user.role")
     avatar_url = serializers.SerializerMethodField()
     is_admin   = serializers.SerializerMethodField()
+    is_mentor  = serializers.SerializerMethodField()
 
     class Meta:
         model  = GroupMember
-        fields = ["user_id", "name", "role", "avatar_url", "status", "joined_at", "is_admin"]
+        fields = ["user_id", "name", "role", "avatar_url", "status", "joined_at",
+                  "is_admin", "is_mentor"]
 
     def get_avatar_url(self, obj):
         req = self.context.get("request")
@@ -80,6 +82,9 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 
     def get_is_admin(self, obj):
         return obj.group.admins.filter(id=obj.user.id).exists() or obj.group.created_by == obj.user
+
+    def get_is_mentor(self, obj):
+        return obj.membership_role == GroupMember.Role.MENTOR
 
 
 class GroupMaterialSerializer(serializers.ModelSerializer):
@@ -277,6 +282,54 @@ def leave_group(request, group_id):
     Group.objects.filter(pk=group.pk).update(
         members_count=max(0, group.members_count - 1))
     return Response({"success": True})
+
+
+_TEACHER_ROLES = ("teaching_staff", "admin")
+
+
+def _is_teacher(user):
+    return bool(getattr(user, "is_superuser", False)) or \
+        (getattr(user, "role", "") or "").lower() in _TEACHER_ROLES
+
+
+@api_view(["POST"])
+def join_group_as_mentor(request, group_id):
+    """A teacher joins a study group as a visible mentor (spec §3G). A teacher
+    in a student study space is a supervised, educational context — so a mentor
+    joins active immediately, bypassing approval. Toggling off steps back down
+    to a normal membership rather than leaving entirely."""
+    if not _is_teacher(request.user):
+        return Response({"error": "Only teachers can join as a mentor."}, status=403)
+    try:
+        group = Group.objects.get(id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        return Response({"error": "Not found."}, status=404)
+
+    m = GroupMember.objects.filter(group=group, user=request.user).first()
+    created = False
+    if m is None:
+        m = GroupMember.objects.create(
+            group=group, user=request.user, status="active",
+            membership_role=GroupMember.Role.MENTOR)
+        created = True
+    else:
+        m.membership_role = GroupMember.Role.MENTOR
+        m.status = "active"
+        m.save(update_fields=["membership_role", "status"])
+    if created:
+        Group.objects.filter(pk=group.pk).update(members_count=group.members_count + 1)
+    return Response({"is_mentor": True, "status": "active"})
+
+
+@api_view(["POST"])
+def step_down_mentor(request, group_id):
+    """A mentor steps back down to an ordinary membership (keeps their seat)."""
+    m = GroupMember.objects.filter(group=group_id, user=request.user).first()
+    if m is None:
+        return Response({"error": "You are not in this group."}, status=404)
+    m.membership_role = GroupMember.Role.MEMBER
+    m.save(update_fields=["membership_role"])
+    return Response({"is_mentor": False})
 
 
 @api_view(["GET", "POST"])

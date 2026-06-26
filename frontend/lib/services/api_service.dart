@@ -1464,6 +1464,12 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
 
   // ── Demand insights (teacher-only) ───────────────────────
   Future<dynamic> studyInsights() => get('/studyhub/insights/');
+
+  // ── Group mentor (teacher-as-mentor, spec §3G) ───────────
+  Future<dynamic> joinGroupAsMentor(String groupId) =>
+      post('/groups/$groupId/join-mentor/');
+  Future<dynamic> stepDownMentor(String groupId) =>
+      post('/groups/$groupId/step-down-mentor/');
 }
 
 // ─────────────────────────────────────────────────────────────

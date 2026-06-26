@@ -137,10 +137,15 @@ class GroupMember(models.Model):
         PENDING = "pending", "Pending"
         BANNED  = "banned",  "Banned"
 
-    group     = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="memberships")
-    user      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    status    = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
-    joined_at = models.DateTimeField(auto_now_add=True)
+    class Role(models.TextChoices):
+        MEMBER = "member", "Member"
+        MENTOR = "mentor", "Mentor"   # a teacher present in a student study space
+
+    group           = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="memberships")
+    user            = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status          = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    membership_role = models.CharField(max_length=8, choices=Role.choices, default=Role.MEMBER)
+    joined_at       = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "group_members"
