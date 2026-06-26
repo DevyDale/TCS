@@ -23,9 +23,14 @@ User = get_user_model()
 
 def _tokens(user):
     refresh = RefreshToken.for_user(user)
+    # Embed the role in both tokens so the showcase-lockdown middleware can gate
+    # low-trust (visitor/parent) accounts cheaply without a DB hit per request.
+    refresh["role"] = user.role
+    access = refresh.access_token
+    access["role"] = user.role
     return {
         "success": True,
-        "access":  str(refresh.access_token),
+        "access":  str(access),
         "refresh": str(refresh),
         "user":    UserProfileSerializer(user).data,
     }

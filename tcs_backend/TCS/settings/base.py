@@ -56,6 +56,7 @@ LOCAL_APPS = [
     "apps.moderation",
     "apps.safety",
     "apps.scam",
+    "apps.showcase",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -69,6 +70,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
+    "apps.accounts.middleware.ShowcaseLockdownMiddleware",
     "apps.accounts.middleware.UpdateLastSeenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
