@@ -56,7 +56,7 @@ class StaffConnectScreen extends StatelessWidget {
           Transform.translate(
             offset: const Offset(0, -26),
             child: Column(children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 34),
               const StaffSectionLabel('Talk to anyone',
                   subtitle: 'Colleagues, the staffroom, your students'),
               _card(context,
