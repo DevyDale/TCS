@@ -203,7 +203,7 @@ class StaffDaleScreen extends StatelessWidget {
         Icons.summarize_rounded,
         'Summarise a policy',
         'Summarise this policy for students in simple, plain-language points:\n\n',
-        true
+        false
       ),
       (
         Icons.menu_book_rounded,
