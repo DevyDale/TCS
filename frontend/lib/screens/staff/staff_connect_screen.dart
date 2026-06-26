@@ -1,8 +1,9 @@
 // lib/screens/staff/staff_connect_screen.dart
 //
 // CONNECT tab — every conversation staff have, in one landing: colleague/DM
-// messages, the staff feed (digital staffroom), and the student announcement
-// composer. Reuses ChatListScreen, FeedScreen and StaffAnnouncementsScreen.
+// messages, the platform feed (see what students are posting), and the student
+// announcement composer. Reuses ChatListScreen, FeedScreen and
+// StaffAnnouncementsScreen.
 // Styled with the shared staff kit.
 
 import 'package:flutter/material.dart';
@@ -68,8 +69,8 @@ class StaffConnectScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _card(context,
                   icon: Icons.dynamic_feed_rounded,
-                  title: 'Staffroom',
-                  subtitle: 'Share and connect with other staff.',
+                  title: 'Feed',
+                  subtitle: 'See what students are posting on the platform.',
                   gradient: const [Color(0xFFA78BFA), Color(0xFF7C3AED)],
                   onTap: () => _pushTab(context, const FeedScreen())),
               const SizedBox(height: 12),
