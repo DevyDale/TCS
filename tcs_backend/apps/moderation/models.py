@@ -153,3 +153,49 @@ class AuditEvent(models.Model):
     class Meta:
         db_table = "moderation_audit_event"
         ordering = ["-created_at"]
+
+
+class EmergencyBroadcast(models.Model):
+    """A high-priority safety alert pushed to the whole student body — a tier
+    above normal announcements (lockdown, severe weather, urgent safety). When
+    require_safe is set, students are asked to mark themselves safe, giving
+    staff a live roll-call."""
+
+    class Severity(models.TextChoices):
+        INFO     = "info",     "Info"
+        WARNING  = "warning",  "Warning"
+        CRITICAL = "critical", "Critical"
+
+    id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message         = models.TextField()
+    severity        = models.CharField(max_length=12, choices=Severity.choices,
+                                       default=Severity.WARNING)
+    require_safe    = models.BooleanField(default=False)
+    is_active       = models.BooleanField(default=True, db_index=True)
+    created_by      = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                        on_delete=models.SET_NULL, related_name="+")
+    created_by_name = models.CharField(max_length=120, blank=True, default="")
+    created_at      = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "moderation_emergency_broadcast"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.severity}: {self.message[:40]}"
+
+
+class SafeResponse(models.Model):
+    """A student's 'I'm safe' acknowledgement of an EmergencyBroadcast."""
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    broadcast  = models.ForeignKey(EmergencyBroadcast, on_delete=models.CASCADE,
+                                   related_name="responses")
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                   related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "moderation_safe_response"
+        ordering = ["-created_at"]
+        unique_together = (("broadcast", "user"),)

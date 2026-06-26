@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 import logging
@@ -588,3 +589,127 @@ def engagement_trend(request):
         "posts_total": sum(posts.values()),
         "messages_total": sum(msgs.values()),
     })
+
+
+# ── Emergency broadcast ───────────────────────────────────────────────
+def _broadcast_dict(b):
+    return {
+        "id":           str(b.id),
+        "message":      b.message,
+        "severity":     b.severity,
+        "require_safe": b.require_safe,
+        "is_active":    b.is_active,
+        "created_by":   b.created_by_name,
+        "created_at":   b.created_at.isoformat(),
+        "safe_count":   b.responses.count(),
+    }
+
+
+@api_view(["POST"])
+@permission_classes([IsStaff])
+def broadcast_create(request):
+    """Send a high-priority safety alert to every student. Elevated staff only."""
+    if not _is_elevated(request.user):
+        return Response({"error": "Only senior staff can send emergency broadcasts."},
+                        status=status.HTTP_403_FORBIDDEN)
+    msg = (request.data.get("message") or "").strip()
+    if not msg:
+        return Response({"error": "A message is required."}, status=400)
+    severity = (request.data.get("severity") or "warning").lower()
+    if severity not in ("info", "warning", "critical"):
+        severity = "warning"
+    require_safe = bool(request.data.get("require_safe"))
+
+    from .models import EmergencyBroadcast
+    # Only one alert is "active" at a time — supersede any older ones.
+    EmergencyBroadcast.objects.filter(is_active=True).update(is_active=False)
+    name = (getattr(request.user, "display_name", "") or
+            getattr(request.user, "name", "") or "")
+    b = EmergencyBroadcast.objects.create(
+        message=msg[:2000], severity=severity, require_safe=require_safe,
+        created_by=request.user, created_by_name=name)
+    record_audit(request.user, "emergency_broadcast",
+                 f"{severity}: {msg[:80]}", "broadcast", b.id)
+
+    # Push to every student.
+    title = {"info": "📢 Notice", "warning": "⚠️ Safety alert",
+             "critical": "🚨 EMERGENCY"}.get(severity, "⚠️ Safety alert")
+    try:
+        from apps.notifications.tasks import _create
+        sids = User.objects.filter(role="student").values_list("id", flat=True)
+        for sid in sids:
+            try:
+                _create(sid, request.user.id, "emergency", title, msg,
+                        target_type="broadcast", target_id=b.id)
+            except Exception:
+                pass
+    except Exception:
+        logger.exception("broadcast push failed")
+
+    return Response(_broadcast_dict(b), status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def broadcast_list(request):
+    from .models import EmergencyBroadcast
+    bs = list(EmergencyBroadcast.objects.all()[:50])
+    return Response({"results": [_broadcast_dict(b) for b in bs]})
+
+
+@api_view(["GET"])
+@permission_classes([IsStaff])
+def broadcast_responses(request, pk):
+    """Roll-call: who has marked themselves safe vs who hasn't."""
+    from .models import EmergencyBroadcast
+    b = EmergencyBroadcast.objects.filter(id=pk).first()
+    if not b:
+        return Response({"error": "Not found."}, status=404)
+    safe_ids = set(str(uid) for uid in b.responses.values_list("user_id", flat=True))
+    students = User.objects.filter(role="student")
+    safe, pending = [], []
+    by_id = {}
+    for r in b.responses.select_related("user"):
+        by_id[str(r.user_id)] = r.created_at
+    for s in students:
+        name = getattr(s, "display_name", "") or getattr(s, "name", "") or "Student"
+        if str(s.id) in safe_ids:
+            at = by_id.get(str(s.id))
+            safe.append({"name": name, "at": at.isoformat() if at else None})
+        else:
+            pending.append({"name": name})
+    return Response({
+        "message":       b.message,
+        "severity":      b.severity,
+        "require_safe":  b.require_safe,
+        "safe_count":    len(safe),
+        "pending_count": len(pending),
+        "safe":          safe,
+        "pending":       pending,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def broadcast_active(request):
+    """The current active alert for the logged-in student (+ whether they've
+    already marked safe). Returns {active: null} when there's nothing live."""
+    from .models import EmergencyBroadcast
+    b = EmergencyBroadcast.objects.filter(is_active=True).first()
+    if not b:
+        return Response({"active": None})
+    responded = b.responses.filter(user=request.user).exists()
+    d = _broadcast_dict(b)
+    d.pop("safe_count", None)
+    return Response({"active": d, "responded": responded})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def broadcast_mark_safe(request, pk):
+    from .models import EmergencyBroadcast, SafeResponse
+    b = EmergencyBroadcast.objects.filter(id=pk).first()
+    if not b:
+        return Response({"error": "Not found."}, status=404)
+    SafeResponse.objects.get_or_create(broadcast=b, user=request.user)
+    return Response({"ok": True})

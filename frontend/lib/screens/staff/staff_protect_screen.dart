@@ -14,6 +14,7 @@ import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
+import 'package:tcs_app/screens/staff/staff_broadcast_screen.dart';
 
 class StaffProtectScreen extends StatefulWidget {
   const StaffProtectScreen({super.key});
@@ -64,6 +65,10 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
               offset: const Offset(0, -26),
               child: Column(children: [
                 const SizedBox(height: 12),
+                const StaffSectionLabel('Emergency',
+                    subtitle: 'Alert every student at once'),
+                _broadcastCard(context),
+                const SizedBox(height: 22),
                 const StaffSectionLabel('Safety desk',
                     subtitle: 'Keep your students safe'),
                 _card(context,
@@ -194,6 +199,58 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                 Text(subtitle, style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11.5, height: 1.35,
                     color: Colors.white.withValues(alpha: 0.92))),
+              ],
+            )),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 21),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _broadcastCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _push(context, const StaffBroadcastScreen());
+        },
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFFEF4444), Color(0xFFB91C1C)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [BoxShadow(
+                color: const Color(0xFFB91C1C).withValues(alpha: 0.36),
+                blurRadius: 22, offset: const Offset(0, 12))]),
+          child: Row(children: [
+            Container(
+              width: 52, height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.20),
+                borderRadius: BorderRadius.circular(16)),
+              child: const Icon(Icons.campaign_rounded,
+                  color: Colors.white, size: 28)),
+            const SizedBox(width: 15),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Emergency broadcast',
+                    style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
+                        color: Colors.white)),
+                const SizedBox(height: 4),
+                Text('Push an urgent alert to every student — with a '
+                    'mark-yourself-safe roll-call.',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                        height: 1.35,
+                        color: Colors.white.withValues(alpha: 0.92))),
               ],
             )),
             const SizedBox(width: 8),

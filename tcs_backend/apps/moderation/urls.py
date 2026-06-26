@@ -5,6 +5,8 @@ from .staff_views import (
     suspended_users, restore_user, staff_roster,
     wellbeing_queue, wellbeing_action, needs_attention, audit_log,
     staff_members, set_user_role, engagement_trend,
+    broadcast_create, broadcast_list, broadcast_responses,
+    broadcast_active, broadcast_mark_safe,
 )
 
 urlpatterns = [
@@ -26,4 +28,11 @@ urlpatterns = [
     path("staff/members/",                  staff_members, name="moderation-staff-members"),
     path("staff/members/<uuid:pk>/role/",   set_user_role, name="moderation-staff-set-role"),
     path("staff/engagement/",               engagement_trend, name="moderation-staff-engagement"),
+
+    # Emergency broadcast (elevated staff send; students acknowledge)
+    path("staff/broadcast/",                  broadcast_create,    name="moderation-broadcast-create"),
+    path("staff/broadcasts/",                 broadcast_list,      name="moderation-broadcast-list"),
+    path("staff/broadcast/<uuid:pk>/responses/", broadcast_responses, name="moderation-broadcast-responses"),
+    path("broadcast/active/",                 broadcast_active,    name="moderation-broadcast-active"),
+    path("broadcast/<uuid:pk>/safe/",         broadcast_mark_safe, name="moderation-broadcast-safe"),
 ]

@@ -33,6 +33,7 @@ import '../arcade/arcade_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../staff/staff_home_screen.dart';
+import '../../widgets/emergency_banner.dart';
 import '../staff/staff_protect_screen.dart';
 import '../staff/staff_connect_screen.dart';
 import '../staff/staff_campus_screen.dart';
@@ -197,6 +198,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             scale: _tabScaleAnim,
             child: _screens[_currentIndex],
           ),
+          // Students see live emergency alerts on any tab.
+          if (!_isStaff) const EmergencyBanner(),
         ],
       ),
       // Body still draws behind the bar so transparent scrims and gradients
