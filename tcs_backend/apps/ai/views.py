@@ -492,6 +492,48 @@ def ai_code(request):
     return _run_text_tool(request, CODE_SYSTEM_PROMPT, personalize=False, task="code")
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def announce_assist(request):
+    """Dale polishes a staff announcement draft. One-shot, non-streaming.
+    Body: {title, body, mode?}  →  {title, body}."""
+    import json as _json
+    import re as _re
+    d = request.data
+    title = (d.get("title") or "").strip()
+    body  = (d.get("body") or "").strip()
+    mode  = (d.get("mode") or "improve").strip()
+    if not title and not body:
+        return Response({"error": "Write a draft first."}, status=400)
+    instruction = {
+        "improve": "Polish this school announcement so it is clear, warm and "
+                   "professional. Keep it concise.",
+        "expand":  "Expand this school announcement into a fuller, well-"
+                   "structured notice with a friendly tone.",
+        "shorten": "Tighten this announcement to the essentials, keeping it "
+                   "warm and clear.",
+    }.get(mode, "Polish this school announcement so it is clear and professional.")
+    sys = ('You are Dale, helping school staff write announcements. Return ONLY '
+           'a JSON object with keys "title" and "body" — no markdown, no commentary. '
+           + instruction)
+    messages = [
+        {"role": "system", "content": sys},
+        {"role": "user", "content": f"TITLE: {title}\n\nBODY: {body}"},
+    ]
+    try:
+        result = ai_router.complete("chat", messages, max_tokens=800, temperature=0.6)
+        text = (result.get("text") or "").strip()
+        m = _re.search(r"\{.*\}", text, _re.S)
+        data = _json.loads(m.group(0)) if m else {}
+        return Response({
+            "title": (str(data.get("title") or title))[:200],
+            "body":  str(data.get("body") or body),
+        })
+    except Exception:
+        return Response({"error": "Dale is busy — try again in a moment."},
+                        status=503)
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ai_status(request):

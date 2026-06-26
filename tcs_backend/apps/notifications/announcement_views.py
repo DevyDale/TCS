@@ -43,14 +43,15 @@ class AnnouncementSerializer(serializers.ModelSerializer):
                   "author_name", "author_role", "created_at"]
 
     def get_image_url(self, obj):
-        if not obj.image:
-            return None
-        try:
-            url = obj.image.url
-        except Exception:
-            return None
-        req = self.context.get("request")
-        return req.build_absolute_uri(url) if req else url
+        if obj.image:
+            try:
+                url = obj.image.url
+                req = self.context.get("request")
+                return req.build_absolute_uri(url) if req else url
+            except Exception:
+                pass
+        # Fall back to an external / AI-generated banner URL.
+        return obj.image_url or None
 
 
 @api_view(["GET"])
@@ -104,6 +105,7 @@ def announcement_create(request):
         audience     = (d.get("audience") or "all").strip(),
         year_group   = (d.get("year_group") or "").strip(),
         accent       = (d.get("accent") or "").strip(),
+        image_url    = (d.get("image_url") or "").strip()[:2000],
         is_pinned    = _b(d.get("is_pinned")),
         is_published = _b(d.get("is_published"), True),
     )

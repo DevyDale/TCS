@@ -259,6 +259,18 @@ class _StaffAnnouncementComposeScreenState
   File? _image;
   bool _submitting = false;
 
+  // Plain text vs a designed panel (accent colour + banner).
+  String _style = 'plain';
+  String _accent = '';
+  String _bannerUrl = '';
+  bool _genBanner = false;
+  bool _assisting = false;
+
+  static const _accents = [
+    '#8E54E9', '#2563EB', '#0EA5A4', '#059669',
+    '#F59E0B', '#DC2626', '#DB2777', '#475569',
+  ];
+
   static const _categories = [
     ['general', 'General'], ['academic', 'Academic'], ['event', 'Event'],
     ['job', 'Job / Opportunity'], ['community', 'Community'], ['urgent', 'Urgent'],
@@ -274,7 +286,153 @@ class _StaffAnnouncementComposeScreenState
   Future<void> _pickImage() async {
     final x = await ImagePicker().pickImage(
         source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
-    if (x != null) setState(() => _image = File(x.path));
+    if (x != null) setState(() { _image = File(x.path); _bannerUrl = ''; });
+  }
+
+  static Color _hex(String h) {
+    final s = h.replaceAll('#', '');
+    return Color(int.parse('FF$s', radix: 16));
+  }
+
+  // Dale rewrites the draft (one-shot, non-streaming).
+  Future<void> _improveWithDale() async {
+    final title = _title.text.trim();
+    final body = _body.text.trim();
+    if (title.isEmpty && body.isEmpty) {
+      _snack('Write a rough draft first, then Dale will polish it.', error: true);
+      return;
+    }
+    setState(() => _assisting = true);
+    HapticFeedback.selectionClick();
+    try {
+      final res = (await _api.post('/ai/announce-assist/',
+          body: {'title': title, 'body': body, 'mode': 'improve'}) as Map)
+          .cast<String, dynamic>();
+      final nt = (res['title'] ?? title).toString();
+      final nb = (res['body'] ?? body).toString();
+      if (mounted) {
+        setState(() {
+          _title.text = nt;
+          _body.text = nb;
+        });
+        _snack('Dale polished your notice ✨');
+      }
+    } catch (_) {
+      _snack('Dale is busy — try again.', error: true);
+    } finally {
+      if (mounted) setState(() => _assisting = false);
+    }
+  }
+
+  // Dale generates a banner image for the designed panel.
+  Future<void> _generateBanner() async {
+    final promptCtrl = TextEditingController(
+        text: _title.text.trim().isEmpty ? '' : _title.text.trim());
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppC.card,
+        title: Text('Generate a banner',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
+        content: TextField(controller: promptCtrl, maxLines: 2,
+            style: TextStyle(color: AppC.text),
+            decoration: _dec('Describe the poster')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Generate',
+                  style: TextStyle(color: _kAmber, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+    if (go != true) return;
+    final prompt = promptCtrl.text.trim();
+    if (prompt.isEmpty) return;
+    setState(() => _genBanner = true);
+    HapticFeedback.mediumImpact();
+    try {
+      final res = (await _api.post('/ai/image/', body: {
+        'prompt': 'School announcement banner: $prompt. Clean, vibrant, '
+            'modern flat illustration, wide composition, no text.',
+        'model': 'flux',
+        'aspect': 'landscape',
+      }) as Map).cast<String, dynamic>();
+      final url = (res['image_url'] ?? '').toString();
+      if (url.isEmpty) {
+        _snack('Could not generate a banner — try again.', error: true);
+      } else if (mounted) {
+        setState(() { _bannerUrl = url; _image = null; });
+      }
+    } catch (_) {
+      _snack('Could not generate a banner — try again.', error: true);
+    } finally {
+      if (mounted) setState(() => _genBanner = false);
+    }
+  }
+
+  Widget _bannerArea() {
+    final hasBanner = _bannerUrl.isNotEmpty;
+    final hasFile = _image != null;
+    if (hasBanner || hasFile) {
+      return Stack(children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: hasBanner
+              ? Image.network(_bannerUrl, height: 150, width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(height: 150,
+                      color: AppC.card2,
+                      child: Icon(Icons.broken_image_rounded, color: AppC.faint)))
+              : Image.file(_image!, height: 150, width: double.infinity,
+                  fit: BoxFit.cover),
+        ),
+        Positioned(top: 8, right: 8, child: GestureDetector(
+          onTap: () => setState(() { _bannerUrl = ''; _image = null; }),
+          child: Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              shape: BoxShape.circle),
+            child: const Icon(Icons.close_rounded, color: Colors.white, size: 16)),
+        )),
+        if (_genBanner)
+          const Positioned.fill(child: Center(
+              child: CircularProgressIndicator(color: Colors.white))),
+      ]);
+    }
+    return Row(children: [
+      Expanded(child: GestureDetector(
+        onTap: _genBanner ? null : _generateBanner,
+        child: Container(
+          height: 52, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFFA78BFA), Color(0xFF8E54E9)]),
+            borderRadius: BorderRadius.circular(13)),
+          child: _genBanner
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Row(mainAxisSize: MainAxisSize.min, children: const [
+                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 17),
+                  SizedBox(width: 7),
+                  Text('Generate with Dale', style: TextStyle(fontFamily: 'Arch',
+                      fontSize: 12.5, fontWeight: FontWeight.bold,
+                      color: Colors.white)),
+                ]),
+        ),
+      )),
+      const SizedBox(width: 10),
+      GestureDetector(
+        onTap: _pickImage,
+        child: Container(
+          width: 52, height: 52, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppC.card, borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: AppC.border)),
+          child: Icon(Icons.upload_rounded, color: AppC.sub, size: 22)),
+      ),
+    ]);
   }
 
   Future<void> _submit() async {
@@ -287,12 +445,15 @@ class _StaffAnnouncementComposeScreenState
     setState(() => _submitting = true);
     HapticFeedback.mediumImpact();
     try {
+      final designed = _style == 'designed';
       final fields = <String, String>{
         'title': title,
         'body': body,
         'category': _category,
         'audience': _audience,
         'year_group': _audience == 'year_group' ? _year.text.trim() : '',
+        'accent': designed ? _accent : '',
+        'image_url': designed ? _bannerUrl : '',
         'is_pinned': _pinned ? 'true' : 'false',
         'is_published': _publishNow ? 'true' : 'false',
       };
@@ -332,6 +493,18 @@ class _StaffAnnouncementComposeScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppC.bg,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF8E54E9),
+        onPressed: _assisting ? null : _improveWithDale,
+        icon: _assisting
+            ? const SizedBox(width: 18, height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2,
+                    color: Colors.white))
+            : const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+        label: const Text('Ask Dale',
+            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                color: Colors.white)),
+      ),
       body: ListView(padding: EdgeInsets.zero, children: [
         StaffHeader(
           bottomPad: 20,
@@ -361,6 +534,62 @@ class _StaffAnnouncementComposeScreenState
           const SizedBox(height: 12),
           TextField(controller: _body, maxLines: 6,
               style: TextStyle(color: AppC.text), decoration: _dec('Body')),
+          const SizedBox(height: 14),
+
+          // Plain vs Designed
+          Row(children: [
+            for (final s in const [['plain', 'Plain', Icons.notes_rounded],
+                ['designed', 'Designed', Icons.dashboard_customize_rounded]])
+              Expanded(child: GestureDetector(
+                onTap: () => setState(() => _style = s[0] as String),
+                child: Container(
+                  margin: EdgeInsets.only(right: s[0] == 'plain' ? 10 : 0),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  decoration: BoxDecoration(
+                    color: _style == s[0] ? _kAmber : AppC.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _style == s[0] ? _kAmber : AppC.border)),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(s[2] as IconData, size: 16,
+                          color: _style == s[0] ? Colors.white : AppC.sub),
+                      const SizedBox(width: 7),
+                      Text(s[1] as String, style: TextStyle(fontFamily: 'Arch',
+                          fontSize: 12.5, fontWeight: FontWeight.bold,
+                          color: _style == s[0] ? Colors.white : AppC.sub)),
+                    ]),
+                ),
+              )),
+          ]),
+
+          if (_style == 'designed') ...[
+            const SizedBox(height: 14),
+            Align(alignment: Alignment.centerLeft, child: Text('Accent',
+                style: TextStyle(fontFamily: 'Arch', fontSize: 11,
+                    fontWeight: FontWeight.bold, color: AppC.sub))),
+            const SizedBox(height: 8),
+            Wrap(spacing: 10, runSpacing: 10, children: [
+              for (final hex in _accents)
+                GestureDetector(
+                  onTap: () => setState(() => _accent = hex),
+                  child: Container(
+                    width: 34, height: 34,
+                    decoration: BoxDecoration(
+                      color: _hex(hex), shape: BoxShape.circle,
+                      border: Border.all(
+                          color: _accent == hex ? AppC.text : Colors.transparent,
+                          width: 2.5)),
+                    child: _accent == hex
+                        ? const Icon(Icons.check_rounded, color: Colors.white,
+                            size: 17)
+                        : null),
+                ),
+            ]),
+            const SizedBox(height: 14),
+            _bannerArea(),
+          ],
+
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _category, dropdownColor: AppC.card,
@@ -384,22 +613,6 @@ class _StaffAnnouncementComposeScreenState
             TextField(controller: _year, style: TextStyle(color: AppC.text),
                 decoration: _dec('Year group (e.g. Y12)')),
           ],
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              height: _image == null ? 60 : 160,
-              decoration: BoxDecoration(color: AppC.card,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _kAmber.withValues(alpha: 0.3))),
-              child: _image == null
-                  ? Center(child: T('+ Add image (optional)',
-                      style: TextStyle(fontFamily: 'Momo', color: AppC.sub)))
-                  : ClipRRect(borderRadius: BorderRadius.circular(14),
-                      child: Image.file(_image!, fit: BoxFit.cover,
-                          width: double.infinity)),
-            ),
-          ),
           const SizedBox(height: 8),
           SwitchListTile(
             value: _pinned, activeThumbColor: _kAmber,

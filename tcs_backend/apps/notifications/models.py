@@ -69,6 +69,7 @@ class Announcement(models.Model):
     audience     = models.CharField(max_length=20, choices=Audience.choices, default=Audience.ALL)
     year_group   = models.CharField(max_length=20, blank=True, default="")
     image        = cloudinary.models.CloudinaryField("image", blank=True, null=True)
+    image_url    = models.URLField(max_length=2000, blank=True, default="")  # external/AI banner
     accent       = models.CharField(max_length=9, blank=True, default="")  # optional hex card colour
     is_pinned    = models.BooleanField(default=False, db_index=True)
     is_published = models.BooleanField(default=True, db_index=True)
