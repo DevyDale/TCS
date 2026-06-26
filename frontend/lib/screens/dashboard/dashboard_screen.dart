@@ -36,7 +36,6 @@ import '../staff/staff_home_screen.dart';
 import '../../widgets/emergency_banner.dart';
 import '../staff/staff_protect_screen.dart';
 import '../staff/staff_connect_screen.dart';
-import '../staff/staff_campus_screen.dart';
 import '../../utils/responsive_helper.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
@@ -124,7 +123,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const StaffProtectScreen(),
           const StaffConnectScreen(),
-          const StaffCampusScreen(),
         ]
       : [
           const FeedScreen(),
@@ -251,7 +249,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 slot(Icons.dashboard_rounded, 'Home', 0),
                 slot(Icons.shield_rounded, 'Protect', 1),
                 slot(Icons.forum_rounded, 'Connect', 2),
-                slot(Icons.gps_fixed_rounded, 'Campus', 3),
               ]),
             ),
           ),
