@@ -401,6 +401,16 @@ def _run_text_tool(request, system_prompt: str, personalize: bool = True, task: 
     if len(message) > 4000:
         return JsonResponse({"error": "Message too long (max 4000 characters)."}, status=400)
 
+    # Safeguarding triage signal (students only, chat lane). No-op unless
+    # WELLBEING_SCORING_ENABLED — it analyses minors' messages, so it stays off
+    # until the consent notice is in place. Never breaks the chat turn.
+    if task == "chat" and (getattr(request.user, "role", "") or "") == "student":
+        try:
+            from apps.wellbeing.scorer import record_signal
+            record_signal(request.user, message)
+        except Exception:
+            pass
+
     recent_history = history[-20:] if len(history) > 20 else history
 
     final_prompt = system_prompt

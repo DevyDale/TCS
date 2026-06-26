@@ -12,7 +12,7 @@ import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/suggestions_review_screen.dart';
-import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
+import 'package:tcs_app/screens/staff/wellbeing_analytics_screen.dart';
 import 'package:tcs_app/screens/staff/staff_emergency_compose_screen.dart';
 import 'package:tcs_app/screens/staff/fire_warden_screen.dart';
 import 'package:tcs_app/screens/staff/scam_watch_screen.dart';
@@ -87,7 +87,7 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                     title: 'Wellbeing',
                     subtitle: 'Quiet students, concern reports, Dale flags.',
                     gradient: const [Color(0xFFF472B6), Color(0xFFDB2777)],
-                    onTap: () => _push(context, const StaffWellbeingScreen())),
+                    onTap: () => _push(context, const WellbeingAnalyticsScreen())),
                 const SizedBox(height: 12),
                 _card(context,
                     icon: Icons.lightbulb_rounded,

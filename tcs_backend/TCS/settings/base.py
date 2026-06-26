@@ -57,7 +57,14 @@ LOCAL_APPS = [
     "apps.safety",
     "apps.scam",
     "apps.showcase",
+    "apps.wellbeing",
 ]
+
+# Safeguarding: wellbeing scoring of student AI messages is OFF until the
+# consent notice + PRIVACY clause are in place (it analyses minors' messages).
+import os as _os
+WELLBEING_SCORING_ENABLED = _os.environ.get(
+    "WELLBEING_SCORING_ENABLED", "").lower() in ("1", "true", "yes")
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
