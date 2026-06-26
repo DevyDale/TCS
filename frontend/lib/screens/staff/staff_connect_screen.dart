@@ -13,6 +13,7 @@ import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/chat/chat_list_screen.dart';
 import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
+import 'package:tcs_app/screens/staff/staff_study_hub_screen.dart';
 import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
 import 'package:tcs_app/screens/arcade/arcade_screen.dart';
 import 'package:tcs_app/screens/staff/staff_settings_screen.dart';
@@ -65,6 +66,13 @@ class StaffConnectScreen extends StatelessWidget {
                   subtitle: 'Where students gather'),
 
               // Compact community rows.
+              _communityRow(context,
+                  icon: Icons.auto_stories_rounded,
+                  title: 'Study Hub',
+                  subtitle: 'Your teaching console — resources & Q&A',
+                  color: const Color(0xFF5B53E8),
+                  onTap: () => _push(context, const StaffStudyHubScreen())),
+              const SizedBox(height: 10),
               _communityRow(context,
                   icon: Icons.groups_rounded,
                   title: 'Study groups',

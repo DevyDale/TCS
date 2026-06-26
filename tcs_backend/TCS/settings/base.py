@@ -58,6 +58,7 @@ LOCAL_APPS = [
     "apps.scam",
     "apps.showcase",
     "apps.wellbeing",
+    "apps.studyhub",
 ]
 
 # Safeguarding: wellbeing scoring of student AI messages is OFF until the

@@ -1334,6 +1334,71 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
     'preferred_name': preferredName,
     'date_of_birth':  dateOfBirth,
   }, auth: false);
+
+  // ══════════════════════════════════════════════════════════
+  // STUDY HUB — teacher bridge (resources + Q&A + office hours)
+  // ══════════════════════════════════════════════════════════
+  Future<dynamic> studyResources({String? subject, String? kind}) =>
+      get('/studyhub/resources/', query: {
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (kind != null && kind.isNotEmpty) 'kind': kind,
+      });
+
+  Future<dynamic> uploadStudyResource({
+    required String filePath,
+    required String title,
+    required String subject,
+    required String kind,
+    String mimeType = 'application/octet-stream',
+  }) => uploadFile('/studyhub/resources/',
+        filePath: filePath, field: 'file', mimeType: mimeType,
+        extraFields: {'title': title, 'subject': subject, 'kind': kind});
+
+  Future<dynamic> addStudyLink({
+    required String title, required String subject, required String linkUrl,
+  }) => post('/studyhub/resources/', body: {
+        'title': title, 'subject': subject, 'kind': 'link', 'link_url': linkUrl,
+      });
+
+  Future<dynamic> deleteStudyResource(String id) =>
+      delete('/studyhub/resources/$id/');
+  Future<dynamic> verifyStudyResource(String id) =>
+      post('/studyhub/resources/$id/verify/');
+  Future<dynamic> downloadStudyResource(String id) =>
+      post('/studyhub/resources/$id/download/');
+
+  Future<dynamic> studyQuestions({String? subject, String? status}) =>
+      get('/studyhub/questions/', query: {
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (status != null && status.isNotEmpty) 'status': status,
+      });
+  Future<dynamic> studyQuestion(String id) => get('/studyhub/questions/$id/');
+  Future<dynamic> askStudyQuestion({
+    required String title, required String subject, String body = '',
+  }) => post('/studyhub/questions/', body: {
+        'title': title, 'subject': subject, 'body': body,
+      });
+  Future<dynamic> answerStudyQuestion(String id, String body) =>
+      post('/studyhub/questions/$id/answer/', body: {'body': body});
+  Future<dynamic> resolveStudyQuestion(String id) =>
+      post('/studyhub/questions/$id/resolve/');
+  Future<dynamic> upvoteStudyQuestion(String id) =>
+      post('/studyhub/questions/$id/upvote/');
+  Future<dynamic> acceptStudyAnswer(String id) =>
+      post('/studyhub/answers/$id/accept/');
+  Future<dynamic> upvoteStudyAnswer(String id) =>
+      post('/studyhub/answers/$id/upvote/');
+
+  Future<dynamic> openTeachers({String? subject}) =>
+      get('/studyhub/teachers/', query: {
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      });
+  Future<dynamic> myAvailability() => get('/studyhub/teachers/me/');
+  Future<dynamic> setAvailability({
+    required String subjects, required bool isOpen, String note = '',
+  }) => post('/studyhub/teachers/', body: {
+        'subjects': subjects, 'is_open': isOpen, 'note': note,
+      });
 }
 
 // ─────────────────────────────────────────────────────────────

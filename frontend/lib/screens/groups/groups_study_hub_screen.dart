@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
+import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
+import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
 
 import 'dart:async';
 import '../../services/api_service.dart';
@@ -771,6 +773,7 @@ class _GroupsStudyHubScreenState
         child: Column(children: [
           _buildHeader(),
           _buildQuickActions(),
+          _buildTeacherBridge(),
           _buildTabBar(),
           Expanded(
             child: Container(
@@ -868,6 +871,58 @@ class _GroupsStudyHubScreenState
       color: AppC.card2,
       borderRadius: BorderRadius.circular(10)),
     child: Icon(icon, color: AppC.sub, size: 20));
+
+  // The teacher bridge: students reach the teacher-curated Resource Library and
+  // the Q&A board from inside their own peer hub (spec §6).
+  Widget _buildTeacherBridge() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(children: [
+        Expanded(child: _bridgeCard(
+          icon: Icons.menu_book_rounded,
+          label: 'Resource\nLibrary',
+          color: _indigo,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const ResourceLibraryScreen(isTeacher: false))))),
+        const SizedBox(width: 10),
+        Expanded(child: _bridgeCard(
+          icon: Icons.forum_rounded,
+          label: 'Ask a\nTeacher',
+          color: _deepPurple,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const QaBoardScreen(isTeacher: false))))),
+      ]),
+    );
+  }
+
+  Widget _bridgeCard({
+    required IconData icon, required String label,
+    required Color color, required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () { HapticFeedback.selectionClick(); onTap(); },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppC.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.35))),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, color: color, size: 20)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label.replaceAll('\n', ' '),
+              maxLines: 2,
+              style: TextStyle(fontFamily: 'Arch', fontSize: 12,
+                  fontWeight: FontWeight.bold, color: AppC.text, height: 1.15))),
+        ]),
+      ),
+    );
+  }
 
   Widget _buildQuickActions() {
     return Container(
