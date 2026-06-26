@@ -14,6 +14,7 @@ import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
 import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
 import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 import 'package:tcs_app/screens/studyhub/sessions_screen.dart';
+import 'package:tcs_app/screens/studyhub/study_insights_screen.dart';
 
 class StaffStudyHubScreen extends StatefulWidget {
   const StaffStudyHubScreen({super.key});
@@ -154,10 +155,14 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
                 grad: const [Color(0xFF0EA5A4), Color(0xFF0F766E)],
                 onTap: () => _push(const SessionsScreen(isTeacher: true))),
               const SizedBox(height: 18),
-              const StaffSectionLabel('Coming next',
-                  subtitle: 'On the Study-Hub roadmap'),
-              _soon(Icons.insights_rounded, 'Demand Insights',
-                  'Which subjects & topics students ask about most'),
+              const StaffSectionLabel('Read the room',
+                  subtitle: 'Aggregate demand — no individual named'),
+              _tile(
+                icon: Icons.insights_rounded,
+                title: 'Demand Insights',
+                subtitle: 'Top subjects · coverage gaps · hardest questions',
+                grad: const [Color(0xFF0891B2), Color(0xFF0E7490)],
+                onTap: () => _push(const StudyInsightsScreen())),
               const SizedBox(height: 40),
             ]),
           ),
@@ -268,40 +273,4 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
     );
   }
 
-  Widget _soon(IconData icon, String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: staffCard(),
-        child: Row(children: [
-          Container(
-            width: 42, height: 42, alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppC.faint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: AppC.faint, size: 21)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title, style: TextStyle(fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold, fontSize: 13.5, color: AppC.text)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: AppC.sub)),
-            ],
-          )),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppC.faint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8)),
-            child: Text('Soon', style: TextStyle(fontFamily: 'Arch', fontSize: 9.5,
-                fontWeight: FontWeight.bold, color: AppC.faint))),
-        ]),
-      ),
-    );
-  }
 }

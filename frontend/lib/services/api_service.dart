@@ -1461,6 +1461,9 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
   Future<dynamic> rsvpSession(String id) => post('/studyhub/sessions/$id/rsvp/');
   Future<dynamic> remindSession(String id) => post('/studyhub/sessions/$id/remind/');
   Future<dynamic> deleteSession(String id) => delete('/studyhub/sessions/$id/delete/');
+
+  // ── Demand insights (teacher-only) ───────────────────────
+  Future<dynamic> studyInsights() => get('/studyhub/insights/');
 }
 
 // ─────────────────────────────────────────────────────────────

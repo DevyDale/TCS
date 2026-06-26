@@ -16,6 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.db import transaction
+from django.db.models import Count
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -732,6 +733,107 @@ def session_delete(request, pk):
         return Response({"error": "Not allowed."}, status=403)
     s.delete()
     return Response(status=204)
+
+
+# ── Demand Insights (spec §5 — aggregate only, no individual singled out) ──
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def insights(request):
+    """Teacher-only aggregate of where demand is: which subjects students ask
+    about most, what's unanswered, hardest quiz questions, and coverage gaps.
+    Everything here is counts by subject — never a named student."""
+    if not _is_teacher(request.user):
+        return Response({"error": "Teachers only."}, status=403)
+
+    from collections import defaultdict
+
+    # Per-subject rollup across questions / resources / sessions.
+    by_subject = defaultdict(lambda: {
+        "subject": "", "questions": 0, "open_questions": 0,
+        "resources": 0, "sessions": 0})
+
+    def _norm(s):
+        return (s or "").strip()
+
+    for q in Question.objects.all().only("subject", "status"):
+        key = _norm(q.subject).lower()
+        if not key:
+            continue
+        row = by_subject[key]
+        row["subject"] = row["subject"] or _norm(q.subject)
+        row["questions"] += 1
+        if q.status == "open":
+            row["open_questions"] += 1
+
+    for r in Resource.objects.all().only("subject"):
+        key = _norm(r.subject).lower()
+        if not key:
+            continue
+        row = by_subject[key]
+        row["subject"] = row["subject"] or _norm(r.subject)
+        row["resources"] += 1
+
+    for s in StudySession.objects.all().only("subject"):
+        key = _norm(s.subject).lower()
+        if not key:
+            continue
+        row = by_subject[key]
+        row["subject"] = row["subject"] or _norm(s.subject)
+        row["sessions"] += 1
+
+    rows = list(by_subject.values())
+    # Demand score: open questions weigh most, then total questions, minus the
+    # resources already covering them. Surfaces where students need more help.
+    for r in rows:
+        r["demand"] = r["open_questions"] * 3 + r["questions"] - r["resources"]
+    top_subjects = sorted(rows, key=lambda r: (-r["open_questions"], -r["questions"]))[:12]
+
+    # Coverage gaps: students are asking but there's little/no curated material.
+    gaps = sorted(
+        [r for r in rows if r["questions"] >= 2 and r["resources"] == 0],
+        key=lambda r: -r["questions"])[:8]
+
+    # Unanswered: open questions with zero answers — the most acute backlog.
+    unanswered = (Question.objects.filter(status="open")
+                  .annotate(n=Count("answers")).filter(n=0).count())
+
+    # Hardest quiz questions across PUBLISHED quizzes — cohort misconceptions.
+    hardest = []
+    for qq in (QuizQuestion.objects
+               .filter(quiz__is_published=True)
+               .select_related("quiz")[:500]):
+        attempts = QuizAttempt.objects.filter(quiz=qq.quiz)
+        answered = missed = 0
+        for a in attempts.only("answers"):
+            ans = a.answers or {}
+            if str(qq.id) in ans:
+                answered += 1
+                try:
+                    if int(ans[str(qq.id)]) != qq.correct_index:
+                        missed += 1
+                except (TypeError, ValueError):
+                    missed += 1
+        if answered >= 1:
+            hardest.append({
+                "subject": qq.quiz.subject, "text": qq.text,
+                "answered": answered, "missed": missed,
+                "miss_rate": round(100 * missed / answered)})
+    hardest = sorted(hardest, key=lambda h: -h["miss_rate"])[:8]
+
+    return Response({
+        "totals": {
+            "subjects":        len([r for r in rows if r["questions"] or r["resources"]]),
+            "questions":       Question.objects.count(),
+            "open_questions":  Question.objects.filter(status="open").count(),
+            "unanswered":      unanswered,
+            "resources":       Resource.objects.count(),
+            "upcoming_sessions": StudySession.objects.filter(
+                when__gte=timezone.now()).count(),
+        },
+        "top_subjects": top_subjects,
+        "coverage_gaps": gaps,
+        "hardest_questions": hardest,
+    })
 
 
 @api_view(["GET"])
