@@ -47,6 +47,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # "reception" bridges students <-> staff. Resolved/backfilled lazily
     # by apps.accounts.reception.staff_type_of().
     staff_type     = models.CharField(max_length=20, blank=True, default="")
+    # Admin-assigned verified fire warden — may trigger evacuation alerts.
+    # Never self-claimed.
+    is_fire_warden = models.BooleanField(default=False)
 
     email    = models.EmailField(unique=True, null=True, blank=True)
     username = models.CharField(max_length=50, unique=True, null=True, blank=True)
