@@ -155,6 +155,55 @@ class AuditEvent(models.Model):
         ordering = ["-created_at"]
 
 
+class ChildSafetyCase(models.Model):
+    """A safeguarding case raised when reported content may involve a minor
+    (CSAE / sexual / grooming). Distinct from ordinary moderation: evidence is
+    PRESERVED (never blind-deleted), the case is routed to a designated
+    safeguarding lead, and every step is audited. The preserved snapshot keeps
+    what's needed to escalate to authorities even after the live content is
+    hidden from the platform."""
+
+    class Status(models.TextChoices):
+        OPEN     = "open",     "Open — needs review"
+        PRESERVED = "preserved", "Evidence preserved"
+        REPORTED = "reported", "Reported to authorities"
+        CLOSED   = "closed",   "Closed"
+
+    class Severity(models.TextChoices):
+        REVIEW   = "review",   "Review"
+        URGENT   = "urgent",   "Urgent"
+        CRITICAL = "critical", "Critical"
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    report      = models.OneToOneField("Report", null=True, blank=True,
+                                       on_delete=models.SET_NULL, related_name="child_safety_case")
+    raised_by   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    raised_by_name = models.CharField(max_length=120, blank=True, default="")
+    subject_user   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                       on_delete=models.SET_NULL, related_name="child_safety_cases")
+    subject_name   = models.CharField(max_length=120, blank=True, default="")
+    severity    = models.CharField(max_length=10, choices=Severity.choices,
+                                   default=Severity.URGENT)
+    status      = models.CharField(max_length=10, choices=Status.choices,
+                                   default=Status.PRESERVED, db_index=True)
+    reason      = models.CharField(max_length=300, blank=True, default="")
+    # Evidence snapshot taken at escalation time — survives content deletion.
+    preserved   = models.JSONField(default=dict)
+    notes       = models.TextField(blank=True, default="")
+    outcome     = models.TextField(blank=True, default="")
+    closed_by   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    created_at  = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "moderation_child_safety_case"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "-created_at"],
+                                name="cs_case_status_idx")]
+
+
 class EmergencyBroadcast(models.Model):
     """A high-priority safety alert pushed to the whole student body — a tier
     above normal announcements (lockdown, severe weather, urgent safety). When

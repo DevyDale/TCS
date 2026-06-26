@@ -7,6 +7,7 @@ from .staff_views import (
     staff_members, set_user_role, engagement_trend,
     broadcast_create, broadcast_list, broadcast_responses,
     broadcast_active, broadcast_mark_safe,
+    child_safety_cases, child_safety_detail, child_safety_action,
 )
 
 urlpatterns = [
@@ -28,6 +29,11 @@ urlpatterns = [
     path("staff/members/",                  staff_members, name="moderation-staff-members"),
     path("staff/members/<uuid:pk>/role/",   set_user_role, name="moderation-staff-set-role"),
     path("staff/engagement/",               engagement_trend, name="moderation-staff-engagement"),
+
+    # Child-safety routing (safeguarding leads only)
+    path("staff/child-safety/",                  child_safety_cases,  name="moderation-cs-cases"),
+    path("staff/child-safety/<uuid:pk>/",        child_safety_detail, name="moderation-cs-detail"),
+    path("staff/child-safety/<uuid:pk>/action/", child_safety_action, name="moderation-cs-action"),
 
     # Emergency broadcast (elevated staff send; students acknowledge)
     path("staff/broadcast/",                  broadcast_create,    name="moderation-broadcast-create"),

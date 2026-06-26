@@ -1432,6 +1432,15 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
       post('/studyhub/quizzes/$id/attempt/', body: {'answers': answers});
   Future<dynamic> quizAnalytics(String id) =>
       get('/studyhub/quizzes/$id/analytics/');
+
+  // ── Child-safety routing (safeguarding leads only) ───────
+  Future<dynamic> childSafetyCases({String status = 'open_active'}) =>
+      get('/moderation/staff/child-safety/', query: {'status': status});
+  Future<dynamic> childSafetyCase(String id) =>
+      get('/moderation/staff/child-safety/$id/');
+  Future<dynamic> childSafetyAction(String id, String action, {String? note}) =>
+      post('/moderation/staff/child-safety/$id/action/',
+          body: {'action': action, if (note != null) 'note': note});
 }
 
 // ─────────────────────────────────────────────────────────────

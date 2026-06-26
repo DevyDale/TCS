@@ -16,6 +16,7 @@ import 'package:tcs_app/screens/staff/wellbeing_analytics_screen.dart';
 import 'package:tcs_app/screens/staff/staff_emergency_compose_screen.dart';
 import 'package:tcs_app/screens/staff/fire_warden_screen.dart';
 import 'package:tcs_app/screens/staff/scam_watch_screen.dart';
+import 'package:tcs_app/screens/staff/child_safety_screen.dart';
 
 class StaffProtectScreen extends StatefulWidget {
   const StaffProtectScreen({super.key});
@@ -27,11 +28,13 @@ class StaffProtectScreen extends StatefulWidget {
 class _StaffProtectScreenState extends State<StaffProtectScreen> {
   final _api = ApiService();
   int _flagsPending = 0;
+  bool _isLead = false;
 
   @override
   void initState() {
     super.initState();
     _loadCounts();
+    _loadLead();
   }
 
   Future<void> _loadCounts() async {
@@ -42,6 +45,14 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
       if (!mounted) return;
       setState(() => _flagsPending = (d['flags_pending'] as int?) ?? 0);
     } catch (_) {/* badge just stays at 0 */}
+  }
+
+  Future<void> _loadLead() async {
+    try {
+      final me = (await _api.getMyProfile() as Map).cast<String, dynamic>();
+      if (!mounted) return;
+      setState(() => _isLead = me['is_safeguarding_lead'] == true);
+    } catch (_) {/* default: hidden */}
   }
 
   void _push(BuildContext context, Widget s) async {
@@ -82,6 +93,15 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                     badge: _flagsPending,
                     onTap: () => _push(context, const StaffModerationScreen())),
                 const SizedBox(height: 12),
+                if (_isLead) ...[
+                  _card(context,
+                      icon: Icons.health_and_safety_rounded,
+                      title: 'Child Safety',
+                      subtitle: 'Safeguarding case queue — preserved evidence.',
+                      gradient: const [Color(0xFFB91C1C), Color(0xFF7F1D1D)],
+                      onTap: () => _push(context, const ChildSafetyScreen())),
+                  const SizedBox(height: 12),
+                ],
                 _card(context,
                     icon: Icons.favorite_rounded,
                     title: 'Wellbeing',

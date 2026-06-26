@@ -108,6 +108,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
         'remove_content' => 'Content removed',
         'suspend_user'   => 'User suspended',
         'unsuspend_user' => 'User unsuspended',
+        'escalate_child_safety' => 'Child-safety case raised',
         _                => 'Done',
       };
 
@@ -399,6 +400,25 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(color: Colors.white24,
                   borderRadius: BorderRadius.circular(3))),
+            // Child-safety routing always available — any staff can escalate up.
+            if (r['has_cs_case'] != true)
+              _sheetAction(Icons.shield_rounded, 'Escalate to child safety', _kRed,
+                  () => _confirm(
+                      'Raise a child-safety case?\n\nThe content is preserved as '
+                      'evidence, hidden from students, and routed to a safeguarding '
+                      'lead. Use this for anything involving a minor.',
+                      () => _act(r, 'escalate_child_safety')))
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(children: [
+                  Icon(Icons.shield_rounded, color: _kRed, size: 18),
+                  SizedBox(width: 10),
+                  Text('Child-safety case already raised',
+                      style: TextStyle(fontFamily: 'Arch', fontSize: 13, color: _kRed)),
+                ]),
+              ),
+            const Divider(height: 1, color: Colors.white12),
             _sheetAction(Icons.close_rounded, 'Dismiss report', Colors.white70,
                 () => _act(r, 'dismiss')),
             _sheetAction(Icons.check_rounded, 'Mark reviewed (no action)', _kG1,

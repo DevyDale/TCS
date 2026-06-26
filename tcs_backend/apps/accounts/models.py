@@ -50,6 +50,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Admin-assigned verified fire warden — may trigger evacuation alerts.
     # Never self-claimed.
     is_fire_warden = models.BooleanField(default=False)
+    # Admin-designated safeguarding lead — works the child-safety case queue.
+    # Tighter than ordinary moderation; never self-claimed.
+    is_safeguarding_lead = models.BooleanField(default=False)
 
     email    = models.EmailField(unique=True, null=True, blank=True)
     username = models.CharField(max_length=50, unique=True, null=True, blank=True)

@@ -4,6 +4,7 @@
 # create Reports (ReportCreateView); staff review and act on them here.
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -20,10 +21,22 @@ logger = logging.getLogger(__name__)
 
 _ELEVATED_ROLES = ("teaching_staff", "admin")
 
+# Reasons that, by default, route into the child-safety lane for a platform
+# with minors. Any report can still be escalated manually.
+_CHILD_SAFETY_REASONS = ("sexual", "self_harm")
+
 
 def _is_elevated(user):
     return bool(getattr(user, "is_superuser", False)) or \
         (getattr(user, "role", "") or "").lower() in _ELEVATED_ROLES
+
+
+def _is_safeguarding_lead(user):
+    """Tighter than ordinary moderation. A designated lead, or an admin/superuser
+    as the fallback so a case is never left unworkable."""
+    return bool(getattr(user, "is_safeguarding_lead", False)) or \
+        bool(getattr(user, "is_superuser", False)) or \
+        (getattr(user, "role", "") or "").lower() == "admin"
 
 
 def record_audit(actor, action, summary, target_type="", target_id=""):
@@ -90,6 +103,11 @@ def _serialize(report):
         "owner_name":      (getattr(owner, "display_name", "") or "") if owner else "",
         "owner_suspended": bool(getattr(owner, "is_suspended", False)) if owner else False,
         "is_user_report":  isinstance(obj, User) or report.content_type.model == "user",
+        # Surfaces the child-safety lane in the queue: either the reason maps to
+        # it by default, or a case has already been raised on this report.
+        "is_child_safety": report.reason in _CHILD_SAFETY_REASONS,
+        "has_cs_case":     hasattr(report, "child_safety_case")
+                           and report.child_safety_case is not None,
         "created_at":      report.created_at.isoformat(),
     }
 
@@ -191,6 +209,20 @@ def report_action(request, pk):
         owner.suspended_at     = None
         owner.save(update_fields=["is_suspended", "suspended_reason", "suspended_at"])
 
+    elif action == "escalate_child_safety":
+        # Any staff member can raise a child-safety case — lowering the barrier
+        # to escalate up is safeguarding-positive. Evidence is PRESERVED (the
+        # content is hidden, not deleted) and the case is routed to leads.
+        case, created = _escalate_child_safety(report, request.user, reason)
+        if not created:
+            return Response({"error": "A child-safety case already exists.",
+                             "case_id": str(case.id)}, status=409)
+        report.status = "actioned"
+        report.reviewed_at = now
+        report.reviewed_by = request.user
+        report.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        return Response({**_serialize(report), "case_id": str(case.id)})
+
     else:
         return Response({"error": f"Unknown action: {action}"}, status=400)
 
@@ -202,6 +234,213 @@ def report_action(request, pk):
                  f"“{_preview(report.content_object)[:60]}”",
                  "report", report.id)
     return Response(_serialize(report))
+
+
+# ── Child-safety routing ──────────────────────────────────────────────────
+def _snapshot(report):
+    """Freeze what's needed to escalate to authorities even after the live
+    content is hidden/removed. Stored on the case as JSON."""
+    obj   = report.content_object
+    owner = _owner_of(obj)
+    return {
+        "content_type": report.content_type.model,
+        "object_id":    str(report.object_id),
+        "preview":      _preview(obj),
+        "reason":       report.reason,
+        "reason_label": report.get_reason_display(),
+        "description":  report.description,
+        "author_id":    str(owner.id) if owner else "",
+        "author_name":  (getattr(owner, "display_name", "") or "") if owner else "",
+        "reporter_name": getattr(report.reporter, "display_name", "") or "",
+        "captured_at":  timezone.now().isoformat(),
+    }
+
+
+def _notify_safeguarding_leads(actor, case):
+    """Push the case to designated leads (fallback: admins/superusers)."""
+    try:
+        from apps.notifications.tasks import _create
+        leads = User.objects.filter(is_active=True).filter(
+            models.Q(is_safeguarding_lead=True) | models.Q(is_superuser=True)
+            | models.Q(role="admin")).exclude(id=getattr(actor, "id", None)).distinct()
+        actor_name = (getattr(actor, "display_name", "") or "A staff member")
+        for s in leads:
+            _create(str(s.id), str(getattr(actor, "id", "")), "child_safety",
+                    "Child-safety case raised",
+                    f"{actor_name} escalated a child-safety concern. Review now.",
+                    "child_safety", str(case.id))
+    except Exception:
+        logger.exception("child-safety lead notify failed")
+
+
+def _escalate_child_safety(report, actor, reason):
+    """Create the case, preserve evidence, hide (not delete) the live content,
+    notify leads. Returns (case, created)."""
+    from .models import ChildSafetyCase
+
+    existing = ChildSafetyCase.objects.filter(report=report).first()
+    if existing:
+        return existing, False
+
+    obj   = report.content_object
+    owner = _owner_of(obj)
+    # Preserve evidence BEFORE touching the live object.
+    snap = _snapshot(report)
+
+    # Hide the content from students while preserved (reversible; never deleted).
+    if obj is not None and not isinstance(obj, User):
+        field = next((f for f in ("is_flagged", "is_hidden", "is_removed")
+                      if hasattr(obj, f)), None)
+        if field:
+            try:
+                setattr(obj, field, True)
+                obj.save(update_fields=[field])
+            except Exception:
+                logger.exception("child-safety hide failed (non-fatal)")
+
+    sev = "critical" if report.reason == "sexual" else "urgent"
+    case = ChildSafetyCase.objects.create(
+        report=report, raised_by=actor,
+        raised_by_name=(getattr(actor, "display_name", "") or ""),
+        subject_user=owner if owner else None,
+        subject_name=(getattr(owner, "display_name", "") or "") if owner else "",
+        severity=sev, status="preserved",
+        reason=(reason or report.get_reason_display())[:300],
+        preserved=snap)
+
+    record_audit(actor, "child_safety.escalate",
+                 f"Raised child-safety case from {report.content_type.model} report",
+                 "child_safety", case.id)
+    _notify_safeguarding_leads(actor, case)
+    return case, True
+
+
+def _case_dict(case, *, full=False):
+    d = {
+        "id":          str(case.id),
+        "severity":    case.severity,
+        "status":      case.status,
+        "reason":      case.reason,
+        "raised_by":   case.raised_by_name or "Staff",
+        "subject":     case.subject_name or "Unknown",
+        "subject_id":  str(case.subject_user_id) if case.subject_user_id else "",
+        "created_at":  case.created_at.isoformat(),
+        "updated_at":  case.updated_at.isoformat(),
+    }
+    if full:
+        d["preserved"] = case.preserved or {}
+        d["notes"]     = case.notes
+        d["outcome"]   = case.outcome
+        # Action trail for this case (append-only audit).
+        try:
+            from .models import AuditEvent
+            trail = AuditEvent.objects.filter(
+                target_type="child_safety", target_id=str(case.id)
+            ).order_by("created_at")
+            d["trail"] = [{
+                "actor": e.actor_name or "System", "action": e.action,
+                "summary": e.summary, "at": e.created_at.isoformat(),
+            } for e in trail]
+        except Exception:
+            d["trail"] = []
+    return d
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def child_safety_cases(request):
+    """GET /api/moderation/staff/child-safety/  — safeguarding leads only."""
+    if not _is_safeguarding_lead(request.user):
+        return Response({"error": "Safeguarding leads only."}, status=403)
+    from .models import ChildSafetyCase
+    status_f = (request.GET.get("status") or "open_active").strip()
+    qs = ChildSafetyCase.objects.select_related("subject_user", "raised_by")
+    if status_f == "open_active":
+        qs = qs.exclude(status="closed")
+    elif status_f != "all":
+        qs = qs.filter(status=status_f)
+    # Severity-first, then newest.
+    order = {"critical": 0, "urgent": 1, "review": 2}
+    rows = sorted(qs[:300], key=lambda c: (order.get(c.severity, 3), ),)
+    rows = sorted(rows, key=lambda c: c.created_at, reverse=True)
+    rows = sorted(rows, key=lambda c: order.get(c.severity, 3))
+    return Response({
+        "results": [_case_dict(c) for c in rows],
+        "open_count": ChildSafetyCase.objects.exclude(status="closed").count(),
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def child_safety_detail(request, pk):
+    if not _is_safeguarding_lead(request.user):
+        return Response({"error": "Safeguarding leads only."}, status=403)
+    from .models import ChildSafetyCase
+    case = ChildSafetyCase.objects.filter(id=pk).first()
+    if not case:
+        return Response({"error": "Case not found."}, status=404)
+    record_audit(request.user, "child_safety.viewed",
+                 "Viewed case", "child_safety", case.id)
+    return Response(_case_dict(case, full=True))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def child_safety_action(request, pk):
+    """POST body: {action, note?}
+    actions: report_authorities | add_note | suspend_subject | close | reopen
+    All write to the append-only audit trail."""
+    if not _is_safeguarding_lead(request.user):
+        return Response({"error": "Safeguarding leads only."}, status=403)
+    from .models import ChildSafetyCase
+    case = ChildSafetyCase.objects.filter(id=pk).first()
+    if not case:
+        return Response({"error": "Case not found."}, status=404)
+
+    action = (request.data.get("action") or "").strip()
+    note   = (request.data.get("note") or "").strip()
+    now    = timezone.now()
+
+    if action == "report_authorities":
+        case.status = "reported"
+        if note:
+            case.notes = (case.notes + f"\n[{now.date()}] {note}").strip()
+        case.save(update_fields=["status", "notes", "updated_at"])
+
+    elif action == "add_note":
+        if not note:
+            return Response({"error": "Note cannot be empty."}, status=400)
+        case.notes = (case.notes + f"\n[{now.date()}] {note}").strip()
+        case.save(update_fields=["notes", "updated_at"])
+
+    elif action == "suspend_subject":
+        if case.subject_user_id is None:
+            return Response({"error": "No account linked to this case."}, status=400)
+        u = case.subject_user
+        u.is_suspended = True
+        u.suspended_reason = "Child-safety case"
+        u.suspended_at = now
+        u.save(update_fields=["is_suspended", "suspended_reason", "suspended_at"])
+
+    elif action == "close":
+        if not note:
+            return Response({"error": "An outcome note is required to close."}, status=400)
+        case.status = "closed"
+        case.outcome = note[:2000]
+        case.closed_by = request.user
+        case.save(update_fields=["status", "outcome", "closed_by", "updated_at"])
+
+    elif action == "reopen":
+        case.status = "preserved"
+        case.save(update_fields=["status", "updated_at"])
+
+    else:
+        return Response({"error": f"Unknown action: {action}"}, status=400)
+
+    record_audit(request.user, f"child_safety.{action}",
+                 (note[:200] or action.replace("_", " ")),
+                 "child_safety", case.id)
+    return Response(_case_dict(case, full=True))
 
 
 @api_view(["GET"])
