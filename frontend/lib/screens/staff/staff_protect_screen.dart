@@ -1,66 +1,104 @@
 // lib/screens/staff/staff_protect_screen.dart
 //
-// PROTECT tab — the safety desk landing. Three live tools as gradient cards
-// (Moderation, Wellbeing, Suggestions) routing into their screens, plus a
-// Scam-watch tile (roadmap). Styled with the shared staff kit.
+// PROTECT tab — the safety desk landing. Live tools as gradient cards
+// (Moderation with a live flag count, Wellbeing, Suggestions) routing into
+// their screens, a crisis-resources quick-call panel, and a Scam-watch tile
+// (roadmap). Styled with the shared staff kit.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:tcs_app/theme/app_colors.dart';
+import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 
-class StaffProtectScreen extends StatelessWidget {
+class StaffProtectScreen extends StatefulWidget {
   const StaffProtectScreen({super.key});
 
-  void _push(BuildContext context, Widget s) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
+  @override
+  State<StaffProtectScreen> createState() => _StaffProtectScreenState();
+}
+
+class _StaffProtectScreenState extends State<StaffProtectScreen> {
+  final _api = ApiService();
+  int _flagsPending = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+  }
+
+  Future<void> _loadCounts() async {
+    try {
+      final d = (await _api.get('/moderation/staff/overview/')
+          .catchError((_) => <String, dynamic>{}) as Map)
+          .cast<String, dynamic>();
+      if (!mounted) return;
+      setState(() => _flagsPending = (d['flags_pending'] as int?) ?? 0);
+    } catch (_) {/* badge just stays at 0 */}
+  }
+
+  void _push(BuildContext context, Widget s) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
+    _loadCounts(); // refresh the badge after working a queue
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppC.bg,
-      body: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics()),
-        padding: EdgeInsets.zero,
-        children: [
-          _hero(),
-          Transform.translate(
-            offset: const Offset(0, -26),
-            child: Column(children: [
-              const SizedBox(height: 12),
-              const StaffSectionLabel('Safety desk',
-                  subtitle: 'Keep your students safe'),
-              _card(context,
-                  icon: Icons.shield_rounded,
-                  title: 'Moderation',
-                  subtitle: 'Work the flag queue — hide, remove, dismiss.',
-                  gradient: const [Color(0xFFF87171), Color(0xFFDC2626)],
-                  onTap: () => _push(context, const StaffModerationScreen())),
-              const SizedBox(height: 12),
-              _card(context,
-                  icon: Icons.favorite_rounded,
-                  title: 'Wellbeing',
-                  subtitle: 'Quiet students, concern reports, Dale flags.',
-                  gradient: const [Color(0xFFF472B6), Color(0xFFDB2777)],
-                  onTap: () => _push(context, const StaffWellbeingScreen())),
-              const SizedBox(height: 12),
-              _card(context,
-                  icon: Icons.lightbulb_rounded,
-                  title: 'Suggestions',
-                  subtitle: 'Student ideas raised to the school.',
-                  gradient: const [Color(0xFF818CF8), Color(0xFF4F46E5)],
-                  onTap: () => _push(context, const StaffSuggestionsScreen())),
-              const SizedBox(height: 22),
-              const StaffSectionLabel('Scam safety'),
-              _scamTile(context),
-              const SizedBox(height: 40),
-            ]),
-          ),
-        ],
+      body: RefreshIndicator(
+        color: const Color(0xFFDC2626),
+        onRefresh: _loadCounts,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.zero,
+          children: [
+            _hero(),
+            Transform.translate(
+              offset: const Offset(0, -26),
+              child: Column(children: [
+                const SizedBox(height: 12),
+                const StaffSectionLabel('Safety desk',
+                    subtitle: 'Keep your students safe'),
+                _card(context,
+                    icon: Icons.shield_rounded,
+                    title: 'Moderation',
+                    subtitle: 'Work the flag queue — hide, remove, dismiss.',
+                    gradient: const [Color(0xFFF87171), Color(0xFFDC2626)],
+                    badge: _flagsPending,
+                    onTap: () => _push(context, const StaffModerationScreen())),
+                const SizedBox(height: 12),
+                _card(context,
+                    icon: Icons.favorite_rounded,
+                    title: 'Wellbeing',
+                    subtitle: 'Quiet students, concern reports, Dale flags.',
+                    gradient: const [Color(0xFFF472B6), Color(0xFFDB2777)],
+                    onTap: () => _push(context, const StaffWellbeingScreen())),
+                const SizedBox(height: 12),
+                _card(context,
+                    icon: Icons.lightbulb_rounded,
+                    title: 'Suggestions',
+                    subtitle: 'Student ideas raised to the school.',
+                    gradient: const [Color(0xFF818CF8), Color(0xFF4F46E5)],
+                    onTap: () => _push(context, const StaffSuggestionsScreen())),
+                const SizedBox(height: 22),
+                const StaffSectionLabel('When it\'s urgent',
+                    subtitle: 'Who to call in a crisis'),
+                _crisisCard(),
+                const SizedBox(height: 22),
+                const StaffSectionLabel('Scam safety'),
+                _scamTile(context),
+                const SizedBox(height: 40),
+              ]),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,6 +144,7 @@ class StaffProtectScreen extends StatelessWidget {
     required String subtitle,
     required List<Color> gradient,
     required VoidCallback onTap,
+    int badge = 0,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -133,8 +172,24 @@ class StaffProtectScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: const TextStyle(fontFamily: 'Alfa',
-                    fontSize: 18, color: Colors.white)),
+                Row(children: [
+                  Text(title, style: const TextStyle(fontFamily: 'Alfa',
+                      fontSize: 18, color: Colors.white)),
+                  if (badge > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)),
+                      child: Text('$badge waiting',
+                          style: TextStyle(fontFamily: 'Arch', fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: gradient.last)),
+                    ),
+                  ],
+                ]),
                 const SizedBox(height: 4),
                 Text(subtitle, style: TextStyle(fontFamily: 'Momo',
                     fontSize: 11.5, height: 1.35,
@@ -146,6 +201,74 @@ class StaffProtectScreen extends StatelessWidget {
                 color: Colors.white, size: 21),
           ]),
         ),
+      ),
+    );
+  }
+
+  // ── Crisis resources: tap-to-call panel ───────────────────
+  Future<void> _call(String number) async {
+    final uri = Uri(scheme: 'tel', path: number.replaceAll(' ', ''));
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Could not start a call to $number',
+            style: const TextStyle(fontFamily: 'Momo'))));
+    }
+  }
+
+  Widget _crisisCard() {
+    // Australia-wide support lines (publicly published, always-on).
+    const lines = <(IconData, String, String, Color)>[
+      (Icons.emergency_rounded, 'Emergency', '000', Color(0xFFDC2626)),
+      (Icons.support_agent_rounded, 'Lifeline', '13 11 14', Color(0xFF0EA5A4)),
+      (Icons.psychology_alt_rounded, 'Beyond Blue', '1300 22 4636',
+          Color(0xFF6366F1)),
+      (Icons.child_care_rounded, 'Kids Helpline', '1800 55 1800',
+          Color(0xFFF59E0B)),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        decoration: staffCard(),
+        child: Column(children: [
+          for (int i = 0; i < lines.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, color: AppC.border.withValues(alpha: 0.6),
+                  indent: 16, endIndent: 16),
+            InkWell(
+              onTap: () { HapticFeedback.selectionClick(); _call(lines[i].$3); },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                child: Row(children: [
+                  Container(
+                    width: 38, height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: lines[i].$4.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(11)),
+                    child: Icon(lines[i].$1, color: lines[i].$4, size: 19)),
+                  const SizedBox(width: 13),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(lines[i].$2, style: TextStyle(fontFamily: 'Arch',
+                          fontWeight: FontWeight.bold, fontSize: 13.5,
+                          color: AppC.text)),
+                      const SizedBox(height: 1),
+                      Text(lines[i].$3, style: TextStyle(fontFamily: 'Momo',
+                          fontSize: 11.5, color: AppC.sub)),
+                    ],
+                  )),
+                  Icon(Icons.call_rounded, color: lines[i].$4, size: 19),
+                ]),
+              ),
+            ),
+          ],
+        ]),
       ),
     );
   }
