@@ -36,6 +36,8 @@ class EventSerializer(serializers.ModelSerializer):
     # Writable poster upload — required on create (see validate()).
     image = serializers.ImageField(write_only=True, required=False,
                                    allow_null=False)
+    # External / AI-generated poster URL (alternative to an uploaded file).
+    poster_url = serializers.URLField(required=False, allow_blank=True)
 
     image_url   = serializers.SerializerMethodField()
     is_rsvped   = serializers.SerializerMethodField()
@@ -45,9 +47,10 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Event
         fields = [
-            "id", "title", "description", "category",
+            "id", "title", "description", "category", "audience",
             "organizer_name", "organizer_role",
             "image",            # write
+            "poster_url",       # write/read (external/AI poster)
             "image_url",        # read
             "location",
             "club",  # tcs-club-field
@@ -82,11 +85,11 @@ class EventSerializer(serializers.ModelSerializer):
         Updates can omit the image field — they keep the existing poster.
         """
         is_create = self.instance is None
-        # When creating, we need either an uploaded `image` in the
-        # incoming data OR (less likely) a poster supplied another way.
-        if is_create and not attrs.get("image"):
+        # When creating, need either an uploaded `image` OR an AI/external
+        # poster_url.
+        if is_create and not attrs.get("image") and not attrs.get("poster_url"):
             raise serializers.ValidationError({
-                "image": "A poster image is required when creating an event.",
+                "image": "A poster is required when creating an event.",
             })
         return attrs
 
@@ -98,8 +101,8 @@ class EventSerializer(serializers.ModelSerializer):
             try:
                 return req.build_absolute_uri(obj.image.url) if req else obj.image.url
             except Exception:
-                return None
-        return None
+                pass
+        return obj.poster_url or None
 
     def get_is_rsvped(self, obj):
         req = self.context.get("request")
@@ -148,7 +151,41 @@ class EventListCreateView(generics.ListCreateAPIView):
         if not _is_teacher(self.request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only teaching staff can create events.")
-        serializer.save(organizer=self.request.user)
+        event = serializer.save(organizer=self.request.user)
+        _notify_event_audience(event, self.request.user)
+
+
+def _notify_event_audience(event, actor):
+    """Fan an event out to its audience as in-app + FCM notifications. Tapping
+    the notification (target_type=event) opens the event detail."""
+    try:
+        from django.contrib.auth import get_user_model
+        from apps.notifications.tasks import _create, _fcm_send_multi
+        User = get_user_model()
+        qs = User.objects.filter(is_active=True)
+        aud = getattr(event, "audience", "everyone")
+        if aud == "students":
+            qs = qs.filter(role="student")
+        elif aud == "staff":
+            qs = qs.filter(role__in=["teaching_staff", "non_teaching_staff", "admin"])
+        qs = qs.exclude(id=actor.id)
+        title = "📅 New event"
+        body = event.title
+        toks = []
+        for u in qs.iterator():
+            try:
+                _create(str(u.id), str(actor.id), "event", title, body,
+                        "event", str(event.id))
+                t = getattr(u, "fcm_token", None)
+                if t:
+                    toks.append(t)
+            except Exception:
+                pass
+        _fcm_send_multi(toks, title, body,
+                        {"type": "event", "event_id": str(event.id)})
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("event notify failed")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -173,7 +210,11 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         event = self.get_object()
-        if not (event.organizer == request.user or _is_teacher(request.user)):
+        # Any staff member (incl. non-teaching) — or the organizer — may remove.
+        is_staff = (getattr(request.user, "role", "") in
+                    ("teaching_staff", "non_teaching_staff", "admin")) or \
+            bool(getattr(request.user, "is_superuser", False))
+        if not (event.organizer == request.user or is_staff):
             return Response({"error": "Permission denied."}, status=403)
         event.is_active = False
         event.save(update_fields=["is_active"])

@@ -24,10 +24,19 @@ class Event(models.Model):
         ARCADE   = "arcade",   "Arcade"
         OTHER    = "other",    "Other"
 
+    class Audience(models.TextChoices):
+        EVERYONE = "everyone", "Everyone"
+        STUDENTS = "students", "Students"
+        STAFF    = "staff",    "Staff"
+
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title       = models.CharField(max_length=200)
     description = models.TextField()
     category    = models.CharField(max_length=15, choices=Category.choices)
+    audience    = models.CharField(max_length=8, choices=Audience.choices,
+                                   default=Audience.EVERYONE)
+    # External / AI-generated poster (used when no Cloudinary file is uploaded).
+    poster_url  = models.URLField(max_length=2000, blank=True, default="")
     organizer   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                     related_name="organized_events")
     group       = models.ForeignKey("groups.Group", null=True, blank=True,

@@ -19,6 +19,7 @@ import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/suggestions_review_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/dashboard/events_screen.dart';
+import 'package:tcs_app/screens/staff/staff_event_compose_screen.dart';
 import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
 import 'package:tcs_app/screens/staff/staff_audit_screen.dart';
 import 'package:tcs_app/screens/staff/staff_permissions_screen.dart';
@@ -26,7 +27,6 @@ import 'package:tcs_app/screens/staff/staff_needs_attention_screen.dart';
 import 'package:tcs_app/screens/notification_Screen.dart';
 import 'package:tcs_app/screens/staff/staff_dale_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
-import 'package:tcs_app/widgets/welcome_banner.dart';
 import 'package:tcs_app/widgets/dale_greeting_cloud.dart';
 
 // Dale animation — the same robot Lottie used across the app. Falls back to an
@@ -56,8 +56,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   final _cohortCtrl = PageController(viewportFraction: 0.82);
   int _cohortPage = 0;
   Timer? _autoTimer;
-  bool _showWelcome = true; // welcome banner, once per app launch
-  bool _showDaleCloud = false; // Dale greeting cloud, after the welcome banner
+  bool _showDaleCloud = true; // Dale greeting cloud, once per app launch
 
   @override
   void initState() {
@@ -187,16 +186,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             ),
           ],
         ),
-        if (_showWelcome)
-          WelcomeBanner(
-            name: _firstName,
-            onDismissed: () {
-              if (mounted) setState(() {
-                _showWelcome = false;
-                _showDaleCloud = true; // then Dale pops out of his button
-              });
-            },
-          ),
         if (_showDaleCloud)
           Positioned(
             top: MediaQuery.of(context).padding.top + 60,
@@ -361,7 +350,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           () => _push(const StaffAnnouncementsScreen())),
       (Icons.event_available_rounded, 'Create event',
           [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
-          () => _push(const EventsScreen())),
+          () => _push(const StaffEventComposeScreen())),
       (Icons.school_rounded, 'Train Dale',
           [const Color(0xFF2DD4BF), const Color(0xFF0EA5A4)],
           () => _push(const StaffKnowledgeScreen())),
