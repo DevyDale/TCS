@@ -10,40 +10,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
-import 'package:tcs_app/screens/chat/chat_list_screen.dart';
+import 'package:tcs_app/screens/staff/staff_chats_screen.dart';
 import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
-import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
-import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
+import 'package:tcs_app/screens/staff/staff_groups_screen.dart';
+import 'package:tcs_app/screens/staff/staff_clubs_screen.dart';
 
 class StaffConnectScreen extends StatelessWidget {
   const StaffConnectScreen({super.key});
 
   void _push(BuildContext context, Widget s) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
-
-  // ChatListScreen / GroupsStudyHubScreen are root tabs with no back button —
-  // pushed as routes they'd trap the user. Wrap in a slim back-bar scaffold.
-  void _pushTab(BuildContext context, Widget child) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (ctx) => Scaffold(
-        backgroundColor: AppC.bg,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_rounded, color: AppC.text),
-                onPressed: () => Navigator.of(ctx).maybePop(),
-              ),
-            ),
-            Expanded(child: child),
-          ]),
-        ),
-      ),
-    ));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +45,7 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Messages',
                   subtitle: 'DMs and group chats with your colleagues.',
                   gradient: const [Color(0xFF60A5FA), Color(0xFF2563EB)],
-                  onTap: () => _pushTab(context, const ChatListScreen())),
+                  onTap: () => _push(context, const StaffChatsScreen())),
               const SizedBox(height: 12),
 
               // 2-up grid: Feed + Announce.
@@ -102,14 +79,14 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Study groups',
                   subtitle: 'Student study groups across the cohort',
                   color: const Color(0xFF059669),
-                  onTap: () => _pushTab(context, const GroupsStudyHubScreen())),
+                  onTap: () => _push(context, const StaffGroupsScreen())),
               const SizedBox(height: 10),
               _communityRow(context,
                   icon: Icons.local_activity_rounded,
                   title: 'Clubs',
                   subtitle: 'Clubs and societies on campus',
                   color: const Color(0xFFEA580C),
-                  onTap: () => _push(context, const ArcadeClubsScreen())),
+                  onTap: () => _push(context, const StaffClubsScreen())),
 
               const SizedBox(height: 40),
             ]),
