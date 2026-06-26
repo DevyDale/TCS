@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <title>TCS — Data Entry Portal</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <style>
@@ -21,7 +21,7 @@
       --radius: 14px; --radius-lg: 22px; --radius-xl: 28px;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; scroll-padding-bottom: 180px; }
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
@@ -307,6 +307,7 @@
 
     .field input,
     .field select {
+      scroll-margin-bottom: 180px;
       width: 100%;
       padding: 13px 16px;
       background: var(--input-bg);
@@ -894,6 +895,16 @@
       setStep(1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // ── Mobile keyboard fix ──────────────────────────────────
+    // When a field is focused, lift it to the centre of the visible area
+    // once the on-screen keyboard has finished animating, so the submit
+    // button / bottom of the card never covers what you're typing.
+    document.querySelectorAll('.field input, .field select').forEach(el => {
+      el.addEventListener('focus', () => {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+      });
+    });
 
     setStep(1);
   </script>

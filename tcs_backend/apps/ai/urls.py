@@ -5,6 +5,7 @@ from .router_views import ai_router_status
 from .knowledge_views import (knowledge_list, knowledge_upload,
                               knowledge_toggle, knowledge_delete)
 from .translate_views import ai_translate
+from .extract_views import extract_document
 
 urlpatterns = [
     # Text tools
@@ -13,6 +14,7 @@ urlpatterns = [
     path("status/", views.ai_status, name="ai-status"),
     path("birthday-note/", views.birthday_note, name="ai-birthday-note"),
     path("scam-check/",     views.scam_check,    name="ai-scam-check"),
+    path("extract/",        extract_document,    name="ai-extract"),
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),

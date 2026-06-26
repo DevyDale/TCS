@@ -26,6 +26,7 @@ import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/widgets/markdown_text.dart';
 import 'package:tcs_app/screens/ai/scam_check_screen.dart';
@@ -289,7 +290,19 @@ class _ConversationStore {
 // ═════════════════════════════════════════════════════════════
 
 class AiAssistantScreen extends StatefulWidget {
-  const AiAssistantScreen({super.key});
+  /// Optional text to pre-fill the composer with (e.g. a task starter from a
+  /// quick-action chip). The field is focused so the user can finish it.
+  final String? initialInput;
+
+  /// When true, the file picker opens on entry so the user can attach a
+  /// document straight away (used by Translate / Summarise flows).
+  final bool openAttachment;
+
+  const AiAssistantScreen({
+    super.key,
+    this.initialInput,
+    this.openAttachment = false,
+  });
 
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
@@ -309,6 +322,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   final List<AiMessage> _messages = [];
   String _userName = '';
   bool _isLoading = false;
+  bool _attaching = false;
   int _rateLimitUsed = 0;
   int _rateLimitMax = 60;
 
@@ -346,6 +360,23 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
     _fetchUserName();
     _fetchStatus();
     _loadConversations();
+
+    // Quick-action entry: pre-fill a task starter and/or open the file picker.
+    if (widget.initialInput != null || widget.openAttachment) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        if (widget.initialInput != null) {
+          _inputCtrl.text = widget.initialInput!;
+          _inputCtrl.selection =
+              TextSelection.collapsed(offset: _inputCtrl.text.length);
+        }
+        if (widget.openAttachment) {
+          await _pickAttachment();
+        } else if (widget.initialInput != null) {
+          _inputFocus.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -499,6 +530,76 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   }
 
   // ── Send message — robust streaming + error reporting ────
+
+  void _toast(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: error ? const Color(0xFFB3261E) : _theme.gradient.last,
+        duration: const Duration(seconds: 3),
+        content: Text(msg,
+            style: const TextStyle(
+                fontFamily: 'Momo', fontSize: 12.5, color: Colors.white)),
+      ));
+  }
+
+  // Pick a PDF / DOCX / TXT from the phone, extract its text on the server, and
+  // drop it into the composer so the user can act on it (translate, summarise…).
+  Future<void> _pickAttachment() async {
+    if (_attaching || _isLoading) return;
+    FilePickerResult? picked;
+    try {
+      picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'doc', 'docx', 'txt'],
+        allowMultiple: false,
+        withData: false,
+      );
+    } catch (_) {
+      _toast('Could not open the file picker.', error: true);
+      return;
+    }
+    if (picked == null || picked.files.isEmpty) return;
+    final pf = picked.files.first;
+    if (pf.path == null) {
+      _toast('Could not read that file.', error: true);
+      return;
+    }
+
+    final ext = (pf.extension ?? '').toLowerCase();
+    final mime = ext == 'pdf'
+        ? 'application/pdf'
+        : ext == 'txt'
+            ? 'text/plain'
+            : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    setState(() => _attaching = true);
+    HapticFeedback.selectionClick();
+    try {
+      final res = await _api.uploadFile('/ai/extract/',
+          filePath: pf.path!, field: 'file', mimeType: mime);
+      final text = (res is Map ? res['text'] : null)?.toString().trim() ?? '';
+      if (text.isEmpty) {
+        _toast('No readable text found in that file.', error: true);
+        return;
+      }
+      final existing = _inputCtrl.text.trimRight();
+      _inputCtrl.text = existing.isEmpty ? text : '$existing\n\n$text';
+      _inputCtrl.selection =
+          TextSelection.collapsed(offset: _inputCtrl.text.length);
+      _inputFocus.requestFocus();
+      final truncated = res is Map && res['truncated'] == true;
+      _toast(truncated
+          ? 'Added "${pf.name}" (trimmed to fit) — edit and send.'
+          : 'Added "${pf.name}" — edit and send.');
+    } catch (_) {
+      _toast('Could not read that file.', error: true);
+    } finally {
+      if (mounted) setState(() => _attaching = false);
+    }
+  }
 
   Future<void> _sendMessage(String text) async {
     final msg = text.trim();
@@ -1262,6 +1363,27 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          GestureDetector(
+            onTap: (_attaching || _isLoading) ? null : _pickAttachment,
+            child: Container(
+              width: 48,
+              height: 48,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: _kInputBg,
+                shape: BoxShape.circle,
+                border: Border.all(color: _kBorder),
+              ),
+              child: _attaching
+                  ? Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _theme.gradient.last))
+                  : Icon(Icons.attach_file_rounded,
+                      color: _isLoading ? _kSlateLight : _theme.gradient.last,
+                      size: 22),
+            ),
+          ),
           Expanded(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

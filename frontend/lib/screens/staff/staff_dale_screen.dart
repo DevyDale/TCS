@@ -23,9 +23,15 @@ class StaffDaleScreen extends StatelessWidget {
   void _push(BuildContext context, Widget s) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
 
-  void _askDale(BuildContext context) {
+  void _askDale(BuildContext context,
+      {String? initialInput, bool openAttachment = false}) {
     HapticFeedback.selectionClick();
-    _push(context, const AiAssistantScreen());
+    _push(
+        context,
+        AiAssistantScreen(
+          initialInput: initialInput,
+          openAttachment: openAttachment,
+        ));
   }
 
   Widget _dale({required double size, required Color fallback}) {
@@ -185,11 +191,33 @@ class StaffDaleScreen extends StatelessWidget {
 
   // ── Suggestion chips ──────────────────────────────────────
   Widget _suggestions(BuildContext context) {
-    const chips = [
-      (Icons.campaign_rounded, 'Draft an announcement'),
-      (Icons.summarize_rounded, 'Summarise a policy'),
-      (Icons.menu_book_rounded, 'Plan a lesson'),
-      (Icons.translate_rounded, 'Translate a notice'),
+    // (icon, label, starter prompt, open file picker on entry)
+    const chips = <(IconData, String, String, bool)>[
+      (
+        Icons.campaign_rounded,
+        'Draft an announcement',
+        'Draft a clear, friendly announcement for students about: ',
+        false
+      ),
+      (
+        Icons.summarize_rounded,
+        'Summarise a policy',
+        'Summarise this policy for students in simple, plain-language points:\n\n',
+        true
+      ),
+      (
+        Icons.menu_book_rounded,
+        'Plan a lesson',
+        'Help me plan a lesson. Subject and topic: ',
+        false
+      ),
+      (
+        Icons.translate_rounded,
+        'Translate a notice',
+        'Translate this notice into English. First tell me the original '
+            'language, then give a clear translation:\n\n',
+        true
+      ),
     ];
     return SizedBox(
       height: 40,
@@ -201,7 +229,8 @@ class StaffDaleScreen extends StatelessWidget {
         itemBuilder: (_, i) {
           final c = chips[i];
           return GestureDetector(
-            onTap: () => _askDale(context),
+            onTap: () => _askDale(context,
+                initialInput: c.$3, openAttachment: c.$4),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
