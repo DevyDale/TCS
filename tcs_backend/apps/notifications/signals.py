@@ -63,7 +63,11 @@ def on_chat_request(sender, instance, created, **kwargs):
 def on_event_created(sender, instance, created, **kwargs):
     if not created or not instance.is_active:
         return
-    from .tasks import push_highlight_notification
+    # Resilient: a missing highlight task must never break event creation.
+    try:
+        from .tasks import push_highlight_notification
+    except Exception:
+        return
 
     actor_id = str(instance.organizer.id) if instance.organizer_id else None
 
@@ -81,7 +85,10 @@ def on_event_created(sender, instance, created, **kwargs):
 def on_announcement_created(sender, instance, created, **kwargs):
     if not created or instance.post_type != "announcement":
         return
-    from .tasks import push_highlight_notification
+    try:
+        from .tasks import push_highlight_notification
+    except Exception:
+        return
 
     actor_id = str(instance.author.id) if instance.author_id else None
 
