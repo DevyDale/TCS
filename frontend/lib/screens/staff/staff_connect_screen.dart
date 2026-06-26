@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
-import 'package:tcs_app/screens/staff/staff_chats_screen.dart';
+import 'package:tcs_app/screens/chat/chat_list_screen.dart';
 import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
 import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
@@ -69,7 +69,7 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Messages',
                   subtitle: 'DMs and group chats with your colleagues.',
                   gradient: const [Color(0xFF60A5FA), Color(0xFF2563EB)],
-                  onTap: () => _push(context, const StaffChatsScreen())),
+                  onTap: () => _pushTab(context, const ChatListScreen())),
               const SizedBox(height: 12),
 
               // Feed (full width).
@@ -236,6 +236,7 @@ class StaffConnectScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () { HapticFeedback.selectionClick(); onTap(); },
       child: Container(
+        width: double.infinity,
         height: 138,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

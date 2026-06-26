@@ -11,7 +11,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
-import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
+import 'package:tcs_app/screens/staff/suggestions_review_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 import 'package:tcs_app/screens/staff/staff_emergency_compose_screen.dart';
 import 'package:tcs_app/screens/staff/fire_warden_screen.dart';
@@ -94,7 +94,7 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                     title: 'Suggestions',
                     subtitle: 'Student ideas raised to the school.',
                     gradient: const [Color(0xFF818CF8), Color(0xFF4F46E5)],
-                    onTap: () => _push(context, const StaffSuggestionsScreen())),
+                    onTap: () => _push(context, const SuggestionsReviewScreen())),
                 const SizedBox(height: 22),
                 const StaffSectionLabel('Scam safety'),
                 _scamTile(context),

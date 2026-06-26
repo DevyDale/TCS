@@ -67,6 +67,13 @@ class Suggestion(models.Model):
     message    = models.TextField()
     status     = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     admin_note = models.TextField(blank=True)
+    # Staff triage fields.
+    priority    = models.IntegerField(default=0)           # 0–100, AI/staff-set
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL,
+                                    related_name='assigned_suggestions')
+    theme       = models.CharField(max_length=80, blank=True, default='')  # AI cluster label
+    is_flagged  = models.BooleanField(default=False)       # routed to Protect
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

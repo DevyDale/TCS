@@ -185,6 +185,10 @@ def school_suggestions(request):
             'title':         s.title,
             'message':       s.message,
             'status':        s.status,
+            'priority':      s.priority,
+            'theme':         s.theme,
+            'is_flagged':    s.is_flagged,
+            'admin_note':    s.admin_note,
             'student_name':  getattr(s.user, 'display_name', '') or
                              getattr(s.user, 'name', '') or 'Student',
             'student_id':    getattr(s.user, 'user_id', ''),
@@ -194,3 +198,53 @@ def school_suggestions(request):
         }
         for s in qs
     ])
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def staff_update_suggestion(request, pk):
+    """PATCH /api/feedback/staff/<id>/  — status / priority / note / flag."""
+    if (getattr(request.user, "role", "") or "") not in _STAFF_ROLES:
+        return Response({'error': 'Staff only.'}, status=403)
+    s = Suggestion.objects.filter(id=pk).first()
+    if not s:
+        return Response({'error': 'Not found.'}, status=404)
+    d = request.data
+    valid_status = {c[0] for c in Suggestion.STATUS_CHOICES}
+    if 'status' in d and d['status'] in valid_status:
+        s.status = d['status']
+    if 'priority' in d:
+        try:
+            s.priority = max(0, min(100, int(d['priority'])))
+        except (TypeError, ValueError):
+            pass
+    if 'admin_note' in d:
+        s.admin_note = (d.get('admin_note') or '')[:2000]
+    if 'is_flagged' in d:
+        s.is_flagged = bool(d['is_flagged'])
+    s.save()
+    return Response({'id': str(s.id), 'status': s.status, 'priority': s.priority,
+                     'admin_note': s.admin_note, 'is_flagged': s.is_flagged})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def staff_reply_suggestion(request, pk):
+    """POST /api/feedback/staff/<id>/reply/  {message} — notify the student."""
+    if (getattr(request.user, "role", "") or "") not in _STAFF_ROLES:
+        return Response({'error': 'Staff only.'}, status=403)
+    s = Suggestion.objects.filter(id=pk).select_related('user').first()
+    if not s:
+        return Response({'error': 'Not found.'}, status=404)
+    msg = (request.data.get('message') or '').strip()
+    if not msg:
+        return Response({'error': 'A reply is required.'}, status=400)
+    s.admin_note = msg[:2000]
+    s.save(update_fields=['admin_note', 'updated_at'])
+    try:
+        from apps.notifications.tasks import _create
+        _create(str(s.user_id), str(request.user.id), "feedback",
+                "Reply to your suggestion", msg, "suggestion", str(s.id))
+    except Exception:
+        logger.exception("suggestion reply notify failed")
+    return Response({'ok': True})

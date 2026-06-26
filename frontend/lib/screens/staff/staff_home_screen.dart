@@ -16,7 +16,7 @@ import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/splash_screen.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
-import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
+import 'package:tcs_app/screens/staff/suggestions_review_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/dashboard/events_screen.dart';
 import 'package:tcs_app/screens/staff/staff_oversight_screen.dart';
@@ -391,7 +391,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       _CohortItem(Icons.lightbulb_rounded, 'Suggestions',
           'Student ideas to the school',
           [const Color(0xFF818CF8), const Color(0xFF4F46E5)],
-          () => _push(const StaffSuggestionsScreen())),
+          () => _push(const SuggestionsReviewScreen())),
       _CohortItem(Icons.campaign_rounded, 'Announcements',
           'Official posts & push',
           [const Color(0xFFA78BFA), const Color(0xFF8E54E9)],
