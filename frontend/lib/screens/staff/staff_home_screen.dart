@@ -9,9 +9,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/screens/splash_screen.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
@@ -112,6 +114,31 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   void _push(Widget s) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
 
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppC.card,
+        title: Text('Log out?',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
+        content: Text('You\'ll need to sign in again to use the staff console.',
+            style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Log out',
+                  style: TextStyle(color: Color(0xFFE11D48),
+                      fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try { await _api.logout(); } catch (_) {/* clear locally regardless */}
+    Get.offAll(() => const SplashScreen());
+  }
+
   // Dale animation with a safe icon fallback if the asset isn't present.
   Widget _daleVisual({required double size, required Color fallbackColor}) {
     return Lottie.asset(
@@ -185,6 +212,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   color: Colors.white, size: 20),
               onTap: () => _push(const StaffNeedsAttentionScreen()),
               dot: (_flagsPending ?? 0) > 0),
+          const SizedBox(width: 10),
+          _headerButton(
+              child: const Icon(Icons.logout_rounded,
+                  color: Colors.white, size: 19),
+              onTap: _logout),
           const SizedBox(width: 10),
           _headerButton(
               child: _daleVisual(size: 30, fallbackColor: Colors.white),
