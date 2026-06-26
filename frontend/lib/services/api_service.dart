@@ -441,6 +441,41 @@ Future<dynamic> delete(String path,
     return d;
   }
 
+  /// Email/password login for visitor/parent accounts.
+  Future<Map<String, dynamic>> loginPassword({
+    required String identifier,
+    required String password,
+  }) async {
+    final d = await post('/accounts/login-password/', body: {
+      'identifier': identifier,
+      'password':   password,
+    }, auth: false) as Map<String, dynamic>;
+    if (d['success'] == false) {
+      throw Exception(d['error'] ?? 'Invalid credentials.');
+    }
+    await _Tokens.clear();
+    await _Tokens.save(d['access'] as String, d['refresh'] as String);
+    await _Tokens.saveUser(d['user'] as Map<String, dynamic>);
+    return d;
+  }
+
+  /// Self-registration for visitor/parent, then logs in to get a session.
+  Future<Map<String, dynamic>> registerVisitor({
+    required String name,
+    required String username,
+    required String email,
+    required String password,
+    required String dateOfBirth, // YYYY-MM-DD
+    required String role,        // 'visitor' | 'parent'
+  }) async {
+    await post('/accounts/register/', body: {
+      'name': name, 'username': username, 'email': email,
+      'password': password, 'confirm_password': password,
+      'date_of_birth': dateOfBirth, 'role': role,
+    }, auth: false);
+    return loginPassword(identifier: email, password: password);
+  }
+
   /// POST /api/accounts/logout/
   /// THE ONLY PLACE _Tokens.clear() IS CALLED. Invoked when the user
   /// explicitly taps the logout button.

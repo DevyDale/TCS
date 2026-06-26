@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
+import 'package:tcs_app/widgets/dale_loader.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -30,6 +31,14 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
   List<Map<String, dynamic>> _docs = [];
   int _activeChunks = 0;
   bool _loading = true;
+  bool _tick = false; // brief green-tick flash after loading
+
+  void _flashTick() {
+    setState(() => _tick = true);
+    Future.delayed(const Duration(milliseconds: 850), () {
+      if (mounted) setState(() => _tick = false);
+    });
+  }
   bool _busy = false;
 
   final _searchCtrl = TextEditingController();
@@ -50,12 +59,14 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       fetch: () => _api.get('/ai/knowledge/'),
       onData: (data, fresh) {
         if (!mounted) return;
+        final wasLoading = _loading;
         final m = (data as Map?) ?? const {};
         setState(() {
           _docs = ((m['results'] as List?) ?? []).cast<Map<String, dynamic>>();
           _activeChunks = (m['active_chunks'] as int?) ?? 0;
           _loading = false;
         });
+        if (wasLoading) _flashTick();
       },
       onError: (_) { if (mounted) setState(() => _loading = false); },
     );
@@ -257,8 +268,8 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         label: T('Upload material',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: AppC.text)),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kG2))
+      body: (_loading || _tick)
+          ? DaleLoader(done: _tick, doneLabel: 'Dale is ready')
           : _docs.isEmpty
               ? _empty()
               : RefreshIndicator(

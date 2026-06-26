@@ -18,6 +18,7 @@ import '../utils/responsive_helper.dart';
 import 'auth/role_selection_screen.dart';
 import 'auth/session_keys.dart';
 import 'dashboard/dashboard_screen.dart';
+import 'visitor/visitor_dashboard_screen.dart';
 import '../walkthroughscreen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -155,11 +156,13 @@ class _SplashScreenState extends State<SplashScreen>
         }
       }
 
-      dest = DashboardScreen(
-        fullName:      fullName,
-        preferredName: preferredName,
-        role:          role,
-      );
+      dest = (role == 'visitor' || role == 'parent')
+          ? const VisitorDashboardScreen()
+          : DashboardScreen(
+              fullName:      fullName,
+              preferredName: preferredName,
+              role:          role,
+            );
 
       // Fire-and-forget background refresh. Result is discarded —
       // it can only succeed (updating the access_token) or fail

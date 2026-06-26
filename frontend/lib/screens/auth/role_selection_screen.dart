@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/auth/login_id_screen.dart';
+import 'package:tcs_app/screens/auth/visitor_auth_screen.dart';
 
 import '../../utils/responsive_helper.dart';
 
@@ -84,6 +85,15 @@ const _roles = [
     gradient: [Color(0xFF22C55E), Color(0xFF0F766E)],
     perks: ['Post Announcements', 'Student Groups', 'Campus Events'],
   ),
+  _Role(
+    title: 'Visitor',
+    subtitle: 'Sign up with email & password',
+    description:
+        'Browse public clubs and events at Taylors College Sydney.',
+    icon: Icons.public_rounded,
+    gradient: [Color(0xFFF7971E), Color(0xFFFFD200)],
+    perks: ['Public club posts', 'Upcoming events', 'Ask Dale'],
+  ),
 ];
 
 // ═════════════════════════════════════════════════════════════
@@ -144,10 +154,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
   void _navigate(_Role role) {
     HapticFeedback.mediumImpact();
+    final r = role.title.toLowerCase();
+    final bool isVisitor = r == 'visitor' || r == 'parent';
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (_, anim, __) =>
-            LoginIdScreen(role: role.title.toLowerCase()),
+        pageBuilder: (_, anim, __) => isVisitor
+            ? VisitorAuthScreen(role: r)
+            : LoginIdScreen(role: r),
         transitionsBuilder: (_, anim, __, child) => SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(1, 0),
