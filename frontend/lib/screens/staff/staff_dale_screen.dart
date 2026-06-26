@@ -216,7 +216,7 @@ class StaffDaleScreen extends StatelessWidget {
         'Translate a notice',
         'Translate this notice into English. First tell me the original '
             'language, then give a clear translation:\n\n',
-        true
+        false
       ),
     ];
     return SizedBox(
