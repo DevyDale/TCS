@@ -14,6 +14,8 @@ import 'package:tcs_app/screens/staff/staff_chats_screen.dart';
 import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
 import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
+import 'package:tcs_app/screens/arcade/arcade_screen.dart';
+import 'package:tcs_app/services/settings_Screen.dart';
 
 class StaffConnectScreen extends StatelessWidget {
   const StaffConnectScreen({super.key});
@@ -99,6 +101,13 @@ class StaffConnectScreen extends StatelessWidget {
                   subtitle: 'Clubs and societies on campus',
                   color: const Color(0xFFEA580C),
                   onTap: () => _push(context, const ArcadeClubsScreen())),
+              const SizedBox(height: 10),
+              _communityRow(context,
+                  icon: Icons.sports_esports_rounded,
+                  title: 'Arcade',
+                  subtitle: 'Play games with students and staff',
+                  color: const Color(0xFF2563EB),
+                  onTap: () => _push(context, const ArcadeScreen())),
 
               const SizedBox(height: 40),
             ]),
@@ -137,6 +146,22 @@ class StaffConnectScreen extends StatelessWidget {
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
                     color: Colors.white.withValues(alpha: 0.85))),
           ],
+        )),
+        Builder(builder: (context) => GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const SettingsScreen()));
+          },
+          child: Container(
+            width: 42, height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+            child: const Icon(Icons.settings_rounded,
+                color: Colors.white, size: 20)),
         )),
       ]),
     );
