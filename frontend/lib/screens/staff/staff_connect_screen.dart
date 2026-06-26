@@ -11,8 +11,10 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/chat/chat_list_screen.dart';
-import 'package:tcs_app/screens/feed/feed_screen.dart';
+import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
+import 'package:tcs_app/screens/groups/groups_study_hub_screen.dart';
+import 'package:tcs_app/screens/arcade/aracade_clubs.dart';
 
 class StaffConnectScreen extends StatelessWidget {
   const StaffConnectScreen({super.key});
@@ -72,7 +74,7 @@ class StaffConnectScreen extends StatelessWidget {
                   title: 'Feed',
                   subtitle: 'See what students are posting on the platform.',
                   gradient: const [Color(0xFFA78BFA), Color(0xFF7C3AED)],
-                  onTap: () => _pushTab(context, const FeedScreen())),
+                  onTap: () => _push(context, const StaffFeedScreen())),
               const SizedBox(height: 12),
               _card(context,
                   icon: Icons.campaign_rounded,
@@ -81,6 +83,22 @@ class StaffConnectScreen extends StatelessWidget {
                   gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
                   onTap: () =>
                       _push(context, const StaffAnnouncementsScreen())),
+              const SizedBox(height: 22),
+              const StaffSectionLabel('Community',
+                  subtitle: 'Where students gather'),
+              _card(context,
+                  icon: Icons.groups_rounded,
+                  title: 'Study groups',
+                  subtitle: 'Student study groups across the cohort.',
+                  gradient: const [Color(0xFF34D399), Color(0xFF059669)],
+                  onTap: () => _pushTab(context, const GroupsStudyHubScreen())),
+              const SizedBox(height: 12),
+              _card(context,
+                  icon: Icons.local_activity_rounded,
+                  title: 'Clubs',
+                  subtitle: 'Clubs and societies on campus.',
+                  gradient: const [Color(0xFFFB923C), Color(0xFFEA580C)],
+                  onTap: () => _push(context, const ArcadeClubsScreen())),
               const SizedBox(height: 40),
             ]),
           ),
