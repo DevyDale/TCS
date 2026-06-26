@@ -63,7 +63,7 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
             Transform.translate(
               offset: const Offset(0, -26),
               child: Column(children: [
-                const SizedBox(height: 12),
+                const SizedBox(height: 34),
                 const StaffSectionLabel('Emergency',
                     subtitle: 'Alert every student at once'),
                 _broadcastCard(context),
