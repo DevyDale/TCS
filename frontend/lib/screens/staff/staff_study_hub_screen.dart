@@ -15,6 +15,7 @@ import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
 import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 import 'package:tcs_app/screens/studyhub/sessions_screen.dart';
 import 'package:tcs_app/screens/studyhub/study_insights_screen.dart';
+import 'package:tcs_app/screens/studyhub/subject_hubs_screen.dart';
 
 class StaffStudyHubScreen extends StatefulWidget {
   const StaffStudyHubScreen({super.key});
@@ -127,6 +128,13 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
               const SizedBox(height: 18),
               const StaffSectionLabel('The bridge',
                   subtitle: 'Shared with your students'),
+              _tile(
+                icon: Icons.dashboard_rounded,
+                title: 'Subject Hubs',
+                subtitle: 'Everything for a subject — resources, Q&A, quizzes, sessions',
+                grad: const [Color(0xFF334155), Color(0xFF1E293B)],
+                onTap: () => _push(const SubjectHubsScreen(isTeacher: true))),
+              const SizedBox(height: 12),
               _tile(
                 icon: Icons.menu_book_rounded,
                 title: 'Resource Library',

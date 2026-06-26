@@ -1443,10 +1443,14 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
           body: {'action': action, if (note != null) 'note': note});
 
   // ── Study sessions ───────────────────────────────────────
-  Future<dynamic> studySessions({String when = 'upcoming', bool mine = false}) =>
+  Future<dynamic> studySessions({String when = 'upcoming', bool mine = false,
+          String? subject}) =>
       get('/studyhub/sessions/', query: {
         'when': when, if (mine) 'mine': '1',
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
       });
+
+  Future<dynamic> studySubjects() => get('/studyhub/subjects/');
 
   Future<dynamic> scheduleSession({
     required String title, required String subject, required String whenIso,

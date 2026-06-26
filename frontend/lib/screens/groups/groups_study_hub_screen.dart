@@ -11,6 +11,7 @@ import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
 import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
 import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 import 'package:tcs_app/screens/studyhub/sessions_screen.dart';
+import 'package:tcs_app/screens/studyhub/subject_hubs_screen.dart';
 
 import 'dart:async';
 import '../../services/api_service.dart';
@@ -880,6 +881,29 @@ class _GroupsStudyHubScreenState
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Column(children: [
+        GestureDetector(
+          onTap: () { HapticFeedback.selectionClick();
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const SubjectHubsScreen(isTeacher: false))); },
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [Color(0xFF334155), Color(0xFF1E293B)]),
+              borderRadius: BorderRadius.circular(14)),
+            child: Row(children: [
+              const Icon(Icons.dashboard_rounded, color: Colors.white, size: 22),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Subject Hubs',
+                  style: TextStyle(fontFamily: 'Arch', fontSize: 13,
+                      fontWeight: FontWeight.bold, color: Colors.white))),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.white.withOpacity(0.8), size: 20),
+            ]),
+          ),
+        ),
         Row(children: [
           Expanded(child: _bridgeCard(
             icon: Icons.menu_book_rounded,

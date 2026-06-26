@@ -735,6 +735,59 @@ def session_delete(request, pk):
     return Response(status=204)
 
 
+# ── Subject hubs (spec §3D — a per-subject directory) ─────────────────────
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def subjects(request):
+    """A directory of subject hubs: every subject that has any material, with
+    counts so students can jump straight to a subject's bundle. Visible to all;
+    quizzes counted are published only (drafts stay with their author)."""
+    from collections import defaultdict
+
+    rollup = defaultdict(lambda: {
+        "subject": "", "resources": 0, "open_questions": 0,
+        "sessions": 0, "quizzes": 0})
+
+    def _key(s):
+        return (s or "").strip().lower()
+
+    for r in Resource.objects.all().only("subject"):
+        k = _key(r.subject)
+        if not k:
+            continue
+        rollup[k]["subject"] = rollup[k]["subject"] or r.subject.strip()
+        rollup[k]["resources"] += 1
+
+    for q in Question.objects.filter(status="open").only("subject"):
+        k = _key(q.subject)
+        if not k:
+            continue
+        rollup[k]["subject"] = rollup[k]["subject"] or q.subject.strip()
+        rollup[k]["open_questions"] += 1
+
+    for s in StudySession.objects.filter(when__gte=timezone.now()).only("subject"):
+        k = _key(s.subject)
+        if not k:
+            continue
+        rollup[k]["subject"] = rollup[k]["subject"] or s.subject.strip()
+        rollup[k]["sessions"] += 1
+
+    for qz in Quiz.objects.filter(is_published=True).only("subject"):
+        k = _key(qz.subject)
+        if not k:
+            continue
+        rollup[k]["subject"] = rollup[k]["subject"] or qz.subject.strip()
+        rollup[k]["quizzes"] += 1
+
+    rows = [r for r in rollup.values() if any(
+        r[k] for k in ("resources", "open_questions", "sessions", "quizzes"))]
+    for r in rows:
+        r["total"] = (r["resources"] + r["open_questions"]
+                      + r["sessions"] + r["quizzes"])
+    rows.sort(key=lambda r: -r["total"])
+    return Response({"results": rows})
+
+
 # ── Demand Insights (spec §5 — aggregate only, no individual singled out) ──
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

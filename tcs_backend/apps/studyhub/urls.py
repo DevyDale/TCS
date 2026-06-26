@@ -20,7 +20,8 @@ urlpatterns = [
     # Office hours
     path("teachers/",                     views.teachers),
     path("teachers/me/",                  views.my_availability),
-    # Demand insights (teacher-only, aggregate)
+    # Subject hubs directory + demand insights
+    path("subjects/",                     views.subjects),
     path("insights/",                     views.insights),
     # Quizzes
     path("quizzes/generate/",             views.quiz_generate),
