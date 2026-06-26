@@ -13,7 +13,8 @@ import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
-import 'package:tcs_app/screens/staff/staff_broadcast_screen.dart';
+import 'package:tcs_app/screens/staff/staff_emergency_compose_screen.dart';
+import 'package:tcs_app/screens/staff/fire_warden_screen.dart';
 
 class StaffProtectScreen extends StatefulWidget {
   const StaffProtectScreen({super.key});
@@ -65,8 +66,10 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
               child: Column(children: [
                 const SizedBox(height: 34),
                 const StaffSectionLabel('Emergency',
-                    subtitle: 'Alert every student at once'),
+                    subtitle: 'Alert staff, students or everyone'),
                 _broadcastCard(context),
+                const SizedBox(height: 12),
+                _fireWardenCard(context),
                 const SizedBox(height: 22),
                 const StaffSectionLabel('Safety desk',
                     subtitle: 'Keep your students safe'),
@@ -211,7 +214,7 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
-          _push(context, const StaffBroadcastScreen());
+          _push(context, const StaffEmergencyComposeScreen());
         },
         child: Container(
           padding: const EdgeInsets.all(18),
@@ -237,12 +240,12 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Emergency broadcast',
+                const Text('New emergency',
                     style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
                         color: Colors.white)),
                 const SizedBox(height: 4),
-                Text('Push an urgent alert to every student — with a '
-                    'mark-yourself-safe roll-call.',
+                Text('Push an urgent alert to staff, students or everyone — '
+                    'with a mark-yourself-safe check-in.',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
                         height: 1.35,
                         color: Colors.white.withValues(alpha: 0.92))),
@@ -251,6 +254,46 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
             const SizedBox(width: 8),
             const Icon(Icons.arrow_forward_rounded,
                 color: Colors.white, size: 21),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _fireWardenCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _push(context, const FireWardenScreen());
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: staffCard(border: const Color(0xFFF7971E).withValues(alpha: 0.5)),
+          child: Row(children: [
+            Container(
+              width: 48, height: 48, alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7971E).withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.local_fire_department_rounded,
+                  color: Color(0xFFF7971E), size: 24)),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('I am a Fire Warden',
+                    style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                        fontSize: 14.5, color: AppC.text)),
+                const SizedBox(height: 3),
+                Text('Evacuation control, check-in roster & history.',
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                        color: AppC.sub)),
+              ],
+            )),
+            Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 22),
           ]),
         ),
       ),

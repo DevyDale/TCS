@@ -6,6 +6,7 @@
 # student never receives a staff-only alert.
 
 import logging
+import os
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -49,10 +50,15 @@ def _targets_user(alert, u):
 def _audience_qs(audience):
     qs = User.objects.filter(is_active=True)
     if audience == "staff":
-        return qs.filter(role__in=_STAFF_ROLES)
-    if audience == "students":
-        return qs.filter(role="student")
-    return qs  # everyone
+        qs = qs.filter(role__in=_STAFF_ROLES)
+    elif audience == "students":
+        qs = qs.filter(role="student")
+    # Safety guard: when EMERGENCY_FANOUT_ONLY_USER is set (dev/testing), real
+    # alerts only reach that one account — never the live cohort.
+    only = os.environ.get("EMERGENCY_FANOUT_ONLY_USER", "").strip()
+    if only:
+        qs = qs.filter(user_id=only)
+    return qs
 
 
 def _audit(alert, actor, action):

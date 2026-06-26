@@ -196,8 +196,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             scale: _tabScaleAnim,
             child: _screens[_currentIndex],
           ),
-          // Students see live emergency alerts on any tab.
-          if (!_isStaff) const EmergencyBanner(),
+          // Everyone sees live emergency alerts on any tab (audience-filtered
+          // server-side).
+          const EmergencyBanner(),
         ],
       ),
       // Body still draws behind the bar so transparent scrims and gradients

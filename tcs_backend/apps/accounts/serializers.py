@@ -82,9 +82,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "notification_settings", "privacy_settings",
             "is_available_study",
             "study_subjects",
+            "is_fire_warden",
         ]
         read_only_fields = [
-            "id", "user_id", "role", "xp", "level", "tokens",
+            "id", "user_id", "role", "xp", "level", "tokens", "is_fire_warden",
             "is_verified", "date_joined", "is_online", "last_seen",
         ]
 
