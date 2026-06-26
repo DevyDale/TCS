@@ -1441,6 +1441,26 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
   Future<dynamic> childSafetyAction(String id, String action, {String? note}) =>
       post('/moderation/staff/child-safety/$id/action/',
           body: {'action': action, if (note != null) 'note': note});
+
+  // ── Study sessions ───────────────────────────────────────
+  Future<dynamic> studySessions({String when = 'upcoming', bool mine = false}) =>
+      get('/studyhub/sessions/', query: {
+        'when': when, if (mine) 'mine': '1',
+      });
+
+  Future<dynamic> scheduleSession({
+    required String title, required String subject, required String whenIso,
+    String description = '', String location = '', String link = '',
+    bool notify = true,
+  }) => post('/studyhub/sessions/', body: {
+        'title': title, 'subject': subject, 'when': whenIso,
+        'description': description, 'location': location, 'link': link,
+        'notify': notify,
+      });
+
+  Future<dynamic> rsvpSession(String id) => post('/studyhub/sessions/$id/rsvp/');
+  Future<dynamic> remindSession(String id) => post('/studyhub/sessions/$id/remind/');
+  Future<dynamic> deleteSession(String id) => delete('/studyhub/sessions/$id/delete/');
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -74,6 +74,38 @@ class Question(models.Model):
         indexes = [models.Index(fields=["status", "-created_at"], name="sh_q_status_idx")]
 
 
+class StudySession(models.Model):
+    """A teacher-scheduled revision session (in-person or via a link). Students
+    RSVP; the teacher can fan a reminder to attendees (spec §3E)."""
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                    related_name="study_sessions")
+    subject     = models.CharField(max_length=80, db_index=True)
+    title       = models.CharField(max_length=160)
+    description = models.CharField(max_length=400, blank=True, default="")
+    when        = models.DateTimeField(db_index=True)
+    location    = models.CharField(max_length=160, blank=True, default="")
+    link        = models.URLField(blank=True, default="")
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "studyhub_session"
+        ordering = ["when"]
+        indexes = [models.Index(fields=["when"], name="sh_sess_when_idx")]
+
+
+class SessionRSVP(models.Model):
+    id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(StudySession, on_delete=models.CASCADE, related_name="rsvps")
+    user    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                related_name="session_rsvps")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "studyhub_session_rsvp"
+        unique_together = [("session", "user")]
+
+
 class Quiz(models.Model):
     """Teacher-authored quiz. AI drafts stay unpublished until the teacher
     reviews them — the teacher is the accuracy gate (spec §4). MCQ-only so

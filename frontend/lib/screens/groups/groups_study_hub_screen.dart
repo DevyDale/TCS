@@ -10,6 +10,7 @@ import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
 import 'package:tcs_app/screens/studyhub/resource_library_screen.dart';
 import 'package:tcs_app/screens/studyhub/qa_board_screen.dart';
 import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
+import 'package:tcs_app/screens/studyhub/sessions_screen.dart';
 
 import 'dart:async';
 import '../../services/api_service.dart';
@@ -878,27 +879,38 @@ class _GroupsStudyHubScreenState
   Widget _buildTeacherBridge() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: Row(children: [
-        Expanded(child: _bridgeCard(
-          icon: Icons.menu_book_rounded,
-          label: 'Resources',
-          color: _indigo,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ResourceLibraryScreen(isTeacher: false))))),
-        const SizedBox(width: 8),
-        Expanded(child: _bridgeCard(
-          icon: Icons.forum_rounded,
-          label: 'Ask a\nTeacher',
-          color: _deepPurple,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const QaBoardScreen(isTeacher: false))))),
-        const SizedBox(width: 8),
-        Expanded(child: _bridgeCard(
-          icon: Icons.quiz_rounded,
-          label: 'Quizzes',
-          color: const Color(0xFF7C3AED),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const QuizzesScreen(isTeacher: false))))),
+      child: Column(children: [
+        Row(children: [
+          Expanded(child: _bridgeCard(
+            icon: Icons.menu_book_rounded,
+            label: 'Resources',
+            color: _indigo,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const ResourceLibraryScreen(isTeacher: false))))),
+          const SizedBox(width: 8),
+          Expanded(child: _bridgeCard(
+            icon: Icons.forum_rounded,
+            label: 'Ask a Teacher',
+            color: _deepPurple,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const QaBoardScreen(isTeacher: false))))),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _bridgeCard(
+            icon: Icons.quiz_rounded,
+            label: 'Quizzes',
+            color: const Color(0xFF7C3AED),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const QuizzesScreen(isTeacher: false))))),
+          const SizedBox(width: 8),
+          Expanded(child: _bridgeCard(
+            icon: Icons.event_available_rounded,
+            label: 'Sessions',
+            color: const Color(0xFF0EA5A4),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const SessionsScreen(isTeacher: false))))),
+        ]),
       ]),
     );
   }

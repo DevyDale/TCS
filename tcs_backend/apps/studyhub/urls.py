@@ -28,4 +28,9 @@ urlpatterns = [
     path("quizzes/<uuid:pk>/delete/",     views.quiz_delete),
     path("quizzes/<uuid:pk>/attempt/",    views.quiz_attempt),
     path("quizzes/<uuid:pk>/analytics/",  views.quiz_analytics),
+    # Study sessions
+    path("sessions/",                     views.sessions),
+    path("sessions/<uuid:pk>/rsvp/",      views.session_rsvp),
+    path("sessions/<uuid:pk>/remind/",    views.session_remind),
+    path("sessions/<uuid:pk>/delete/",    views.session_delete),
 ]

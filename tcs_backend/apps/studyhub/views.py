@@ -17,8 +17,11 @@ from rest_framework.response import Response
 
 from django.db import transaction
 
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
 from .models import (Answer, Question, Quiz, QuizAttempt, QuizQuestion,
-                     Resource, TeacherAvailability)
+                     Resource, SessionRSVP, StudySession, TeacherAvailability)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -583,6 +586,152 @@ def quiz_attempt(request, pk):
         "percentage": round(100 * correct / total) if total else 0,
         "xp_awarded": xp, "review": review,
     }, status=201)
+
+
+# ── Study Sessions (spec §3E) ─────────────────────────────────────────────
+def _session_dict(s, user):
+    rsvps = list(s.rsvps.all())
+    return {
+        "id":          str(s.id),
+        "subject":     s.subject,
+        "title":       s.title,
+        "description": s.description,
+        "when":        s.when.isoformat(),
+        "location":    s.location,
+        "link":        s.link,
+        "teacher":     _name(s.teacher),
+        "teacher_id":  str(s.teacher_id),
+        "rsvp_count":  len(rsvps),
+        "is_rsvped":   any(r.user_id == user.id for r in rsvps),
+        "is_mine":     s.teacher_id == user.id,
+        "created_at":  s.created_at.isoformat(),
+    }
+
+
+def _notify_session_audience(session, actor, *, title, body):
+    """Fan a study-session notice to students (in-app + FCM). Tapping opens the
+    session (target_type=study_session). Mirrors the events fan-out."""
+    try:
+        from apps.notifications.tasks import _create, _fcm_send_multi
+        qs = User.objects.filter(is_active=True, role="student").exclude(id=actor.id)
+        toks = []
+        for u in qs.iterator():
+            try:
+                _create(str(u.id), str(actor.id), "study_session", title, body,
+                        "study_session", str(session.id))
+                tk = getattr(u, "fcm_token", "") or ""
+                if tk:
+                    toks.append(tk)
+            except Exception:
+                pass
+        if toks:
+            _fcm_send_multi(toks, title, body,
+                            data={"type": "study_session", "id": str(session.id)})
+    except Exception:
+        logger.exception("study-session notify failed")
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def sessions(request):
+    if request.method == "GET":
+        # Upcoming by default; ?when=past for history, ?mine=1 for own/RSVP'd.
+        qs = StudySession.objects.select_related("teacher").prefetch_related("rsvps")
+        when = request.query_params.get("when", "upcoming")
+        now = timezone.now()
+        if when == "past":
+            qs = qs.filter(when__lt=now).order_by("-when")
+        else:
+            qs = qs.filter(when__gte=now - timezone.timedelta(hours=2)).order_by("when")
+        if request.query_params.get("mine") == "1":
+            if _is_teacher(request.user):
+                qs = qs.filter(teacher=request.user)
+            else:
+                qs = qs.filter(rsvps__user=request.user)
+        subject = request.query_params.get("subject")
+        if subject:
+            qs = qs.filter(subject__iexact=subject)
+        return Response({"results": [_session_dict(s, request.user) for s in qs[:200]]})
+
+    # POST — schedule (teacher)
+    if not _is_teacher(request.user):
+        return Response({"error": "Only teachers can schedule sessions."}, status=403)
+    title   = (request.data.get("title") or "").strip()
+    subject = (request.data.get("subject") or "").strip()
+    when    = (request.data.get("when") or "").strip()
+    if not title or not subject or not when:
+        return Response({"error": "Title, subject and time are required."}, status=400)
+    dt = parse_datetime(when)
+    if dt is None:
+        return Response({"error": "Invalid time format."}, status=400)
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+
+    s = StudySession.objects.create(
+        teacher=request.user, subject=subject, title=title[:160],
+        description=(request.data.get("description") or "")[:400],
+        when=dt, location=(request.data.get("location") or "")[:160],
+        link=(request.data.get("link") or "")[:200])
+    if str(request.data.get("notify")).lower() in ("1", "true", "yes", "on"):
+        _notify_session_audience(s, request.user,
+                                 title="📚 New study session",
+                                 body=f"{s.subject}: {s.title}")
+    return Response(_session_dict(s, request.user), status=201)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def session_rsvp(request, pk):
+    s = get_object_or_404(StudySession, pk=pk)
+    rsvp = SessionRSVP.objects.filter(session=s, user=request.user).first()
+    if rsvp:
+        rsvp.delete()
+        going = False
+    else:
+        SessionRSVP.objects.get_or_create(session=s, user=request.user)
+        going = True
+    return Response({"is_rsvped": going, "rsvp_count": s.rsvps.count()})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def session_remind(request, pk):
+    """Teacher fans a reminder to everyone who has RSVP'd (spec §3E)."""
+    s = get_object_or_404(StudySession, pk=pk)
+    if s.teacher_id != request.user.id and not _is_teacher(request.user):
+        return Response({"error": "Not allowed."}, status=403)
+    try:
+        from apps.notifications.tasks import _create, _fcm_send_multi
+        attendees = User.objects.filter(session_rsvps__session=s, is_active=True).distinct()
+        title = "⏰ Study session reminder"
+        body = f"{s.subject}: {s.title}"
+        toks = []
+        for u in attendees:
+            try:
+                _create(str(u.id), str(request.user.id), "study_session", title, body,
+                        "study_session", str(s.id))
+                tk = getattr(u, "fcm_token", "") or ""
+                if tk:
+                    toks.append(tk)
+            except Exception:
+                pass
+        if toks:
+            _fcm_send_multi(toks, title, body,
+                            data={"type": "study_session", "id": str(s.id)})
+        return Response({"reminded": attendees.count()})
+    except Exception:
+        logger.exception("session remind failed")
+        return Response({"error": "Could not send reminders."}, status=500)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def session_delete(request, pk):
+    s = get_object_or_404(StudySession, pk=pk)
+    if s.teacher_id != request.user.id and not _is_teacher(request.user):
+        return Response({"error": "Not allowed."}, status=403)
+    s.delete()
+    return Response(status=204)
 
 
 @api_view(["GET"])
