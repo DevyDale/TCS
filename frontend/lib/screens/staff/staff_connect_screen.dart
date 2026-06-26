@@ -12,7 +12,6 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/staff/staff_chats_screen.dart';
 import 'package:tcs_app/screens/staff/staff_feed_screen.dart';
-import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_groups_screen.dart';
 import 'package:tcs_app/screens/staff/staff_clubs_screen.dart';
 
@@ -48,25 +47,15 @@ class StaffConnectScreen extends StatelessWidget {
                   onTap: () => _push(context, const StaffChatsScreen())),
               const SizedBox(height: 12),
 
-              // 2-up grid: Feed + Announce.
+              // Feed (full width).
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(children: [
-                  Expanded(child: _gridTile(context,
-                      icon: Icons.dynamic_feed_rounded,
-                      title: 'Feed',
-                      subtitle: 'What students post',
-                      gradient: const [Color(0xFFA78BFA), Color(0xFF7C3AED)],
-                      onTap: () => _push(context, const StaffFeedScreen()))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _gridTile(context,
-                      icon: Icons.campaign_rounded,
-                      title: 'Announce',
-                      subtitle: 'Post & push',
-                      gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-                      onTap: () =>
-                          _push(context, const StaffAnnouncementsScreen()))),
-                ]),
+                child: _gridTile(context,
+                    icon: Icons.dynamic_feed_rounded,
+                    title: 'Feed',
+                    subtitle: 'See what students are posting',
+                    gradient: const [Color(0xFFA78BFA), Color(0xFF7C3AED)],
+                    onTap: () => _push(context, const StaffFeedScreen())),
               ),
 
               const SizedBox(height: 24),

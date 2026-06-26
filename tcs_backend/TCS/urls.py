@@ -24,6 +24,7 @@ api_v1 = [
     path("quiz/",          include("apps.quiz.urls")),
     path("feedback/",      include("apps.feedback.urls")),
     path("safety/",        include("apps.safety.urls")),
+    path("scam/",          include("apps.scam.urls")),
     # path("media/",         include("apps.media.urls")),  # TODO: apps.media not in INSTALLED_APPS
     path("ai/",            include("apps.ai.urls")),       # ← ADD THIS LINE
     path("schema/",        SpectacularAPIView.as_view(),                        name="schema"),

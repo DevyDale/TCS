@@ -15,6 +15,7 @@ import 'package:tcs_app/screens/staff/staff_suggestions_screen.dart';
 import 'package:tcs_app/screens/staff/staff_wellbeing_screen.dart';
 import 'package:tcs_app/screens/staff/staff_emergency_compose_screen.dart';
 import 'package:tcs_app/screens/staff/fire_warden_screen.dart';
+import 'package:tcs_app/screens/staff/scam_watch_screen.dart';
 
 class StaffProtectScreen extends StatefulWidget {
   const StaffProtectScreen({super.key});
@@ -306,7 +307,7 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
-          _push(context, const _ScamOversightScreen());
+          _push(context, const ScamWatchScreen());
         },
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -325,25 +326,11 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(children: [
-                  Text('Scam watch', style: TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 14.5,
-                      color: AppC.text)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(7)),
-                    child: const Text('SOON', style: TextStyle(
-                        fontFamily: 'Arch', fontSize: 8,
-                        fontWeight: FontWeight.bold, letterSpacing: 1,
-                        color: Color(0xFFB45309))),
-                  ),
-                ]),
+                Text('Scam watch', style: TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 14.5,
+                    color: AppC.text)),
                 const SizedBox(height: 3),
-                Text('Spot scam waves & broadcast a warning early.',
+                Text('Triage reports & warn the campus about scams.',
                     style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
                         color: AppC.sub)),
               ],
@@ -356,56 +343,3 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
   }
 }
 
-class _ScamOversightScreen extends StatelessWidget {
-  const _ScamOversightScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppC.bg,
-      body: ListView(padding: EdgeInsets.zero, children: [
-        StaffHeader(
-          bottomPad: 24,
-          horizontal: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(children: [
-            GestureDetector(
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25))),
-                child: const Icon(Icons.arrow_back_rounded,
-                    color: Colors.white, size: 20)),
-            ),
-            const SizedBox(width: 14),
-            const Text('Scam watch',
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
-                    color: Colors.white)),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
-          child: Column(children: [
-            const Text('🛰️', style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 16),
-            Text('Scam oversight is on the way',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
-                    color: AppC.text)),
-            const SizedBox(height: 10),
-            Text(
-                'Students can already check suspicious messages with Dale in '
-                'the Scam Check tool. A live staff view of scam waves — so you '
-                'can broadcast a warning early — is on the roadmap.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    height: 1.6, color: AppC.sub)),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
