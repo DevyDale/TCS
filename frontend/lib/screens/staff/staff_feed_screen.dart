@@ -115,7 +115,7 @@ class _StaffFeedScreenState extends State<StaffFeedScreen> {
               parent: BouncingScrollPhysics()),
           slivers: [
             SliverToBoxAdapter(child: _header()),
-            if (!_loading && _posts.isNotEmpty)
+            if (!_loading)
               SliverToBoxAdapter(child: Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: StaffSearchBar(

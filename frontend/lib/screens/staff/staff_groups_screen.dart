@@ -82,17 +82,19 @@ class _StaffGroupsScreenState extends State<StaffGroupsScreen> {
               const Padding(padding: EdgeInsets.all(30),
                   child: Center(child: CircularProgressIndicator(
                       color: Color(0xFF059669))))
-            else if (_groups.isEmpty)
-              _empty()
             else ...[
-              _stats(),
-              const SizedBox(height: 14),
+              if (_groups.isNotEmpty) ...[
+                _stats(),
+                const SizedBox(height: 14),
+              ],
               StaffSearchBar(
                   controller: _search,
                   hint: 'Search study groups…',
                   onChanged: (v) => setState(() => _query = v)),
               const SizedBox(height: 12),
-              if (_filtered.isEmpty)
+              if (_groups.isEmpty)
+                _empty()
+              else if (_filtered.isEmpty)
                 staffNoResults('No study groups match.')
               else
                 Padding(

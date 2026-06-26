@@ -167,12 +167,12 @@ class _StaffClubsScreenState extends State<StaffClubsScreen> {
               if (_clubs.isNotEmpty) ...[
                 _stats(),
                 const SizedBox(height: 14),
-                StaffSearchBar(
-                    controller: _search,
-                    hint: 'Search clubs…',
-                    onChanged: (v) => setState(() => _query = v)),
-                const SizedBox(height: 12),
               ],
+              StaffSearchBar(
+                  controller: _search,
+                  hint: 'Search clubs…',
+                  onChanged: (v) => setState(() => _query = v)),
+              const SizedBox(height: 12),
               if (_clubs.isEmpty)
                 _empty()
               else if (_filtered.isEmpty)

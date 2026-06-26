@@ -104,13 +104,11 @@ class _StaffAnnouncementsScreenState extends State<StaffAnnouncementsScreen> {
               const Padding(padding: EdgeInsets.all(30),
                   child: Center(child: CircularProgressIndicator(color: _kAmber)))
             else ...[
-              if (_items.isNotEmpty) ...[
-                StaffSearchBar(
-                    controller: _search,
-                    hint: 'Search notices…',
-                    onChanged: (v) => setState(() => _query = v)),
-                const SizedBox(height: 12),
-              ],
+              StaffSearchBar(
+                  controller: _search,
+                  hint: 'Search notices…',
+                  onChanged: (v) => setState(() => _query = v)),
+              const SizedBox(height: 12),
               if (_items.isEmpty)
                 _empty()
               else if (_filtered.isEmpty)

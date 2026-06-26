@@ -123,7 +123,7 @@ class _StaffChatsScreenState extends State<StaffChatsScreen> {
           children: [
             _header(),
             const SizedBox(height: 14),
-            if (!_loading && _rooms.isNotEmpty) ...[
+            if (!_loading) ...[
               StaffSearchBar(
                   controller: _search,
                   hint: 'Search conversations…',
