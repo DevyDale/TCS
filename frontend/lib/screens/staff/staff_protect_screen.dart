@@ -7,7 +7,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
@@ -92,10 +91,6 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                     subtitle: 'Student ideas raised to the school.',
                     gradient: const [Color(0xFF818CF8), Color(0xFF4F46E5)],
                     onTap: () => _push(context, const StaffSuggestionsScreen())),
-                const SizedBox(height: 22),
-                const StaffSectionLabel('When it\'s urgent',
-                    subtitle: 'Who to call in a crisis'),
-                _crisisCard(),
                 const SizedBox(height: 22),
                 const StaffSectionLabel('Scam safety'),
                 _scamTile(context),
@@ -258,74 +253,6 @@ class _StaffProtectScreenState extends State<StaffProtectScreen> {
                 color: Colors.white, size: 21),
           ]),
         ),
-      ),
-    );
-  }
-
-  // ── Crisis resources: tap-to-call panel ───────────────────
-  Future<void> _call(String number) async {
-    final uri = Uri(scheme: 'tel', path: number.replaceAll(' ', ''));
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Could not start a call to $number',
-            style: const TextStyle(fontFamily: 'Momo'))));
-    }
-  }
-
-  Widget _crisisCard() {
-    // Australia-wide support lines (publicly published, always-on).
-    const lines = <(IconData, String, String, Color)>[
-      (Icons.emergency_rounded, 'Emergency', '000', Color(0xFFDC2626)),
-      (Icons.support_agent_rounded, 'Lifeline', '13 11 14', Color(0xFF0EA5A4)),
-      (Icons.psychology_alt_rounded, 'Beyond Blue', '1300 22 4636',
-          Color(0xFF6366F1)),
-      (Icons.child_care_rounded, 'Kids Helpline', '1800 55 1800',
-          Color(0xFFF59E0B)),
-    ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        decoration: staffCard(),
-        child: Column(children: [
-          for (int i = 0; i < lines.length; i++) ...[
-            if (i > 0)
-              Divider(height: 1, color: AppC.border.withValues(alpha: 0.6),
-                  indent: 16, endIndent: 16),
-            InkWell(
-              onTap: () { HapticFeedback.selectionClick(); _call(lines[i].$3); },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                child: Row(children: [
-                  Container(
-                    width: 38, height: 38,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: lines[i].$4.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(11)),
-                    child: Icon(lines[i].$1, color: lines[i].$4, size: 19)),
-                  const SizedBox(width: 13),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(lines[i].$2, style: TextStyle(fontFamily: 'Arch',
-                          fontWeight: FontWeight.bold, fontSize: 13.5,
-                          color: AppC.text)),
-                      const SizedBox(height: 1),
-                      Text(lines[i].$3, style: TextStyle(fontFamily: 'Momo',
-                          fontSize: 11.5, color: AppC.sub)),
-                    ],
-                  )),
-                  Icon(Icons.call_rounded, color: lines[i].$4, size: 19),
-                ]),
-              ),
-            ),
-          ],
-        ]),
       ),
     );
   }
