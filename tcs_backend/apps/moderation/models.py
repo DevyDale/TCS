@@ -132,7 +132,8 @@ class WellbeingAction(models.Model):
     class Meta:
         db_table = "moderation_wellbeing_action"
         ordering = ["-created_at"]
-        indexes  = [models.Index(fields=["student", "-created_at"])]
+        indexes  = [models.Index(fields=["student", "-created_at"],
+                                  name="mod_wb_student_created_idx")]
 
 
 class AuditEvent(models.Model):
