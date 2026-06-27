@@ -156,13 +156,29 @@ TCS is intended for users aged 13 and over. We do not knowingly collect informat
 
 ---
 
-## 10. Changes to This Policy
+## 10. Wellbeing & AI Safety Support
+
+To help the College support student wellbeing, TCS may include an automated wellbeing-support feature. **This feature is only active when your College has switched it on and has the necessary consent in place** (for example, consent obtained at enrolment from you or your parent/guardian).
+
+**What it does.** When active, the messages you send to the in-app AI assistant are checked by an automated system for signs that you may be struggling or at risk (for example, language suggesting distress or self-harm). This is a triage signal that helps trained staff reach out — **it is not a diagnosis and never replaces a human or a crisis service.**
+
+**What we store.** We do **not** store your chat transcripts for this purpose. When the system detects a possible concern it records only: a risk level, short non-identifying theme tags (e.g. "academic", "homesickness"), and a brief redacted snippet — together with the time and your account, so a staff member can follow up. Anonymous, aggregate trends may be shown to staff with no individual identified.
+
+**Who can see it.** Identified wellbeing concerns are visible only to designated safeguarding staff at your College. Every time a staff member views or acts on a concern is recorded on an audit trail.
+
+**Your choice.** You can turn this support **off for your own account at any time** in Settings → Wellbeing & Safety. If you turn it off, your messages are not checked or stored for wellbeing purposes. Turning it off does not affect your ability to use the rest of the app.
+
+**In an emergency,** always contact a real crisis service — in Australia, Lifeline on **13 11 14** or **000** — rather than relying on the app.
+
+---
+
+## 11. Changes to This Policy
 
 We may update this Privacy Policy from time to time. We will notify you of significant changes through the app or by email. Continued use of TCS after changes means you accept the updated policy.
 
 ---
 
-## 11. Contact
+## 12. Contact
 
 If you have questions, concerns, or complaints about this Privacy Policy or our handling of your personal information:
 

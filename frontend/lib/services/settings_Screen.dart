@@ -21,6 +21,7 @@ import 'package:tcs_app/screens/about_developer_screen.dart';
 import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 import 'package:tcs_app/screens/settings/blocked_users_screen.dart';
 import 'package:tcs_app/screens/privacy_policy_screen.dart';
+import 'package:tcs_app/screens/wellbeing_notice_screen.dart';
 import 'package:tcs_app/screens/terms_of_service_screen.dart';
 import 'package:tcs_app/services/auth_service.dart';
 import 'package:tcs_app/services/api_service.dart';
@@ -640,6 +641,13 @@ _group([
                     'When enabled, other students can find your profile by '
                     'searching your name or username. Disabling this means '
                     'only people who already follow you can view your profile.'),
+                ),
+                _divLine(),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const WellbeingNoticeScreen())),
+                  child: _info(Icons.health_and_safety_rounded, 'Wellbeing & Safety',
+                      'Manage ›', const Color(0xFF0EA5A4)),
                 ),
                 _divLine(),
                 GestureDetector(

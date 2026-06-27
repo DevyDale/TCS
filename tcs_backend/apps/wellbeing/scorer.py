@@ -86,7 +86,11 @@ def record_signal(student, message):
     """Score + persist a signal; raise a Case if severe. Best-effort, never
     raises into the chat path. Gated by settings.WELLBEING_SCORING_ENABLED."""
     from django.conf import settings
+    # Two consent gates, both must pass: the school-level switch AND the
+    # student's own choice. Either off → no message is ever scored or stored.
     if not getattr(settings, "WELLBEING_SCORING_ENABLED", False):
+        return None
+    if getattr(student, "wellbeing_opt_out", False):
         return None
     try:
         from .models import WellbeingSignal, WellbeingCase

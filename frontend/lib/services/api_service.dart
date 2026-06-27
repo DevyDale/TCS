@@ -1433,6 +1433,14 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
   Future<dynamic> quizAnalytics(String id) =>
       get('/studyhub/quizzes/$id/analytics/');
 
+  // ── Wellbeing consent / transparency (student self-service) ─
+  Future<dynamic> wellbeingConsent() => get('/wellbeing/consent/');
+  Future<dynamic> setWellbeingConsent({bool? optOut, bool? seen}) =>
+      post('/wellbeing/consent/', body: {
+        if (optOut != null) 'opt_out': optOut,
+        if (seen != null) 'seen': seen,
+      });
+
   // ── Child-safety routing (safeguarding leads only) ───────
   Future<dynamic> childSafetyCases({String status = 'open_active'}) =>
       get('/moderation/staff/child-safety/', query: {'status': status});

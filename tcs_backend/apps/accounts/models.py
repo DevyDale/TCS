@@ -53,6 +53,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Admin-designated safeguarding lead — works the child-safety case queue.
     # Tighter than ordinary moderation; never self-claimed.
     is_safeguarding_lead = models.BooleanField(default=False)
+    # Student-set: opt out of AI wellbeing support (no scoring of their messages).
+    # Honoured by the wellbeing scorer regardless of the school-level flag.
+    wellbeing_opt_out = models.BooleanField(default=False)
+    # When the student last saw the wellbeing/privacy notice (transparency).
+    wellbeing_notice_seen_at = models.DateTimeField(null=True, blank=True)
 
     email    = models.EmailField(unique=True, null=True, blank=True)
     username = models.CharField(max_length=50, unique=True, null=True, blank=True)

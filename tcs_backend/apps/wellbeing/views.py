@@ -151,3 +151,39 @@ def case_action(request, pk):
                               actor_name=_name(request.user),
                               action=action, note=note)
     return Response(_case_dict(c, full=True))
+
+
+# ── Student consent / transparency (self-service) ─────────────────────────
+def _consent_dict(u):
+    from django.conf import settings
+    return {
+        # Is the school-level wellbeing programme switched on at all?
+        "programme_active": bool(getattr(settings, "WELLBEING_SCORING_ENABLED", False)),
+        # The student's own choice.
+        "opted_out":  bool(getattr(u, "wellbeing_opt_out", False)),
+        "notice_seen": getattr(u, "wellbeing_notice_seen_at", None) is not None,
+        # Effective state: are this student's messages eligible for scoring now?
+        "active_for_me": bool(getattr(settings, "WELLBEING_SCORING_ENABLED", False))
+                         and not bool(getattr(u, "wellbeing_opt_out", False)),
+    }
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def consent(request):
+    """A student views the wellbeing notice state and sets their own choice.
+    GET → current state. POST {opt_out?: bool, seen?: bool}."""
+    u = request.user
+    if request.method == "POST":
+        changed = []
+        if "opt_out" in request.data:
+            u.wellbeing_opt_out = str(request.data.get("opt_out")).lower() in (
+                "1", "true", "yes", "on")
+            changed.append("wellbeing_opt_out")
+        if str(request.data.get("seen")).lower() in ("1", "true", "yes", "on") \
+                and u.wellbeing_notice_seen_at is None:
+            u.wellbeing_notice_seen_at = timezone.now()
+            changed.append("wellbeing_notice_seen_at")
+        if changed:
+            u.save(update_fields=changed)
+    return Response(_consent_dict(u))
