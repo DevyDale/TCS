@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+import 'package:lottie/lottie.dart';
 
 const _kAmber = Color(0xFFF59E0B);
 
@@ -227,17 +228,29 @@ class _StaffEventComposeScreenState extends State<StaffEventComposeScreen> {
     }
     return GestureDetector(
       onTap: _genPoster ? null : _generatePoster,
-      child: Container(height: 120, alignment: Alignment.center,
+      child: Container(height: 130, alignment: Alignment.center,
         decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [Color(0xFFA78BFA), Color(0xFF8E54E9)]),
           borderRadius: BorderRadius.circular(16)),
         child: _genPoster
-            ? const SizedBox(width: 26, height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : Column(mainAxisSize: MainAxisSize.min, children: const [
-                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 28),
-                SizedBox(height: 8),
-                Text('Generate poster with Dale', style: TextStyle(fontFamily: 'Arch',
+            ? Column(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(width: 56, height: 56, child: Lottie.asset(
+                    'assets/images/robot.json', fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox(width: 26, height: 26,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white)))),
+                const SizedBox(height: 6),
+                const Text('Dale is designing your poster…',
+                    style: TextStyle(fontFamily: 'Arch', fontSize: 12.5,
+                        fontWeight: FontWeight.bold, color: Colors.white)),
+              ])
+            : Column(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(width: 44, height: 44, child: Lottie.asset(
+                    'assets/images/robot.json', fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.auto_awesome_rounded, color: Colors.white, size: 28))),
+                const SizedBox(height: 6),
+                const Text('Generate poster with Dale', style: TextStyle(fontFamily: 'Arch',
                     fontSize: 13.5, fontWeight: FontWeight.bold, color: Colors.white)),
               ]),
       ),

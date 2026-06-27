@@ -11,6 +11,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
@@ -265,6 +266,7 @@ class _StaffAnnouncementComposeScreenState
   String _bannerUrl = '';
   bool _genBanner = false;
   bool _assisting = false;
+  bool _daleOpen = false;
 
   static const _accents = [
     '#8E54E9', '#2563EB', '#0EA5A4', '#059669',
@@ -493,19 +495,25 @@ class _StaffAnnouncementComposeScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppC.bg,
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF8E54E9),
-        onPressed: _assisting ? null : _improveWithDale,
-        icon: _assisting
-            ? const SizedBox(width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2,
-                    color: Colors.white))
-            : const Icon(Icons.auto_awesome_rounded, color: Colors.white),
-        label: const Text('Ask Dale',
-            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                color: Colors.white)),
+      floatingActionButton: GestureDetector(
+        onTap: () { HapticFeedback.selectionClick();
+          setState(() => _daleOpen = !_daleOpen); },
+        child: Container(
+          width: 62, height: 62,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(colors: [Color(0xFFA78BFA), Color(0xFF8E54E9)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+            boxShadow: [BoxShadow(color: const Color(0xFF8E54E9).withValues(alpha: 0.45),
+                blurRadius: 16, offset: const Offset(0, 7))]),
+          padding: const EdgeInsets.all(8),
+          child: Lottie.asset('assets/images/robot.json', fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                  Icons.auto_awesome_rounded, color: Colors.white, size: 28)),
+        ),
       ),
-      body: ListView(padding: EdgeInsets.zero, children: [
+      body: Stack(children: [
+        ListView(padding: EdgeInsets.zero, children: [
         StaffHeader(
           bottomPad: 20,
           horizontal: const EdgeInsets.symmetric(horizontal: 16),
@@ -650,7 +658,216 @@ class _StaffAnnouncementComposeScreenState
           ),
           const SizedBox(height: 30),
         ])),
+        ]),
+        // Dale chat cloud — drafts a notice you can drop into the form.
+        if (_daleOpen) ...[
+          Positioned.fill(child: GestureDetector(
+            onTap: () => setState(() => _daleOpen = false),
+            child: Container(color: Colors.black.withValues(alpha: 0.35)))),
+          Positioned(
+            left: 14, right: 14,
+            bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                ? MediaQuery.of(context).viewInsets.bottom + 12
+                : MediaQuery.of(context).padding.bottom + 92,
+            child: _AnnounceDaleCloud(
+              onClose: () => setState(() => _daleOpen = false),
+              onApply: (t, b) {
+                setState(() { _title.text = t; _body.text = b; _daleOpen = false; });
+                _snack('Dale\'s draft added — tweak it and post ✨');
+              },
+            ),
+          ),
+        ],
       ]),
     );
   }
+}
+
+// ── Ask-Dale chat cloud for drafting a notice ────────────────────────────
+class _AnnounceDaleCloud extends StatefulWidget {
+  final VoidCallback onClose;
+  final void Function(String title, String body) onApply;
+  const _AnnounceDaleCloud({required this.onClose, required this.onApply});
+  @override
+  State<_AnnounceDaleCloud> createState() => _AnnounceDaleCloudState();
+}
+
+class _AnnounceDaleCloudState extends State<_AnnounceDaleCloud>
+    with SingleTickerProviderStateMixin {
+  final _api = ApiService();
+  final _ctrl = TextEditingController();
+  final _msgs = <Map<String, String>>[]; // {role, content, title?, body?}
+  bool _busy = false;
+
+  late final AnimationController _pop = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 320))..forward();
+
+  static const _chips = [
+    'Draft a notice about exam timetable changes',
+    'Remind students about library opening hours',
+    'Announce a club fair this Friday',
+  ];
+
+  @override
+  void dispose() { _ctrl.dispose(); _pop.dispose(); super.dispose(); }
+
+  Future<void> _send(String text) async {
+    final m = text.trim();
+    if (m.isEmpty || _busy) return;
+    setState(() { _msgs.add({'role': 'user', 'content': m}); _busy = true; });
+    _ctrl.clear();
+    try {
+      final res = (await _api.post('/ai/announce-assist/',
+          body: {'title': '', 'body': m, 'mode': 'draft'}) as Map)
+          .cast<String, dynamic>();
+      final t = (res['title'] ?? '').toString();
+      final b = (res['body'] ?? '').toString();
+      if (mounted) {
+        setState(() => _msgs.add({
+          'role': 'dale',
+          'content': (t.isNotEmpty ? '$t\n\n' : '') + (b.isEmpty ? 'Here you go.' : b),
+          'title': t, 'body': b,
+        }));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _msgs.add({'role': 'dale',
+          'content': "I'm having trouble right now — try again in a moment."}));
+    } finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final kb = MediaQuery.of(context).viewInsets.bottom;
+    return ScaleTransition(
+      scale: CurvedAnimation(parent: _pop, curve: Curves.easeOutBack),
+      alignment: Alignment.bottomRight,
+      child: FadeTransition(opacity: _pop, child: Material(
+        color: Colors.transparent,
+        child: Container(
+          height: (kb > 0 ? (h - kb - 120) : h * 0.52).clamp(300.0, 520.0),
+          decoration: BoxDecoration(
+            color: AppC.card, borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppC.border),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 26, offset: const Offset(0, 12))]),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+              decoration: const BoxDecoration(gradient: LinearGradient(
+                  colors: [Color(0xFFA78BFA), Color(0xFF8E54E9)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              child: Row(children: [
+                SizedBox(width: 30, height: 30, child: Lottie.asset(
+                    'assets/images/robot.json', fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.smart_toy_rounded, color: Colors.white, size: 22))),
+                const SizedBox(width: 10),
+                const Expanded(child: Text('Ask Dale',
+                    style: TextStyle(fontFamily: 'Alfa', fontSize: 17, color: Colors.white))),
+                Text('drafts a notice', style: TextStyle(fontFamily: 'Momo',
+                    fontSize: 10, color: Colors.white.withValues(alpha: 0.85))),
+                const SizedBox(width: 6),
+                GestureDetector(onTap: widget.onClose,
+                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 20)),
+              ]),
+            ),
+            Expanded(child: _msgs.isEmpty
+                ? _starters()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(14), itemCount: _msgs.length,
+                    itemBuilder: (_, i) => _bubble(_msgs[i]))),
+            _inputBar(),
+          ]),
+        ),
+      )),
+    );
+  }
+
+  Widget _starters() => Padding(padding: const EdgeInsets.all(18),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Tell me what to announce…', style: TextStyle(fontFamily: 'Arch',
+          fontSize: 12, fontWeight: FontWeight.bold, color: AppC.sub)),
+      const SizedBox(height: 10),
+      for (final c in _chips)
+        GestureDetector(onTap: () => _send(c), child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(color: AppC.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppC.border)),
+          child: Text(c, style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+              color: AppC.text)))),
+    ]));
+
+  Widget _bubble(Map<String, String> m) {
+    final isUser = m['role'] == 'user';
+    final hasDraft = (m['body'] ?? '').isNotEmpty;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+            decoration: BoxDecoration(
+              color: isUser ? const Color(0xFF8E54E9) : AppC.bg,
+              borderRadius: BorderRadius.circular(14),
+              border: isUser ? null : Border.all(color: AppC.border)),
+            child: Text(m['content'] ?? '', style: TextStyle(fontFamily: 'Momo',
+                fontSize: 13, height: 1.4, color: isUser ? Colors.white : AppC.text)),
+          ),
+          if (!isUser && hasDraft)
+            Padding(padding: const EdgeInsets.only(bottom: 10),
+              child: GestureDetector(
+                onTap: () => widget.onApply(m['title'] ?? '', m['body'] ?? ''),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(color: const Color(0xFF8E54E9),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_rounded, color: Colors.white, size: 15),
+                    SizedBox(width: 5),
+                    Text('Use this notice', style: TextStyle(fontFamily: 'Arch',
+                        fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ]),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _inputBar() => Container(
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+    decoration: BoxDecoration(color: AppC.card,
+        border: Border(top: BorderSide(color: AppC.border))),
+    child: Row(children: [
+      Expanded(child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(color: AppC.bg, borderRadius: BorderRadius.circular(22)),
+        child: TextField(controller: _ctrl, minLines: 1, maxLines: 3,
+          style: TextStyle(fontFamily: 'Momo', fontSize: 13.5, color: AppC.text),
+          decoration: InputDecoration(border: InputBorder.none, isDense: true,
+              hintText: 'Describe the announcement…',
+              hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint, fontSize: 13),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12)),
+          onSubmitted: _send),
+      )),
+      const SizedBox(width: 10),
+      GestureDetector(
+        onTap: _busy ? null : () => _send(_ctrl.text),
+        child: Container(width: 46, height: 46,
+          decoration: const BoxDecoration(color: Color(0xFF8E54E9), shape: BoxShape.circle),
+          child: _busy
+              ? const Padding(padding: EdgeInsets.all(13),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 22)),
+      ),
+    ]),
+  );
 }

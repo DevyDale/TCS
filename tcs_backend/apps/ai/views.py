@@ -1089,15 +1089,54 @@ def _coerce_scam_result(raw_text):
     }
 
 
+def _scam_check_image(image_b64, sys_prompt):
+    """Vision scam check — Gemini reads a screenshot and returns the same JSON
+    verdict. image_b64 may be a bare base64 string or a data: URL. Returns a
+    parsed dict or None on failure."""
+    import os as _os
+    from django.conf import settings as _settings
+    api_key = (getattr(_settings, "GEMINI_API_KEY", None)
+               or _os.environ.get("GEMINI_API_KEY"))
+    if not api_key:
+        return None
+    data_url = image_b64 if image_b64.startswith("data:") \
+        else "data:image/jpeg;base64," + image_b64
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+        resp = client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": [
+                    {"type": "text", "text":
+                        "Is this a scam? This is a screenshot — read ALL the text "
+                        "in it (it may be a message, email, call log, SMS, social "
+                        "post or job offer) and analyse it."},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ]},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+        return _coerce_scam_result(resp.choices[0].message.content or "")
+    except Exception:
+        logger.exception("scam_check_image failed")
+        return None
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def scam_check(request):
-    """POST /api/ai/scam-check/  body: {content, language?}
+    """POST /api/ai/scam-check/  body: {content?, image?(base64), language?}
 
     Returns a cautious structured verdict about a pasted suspicious message,
     plus a fixed safety anchor and official report contacts.
     """
     content = (request.data.get("content") or "").strip()
+    image = (request.data.get("image") or "").strip()  # base64 screenshot (optional)
     language = (request.data.get("language") or "English").strip() or "English"
 
     safe_fallback = {
@@ -1115,11 +1154,11 @@ def scam_check(request):
         "report": _SCAM_REPORT,
     }
 
-    if not content:
+    if not content and not image:
         return Response({
             **safe_fallback,
-            "headline": "Paste the suspicious message, email or job offer and "
-                        "I'll check it for you.",
+            "headline": "Paste the suspicious message — or upload a screenshot — "
+                        "and I'll check it for you.",
         })
 
     sys_prompt = _SCAM_SYSTEM
@@ -1128,17 +1167,20 @@ def scam_check(request):
                        f"and explanation values in {language}. Keep the JSON "
                        f"keys exactly as specified in English.")
 
-    messages = [
-        {"role": "system", "content": sys_prompt},
-        {"role": "user", "content": f"Is this a scam?\n\n{content[:4000]}"},
-    ]
-
     try:
-        result = ai_router.complete(
-            "chat", messages, max_tokens=700, temperature=0.2,
-            response_format={"type": "json_object"})
-        text = (result or {}).get("text") or ""
-        parsed = _coerce_scam_result(text)
+        if image:
+            # Screenshot path — Gemini reads the text in the image and analyses it.
+            parsed = _scam_check_image(image, sys_prompt)
+        else:
+            messages = [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": f"Is this a scam?\n\n{content[:4000]}"},
+            ]
+            result = ai_router.complete(
+                "chat", messages, max_tokens=700, temperature=0.2,
+                response_format={"type": "json_object"})
+            text = (result or {}).get("text") or ""
+            parsed = _coerce_scam_result(text)
     except Exception:
         logger.exception("scam_check failed")
         parsed = None

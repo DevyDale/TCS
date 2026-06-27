@@ -257,7 +257,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg, elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppC.text),
         title: T('Dale Knowledge',
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
       ),

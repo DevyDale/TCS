@@ -50,6 +50,7 @@ class _SlideToConfirmState extends State<SlideToConfirm>
         opacity: disabled ? 0.5 : 1,
         child: Container(
           height: h,
+          width: double.infinity,   // stretch the whole row
           decoration: BoxDecoration(
             color: widget.color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(h / 2),

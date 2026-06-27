@@ -15,6 +15,35 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
+def _replicate_poster(full_prompt, token):
+    """Flux Schnell via Replicate. Returns a URL or raises."""
+    body = json.dumps({
+        "input": {
+            "prompt": full_prompt,
+            "aspect_ratio": "3:4",
+            "output_format": "jpg",
+            "num_inference_steps": 4,
+        }
+    }).encode('utf-8')
+    req = urllib.request.Request(
+        'https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions',
+        data=body,
+        headers={
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+            'Prefer': 'wait',
+        },
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        data = json.loads(resp.read().decode('utf-8'))
+    output = data.get('output')
+    if isinstance(output, list) and output:
+        return output[0]
+    if isinstance(output, str):
+        return output
+    return None
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_event_poster(request):
@@ -23,56 +52,31 @@ def generate_event_poster(request):
     if not prompt:
         return Response({"error": "prompt is required"}, status=400)
 
-    token = os.environ.get('REPLICATE_API_TOKEN', '').strip()
-    if not token:
-        return Response({
-            "error": (
-                "REPLICATE_API_TOKEN not set on the server. "
-                "Get a token at https://replicate.com/account/api-tokens "
-                "and add REPLICATE_API_TOKEN=... to your Django env."
-            )
-        }, status=503)
-
     full_prompt = (f"{title}. {prompt}" if title else prompt) + \
-                  ", professional event poster, vibrant colors, bold typography, eye-catching design"
+        ", professional event poster, vibrant colors, bold typography, eye-catching design"
 
-    try:
-        body = json.dumps({
-            "input": {
-                "prompt": full_prompt,
-                "aspect_ratio": "3:4",
-                "output_format": "jpg",
-                "num_inference_steps": 4,
-            }
-        }).encode('utf-8')
+    # 1) Try Replicate/Flux if a token is configured AND it has credit. Any
+    #    failure (no token, 402 insufficient credit, timeout) falls through to
+    #    the free generator so a poster always comes back.
+    token = os.environ.get('REPLICATE_API_TOKEN', '').strip()
+    if token:
+        try:
+            url = _replicate_poster(full_prompt, token)
+            if url:
+                return Response({'poster_url': url, 'prompt': full_prompt,
+                                 'provider': 'flux'})
+        except Exception:
+            pass  # fall back to the free generator below
 
-        req = urllib.request.Request(
-            'https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions',
-            data=body,
-            headers={
-                'Authorization': f'Bearer {token}',
-                'Content-Type': 'application/json',
-                'Prefer': 'wait',
-            },
-        )
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-
-        output = data.get('output')
-        poster_url = None
-        if isinstance(output, list) and output:
-            poster_url = output[0]
-        elif isinstance(output, str):
-            poster_url = output
-
-        if not poster_url:
-            return Response({"error": "Replicate returned no output URL", "data": data}, status=502)
-
-        return Response({'poster_url': poster_url, 'prompt': full_prompt})
-    except urllib.error.HTTPError as e:
-        err_body = ''
-        try: err_body = e.read().decode('utf-8')
-        except Exception: pass
-        return Response({"error": f"Replicate HTTP {e.code}: {err_body}"}, status=502)
-    except Exception as e:
-        return Response({"error": f"Poster generation failed: {type(e).__name__}: {e}"}, status=500)
+    # 2) Free fallback — Pollinations builds the image on access (no key, no
+    #    credit). The returned URL is itself the rendered poster.
+    import random
+    import urllib.parse
+    seed = random.randint(1, 1_000_000)
+    encoded = urllib.parse.quote(full_prompt, safe='')
+    poster_url = (
+        f"https://image.pollinations.ai/prompt/{encoded}"
+        f"?width=768&height=1024&nologo=true&seed={seed}&model=flux"
+    )
+    return Response({'poster_url': poster_url, 'prompt': full_prompt,
+                     'provider': 'pollinations'})

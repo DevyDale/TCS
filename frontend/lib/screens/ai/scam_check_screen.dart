@@ -5,8 +5,10 @@
 // Backed by POST /api/ai/scam-check/. Dale is a FIRST check, not the final
 // authority — the UI always routes the student to official channels.
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/widgets/ai_spinner.dart';
@@ -74,6 +76,54 @@ class _ScamCheckScreenState extends State<ScamCheckScreen> {
           'what_to_do': [
             "Don't pay anyone or share personal or bank details.",
             'Verify through official channels or your student office.',
+          ],
+          'anchor': 'When in doubt, stop and verify through official channels.',
+          'report': const [],
+        };
+      });
+    }
+  }
+
+  // Upload a screenshot of a suspicious message/email/call and let Dale read it.
+  Future<void> _pickImage() async {
+    if (_loading) return;
+    try {
+      final x = await ImagePicker().pickImage(
+          source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+      if (x == null) return;
+      final bytes = await x.readAsBytes();
+      await _checkImage(base64Encode(bytes));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not read that image — try another.')));
+      }
+    }
+  }
+
+  Future<void> _checkImage(String b64) async {
+    FocusScope.of(context).unfocus();
+    HapticFeedback.mediumImpact();
+    setState(() { _loading = true; _result = null; });
+    try {
+      final data = await _api.post('/ai/scam-check/', body: {
+        'image': b64,
+        'language': TranslationService.I.lang,
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() { _result = data; _loading = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _result = {
+          'verdict': 'suspicious',
+          'headline': "I couldn't read that screenshot right now — treat it as "
+              "suspicious and verify it independently.",
+          'flags': const [],
+          'what_to_do': const [
+            "Don't pay anyone or share personal or bank details.",
+            "Verify through official channels or your student office.",
           ],
           'anchor': 'When in doubt, stop and verify through official channels.',
           'report': const [],
@@ -204,6 +254,25 @@ class _ScamCheckScreenState extends State<ScamCheckScreen> {
             SizedBox(width: 8),
             T('Check it', style: TextStyle(fontFamily: 'Arch',
                 fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 10),
+      // Upload a screenshot — Dale reads the text in the image.
+      GestureDetector(
+        onTap: _loading ? null : _pickImage,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: AppC.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _kTeal.withOpacity(0.4))),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.image_outlined, color: _kTeal, size: 19),
+            const SizedBox(width: 8),
+            T('Upload a screenshot', style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 14, color: _kTeal)),
           ]),
         ),
       ),
