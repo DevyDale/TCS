@@ -216,12 +216,19 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_liked(self, obj):
+        # Prefer the per-request annotation (set by the list views) — one query
+        # for the whole page instead of one per post. Falls back to a direct
+        # query so any un-annotated path still works.
+        if hasattr(obj, "_is_liked"):
+            return bool(obj._is_liked)
         req = self.context.get("request")
         if req and req.user.is_authenticated:
             return Like.objects.filter(post=obj, user=req.user).exists()
         return False
 
     def get_is_bookmarked(self, obj):
+        if hasattr(obj, "_is_bookmarked"):
+            return bool(obj._is_bookmarked)
         req = self.context.get("request")
         if req and req.user.is_authenticated:
             return Bookmark.objects.filter(post=obj, user=req.user).exists()

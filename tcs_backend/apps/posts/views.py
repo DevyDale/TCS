@@ -4,7 +4,7 @@ from apps.moderation.utils import filter_blocked_users
 apps/posts/views.py
 """
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -33,6 +33,17 @@ MAX_IMAGES_PER_POST = 5
 def _mb(size_bytes: int) -> str:
     """Format bytes as a human-readable MB string, e.g. '9.3 MB'."""
     return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def annotate_user_flags(qs, user):
+    """Annotate each post with the current user's is_liked / is_bookmarked as a
+    single EXISTS subquery — kills the per-post N+1 the serializer used to do."""
+    if not (user and getattr(user, "is_authenticated", False)):
+        return qs
+    return qs.annotate(
+        _is_liked=Exists(Like.objects.filter(post=OuterRef("pk"), user=user)),
+        _is_bookmarked=Exists(Bookmark.objects.filter(post=OuterRef("pk"), user=user)),
+    )
 
 
 def _validate_upload(file, media_type: str = "image"):
@@ -129,7 +140,7 @@ class PostListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(author__user_id=user_id)
 
         qs = filter_blocked_users(qs, self.request.user)
-        return qs.order_by("-created_at")
+        return annotate_user_flags(qs.order_by("-created_at"), self.request.user)
 
     def create(self, request, *args, **kwargs):
         ser = CreatePostSerializer(data=request.data, context={"request": request})
@@ -172,7 +183,8 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         qs = filter_posts_by_role(super().get_queryset(), self.request.user)
-        return filter_blocked_users(qs, self.request.user)
+        qs = filter_blocked_users(qs, self.request.user)
+        return annotate_user_flags(qs, self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -236,6 +248,7 @@ def search_posts(request):
                 .filter(group__isnull=True)
                 .filter(Q(visibility="public") | Q(author=me)))
     base = filter_posts_by_role(base, me)
+    base = annotate_user_flags(base, me)
 
     if field == "caption":
         qs = base.filter(content__icontains=q)
@@ -280,6 +293,7 @@ class FeedView(generics.ListAPIView):
                     .exclude(is_flagged=True))
         base = filter_posts_by_role(base, me)
         base = filter_blocked_users(base, me)
+        base = annotate_user_flags(base, me)  # carries through every return path
 
         from apps.accounts import reception
         role_q = reception.feed_post_q(me)
@@ -341,13 +355,13 @@ class MyPostsView(generics.ListAPIView):
 
     def get_queryset(self):
         post_type = self.request.query_params.get("post_type", "post")
-        return (Post.objects
+        return annotate_user_flags((Post.objects
                     .select_related("author")
                     .prefetch_related("media_files", "hashtags")
                     .filter(author=self.request.user, post_type=post_type)
                     .filter(group__isnull=True)
                     .exclude(is_flagged=True)
-                    .order_by("-created_at"))
+                    .order_by("-created_at")), self.request.user)
 
 class BookmarkListView(generics.ListAPIView):
     """GET /api/posts/bookmarks/"""
@@ -366,7 +380,8 @@ class BookmarkListView(generics.ListAPIView):
                   .select_related("author")
                   .prefetch_related("media_files", "hashtags")
                   .filter(id__in=ids))
-        return filter_blocked_users(qs, self.request.user).order_by("-created_at")
+        qs = filter_blocked_users(qs, self.request.user).order_by("-created_at")
+        return annotate_user_flags(qs, self.request.user)
 
 
 # ─────────────────────────────────────────────────────────────

@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _logoCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
     _textCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    _progressCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800));
+    _progressCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _particleCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _gradientCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
 
@@ -81,13 +81,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _runSequence() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    // Session check is local (SharedPreferences) — no network — so the splash
+    // only needs to flash the brand briefly, not stall. Trimmed from ~2.9s.
+    await Future.delayed(const Duration(milliseconds: 120));
     _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 500));
     _textCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 240));
     _progressCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 1900));
+    await Future.delayed(const Duration(milliseconds: 560));
     _checkAuthAndNavigate();
   }
 
