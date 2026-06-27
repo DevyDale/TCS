@@ -126,22 +126,9 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
             child: Column(children: [
               _officeHours(),
               const SizedBox(height: 18),
-              const StaffSectionLabel('The bridge',
-                  subtitle: 'Shared with your students'),
-              _tile(
-                icon: Icons.dashboard_rounded,
-                title: 'Subject Hubs',
-                subtitle: 'Everything for a subject — resources, Q&A, quizzes, sessions',
-                grad: const [Color(0xFF334155), Color(0xFF1E293B)],
-                onTap: () => _push(const SubjectHubsScreen(isTeacher: true))),
-              const SizedBox(height: 12),
-              _tile(
-                icon: Icons.menu_book_rounded,
-                title: 'Resource Library',
-                subtitle: 'Upload notes, papers & guides · verify trusted ones',
-                grad: const [Color(0xFF5B53E8), Color(0xFF8E54E9)],
-                onTap: () => _push(const ResourceLibraryScreen(isTeacher: true))),
-              const SizedBox(height: 12),
+              // ── Everyday teaching actions first ──
+              const StaffSectionLabel('Teach',
+                  subtitle: 'Your day-to-day with students'),
               _tile(
                 icon: Icons.forum_rounded,
                 title: 'Q&A Board',
@@ -157,14 +144,29 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
                 onTap: () => _push(const QuizzesScreen(isTeacher: true))),
               const SizedBox(height: 12),
               _tile(
+                icon: Icons.menu_book_rounded,
+                title: 'Resource Library',
+                subtitle: 'Upload notes, papers & guides · verify trusted ones',
+                grad: const [Color(0xFF5B53E8), Color(0xFF8E54E9)],
+                onTap: () => _push(const ResourceLibraryScreen(isTeacher: true))),
+              const SizedBox(height: 12),
+              _tile(
                 icon: Icons.event_available_rounded,
                 title: 'Study Sessions',
                 subtitle: 'Schedule revision · students RSVP · remind attendees',
                 grad: const [Color(0xFF0EA5A4), Color(0xFF0F766E)],
                 onTap: () => _push(const SessionsScreen(isTeacher: true))),
               const SizedBox(height: 18),
-              const StaffSectionLabel('Read the room',
-                  subtitle: 'Aggregate demand — no individual named'),
+              // ── Overview / read-the-room tools below ──
+              const StaffSectionLabel('Overview',
+                  subtitle: 'See the whole subject & where demand is'),
+              _tile(
+                icon: Icons.dashboard_rounded,
+                title: 'Subject Hubs',
+                subtitle: 'Everything for a subject — resources, Q&A, quizzes, sessions',
+                grad: const [Color(0xFF334155), Color(0xFF1E293B)],
+                onTap: () => _push(const SubjectHubsScreen(isTeacher: true))),
+              const SizedBox(height: 12),
               _tile(
                 icon: Icons.insights_rounded,
                 title: 'Demand Insights',

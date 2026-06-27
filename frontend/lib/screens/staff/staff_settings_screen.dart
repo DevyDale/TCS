@@ -12,6 +12,11 @@ import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/app_settings.dart';
 import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+import 'package:tcs_app/screens/about_application_screen.dart';
+import 'package:tcs_app/screens/about_developer_screen.dart';
+import 'package:tcs_app/screens/privacy_policy_screen.dart';
+import 'package:tcs_app/screens/terms_of_service_screen.dart';
+import 'package:tcs_app/screens/wellbeing_notice_screen.dart';
 
 class StaffSettingsScreen extends StatefulWidget {
   const StaffSettingsScreen({super.key});
@@ -129,6 +134,24 @@ class _StaffSettingsScreenState extends State<StaffSettingsScreen> {
             _toggle('Show when online', 'Let others see your online status',
                 Icons.visibility_rounded, _s.showOnline,
                 (v) async { await _s.setShowOnline(v); setState(() {}); }),
+            _aboutRow(Icons.health_and_safety_rounded, 'Wellbeing & Safety',
+                'Manage', const Color(0xFF0EA5A4),
+                () => _push(const WellbeingNoticeScreen())),
+
+            const SizedBox(height: 22),
+            _section('About'),
+            _aboutRow(Icons.info_outline_rounded, 'Version', 'TCS 5.0', kStaffG2, null),
+            _aboutRow(Icons.school_rounded, 'Institution',
+                'Taylors College, Sydney', const Color(0xFF3F51B5), null),
+            _aboutRow(Icons.gavel_rounded, 'Terms of Service', 'View', AppC.sub,
+                () => _push(const TermsOfServiceScreen())),
+            _aboutRow(Icons.privacy_tip_rounded, 'Privacy Policy', 'View', AppC.sub,
+                () => _push(const PrivacyPolicyScreen())),
+            _aboutRow(Icons.apps_rounded, 'About Application', 'View', kStaffG1,
+                () => _push(const AboutApplicationScreen())),
+            _aboutRow(Icons.code_rounded, 'About Developer', 'View',
+                const Color(0xFFF7971E),
+                () => _push(const AboutDeveloperScreen())),
 
             const SizedBox(height: 26),
             GestureDetector(
@@ -205,6 +228,40 @@ class _StaffSettingsScreenState extends State<StaffSettingsScreen> {
         Switch(value: value, activeThumbColor: kStaffG2,
             onChanged: (v) { HapticFeedback.selectionClick(); onChanged(v); }),
       ]),
+    );
+  }
+
+  void _push(Widget s) {
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
+  }
+
+  // A tappable (or static) About row, styled like the staff cards. A null
+  // onTap makes it informational (e.g. Version / Institution).
+  Widget _aboutRow(IconData icon, String title, String value, Color color,
+      VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: staffCard(),
+        child: Row(children: [
+          Container(width: 38, height: 38, alignment: Alignment.center,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, color: color, size: 18)),
+          const SizedBox(width: 13),
+          Expanded(child: Text(title, style: TextStyle(fontFamily: 'Arch',
+              fontSize: 13.5, fontWeight: FontWeight.bold, color: AppC.text))),
+          Text(value, style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+              color: AppC.sub)),
+          if (onTap != null) ...[
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right_rounded, color: AppC.faint, size: 18),
+          ],
+        ]),
+      ),
     );
   }
 }
