@@ -184,8 +184,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // Staff-only: additive entry point to the command-center console. Students
   // never see it; staff keep the normal dashboard as home.
-  bool get _isStaff => const {'teaching_staff', 'non_teaching_staff', 'admin'}
-      .contains(widget.role.toLowerCase().trim());
+  bool get _isStaff {
+    // Accept both the real role values (cached/splash routing) AND the 'Staff'
+    // display label the fresh login passes — otherwise a just-logged-in staff
+    // member lands on the student dashboard.
+    final r = widget.role.toLowerCase().trim();
+    return r == 'staff' ||
+        const {'teaching_staff', 'non_teaching_staff', 'admin'}.contains(r);
+  }
 
   @override
   Widget build(BuildContext context) {
