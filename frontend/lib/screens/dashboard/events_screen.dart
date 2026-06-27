@@ -120,8 +120,19 @@ class _EventsScreenState extends State<EventsScreen> {
             physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics()),
             slivers: [
-              SliverToBoxAdapter(child: _buildSearchBar()),
-              SliverToBoxAdapter(child: _buildCategoryFilters()),
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: const Offset(0, -24),
+                  child: _buildSearchBar(),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: _buildCategoryFilters(),
+                ),
+              ),
               if (_featuredEvents.isNotEmpty) ...[
                 const SliverToBoxAdapter(child: _SectionHeader(title: 'Featured')),
                 SliverToBoxAdapter(child: _buildFeaturedCarousel()),
@@ -182,9 +193,59 @@ class _EventsScreenState extends State<EventsScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    final canPop = Navigator.canPop(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 34),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_kG1, _kG2],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Row(children: [
+        if (canPop) ...[
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Container(
+              width: 40, height: 40, alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.30))),
+              child: const Icon(Icons.arrow_back_rounded,
+                  color: Colors.white, size: 20)),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Container(
+          width: 46, height: 46, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withOpacity(0.30))),
+          child: const Icon(Icons.event_rounded, color: Colors.white, size: 24)),
+        const SizedBox(width: 13),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Events',
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 26,
+                    color: Colors.white, height: 1.05,
+                    shadows: [Shadow(color: Colors.black26, blurRadius: 8,
+                        offset: Offset(0, 3))])),
+            const SizedBox(height: 3),
+            Text("What's happening on campus",
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
+                    color: Colors.white.withOpacity(0.9))),
+          ],
+        )),
+      ]),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: TextField(
         onChanged: (v) => setState(() => _searchQuery = v),
         style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
