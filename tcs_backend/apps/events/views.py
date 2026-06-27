@@ -1,6 +1,6 @@
 # apps/events/views.py
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from rest_framework import generics, serializers, status, filters
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -105,6 +105,8 @@ class EventSerializer(serializers.ModelSerializer):
         return obj.poster_url or None
 
     def get_is_rsvped(self, obj):
+        if hasattr(obj, "_is_rsvped"):     # annotated by the list view
+            return bool(obj._is_rsvped)
         req = self.context.get("request")
         if req and req.user.is_authenticated:
             return EventRSVP.objects.filter(event=obj, user=req.user).exists()
@@ -144,6 +146,11 @@ class EventListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(category=category)
         if featured:
             qs = qs.filter(is_featured=True)
+        # Annotate the user's RSVP once (EXISTS) instead of a query per event.
+        u = self.request.user
+        if u and u.is_authenticated:
+            qs = qs.annotate(_is_rsvped=Exists(
+                EventRSVP.objects.filter(event=OuterRef("pk"), user=u)))
         return qs
 
     def perform_create(self, serializer):
