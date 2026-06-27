@@ -1,9 +1,10 @@
 // lib/screens/auth/visitor_auth_screen.dart
 //
-// Email/password auth for visitor & parent accounts. Sign up collects only a
-// username, email and password — plus a required tick of the visitor-specific
-// Terms & Conditions. Sign in takes email/username + password. On success,
-// routes to the sandboxed VisitorDashboard.
+// Visitor & parent auth, styled to match the student/staff LoginIdScreen:
+// gradient hero header with floating role icon (Hero from the role card),
+// a white form card, gradient-prefixed fields and a gradient CTA.
+// Sign up collects only username/email/password + a required tick of the
+// visitor-specific Terms & Conditions. Sign in takes email/username + password.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,8 +13,10 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/visitor/visitor_dashboard_screen.dart';
 
-const _kG1 = Color(0xFF6DD5FA);
-const _kG2 = Color(0xFF8E54E9);
+// Visitor identity — same amber→gold as the role-selection Visitor card, so the
+// hero icon flies in continuously.
+const _kViGrad   = [Color(0xFFF7971E), Color(0xFFFFD200)];
+const _kViAccent = Color(0xFFD97706);
 
 class VisitorAuthScreen extends StatefulWidget {
   final String role; // 'visitor' | 'parent'
@@ -23,7 +26,8 @@ class VisitorAuthScreen extends StatefulWidget {
   State<VisitorAuthScreen> createState() => _VisitorAuthScreenState();
 }
 
-class _VisitorAuthScreenState extends State<VisitorAuthScreen> {
+class _VisitorAuthScreenState extends State<VisitorAuthScreen>
+    with TickerProviderStateMixin {
   final _api = ApiService();
   bool _signUp = true;
   bool _busy = false;
@@ -33,16 +37,50 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _identifier = TextEditingController();
+  final _uFocus = FocusNode();
+  final _eFocus = FocusNode();
+  final _pFocus = FocusNode();
+  final _idFocus = FocusNode();
+
+  late final AnimationController _entryCtrl;
+  late final AnimationController _floatCtrl;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _floatAnim;
+
+  String get _label => widget.role == 'parent' ? 'Parent' : 'Visitor';
+
+  @override
+  void initState() {
+    super.initState();
+    _entryCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _floatCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2800))
+      ..repeat(reverse: true);
+    _fadeAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
+    _scaleAnim = CurvedAnimation(parent: _entryCtrl,
+        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut));
+    _floatAnim = Tween<double>(begin: -8, end: 8)
+        .animate(CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
+    _entryCtrl.forward();
+  }
 
   @override
   void dispose() {
+    _entryCtrl.dispose(); _floatCtrl.dispose();
     _username.dispose(); _email.dispose();
     _password.dispose(); _identifier.dispose();
+    _uFocus.dispose(); _eFocus.dispose(); _pFocus.dispose(); _idFocus.dispose();
     super.dispose();
   }
 
   void _snack(String m) {
     if (!mounted) return;
+    HapticFeedback.heavyImpact();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       behavior: SnackBarBehavior.floating,
       backgroundColor: const Color(0xFFB3261E),
@@ -93,124 +131,224 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final label = widget.role == 'parent' ? 'Parent' : 'Visitor';
-    return Scaffold(
-      backgroundColor: AppC.bg,
-      body: ListView(padding: EdgeInsets.zero, children: [
-        Container(
-          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 18, 20, 26),
-          decoration: const BoxDecoration(gradient: LinearGradient(
-              colors: [_kG1, _kG2], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            GestureDetector(onTap: () => Navigator.of(context).maybePop(),
-                child: const Icon(Icons.arrow_back_rounded, color: Colors.white)),
-            const SizedBox(height: 16),
-            Text('$label access', style: const TextStyle(fontFamily: 'Alfa',
-                fontSize: 26, color: Colors.white)),
-            const SizedBox(height: 4),
-            Text('Browse public clubs & events at Taylors College Sydney',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                    color: Colors.white.withValues(alpha: 0.9))),
-          ]),
-        ),
-        Padding(padding: const EdgeInsets.all(20), child: Column(children: [
-          // Sign up / Sign in toggle
-          Row(children: [
-            for (final t in const [[true, 'Sign up'], [false, 'Sign in']])
-              Expanded(child: GestureDetector(
-                onTap: () => setState(() => _signUp = t[0] as bool),
-                child: Container(
-                  margin: EdgeInsets.only(right: t[0] == true ? 10 : 0),
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _signUp == t[0] ? _kG2 : AppC.card,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _signUp == t[0] ? _kG2 : AppC.border)),
-                  child: Text(t[1] as String, style: TextStyle(fontFamily: 'Arch',
-                      fontSize: 13, fontWeight: FontWeight.bold,
-                      color: _signUp == t[0] ? Colors.white : AppC.sub)),
-                ),
+    final size = MediaQuery.of(context).size;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: AppC.bg,
+        body: Stack(children: [
+          // Gradient hero header
+          Positioned(
+            top: 0, left: 0, right: 0, height: size.height * 0.42,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: _kViGrad,
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(44)),
+                boxShadow: [BoxShadow(color: _kViAccent.withOpacity(0.30),
+                    blurRadius: 30, offset: const Offset(0, 12))]),
+              child: Stack(children: [
+                Positioned(right: -50, top: -50, child: _blob(200, 0.08)),
+                Positioned(left: -30, bottom: 40, child: _blob(130, 0.06)),
+                Positioned(right: 40, bottom: 80, child: _blob(46, 0.10)),
+              ]),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+              child: FadeTransition(opacity: _fadeAnim, child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.20),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.35))),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 18)),
+                  )),
+                  const SizedBox(height: 18),
+                  // Floating Hero role icon
+                  Center(child: AnimatedBuilder(
+                    animation: _floatAnim,
+                    builder: (_, child) => Transform.translate(
+                        offset: Offset(0, _floatAnim.value), child: child),
+                    child: ScaleTransition(scale: _scaleAnim,
+                      child: Hero(tag: 'role_icon_${widget.role}', child: _roleIcon())),
+                  )),
+                  const SizedBox(height: 18),
+                  // Title
+                  SlideTransition(position: _slideAnim, child: Column(children: [
+                    Text(_signUp ? 'Welcome!' : 'Welcome back!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: 'Alfa', fontSize: 30,
+                            color: Colors.white, fontWeight: FontWeight.bold,
+                            shadows: [Shadow(color: Colors.black.withOpacity(0.18),
+                                blurRadius: 10, offset: const Offset(0, 3))])),
+                    const SizedBox(height: 6),
+                    Text('Browse public clubs & events at Taylors College Sydney',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: 'Momo', fontSize: 13,
+                            color: Colors.white.withOpacity(0.85))),
+                  ])),
+                  const SizedBox(height: 26),
+                  // Form card
+                  SlideTransition(position: _slideAnim, child: Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07),
+                          blurRadius: 30, offset: const Offset(0, 14))]),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(child: _rolePill()),
+                        const SizedBox(height: 18),
+                        _toggle(),
+                        const SizedBox(height: 20),
+                        if (_signUp) ...[
+                          _ViField(controller: _username, focusNode: _uFocus,
+                              hint: 'Username', icon: Icons.person_rounded),
+                          const SizedBox(height: 16),
+                          _ViField(controller: _email, focusNode: _eFocus,
+                              hint: 'Email', icon: Icons.email_rounded,
+                              keyboardType: TextInputType.emailAddress),
+                          const SizedBox(height: 16),
+                          _ViField(controller: _password, focusNode: _pFocus,
+                              hint: 'Password (6+ chars)', icon: Icons.lock_rounded,
+                              obscure: true),
+                          const SizedBox(height: 18),
+                          _termsRow(),
+                        ] else ...[
+                          _ViField(controller: _identifier, focusNode: _idFocus,
+                              hint: 'Email or username', icon: Icons.alternate_email_rounded,
+                              keyboardType: TextInputType.emailAddress),
+                          const SizedBox(height: 16),
+                          _ViField(controller: _password, focusNode: _pFocus,
+                              hint: 'Password', icon: Icons.lock_rounded, obscure: true),
+                        ],
+                        const SizedBox(height: 22),
+                        _ViButton(
+                          isLoading: _busy,
+                          label: _signUp ? 'Create account & enter' : 'Sign in',
+                          onTap: _submit),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 18),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(Icons.lock_rounded, size: 13, color: Colors.grey.shade400),
+                    const SizedBox(width: 6),
+                    Text('Visitor accounts only see public club & event posts',
+                        style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                            color: Colors.grey.shade500)),
+                  ]),
+                ],
               )),
-          ]),
-          const SizedBox(height: 18),
-          if (_signUp) ...[
-            _field(_username, 'Username'),
-            const SizedBox(height: 12),
-            _field(_email, 'Email', keyboard: TextInputType.emailAddress),
-            const SizedBox(height: 12),
-            _field(_password, 'Password (6+ chars)', obscure: true),
-            const SizedBox(height: 16),
-            _termsRow(),
-          ] else ...[
-            _field(_identifier, 'Email or username',
-                keyboard: TextInputType.emailAddress),
-            const SizedBox(height: 12),
-            _field(_password, 'Password', obscure: true),
-          ],
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
-            onPressed: _busy ? null : _submit,
-            style: ElevatedButton.styleFrom(backgroundColor: _kG2,
-                disabledBackgroundColor: _kG2.withValues(alpha: 0.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-            child: _busy
-                ? const SizedBox(width: 22, height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(_signUp ? 'Create account & enter' : 'Sign in',
-                    style: const TextStyle(fontFamily: 'Arch', fontSize: 14.5,
-                        fontWeight: FontWeight.bold, color: Colors.white)),
-          )),
-          const SizedBox(height: 14),
-          Text('Visitor accounts only see public club & event posts.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-                  color: AppC.faint, height: 1.4)),
-        ])),
-      ]),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
-  Widget _termsRow() {
-    return GestureDetector(
-      onTap: () => setState(() => _agreed = !_agreed),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 22, height: 22, alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _agreed ? _kG2 : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-                color: _agreed ? _kG2 : AppC.border, width: 1.6)),
-          child: _agreed
-              ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
-              : null),
-        const SizedBox(width: 10),
-        Expanded(child: Padding(
-          padding: const EdgeInsets.only(top: 1),
-          child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-            Text('I have read and agree to the ',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                    color: AppC.sub, height: 1.35)),
-            GestureDetector(
-              onTap: _showTerms,
-              child: Text('Visitor Terms & Conditions',
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                      fontWeight: FontWeight.bold, color: _kG2,
-                      decoration: TextDecoration.underline,
-                      decorationColor: _kG2, height: 1.35)),
+  Widget _blob(double s, double o) => Container(width: s, height: s,
+      decoration: BoxDecoration(shape: BoxShape.circle,
+          color: Colors.white.withOpacity(o)));
+
+  Widget _roleIcon() => Container(
+        width: 104, height: 104,
+        decoration: BoxDecoration(shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.16),
+            border: Border.all(color: Colors.white.withOpacity(0.35), width: 2)),
+        child: Center(child: Container(
+          width: 78, height: 78,
+          decoration: BoxDecoration(shape: BoxShape.circle,
+            gradient: const LinearGradient(colors: _kViGrad,
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.20),
+                blurRadius: 18, offset: const Offset(0, 8))]),
+          child: const Icon(Icons.public_rounded, color: Colors.white, size: 38))),
+      );
+
+  Widget _rolePill() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: _kViAccent.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: _kViAccent.withOpacity(0.22))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.public_rounded, color: _kViAccent, size: 15),
+          const SizedBox(width: 6),
+          Text('$_label access', style: const TextStyle(fontFamily: 'Arch',
+              fontSize: 12, fontWeight: FontWeight.w700, color: _kViAccent,
+              letterSpacing: 0.3)),
+        ]),
+      );
+
+  Widget _toggle() => Row(children: [
+        for (final t in const [[true, 'Sign up'], [false, 'Sign in']])
+          Expanded(child: GestureDetector(
+            onTap: () => setState(() => _signUp = t[0] as bool),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: EdgeInsets.only(right: t[0] == true ? 10 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: _signUp == t[0]
+                    ? const LinearGradient(colors: _kViGrad) : null,
+                color: _signUp == t[0] ? null : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12)),
+              child: Text(t[1] as String, style: TextStyle(fontFamily: 'Arch',
+                  fontSize: 13, fontWeight: FontWeight.bold,
+                  color: _signUp == t[0] ? Colors.white : Colors.grey.shade600)),
             ),
-            Text('.', style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.sub)),
-          ]),
-        )),
-      ]),
-    );
-  }
+          )),
+      ]);
+
+  Widget _termsRow() => GestureDetector(
+        onTap: () => setState(() => _agreed = !_agreed),
+        behavior: HitTestBehavior.opaque,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              color: _agreed ? _kViAccent : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                  color: _agreed ? _kViAccent : Colors.grey.shade400, width: 2)),
+            child: _agreed
+                ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+                : null),
+          const SizedBox(width: 12),
+          Expanded(child: Text.rich(TextSpan(
+            style: TextStyle(fontFamily: 'Momo', fontSize: 12.5, height: 1.35,
+                color: Colors.grey.shade700),
+            children: const [
+              TextSpan(text: 'I have read and agree to the '),
+              TextSpan(text: 'Visitor Terms & Conditions',
+                  style: TextStyle(color: _kViAccent, fontWeight: FontWeight.bold)),
+              TextSpan(text: '.'),
+            ],
+          ))),
+          const SizedBox(width: 8),
+          GestureDetector(onTap: _showTerms,
+              child: const Icon(Icons.open_in_new_rounded, size: 18, color: _kViAccent)),
+        ]),
+      );
 
   void _showTerms() {
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: AppC.card,
+      context: context, isScrollControlled: true, backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => DraggableScrollableSheet(
@@ -219,25 +357,20 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen> {
           controller: scroll, padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
           children: [
             Center(child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: AppC.faint,
+                decoration: BoxDecoration(color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text('Visitor Terms & Conditions',
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: AppC.text)),
+            const Text('Visitor Terms & Conditions',
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Color(0xFF1F2937))),
             const SizedBox(height: 6),
             Text('Please read these before creating a guest account.',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.sub)),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade600)),
             const SizedBox(height: 18),
             for (final t in _kVisitorTerms) _clause(t.$1, t.$2),
             const SizedBox(height: 12),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-              onPressed: () { setState(() => _agreed = true); Navigator.pop(ctx); },
-              style: ElevatedButton.styleFrom(backgroundColor: _kG2,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14))),
-              child: const Text('I agree',
-                  style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                      color: Colors.white)))),
+            _ViButton(isLoading: false, label: 'I agree', onTap: () {
+              setState(() => _agreed = true); Navigator.pop(ctx);
+            }),
           ],
         ),
       ),
@@ -249,31 +382,123 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Padding(padding: EdgeInsets.only(top: 5),
-                child: Icon(Icons.circle, size: 6, color: _kG2)),
+                child: Icon(Icons.circle, size: 6, color: _kViAccent)),
             const SizedBox(width: 8),
-            Expanded(child: Text(title, style: TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 14, color: AppC.text))),
+            Expanded(child: Text(title, style: const TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937)))),
           ]),
           const SizedBox(height: 4),
           Padding(padding: const EdgeInsets.only(left: 14),
             child: Text(body, style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                height: 1.5, color: AppC.sub))),
+                height: 1.5, color: Colors.grey.shade600))),
         ]),
       );
-
-  Widget _field(TextEditingController c, String hint,
-          {bool obscure = false, TextInputType? keyboard}) =>
-      TextField(controller: c, obscureText: obscure, keyboardType: keyboard,
-        style: TextStyle(color: AppC.text, fontFamily: 'Momo', fontSize: 14),
-        decoration: InputDecoration(hintText: hint,
-            hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint, fontSize: 13.5),
-            filled: true, fillColor: AppC.card,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none)));
 }
 
-// Visitor-specific terms (title, body). Kept short and plain.
+// ── Visitor field — white card with gradient prefix icon (login style) ────
+class _ViField extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String hint;
+  final IconData icon;
+  final bool obscure;
+  final TextInputType? keyboardType;
+  const _ViField({
+    required this.controller, required this.focusNode,
+    required this.hint, required this.icon,
+    this.obscure = false, this.keyboardType});
+
+  @override
+  State<_ViField> createState() => _ViFieldState();
+}
+
+class _ViFieldState extends State<_ViField> {
+  bool _focused = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_f);
+  }
+  void _f() { if (mounted) setState(() => _focused = widget.focusNode.hasFocus); }
+  @override
+  void dispose() { widget.focusNode.removeListener(_f); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: _focused ? _kViAccent : Colors.grey.shade200,
+            width: _focused ? 2 : 1.5),
+        boxShadow: _focused
+            ? [BoxShadow(color: _kViAccent.withOpacity(0.14),
+                blurRadius: 14, offset: const Offset(0, 4))]
+            : const []),
+      child: TextField(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        obscureText: widget.obscure,
+        keyboardType: widget.keyboardType,
+        style: const TextStyle(fontFamily: 'Momo', fontSize: 15, color: Color(0xFF1F2937)),
+        decoration: InputDecoration(
+          filled: true, fillColor: Colors.white,
+          hintText: widget.hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(10), width: 36, height: 36,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: _kViGrad),
+              borderRadius: BorderRadius.circular(10)),
+            child: Icon(widget.icon, color: Colors.white, size: 18)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Visitor CTA — gradient pill button (login style) ──────────────────────
+class _ViButton extends StatelessWidget {
+  final bool isLoading;
+  final String label;
+  final VoidCallback onTap;
+  const _ViButton({required this.isLoading, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isLoading ? [Colors.grey.shade300, Colors.grey.shade400] : _kViGrad,
+            begin: Alignment.centerLeft, end: Alignment.centerRight),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isLoading ? [] : [BoxShadow(
+              color: _kViGrad.last.withOpacity(0.4),
+              blurRadius: 16, offset: const Offset(0, 6))]),
+        child: Center(child: isLoading
+            ? const SizedBox(width: 24, height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(label, style: const TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, color: Colors.white,
+                    fontSize: 16, letterSpacing: 0.4)),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+              ])),
+      ),
+    );
+  }
+}
+
+// Visitor-specific terms (title, body).
 const List<(String, String)> _kVisitorTerms = [
   ('Guest access only',
    'A visitor account is a limited guest pass. You can browse public club and '
