@@ -279,7 +279,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     SizedBox(height: res.lg),
 
-                    // Wordmark — "Taylors College" with "Sydney" stacked below
+                    // Wordmark — "TCS"
                     SlideTransition(
                       position: _titleSlide,
                       child: FadeTransition(
@@ -295,32 +295,16 @@ class _SplashScreenState extends State<SplashScreen>
                                 end: Alignment.centerRight,
                               ).createShader(b),
                               blendMode: BlendMode.srcIn,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  T(
-                                    'Taylors College',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Alfa',
-                                      fontSize: titleSize,
-                                      color: AppC.text,
-                                      height: 1.05,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  T(
-                                    'Sydney',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Alfa',
-                                      fontSize: titleSize,
-                                      color: AppC.text,
-                                      height: 1.05,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
+                              child: T(
+                                'TCS',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Alfa',
+                                  fontSize: titleSize,
+                                  color: AppC.text,
+                                  height: 1.05,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
                           ),
