@@ -6,7 +6,7 @@ from cloudinary.models import CloudinaryField
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, user_id, role, name, date_of_birth, password=None, **extra):
+    def create_user(self, user_id, role, name, date_of_birth=None, password=None, **extra):
         if not user_id:
             raise ValueError("user_id is required")
         user = self.model(user_id=user_id, role=role, name=name,
@@ -41,7 +41,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     role           = models.CharField(max_length=25, choices=Role.choices)
     name           = models.CharField(max_length=150)
     preferred_name = models.CharField(max_length=80, blank=True)
-    date_of_birth  = models.DateField()
+    # Nullable: visitor/parent self-registration collects only username/email/
+    # password. Students & staff still always have a DOB (from their records).
+    date_of_birth  = models.DateField(null=True, blank=True)
     gender         = models.CharField(max_length=20, blank=True)
     # Mirror of StaffRecord.staff_type for live cross-role checks.
     # "reception" bridges students <-> staff. Resolved/backfilled lazily

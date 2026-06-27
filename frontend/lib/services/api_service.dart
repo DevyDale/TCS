@@ -461,17 +461,17 @@ Future<dynamic> delete(String path,
 
   /// Self-registration for visitor/parent, then logs in to get a session.
   Future<Map<String, dynamic>> registerVisitor({
-    required String name,
     required String username,
     required String email,
     required String password,
-    required String dateOfBirth, // YYYY-MM-DD
     required String role,        // 'visitor' | 'parent'
+    String? name,                // optional; derived from username if omitted
   }) async {
     await post('/accounts/register/', body: {
-      'name': name, 'username': username, 'email': email,
+      if (name != null && name.isNotEmpty) 'name': name,
+      'username': username, 'email': email,
       'password': password, 'confirm_password': password,
-      'date_of_birth': dateOfBirth, 'role': role,
+      'role': role,
     }, auth: false);
     return loginPassword(identifier: email, password: password);
   }

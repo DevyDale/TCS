@@ -163,6 +163,10 @@ class PasswordLoginSerializer(serializers.Serializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password         = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True)
+    # Visitor/parent self-registration collects only username/email/password.
+    # Name is derived; DOB is not collected.
+    name             = serializers.CharField(required=False, allow_blank=True)
+    date_of_birth    = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model  = User
@@ -177,6 +181,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("confirm_password"):
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        # Derive a display name from username (or email) when not supplied.
+        if not (attrs.get("name") or "").strip():
+            username = (attrs.get("username") or "").strip()
+            email = (attrs.get("email") or "").strip()
+            attrs["name"] = username or (email.split("@")[0] if email else "Visitor")
         return attrs
 
     def create(self, validated_data):
