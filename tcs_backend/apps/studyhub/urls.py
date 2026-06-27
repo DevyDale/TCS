@@ -25,6 +25,7 @@ urlpatterns = [
     path("insights/",                     views.insights),
     # Quizzes
     path("quizzes/generate/",             views.quiz_generate),
+    path("quizzes/battle-bank/",          views.quiz_battle_bank),
     path("quizzes/",                      views.quizzes),
     path("quizzes/<uuid:pk>/",            views.quiz_detail),
     path("quizzes/<uuid:pk>/publish/",    views.quiz_publish),

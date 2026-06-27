@@ -534,6 +534,36 @@ def quiz_delete(request, pk):
     return Response(status=204)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def quiz_battle_bank(request):
+    """Teacher-authored published quiz questions, reshaped for the arcade's
+    Quiz Battle (spec §4 tie-in): {q, a, opts, cat}. So the same curriculum
+    quizzes double as a competitive game. Only published quizzes; capped."""
+    limit = max(10, min(int(request.query_params.get("limit") or 60), 200))
+    qs = (QuizQuestion.objects
+          .filter(quiz__is_published=True)
+          .select_related("quiz"))
+    subject = request.query_params.get("subject")
+    if subject:
+        qs = qs.filter(quiz__subject__iexact=subject)
+
+    out = []
+    for qq in qs[:limit * 2]:   # over-fetch a little, then filter to clean MCQs
+        opts = [str(o).strip() for o in (qq.options or []) if str(o).strip()]
+        if len(opts) < 2 or not (0 <= qq.correct_index < len(opts)):
+            continue
+        out.append({
+            "q":    qq.text,
+            "a":    opts[qq.correct_index],
+            "opts": opts,
+            "cat":  qq.quiz.subject or "Class",
+        })
+        if len(out) >= limit:
+            break
+    return Response({"results": out})
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def quiz_attempt(request, pk):

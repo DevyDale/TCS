@@ -1452,6 +1452,13 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
 
   Future<dynamic> studySubjects() => get('/studyhub/subjects/');
 
+  /// Teacher-authored published quiz questions reshaped for Quiz Battle.
+  Future<dynamic> quizBattleBank({String? subject, int limit = 60}) =>
+      get('/studyhub/quizzes/battle-bank/', query: {
+        'limit': '$limit',
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      });
+
   Future<dynamic> scheduleSession({
     required String title, required String subject, required String whenIso,
     String description = '', String location = '', String link = '',

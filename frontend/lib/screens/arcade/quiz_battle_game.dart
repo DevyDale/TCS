@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tcs_app/services/api_service.dart';
 import 'game_engine.dart';
 
 const _questions = [
@@ -62,15 +63,42 @@ class _QuizBattleGameState extends State<QuizBattleGame>
   late final AnimationController _ansCtrl;
   late List<Map<String, dynamic>> _shuffled;
 
+  // Question pool: built-in questions, augmented at launch with teacher-authored
+  // published quizzes (the Study-Hub → Quiz-Battle tie-in). Falls back to the
+  // built-ins if the fetch fails or no quizzes are published.
+  final List<Map<String, dynamic>> _pool = List.from(_questions);
+
   @override
   void initState() {
     super.initState();
-    _shuffled = List.from(_questions)..shuffle();
+    _shuffled = List.from(_pool)..shuffle();
     _shuffled = _shuffled.take(_levelCfg[_level]['questions'] as int).toList();
     _timerCtrl = AnimationController(vsync: this,
         duration: const Duration(seconds: 20));
     _ansCtrl = AnimationController(vsync: this,
         duration: const Duration(milliseconds: 400));
+    _loadTeacherBank();
+  }
+
+  Future<void> _loadTeacherBank() async {
+    try {
+      final d = await ApiService().quizBattleBank() as Map;
+      final bank = (d['results'] as List? ?? [])
+          .map((e) => (e as Map).cast<String, dynamic>())
+          .where((q) => (q['opts'] as List?)?.isNotEmpty == true)
+          .toList();
+      if (bank.isEmpty || !mounted) return;
+      _pool.addAll(bank);
+      // If the player hasn't started yet, fold the new questions into the
+      // current level's set so they show this session.
+      if (!_started) {
+        setState(() {
+          _shuffled = List.from(_pool)..shuffle();
+          _shuffled = _shuffled
+              .take(_levelCfg[_level]['questions'] as int).toList();
+        });
+      }
+    } catch (_) {/* keep the built-in questions */}
   }
 
   @override
@@ -197,7 +225,7 @@ class _QuizBattleGameState extends State<QuizBattleGame>
       return GestureDetector(
         onTap: () => setState(() {
           _level = i;
-          _shuffled = List.from(_questions)..shuffle();
+          _shuffled = List.from(_pool)..shuffle();
           _shuffled = _shuffled.take(_levelCfg[i]['questions'] as int).toList();
         }),
         child: AnimatedContainer(
