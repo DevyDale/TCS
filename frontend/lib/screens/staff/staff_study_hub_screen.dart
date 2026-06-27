@@ -96,16 +96,27 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
         padding: EdgeInsets.zero,
         children: [
           StaffHeader(
-            horizontal: const EdgeInsets.symmetric(horizontal: 20),
+            horizontal: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).maybePop(),
+                child: Container(
+                  width: 40, height: 40, alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.white, size: 20)),
+              ),
+              const SizedBox(width: 10),
               Container(
-                width: 56, height: 56, alignment: Alignment.center,
+                width: 50, height: 50, alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle,
                   border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
                 child: const Icon(Icons.auto_stories_rounded,
-                    color: Colors.white, size: 28)),
-              const SizedBox(width: 14),
+                    color: Colors.white, size: 26)),
+              const SizedBox(width: 12),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
