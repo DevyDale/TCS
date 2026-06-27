@@ -46,10 +46,12 @@ def _public_club_posts():
     from apps.posts.models import Post
     qs = (Post.objects
           .select_related("club", "author")
-          .filter(visibility="public")
-          .exclude(is_flagged=True)
+          .filter(visibility="public",
+                  media_files__isnull=False)   # image posts only — visual campus
+          .exclude(is_flagged=True)            # content, less personal text exposed
           .exclude(is_ai=True)                 # no AI/assistant content
-          .exclude(author__is_suspended=True))  # no suspended authors
+          .exclude(author__is_suspended=True)  # no suspended authors
+          .distinct())
     return qs.order_by("-created_at")
 
 
