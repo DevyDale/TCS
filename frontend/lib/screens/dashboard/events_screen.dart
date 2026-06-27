@@ -15,6 +15,7 @@ import 'package:tcs_app/services/translation_service.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
+import 'package:tcs_app/utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:gradient_borders/gradient_borders.dart';
 import 'package:intl/intl.dart';
@@ -118,7 +119,11 @@ class _EventsScreenState extends State<EventsScreen> {
           // field built into it.
           _buildHeader(),
           Expanded(
-            child: RefreshIndicator(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: Responsive.contentMaxWidth(context)),
+                child: RefreshIndicator(
               color: _kG2,
               onRefresh: _load,
               child: CustomScrollView(
@@ -161,6 +166,8 @@ class _EventsScreenState extends State<EventsScreen> {
                     ),
                   const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
+              ),
+                ),
               ),
             ),
           ),

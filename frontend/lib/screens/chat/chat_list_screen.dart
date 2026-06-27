@@ -32,6 +32,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'package:animated_segmented_tab_control/animated_segmented_tab_control.dart';
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
+import 'package:tcs_app/utils/responsive.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/screens/chat/chat_list_ws_Service.dart';
@@ -78,6 +79,12 @@ class _ChatListScreenState extends State<ChatListScreen>
   final Map<String, Set<String>> _recordingByRoom = {};
 
   String? _meUserId;
+
+  // Master-detail (tablet/iPad expanded width): the conversation open in the
+  // right pane. On phones these stay null — chats push a full route instead.
+  String? _selectedRoomId;
+  String? _selectedRoomName;
+  String? _selectedRoomType;
 
   int get _totalRequests => _requests.length + _outgoingRequests.length + _bubbleInvites.length;
 
@@ -303,26 +310,108 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Tablet/iPad (expanded): WhatsApp-style master-detail — the chat list on
+    // the left, the open conversation on the right. Tapping a chat swaps the
+    // right pane instead of pushing a route. Phones keep the single-pane list.
+    if (Responsive.isExpanded(context)) {
+      return Scaffold(
+        backgroundColor: AppC.bg,
+        body: SafeArea(
+          child: Row(children: [
+            SizedBox(width: 360, child: _buildListColumn()),
+            VerticalDivider(width: 1, thickness: 1, color: AppC.border),
+            Expanded(child: _buildDetailPane()),
+          ]),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppC.bg,
-      body: SafeArea(
-        child: Column(children: [
-          _buildAppBar(),
-          _buildSearchField(),
-          _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabCtrl,
-              children: [
-                _buildChatsList('inbox'),
-                _buildChatsList('study_buddy'),
-                _buildChatsList('group'),
-              ],
-            ),
-          ),
-        ]),
-      ),
+      body: SafeArea(child: _buildListColumn()),
     );
+  }
+
+  // The list-side column (app bar + search + tabs + chat lists). Shared by the
+  // single-pane phone layout and the left pane of the tablet master-detail.
+  Widget _buildListColumn() {
+    return Column(children: [
+      _buildAppBar(),
+      _buildSearchField(),
+      _buildTabBar(),
+      Expanded(
+        child: TabBarView(
+          controller: _tabCtrl,
+          children: [
+            _buildChatsList('inbox'),
+            _buildChatsList('study_buddy'),
+            _buildChatsList('group'),
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  // Right pane (tablet only): the open conversation, or a placeholder prompt
+  // when nothing is selected yet. ValueKey forces a fresh ChatRoomScreen (and
+  // its socket/state) whenever the selected room changes.
+  Widget _buildDetailPane() {
+    if (_selectedRoomId == null) {
+      return Container(
+        color: AppC.bg,
+        alignment: Alignment.center,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 64, color: AppC.border),
+          const SizedBox(height: 16),
+          Text('Select a chat',
+              style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
+          const SizedBox(height: 8),
+          Text('Pick a conversation to start messaging',
+              style: TextStyle(fontFamily: 'Momo', fontSize: 13, color: AppC.faint)),
+        ]),
+      );
+    }
+    return ChatRoomScreen(
+      key: ValueKey(_selectedRoomId),
+      roomId:   _selectedRoomId!,
+      roomName: _selectedRoomName ?? '',
+      userName: 'You',
+      roomType: _selectedRoomType ?? 'direct',
+    );
+  }
+
+  // Open a chat: swap the right pane on tablet, push a full route on phone.
+  Future<void> _openRoom(Map<String, dynamic> c) async {
+    final roomId   = c['id'] as String? ?? '';
+    final roomType = c['room_type'] as String? ?? 'direct';
+    final isGroup  = roomType == 'group';
+    final name     = isGroup
+        ? (c['name'] as String? ?? 'Group')
+        : ((c['other_user'] as Map<String, dynamic>?)?['name'] as String? ??
+            'Unknown');
+
+    setState(() => c['unread_count'] = 0);
+
+    if (Responsive.isExpanded(context)) {
+      setState(() {
+        _selectedRoomId   = roomId;
+        _selectedRoomName = name;
+        _selectedRoomType = roomType;
+      });
+    } else {
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ChatRoomScreen(
+            roomId: roomId, roomName: name, userName: 'You',
+            roomType: roomType),
+      ));
+    }
+    // Persist the read on the backend (advances last_read_message) BEFORE
+    // refreshing — otherwise _loadChats() refetches the stale unread count
+    // and the badge reappears.
+    if (roomId.isNotEmpty) {
+      try { await _api.markRoomRead(roomId); } catch (_) {/* non-fatal */}
+    }
+    if (mounted) _loadChats();
   }
 
   Widget _buildAppBar() {
@@ -684,29 +773,19 @@ Widget _buildSearchField() {
       }
     }
 
+    final isSelected = _selectedRoomId != null && _selectedRoomId == roomId;
+
     return GestureDetector(
-      onTap: () async {
-        setState(() => c['unread_count'] = 0);
-        await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ChatRoomScreen(
-              roomId: roomId, roomName: name, userName: 'You',
-              roomType: roomType),
-        ));
-        // Persist the read on the backend (advances last_read_message) BEFORE
-        // refreshing — otherwise _loadChats() refetches the stale unread count
-        // and the badge reappears.
-        if (roomId.isNotEmpty) {
-          try { await _api.markRoomRead(roomId); } catch (_) {/* non-fatal */}
-        }
-        if (mounted) _loadChats();
-      },
+      onTap: () => _openRoom(c),
       onLongPress: () => _showChatTileMenu(c),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppC.card, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppC.ink, width: 1.5),
+          color: isSelected ? AppC.card2 : AppC.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: isSelected ? _kG2 : AppC.ink, width: 1.5),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 8, offset: const Offset(0, 2))],
         ),

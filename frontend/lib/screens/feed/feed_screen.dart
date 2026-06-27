@@ -23,6 +23,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
+import 'package:tcs_app/utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
@@ -644,7 +645,11 @@ class _FeedScreenState extends State<FeedScreen>
         children: [
           _buildHeader(topPad),
           Expanded(
-            child: CustomScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: Responsive.contentMaxWidth(context)),
+                child: CustomScrollView(
               controller: _scrollCtrl,
               physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics()),
@@ -705,6 +710,8 @@ class _FeedScreenState extends State<FeedScreen>
 
                 const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
               ],
+                ),
+              ),
             ),
           ),
         ],

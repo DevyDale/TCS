@@ -210,10 +210,19 @@ Future<void> syncFcmTopics() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // Phones stay portrait-locked; tablets/iPads (shortestSide ≥ 600dp) are freed
+  // to rotate so the wide two-pane / NavigationRail layouts can engage.
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final shortestSide =
+      (view.physicalSize / view.devicePixelRatio).shortestSide;
+  if (shortestSide >= 600) {
+    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+  } else {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

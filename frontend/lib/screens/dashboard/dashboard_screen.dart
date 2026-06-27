@@ -37,6 +37,7 @@ import '../../widgets/emergency_banner.dart';
 import '../staff/staff_protect_screen.dart';
 import '../staff/staff_connect_screen.dart';
 import '../../utils/responsive_helper.dart';
+import '../../utils/responsive.dart';
 
 // Arcade palette (used by the centre button + welcome banner)
 const _kBlue   = Color(0xFF6DD5FA);
@@ -195,24 +196,110 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          ScaleTransition(
-            scale: _tabScaleAnim,
-            child: _screens[_currentIndex],
+    final body = Stack(
+      children: [
+        ScaleTransition(
+          scale: _tabScaleAnim,
+          child: _screens[_currentIndex],
+        ),
+        // Everyone sees live emergency alerts on any tab (audience-filtered
+        // server-side).
+        const EmergencyBanner(),
+      ],
+    );
+
+    // Tablet / iPad: a side NavigationRail replaces the bottom bar; the
+    // selected screen fills the rest. Phones keep the bottom nav untouched.
+    if (Responsive.isWide(context)) {
+      return Scaffold(
+        backgroundColor: AppC.bg,
+        body: SafeArea(
+          child: Row(
+            children: [
+              _buildRail(context),
+              const VerticalDivider(width: 1, thickness: 1),
+              Expanded(child: body),
+            ],
           ),
-          // Everyone sees live emergency alerts on any tab (audience-filtered
-          // server-side).
-          const EmergencyBanner(),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: body,
       // Body still draws behind the bar so transparent scrims and gradients
       // can show through near the bar's rounded top edge.
       extendBody: true,
       backgroundColor: Colors.transparent,
       bottomNavigationBar:
           _isStaff ? _buildStaffNav(context) : _buildBottomNav(context),
+    );
+  }
+
+  // ── Side NavigationRail (tablet / iPad) ──────────────────────
+  // Mirrors the bottom-nav tab structure exactly, reusing _onTabTap so all
+  // routing (incl. the Arcade push for students) and tab animations carry
+  // over unchanged. selectedIndex tracks _navIndex / _currentIndex so the
+  // Arcade push never leaves a phantom selection.
+  Widget _buildRail(BuildContext context) {
+    final l = AppL10n.of(context);
+
+    final destinations = _isStaff
+        ? const [
+            NavigationRailDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard_rounded),
+                label: Text('Home')),
+            NavigationRailDestination(
+                icon: Icon(Icons.shield_outlined),
+                selectedIcon: Icon(Icons.shield_rounded),
+                label: Text('Protect')),
+            NavigationRailDestination(
+                icon: Icon(Icons.forum_outlined),
+                selectedIcon: Icon(Icons.forum_rounded),
+                label: Text('Connect')),
+          ]
+        : [
+            NavigationRailDestination(
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home_rounded),
+                label: Text(l.navFeed)),
+            NavigationRailDestination(
+                icon: const Icon(Icons.groups_outlined),
+                selectedIcon: const Icon(Icons.groups_rounded),
+                label: Text(l.navGroups)),
+            NavigationRailDestination(
+                icon: const Icon(Icons.sports_esports_outlined),
+                selectedIcon: const Icon(Icons.sports_esports_rounded),
+                label: Text(l.navArcade)),
+            NavigationRailDestination(
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                selectedIcon: const Icon(Icons.chat_bubble_rounded),
+                label: Text(l.navChat)),
+            NavigationRailDestination(
+                icon: const Icon(Icons.person_outline_rounded),
+                selectedIcon: const Icon(Icons.person_rounded),
+                label: Text(l.navProfile)),
+          ];
+
+    // Staff slots map 1:1 to screen index; students use _navIndex (which is
+    // never 2 — Arcade is a push route — so the rail keeps its prior selection).
+    final selected = _isStaff ? _currentIndex : _navIndex;
+
+    return NavigationRail(
+      selectedIndex: selected,
+      onDestinationSelected: _onTabTap,
+      labelType: NavigationRailLabelType.all,
+      backgroundColor: _kCard,
+      indicatorColor: _kCardLo,
+      selectedIconTheme: const IconThemeData(color: _kPurple),
+      unselectedIconTheme: IconThemeData(color: _kSlate2),
+      selectedLabelTextStyle: const TextStyle(
+          fontFamily: 'Momo', fontSize: 11.5, fontWeight: FontWeight.w700,
+          color: _kPurple),
+      unselectedLabelTextStyle: TextStyle(
+          fontFamily: 'Momo', fontSize: 11.5, color: _kSlate2),
+      destinations: destinations,
     );
   }
 
