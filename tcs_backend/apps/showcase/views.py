@@ -46,6 +46,7 @@ def _public_club_posts():
     from apps.posts.models import Post
     qs = (Post.objects
           .select_related("club", "author")
+          .prefetch_related("media_files", "showcase_reactions")  # 1 query/page
           .filter(visibility="public",
                   media_files__isnull=False)   # image posts only — visual campus
           .exclude(is_flagged=True)            # content, less personal text exposed
@@ -61,13 +62,25 @@ def _post_dict(p, user):
     image = None
     if media:
         try:
-            image = media[0].file.url
+            # Optimised Cloudinary delivery (≤800px, auto WebP, auto quality)
+            # instead of the raw full-size original — much fewer bytes.
+            from apps.posts.serializers import _cl
+            image = _cl(media[0].file, width=800, crop="limit",
+                        fetch_format="auto", quality="auto", secure=True) \
+                or media[0].file.url
         except Exception:
-            image = None
+            try:
+                image = media[0].file.url
+            except Exception:
+                image = None
     club = getattr(p, "club", None)
-    likes = p.showcase_reactions.filter(reaction="like").count()
-    dislikes = p.showcase_reactions.filter(reaction="dislike").count()
-    mine = p.showcase_reactions.filter(user=user).first()
+    # Reactions are prefetched (see _public_club_posts) — count in Python so the
+    # whole page costs one query instead of three per post.
+    reactions = list(p.showcase_reactions.all())
+    likes = sum(1 for r in reactions if r.reaction == "like")
+    dislikes = sum(1 for r in reactions if r.reaction == "dislike")
+    mine = next((r for r in reactions
+                 if str(r.user_id) == str(getattr(user, "id", ""))), None)
     return {
         "id":         str(p.id),
         "text":       getattr(p, "content", "") or "",
