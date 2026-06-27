@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/screens/ai/ai_hub_screen.dart';
 import 'package:tcs_app/screens/ai/saved_materials_screen.dart';
-import 'package:tcs_app/screens/studyhub/sessions_screen.dart';
 
 import 'dart:async';
 import '../../services/api_service.dart';
@@ -772,7 +771,6 @@ class _GroupsStudyHubScreenState
         child: Column(children: [
           _buildHeader(),
           _buildQuickActions(),
-          _buildTeacherBridge(),
           _buildTabBar(),
           Expanded(
             child: Container(
@@ -873,36 +871,6 @@ class _GroupsStudyHubScreenState
 
   // The teacher bridge: students reach the teacher-curated Resource Library and
   // the Q&A board from inside their own peer hub (spec §6).
-  // Study sessions only — resources, Q&A, quizzes and subject hubs were dropped
-  // (resources/quizzes already live in the Digital Library).
-  Widget _buildTeacherBridge() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: GestureDetector(
-        onTap: () { HapticFeedback.selectionClick();
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const SessionsScreen(isTeacher: false))); },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [Color(0xFF0EA5A4), Color(0xFF0F766E)]),
-            borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            const Icon(Icons.event_available_rounded, color: Colors.white, size: 22),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Study Sessions',
-                style: TextStyle(fontFamily: 'Arch', fontSize: 13.5,
-                    fontWeight: FontWeight.bold, color: Colors.white))),
-            Icon(Icons.chevron_right_rounded,
-                color: Colors.white.withOpacity(0.85), size: 20),
-          ]),
-        ),
-      ),
-    );
-  }
-
   Widget _buildQuickActions() {
     return Container(
       margin: const EdgeInsets.all(16),
