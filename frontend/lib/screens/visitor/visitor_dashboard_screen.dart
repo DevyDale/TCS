@@ -4,13 +4,13 @@
 // club-authored public posts (PII-stripped server-side), with like/dislike and
 // a tightly-restricted Dale cloud. No nav, no chat, no profiles, no search.
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
-import 'package:tcs_app/screens/splash_screen.dart';
+import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -26,6 +26,7 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
   final _api = ApiService();
   List<Map<String, dynamic>> _posts = [];
   bool _loading = true;
+  bool _daleOpen = false;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -64,38 +65,68 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
 
   Future<void> _logout() async {
     try { await _api.logout(); } catch (_) {}
-    Get.offAll(() => const SplashScreen());
+    Get.offAll(() => const RoleSelectionScreen());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppC.bg,
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _kG2,
-        onPressed: _openDale,
-        icon: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
-        label: const Text('Ask Dale', style: TextStyle(fontFamily: 'Arch',
-            fontWeight: FontWeight.bold, color: Colors.white)),
-      ),
-      body: RefreshIndicator(
-        color: _kG2, onRefresh: _load,
-        child: CustomScrollView(slivers: [
-          SliverToBoxAdapter(child: _header()),
-          if (_loading)
-            const SliverFillRemaining(hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator(color: _kG2)))
-          else if (_posts.isEmpty)
-            SliverFillRemaining(hasScrollBody: false, child: _empty())
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
-              sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                (_, i) => Padding(padding: const EdgeInsets.only(bottom: 12),
-                    child: _postCard(_posts[i])),
-                childCount: _posts.length)),
-            ),
-        ]),
+      floatingActionButton: _daleFab(),
+      body: Stack(children: [
+        RefreshIndicator(
+          color: _kG2, onRefresh: _load,
+          child: CustomScrollView(slivers: [
+            SliverToBoxAdapter(child: _header()),
+            if (_loading)
+              const SliverFillRemaining(hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator(color: _kG2)))
+            else if (_posts.isEmpty)
+              SliverFillRemaining(hasScrollBody: false, child: _empty())
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+                sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                  (_, i) => Padding(padding: const EdgeInsets.only(bottom: 12),
+                      child: _postCard(_posts[i])),
+                  childCount: _posts.length)),
+              ),
+          ]),
+        ),
+        // Dale chat cloud overlay — anchored above the FAB, dismiss on scrim tap.
+        if (_daleOpen) ...[
+          Positioned.fill(child: GestureDetector(
+            onTap: () => setState(() => _daleOpen = false),
+            child: Container(color: Colors.black.withValues(alpha: 0.35)))),
+          Positioned(
+            right: 14, left: 14,
+            bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                ? MediaQuery.of(context).viewInsets.bottom + 12
+                : MediaQuery.of(context).padding.bottom + 96,
+            child: _VisitorDaleCloud(
+                onClose: () => setState(() => _daleOpen = false)),
+          ),
+        ],
+      ]),
+    );
+  }
+
+  Widget _daleFab() {
+    return GestureDetector(
+      onTap: () { HapticFeedback.selectionClick();
+        setState(() => _daleOpen = !_daleOpen); },
+      child: Container(
+        width: 64, height: 64,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(colors: [_kG1, _kG2],
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+          boxShadow: [BoxShadow(color: _kG2.withValues(alpha: 0.45),
+              blurRadius: 18, offset: const Offset(0, 8))]),
+        padding: const EdgeInsets.all(8),
+        child: Lottie.asset('assets/images/robot.json', fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+                Icons.smart_toy_rounded, color: Colors.white, size: 30)),
       ),
     );
   }
@@ -208,23 +239,17 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
     ));
   }
 
-  // ── Restricted Dale cloud ─────────────────────────────────
-  void _openDale() {
-    showModalBottomSheet(context: context, backgroundColor: AppC.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (_) => const _VisitorDaleSheet());
-  }
 }
 
-class _VisitorDaleSheet extends StatefulWidget {
-  const _VisitorDaleSheet();
+class _VisitorDaleCloud extends StatefulWidget {
+  final VoidCallback onClose;
+  const _VisitorDaleCloud({required this.onClose});
   @override
-  State<_VisitorDaleSheet> createState() => _VisitorDaleSheetState();
+  State<_VisitorDaleCloud> createState() => _VisitorDaleCloudState();
 }
 
-class _VisitorDaleSheetState extends State<_VisitorDaleSheet> {
+class _VisitorDaleCloudState extends State<_VisitorDaleCloud>
+    with SingleTickerProviderStateMixin {
   final _api = ApiService();
   final _ctrl = TextEditingController();
   final _msgs = <Map<String, String>>[]; // {role, content}
@@ -235,8 +260,11 @@ class _VisitorDaleSheetState extends State<_VisitorDaleSheet> {
     'Tell me about campus life', 'How do I use this app?',
   ];
 
+  late final AnimationController _pop = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 320))..forward();
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() { _ctrl.dispose(); _pop.dispose(); super.dispose(); }
 
   Future<void> _send(String text) async {
     final m = text.trim();
@@ -258,31 +286,71 @@ class _VisitorDaleSheetState extends State<_VisitorDaleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: DraggableScrollableSheet(
-        expand: false, initialChildSize: 0.75, maxChildSize: 0.92, minChildSize: 0.5,
-        builder: (ctx, scroll) => Column(children: [
-          const SizedBox(height: 10),
-          Container(width: 38, height: 4, decoration: BoxDecoration(
-              color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-          Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-            child: Row(children: [
-              const Icon(Icons.auto_awesome_rounded, color: _kG2, size: 20),
-              const SizedBox(width: 10),
-              Text('Ask Dale', style: TextStyle(fontFamily: 'Alfa', fontSize: 18,
-                  color: AppC.text)),
-              const Spacer(),
-              Text('clubs & events only', style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 10.5, color: AppC.faint)),
-            ])),
-          const Divider(height: 1, color: Colors.white12),
-          Expanded(child: _msgs.isEmpty
-              ? _starters()
-              : ListView.builder(controller: scroll,
-                  padding: const EdgeInsets.all(16), itemCount: _msgs.length,
-                  itemBuilder: (_, i) => _bubble(_msgs[i]))),
-          _inputBar(),
+    final h = MediaQuery.of(context).size.height;
+    final kb = MediaQuery.of(context).viewInsets.bottom;
+    // Speech-bubble cloud: a rounded card with a tail pointing down toward the
+    // robot FAB at the bottom-right.
+    return ScaleTransition(
+      scale: CurvedAnimation(parent: _pop, curve: Curves.easeOutBack),
+      alignment: Alignment.bottomRight,
+      child: FadeTransition(
+        opacity: _pop,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Material(
+            color: Colors.transparent,
+            child: Container(
+              height: (kb > 0 ? (h - kb - 120) : h * 0.52).clamp(300.0, 520.0),
+              decoration: BoxDecoration(
+                color: AppC.card,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppC.border),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28),
+                    blurRadius: 26, offset: const Offset(0, 12))]),
+              clipBehavior: Clip.antiAlias,
+              child: Column(children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+                  decoration: const BoxDecoration(gradient: LinearGradient(
+                      colors: [_kG1, _kG2],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight)),
+                  child: Row(children: [
+                    SizedBox(width: 30, height: 30, child: Lottie.asset(
+                        'assets/images/robot.json', fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.smart_toy_rounded, color: Colors.white, size: 22))),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text('Ask Dale',
+                        style: TextStyle(fontFamily: 'Alfa', fontSize: 17,
+                            color: Colors.white))),
+                    Text('clubs & events only', style: TextStyle(fontFamily: 'Momo',
+                        fontSize: 10, color: Colors.white.withValues(alpha: 0.85))),
+                    const SizedBox(width: 6),
+                    GestureDetector(onTap: widget.onClose,
+                        child: const Icon(Icons.close_rounded,
+                            color: Colors.white, size: 20)),
+                  ]),
+                ),
+                Expanded(child: _msgs.isEmpty
+                    ? _starters()
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(14), itemCount: _msgs.length,
+                        itemBuilder: (_, i) => _bubble(_msgs[i]))),
+                _inputBar(),
+              ]),
+            ),
+          ),
+          // Tail pointing to the FAB (bottom-right)
+          Padding(
+            padding: const EdgeInsets.only(right: 26),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ClipPath(
+                clipper: _TailClipper(),
+                child: Container(width: 22, height: 12, color: AppC.card),
+              ),
+            ),
+          ),
         ]),
       ),
     );
@@ -325,8 +393,7 @@ class _VisitorDaleSheetState extends State<_VisitorDaleSheet> {
   }
 
   Widget _inputBar() => Container(
-    padding: EdgeInsets.fromLTRB(14, 10, 14,
-        MediaQuery.of(context).padding.bottom + 10),
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
     decoration: BoxDecoration(color: AppC.card,
         border: Border(top: BorderSide(color: AppC.border))),
     child: Row(children: [
@@ -354,4 +421,16 @@ class _VisitorDaleSheetState extends State<_VisitorDaleSheet> {
       ),
     ]),
   );
+}
+
+// Small downward triangle tail for the Dale chat cloud.
+class _TailClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size s) => Path()
+    ..moveTo(0, 0)
+    ..lineTo(s.width, 0)
+    ..lineTo(s.width / 2, s.height)
+    ..close();
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> old) => false;
 }

@@ -115,14 +115,15 @@ flutter_launcher_icons:
 
 
 # ─── Android native splash (shown BEFORE Flutter boots) ───
+# Logo-less on purpose: just the dark background that matches the Flutter
+# SplashScreen's top gradient stop, so the OS splash blends straight into the
+# branded Flutter splash (logo + "Learn · Play · Connect") instead of showing a
+# second, text-less logo splash first.
 flutter_native_splash:
   color: "#0D0D1A"
-  image: assets/icon/tcs-splash.png
   android: true
   ios: true
   android_12:
     color: "#0D0D1A"
-    image: assets/icon/tcs-icon-foreground.png
     icon_background_color: "#0D0D1A"
-  android_gravity: center
   fullscreen: true

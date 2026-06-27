@@ -40,17 +40,21 @@ _VISITOR_SYSTEM_PROMPT = (
 
 
 def _public_club_posts():
+    """Public campus posts surfaced to visitors. Author PII is always stripped
+    in _post_dict; club posts keep their club label. Broadened beyond club-only
+    so the showcase isn't empty when there are no club-scoped posts."""
     from apps.posts.models import Post
-    return (Post.objects
-            .select_related("club")
-            .filter(club__isnull=False, club__is_active=True,
-                    visibility="public")
-            .exclude(is_flagged=True)
-            .order_by("-created_at"))
+    qs = (Post.objects
+          .select_related("club", "author")
+          .filter(visibility="public")
+          .exclude(is_flagged=True))
+    # Exclude posts authored by suspended accounts (safeguarding).
+    qs = qs.exclude(author__is_suspended=True)
+    return qs.order_by("-created_at")
 
 
 def _post_dict(p, user):
-    # Strip ALL author PII — only club-level, public fields.
+    # Strip ALL author PII — never expose who posted it. Club label only.
     media = list(p.media_files.all()[:1])
     image = None
     if media:
@@ -58,16 +62,16 @@ def _post_dict(p, user):
             image = media[0].file.url
         except Exception:
             image = None
-    club = p.club
+    club = getattr(p, "club", None)
     likes = p.showcase_reactions.filter(reaction="like").count()
     dislikes = p.showcase_reactions.filter(reaction="dislike").count()
     mine = p.showcase_reactions.filter(user=user).first()
     return {
         "id":         str(p.id),
-        "text":       p.text,
+        "text":       getattr(p, "content", "") or "",
         "image":      image,
-        "club_name":  club.name if club else "",
-        "club_logo":  (club.logo.url if club and club.logo else None),
+        "club_name":  club.name if club else "TCS Campus",
+        "club_logo":  (club.logo.url if club and getattr(club, "logo", None) else None),
         "created_at": p.created_at.isoformat(),
         "likes":      likes,
         "dislikes":   dislikes,

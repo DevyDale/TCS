@@ -31,6 +31,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
 import 'noticeboard_screen.dart';
+import 'staff/emergency_detail_screen.dart';
 import 'chat/chat_room_screen.dart';
 import 'chat/chat_requests.dart';
 import 'arcade/game_requests_screen.dart';
@@ -159,6 +160,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'announcement':
         _push(NoticeboardScreen(highlightId: id));
+        break;
+
+      // ── Emergency / safety ─────────────────────────────────
+      case 'emergency':
+        if (id.isNotEmpty) _push(EmergencyDetailScreen(alertId: id));
         break;
 
       // ── People ─────────────────────────────────────────────
@@ -505,6 +511,8 @@ class _NotifTile extends StatelessWidget {
         return (icon: Icons.alternate_email_rounded, color: _kViolet);
       case 'announcement':
         return (icon: Icons.campaign_rounded, color: _kViolet);
+      case 'emergency':
+        return (icon: Icons.warning_amber_rounded, color: _kRed);
       case 'suggestion':
         return (icon: Icons.lightbulb_rounded, color: const Color(0xFF4F46E5));
       case 'wellbeing':
