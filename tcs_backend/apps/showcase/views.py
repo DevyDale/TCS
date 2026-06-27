@@ -47,9 +47,9 @@ def _public_club_posts():
     qs = (Post.objects
           .select_related("club", "author")
           .filter(visibility="public")
-          .exclude(is_flagged=True))
-    # Exclude posts authored by suspended accounts (safeguarding).
-    qs = qs.exclude(author__is_suspended=True)
+          .exclude(is_flagged=True)
+          .exclude(is_ai=True)                 # no AI/assistant content
+          .exclude(author__is_suspended=True))  # no suspended authors
     return qs.order_by("-created_at")
 
 
