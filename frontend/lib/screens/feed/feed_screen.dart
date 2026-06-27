@@ -3682,3 +3682,70 @@ class _BubblePainter extends CustomPainter {
   bool shouldRepaint(covariant _BubblePainter old) =>
       old.color != color || old.tailFromRight != tailFromRight;
 }
+
+
+// ─────────────────────────────────────────────────────────────
+// PlatformPostCard — the exact same rich post tile the main feed renders,
+// but self-contained (handles its own like / comment / share). Lets other
+// screens (e.g. the staff oversight feed) show platform posts that look and
+// behave identically to the student feed, without duplicating _PostCard.
+// ─────────────────────────────────────────────────────────────
+class PlatformPostCard extends StatefulWidget {
+  final Map<String, dynamic> post;
+  final int index;
+  const PlatformPostCard({super.key, required this.post, this.index = 0});
+
+  @override
+  State<PlatformPostCard> createState() => _PlatformPostCardState();
+}
+
+class _PlatformPostCardState extends State<PlatformPostCard> {
+  final _api = ApiService();
+  late Map<String, dynamic> _post = {...widget.post};
+
+  @override
+  void didUpdateWidget(covariant PlatformPostCard old) {
+    super.didUpdateWidget(old);
+    if (old.post['id'] != widget.post['id']) _post = {...widget.post};
+  }
+
+  Future<void> _toggleLike() async {
+    HapticFeedback.lightImpact();
+    final id  = _post['id']?.toString() ?? '';
+    final was = _post['is_liked'] as bool? ?? false;
+    final cnt = _post['like_count'] as int? ?? 0;
+    setState(() => _post = {
+          ..._post,
+          'is_liked':   !was,
+          'like_count': was ? cnt - 1 : cnt + 1,
+        });
+    try {
+      final res = await _api.likeToggle(id) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() => _post = {
+            ..._post,
+            if (res['is_liked'] != null) 'is_liked': res['is_liked'],
+            if (res['like_count'] != null) 'like_count': res['like_count'],
+          });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _post = {..._post, 'is_liked': was, 'like_count': cnt});
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _PostCard(
+        post:  _post,
+        index: widget.index,
+        onLike: _toggleLike,
+        onComment: () => showModalBottomSheet(
+            context: context, isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _CommentsSheet(api: _api, post: _post)),
+        onShare: () => showModalBottomSheet(
+            context: context, isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _ShareSheet(api: _api, post: _post)),
+      );
+}
