@@ -168,7 +168,7 @@ class _AiHubScreenState extends State<AiHubScreen>
         _limit = data['limit']         as int? ?? 60;
       });
       try {
-        final me = await _api.get('/auth/me/');
+        final me = await _api.get('/users/me/');
         if (mounted && me is Map) {
           final role = (me['role'] as String? ?? '').toLowerCase().trim();
           setState(() {

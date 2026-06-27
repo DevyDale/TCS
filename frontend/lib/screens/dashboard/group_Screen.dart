@@ -88,7 +88,7 @@ class _GroupScreenState extends State<GroupScreen>
   Future<void> _loadMe() async {
     Map<String, dynamic>? me;
     try {
-      final res = await _api.get('/auth/me/');
+      final res = await _api.get('/users/me/');
       if (res is Map) me = Map<String, dynamic>.from(res);
     } catch (_) {}
     me ??= await _api.cachedUser;

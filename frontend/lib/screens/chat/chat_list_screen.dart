@@ -106,7 +106,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   Future<void> _bootstrapMe() async {
     try {
-      final me = await _api.get('/auth/me/');
+      final me = await _api.get('/users/me/');
       if (me is Map) _meUserId = me['user_id'] as String?;
     } catch (_) { /* not fatal */ }
   }
