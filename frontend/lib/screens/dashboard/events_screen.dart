@@ -112,64 +112,59 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: _kG2,
-          onRefresh: _load,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics()),
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader()),
-              SliverToBoxAdapter(
-                child: Transform.translate(
-                  offset: const Offset(0, -24),
-                  child: _buildSearchBar(),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Transform.translate(
-                  offset: const Offset(0, -16),
-                  child: _buildCategoryFilters(),
-                ),
-              ),
-              if (_featuredEvents.isNotEmpty) ...[
-                const SliverToBoxAdapter(child: _SectionHeader(title: 'Featured')),
-                SliverToBoxAdapter(child: _buildFeaturedCarousel()),
-              ],
-              const SliverToBoxAdapter(child: _SectionHeader(title: 'All Events')),
-              if (_loading)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator(color: _kG2)),
-                )
-              else if (_error != null)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _buildError(_error!),
-                )
-              else if (_filteredEvents.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyState(),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => _EventListCard(
-                        event: _filteredEvents[i],
-                        onTap: () => _openDetails(_filteredEvents[i]),
+      body: Column(
+        children: [
+          // Gradient top bar — runs under the status bar, with the search
+          // field built into it.
+          _buildHeader(),
+          Expanded(
+            child: RefreshIndicator(
+              color: _kG2,
+              onRefresh: _load,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics()),
+                slivers: [
+                  SliverToBoxAdapter(child: _buildCategoryFilters()),
+                  if (_featuredEvents.isNotEmpty) ...[
+                    const SliverToBoxAdapter(child: _SectionHeader(title: 'Featured')),
+                    SliverToBoxAdapter(child: _buildFeaturedCarousel()),
+                  ],
+                  const SliverToBoxAdapter(child: _SectionHeader(title: 'All Events')),
+                  if (_loading)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: CircularProgressIndicator(color: _kG2)),
+                    )
+                  else if (_error != null)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildError(_error!),
+                    )
+                  else if (_filteredEvents.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyState(),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (_, i) => _EventListCard(
+                            event: _filteredEvents[i],
+                            onTap: () => _openDetails(_filteredEvents[i]),
+                          ),
+                          childCount: _filteredEvents.length,
+                        ),
                       ),
-                      childCount: _filteredEvents.length,
                     ),
-                  ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -195,77 +190,76 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Widget _buildHeader() {
     final canPop = Navigator.canPop(context);
+    final topInset = MediaQuery.of(context).padding.top;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 34),
+      padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [_kG1, _kG2],
           begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
+        boxShadow: [BoxShadow(color: Color(0x33000000),
+            blurRadius: 18, offset: Offset(0, 8))],
       ),
-      child: Row(children: [
-        if (canPop) ...[
-          GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: Container(
-              width: 40, height: 40, alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.30))),
-              child: const Icon(Icons.arrow_back_rounded,
-                  color: Colors.white, size: 20)),
-          ),
-          const SizedBox(width: 12),
-        ],
-        Container(
-          width: 46, height: 46, alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.30))),
-          child: const Icon(Icons.event_rounded, color: Colors.white, size: 24)),
-        const SizedBox(width: 13),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Events',
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 26,
-                    color: Colors.white, height: 1.05,
-                    shadows: [Shadow(color: Colors.black26, blurRadius: 8,
-                        offset: Offset(0, 3))])),
-            const SizedBox(height: 3),
-            Text("What's happening on campus",
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                    color: Colors.white.withOpacity(0.9))),
+      child: Column(children: [
+        Row(children: [
+          if (canPop) ...[
+            GestureDetector(
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                width: 40, height: 40, alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.30))),
+                child: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white, size: 20)),
+            ),
+            const SizedBox(width: 12),
           ],
-        )),
-      ]),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: TextField(
-        onChanged: (v) => setState(() => _searchQuery = v),
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
-        decoration: InputDecoration(
-          hintText: TranslationService.I.tr('Search for events...'),
-          hintStyle: TextStyle(
-              fontFamily: 'Momo', color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: const Icon(Icons.search_rounded, color: _kG2),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+          Container(
+            width: 46, height: 46, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.20), shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.30))),
+            child: const Icon(Icons.event_rounded, color: Colors.white, size: 24)),
+          const SizedBox(width: 13),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Events',
+                  style: TextStyle(fontFamily: 'Alfa', fontSize: 24,
+                      color: Colors.white, height: 1.05,
+                      shadows: [Shadow(color: Colors.black26, blurRadius: 8,
+                          offset: Offset(0, 3))])),
+              const SizedBox(height: 2),
+              Text("What's happening on campus",
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                      color: Colors.white.withOpacity(0.9))),
+            ],
+          )),
+        ]),
+        const SizedBox(height: 14),
+        // Search field — lives inside the top bar.
+        TextField(
+          onChanged: (v) => setState(() => _searchQuery = v),
+          style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+          decoration: InputDecoration(
+            hintText: TranslationService.I.tr('Search for events...'),
+            hintStyle: TextStyle(
+                fontFamily: 'Momo', color: Colors.grey.shade400, fontSize: 13),
+            prefixIcon: const Icon(Icons.search_rounded, color: _kG2),
+            filled: true,
+            fillColor: Colors.white,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
-      ),
+      ]),
     );
   }
 
