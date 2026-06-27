@@ -10,7 +10,7 @@ import 'package:get/get.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/app_settings.dart';
-import 'package:tcs_app/screens/splash_screen.dart';
+import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 class StaffSettingsScreen extends StatefulWidget {
@@ -74,7 +74,7 @@ class _StaffSettingsScreenState extends State<StaffSettingsScreen> {
     if (ok != true) return;
     setState(() => _loggingOut = true);
     try { await _api.logout(); } catch (_) {}
-    Get.offAll(() => const SplashScreen());
+    Get.offAll(() => const RoleSelectionScreen());
   }
 
   @override

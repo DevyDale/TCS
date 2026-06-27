@@ -13,7 +13,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
-import 'package:tcs_app/screens/splash_screen.dart';
+import 'package:tcs_app/screens/auth/role_selection_screen.dart';
 import 'package:tcs_app/screens/staff/staff_announcements_screen.dart';
 import 'package:tcs_app/screens/staff/staff_moderation_screen.dart';
 import 'package:tcs_app/screens/staff/suggestions_review_screen.dart';
@@ -140,7 +140,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
     if (ok != true) return;
     try { await _api.logout(); } catch (_) {/* clear locally regardless */}
-    Get.offAll(() => const SplashScreen());
+    Get.offAll(() => const RoleSelectionScreen());
   }
 
   // Dale animation with a safe icon fallback if the asset isn't present.
