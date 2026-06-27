@@ -382,16 +382,19 @@ class _SplashScreenState extends State<SplashScreen>
                       opacity: _lumoraFade,
                       child: Column(
                         children: [
-                          T('POWERED BY LUMORA',
-                              style: TextStyle(
-                                fontFamily: 'Momo', fontSize: 10,
-                                color: AppC.text.withOpacity(0.3), letterSpacing: 3.5,
+                          // Splash bg is always dark — use fixed white tones so the
+                          // credit is visible regardless of the app's light/dark theme.
+                          T('Powered by LUMORA',
+                              style: const TextStyle(
+                                fontFamily: 'Arch', fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white, letterSpacing: 2.5,
                               )),
                           const SizedBox(height: 4),
                           T('Taylors College Social & Arcade',
                               style: TextStyle(
-                                fontFamily: 'Momo', fontSize: context.isPhone ? 12 : 13,
-                                color: AppC.text.withOpacity(0.45), letterSpacing: 1,
+                                fontFamily: 'Momo', fontSize: context.isPhone ? 11 : 12,
+                                color: Colors.white.withOpacity(0.55), letterSpacing: 1,
                               )),
                         ],
                       ),

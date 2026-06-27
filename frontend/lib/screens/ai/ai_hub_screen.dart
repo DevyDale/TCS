@@ -72,18 +72,20 @@ class _Tool {
   });
 }
 
+// Order matters: _tools[0] is the wide featured tile, [1..4] fill the 2×2 grid.
+// AI Assistant is featured (the everyday general assistant); Sage sits in the grid.
 final _tools = <_Tool>[
-  _Tool(
-    name:    'Sage',
-    tagline: 'Your personal mentor — talk, reflect, get support',
-    icon:    Icons.self_improvement_rounded,
-    builder: () => const MentorScreen(),
-  ),
   _Tool(
     name:    'AI Assistant',
     tagline: 'Ask anything about campus, study, life',
     icon:    Icons.auto_awesome_rounded,
     builder: () => const AiAssistantScreen(),
+  ),
+  _Tool(
+    name:    'Sage',
+    tagline: 'Your personal mentor — talk, reflect, get support',
+    icon:    Icons.self_improvement_rounded,
+    builder: () => const MentorScreen(),
   ),
   _Tool(
     name:    'Code Helper',
