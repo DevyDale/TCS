@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/services/csv_export.dart';
 import 'package:tcs_app/screens/dashboard/other_user_profile_Screen.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
@@ -46,11 +47,14 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
   }
 
   Future<void> _loadEngagement() async {
-    try {
-      final d = await _api.get('/moderation/staff/engagement/')
-          as Map<String, dynamic>;
-      if (mounted) setState(() => _engagement = d);
-    } catch (_) {}
+    CacheStore.I.swr(
+      'roster:engagement',
+      fetch: () => _api.get('/moderation/staff/engagement/'),
+      onData: (data, _) {
+        if (mounted) setState(() => _engagement = (data as Map).cast<String, dynamic>());
+      },
+      onError: (_) {},
+    );
   }
 
   @override
@@ -60,22 +64,37 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
     super.dispose();
   }
 
+  void _applyRoster(Map<String, dynamic> d) {
+    _students = ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
+    _count = (d['count'] as num?)?.toInt() ?? _students.length;
+    _loading = false;
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final d = await _api.get('/moderation/staff/roster/', query: {
-        'filter': _filter,
-        if (_searchCtrl.text.trim().isNotEmpty) 'q': _searchCtrl.text.trim(),
-      }) as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _students = ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
-        _count = (d['count'] as num?)?.toInt() ?? _students.length;
-        _loading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    final q = _searchCtrl.text.trim();
+    // Searching → live fetch. Default/filter view → stale-while-revalidate so
+    // re-opening (and switching filters back) paints instantly from cache.
+    if (q.isNotEmpty) {
+      setState(() => _loading = true);
+      try {
+        final d = await _api.get('/moderation/staff/roster/',
+            query: {'filter': _filter, 'q': q}) as Map<String, dynamic>;
+        if (!mounted) return;
+        setState(() => _applyRoster(d));
+      } catch (_) {
+        if (mounted) setState(() => _loading = false);
+      }
+      return;
     }
+    CacheStore.I.swr(
+      'roster:$_filter',
+      fetch: () => _api.get('/moderation/staff/roster/', query: {'filter': _filter}),
+      onData: (data, _) {
+        if (!mounted) return;
+        setState(() => _applyRoster((data as Map).cast<String, dynamic>()));
+      },
+      onError: (_) { if (mounted) setState(() => _loading = false); },
+    );
   }
 
   void _onSearch(String _) {

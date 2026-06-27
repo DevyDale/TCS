@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/services/csv_export.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
@@ -41,19 +42,37 @@ class _StaffAuditScreenState extends State<StaffAuditScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final d = await _api.get('/moderation/staff/audit/', query: {
-        if (_searchCtrl.text.trim().isNotEmpty) 'q': _searchCtrl.text.trim(),
-      }) as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _events = ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
-        _loading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    final q = _searchCtrl.text.trim();
+    // Searching → live fetch. Default view → stale-while-revalidate: paints
+    // instantly from cache on re-open, then refreshes in the background.
+    if (q.isNotEmpty) {
+      setState(() => _loading = true);
+      try {
+        final d = await _api.get('/moderation/staff/audit/',
+            query: {'q': q}) as Map<String, dynamic>;
+        if (!mounted) return;
+        setState(() {
+          _events = ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
+          _loading = false;
+        });
+      } catch (_) {
+        if (mounted) setState(() => _loading = false);
+      }
+      return;
     }
+    CacheStore.I.swr(
+      'audit:log',
+      fetch: () => _api.get('/moderation/staff/audit/'),
+      onData: (data, _) {
+        if (!mounted) return;
+        final d = (data as Map).cast<String, dynamic>();
+        setState(() {
+          _events = ((d['results'] as List?) ?? []).cast<Map<String, dynamic>>();
+          _loading = false;
+        });
+      },
+      onError: (_) { if (mounted) setState(() => _loading = false); },
+    );
   }
 
   void _onSearch(String _) {
