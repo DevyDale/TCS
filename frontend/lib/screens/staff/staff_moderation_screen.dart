@@ -10,6 +10,7 @@ import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
+import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -124,28 +125,61 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: _bg, elevation: 0,
-        iconTheme: IconThemeData(color: AppC.text),
-        title: Row(children: [
-          T('Moderation',
-              style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
-          if (_pending > 0) ...[
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: _kRed,
-                  borderRadius: BorderRadius.circular(10)),
-              child: Text('$_pending',
-                  style: TextStyle(fontFamily: 'Arch',
-                      fontWeight: FontWeight.bold, fontSize: 12, color: AppC.text)),
-            ),
-          ],
-        ]),
-      ),
       body: Column(children: [
+        _modHeader(),
         _toggle(),
         Expanded(child: _tab == 'reports' ? _reportsBody() : _suspendedBody()),
+      ]),
+    );
+  }
+
+  Widget _modHeader() {
+    return StaffHeader(
+      bottomPad: 20,
+      horizontal: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Container(
+            width: 40, height: 40, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+            child: const Icon(Icons.arrow_back_rounded,
+                color: Colors.white, size: 20)),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 48, height: 48, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+          child: const Icon(Icons.shield_rounded, color: Colors.white, size: 24)),
+        const SizedBox(width: 13),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Moderation',
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 23,
+                    color: Colors.white, height: 1.05,
+                    shadows: [Shadow(color: Colors.black26, blurRadius: 8,
+                        offset: Offset(0, 3))])),
+            const SizedBox(height: 3),
+            Text('Work the flag queue & suspended accounts',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+                    color: Colors.white.withValues(alpha: 0.85))),
+          ],
+        )),
+        if (_pending > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: _kRed,
+                borderRadius: BorderRadius.circular(20)),
+            child: Text('$_pending',
+                style: const TextStyle(fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+          ),
       ]),
     );
   }
