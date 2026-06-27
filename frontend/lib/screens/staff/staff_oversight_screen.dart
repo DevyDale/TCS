@@ -159,24 +159,39 @@ class _StaffOversightScreenState extends State<StaffOversightScreen> {
         const SizedBox(height: 10),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: Colors.white.withOpacity(0.18))),
           child: TextField(
             controller: _searchCtrl,
             onChanged: _onSearch,
             style: const TextStyle(fontFamily: 'Momo', fontSize: 14,
-                color: Colors.white),
-            cursorColor: Colors.white,
-            decoration: const InputDecoration(
+                color: Color(0xFF1F2937)),
+            cursorColor: const Color(0xFF7C3AED),
+            decoration: InputDecoration(
               hintText: 'Search students by name or ID…',
               hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                  color: Colors.white60),
-              prefixIcon: Icon(Icons.search_rounded, color: Colors.white70,
-                  size: 20),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 12)),
+                  color: Colors.grey.shade500),
+              prefixIcon: const Icon(Icons.search_rounded,
+                  color: Color(0xFF7C3AED), size: 20),
+              suffixIcon: _searchCtrl.text.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () { _searchCtrl.clear(); _onSearch(''); },
+                      child: Icon(Icons.close_rounded,
+                          color: Colors.grey.shade500, size: 18))
+                  : null,
+              filled: true,
+              fillColor: Colors.white,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 13),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 1.5)),
+            ),
           ),
         ),
         const SizedBox(height: 10),
