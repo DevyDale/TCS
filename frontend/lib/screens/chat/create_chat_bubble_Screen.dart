@@ -181,7 +181,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           _buildAppBar(),
@@ -195,9 +195,9 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 16, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1))),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        border: Border(bottom: BorderSide(color: AppC.border, width: 1))),
       child: Row(children: [
         IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: _kInk, size: 20),
@@ -343,18 +343,18 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200)),
+        color: AppC.card2, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppC.border)),
       child: TextField(
         controller: controller,
         maxLines:   maxLines, maxLength: maxLength,
         style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: _kInk),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade400),
+          hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
           prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 14, right: 8),
-              child: Icon(icon, color: Colors.grey.shade400, size: 18)),
+              child: Icon(icon, color: AppC.faint, size: 18)),
           prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
           border: InputBorder.none,
           counterText: '',
@@ -367,8 +367,8 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
   Widget _privacyCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        color: AppC.card, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppC.border),
       ),
       child: Column(children: [
         _privacyOption(
@@ -377,7 +377,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           title:       'Private',
           body:        'Only people you invite can see and join this bubble.',
         ),
-        const Divider(height: 1, color: Color(0xFFEFEFEF)),
+        Divider(height: 1, color: AppC.border),
         _privacyOption(
           isPublic:    true,
           icon:        Icons.public_rounded,
@@ -449,13 +449,13 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(14),
+            color: AppC.card, borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: Colors.grey.shade200,
+                color: AppC.border,
                 style: BorderStyle.solid),
           ),
           child: Column(children: [
-            Icon(Icons.people_alt_outlined, size: 30, color: Colors.grey.shade400),
+            Icon(Icons.people_alt_outlined, size: 30, color: AppC.faint),
             const SizedBox(height: 8),
             T('No members yet',
                 style: TextStyle(fontFamily: 'Arch',
@@ -483,8 +483,8 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        color: AppC.card2, borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppC.border),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(

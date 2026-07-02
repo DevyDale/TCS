@@ -316,7 +316,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           _buildAppBar(),
@@ -338,9 +338,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        border: Border(bottom: BorderSide(color: AppC.border, width: 1)),
       ),
       child: Row(children: [
         IconButton(
@@ -359,10 +359,10 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppC.card2,
                   borderRadius: BorderRadius.circular(12)),
               child: Icon(Icons.search_rounded,
-                  color: Colors.grey.shade600, size: 20)),
+                  color: AppC.sub, size: 20)),
         ),
       ]),
     );
@@ -373,7 +373,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     final outLabel =
         _outgoingCount == 0 ? 'Outgoing' : 'Outgoing ($_outgoingCount)';
     return Container(
-      color: Colors.white,
+      color: AppC.card,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
       child: SizedBox(
         height: 48,
@@ -381,9 +381,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           controller: _tabCtrl,
           indicatorPadding: const EdgeInsets.all(4),
           barDecoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppC.card2,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200, width: 1),
+            border: Border.all(color: AppC.border, width: 1),
           ),
           indicatorDecoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -634,7 +634,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _kG4.withOpacity(0.3)),
           boxShadow: [
@@ -765,7 +765,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _kG3.withOpacity(0.3)),
           boxShadow: [

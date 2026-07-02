@@ -50,10 +50,12 @@ import '../../services/api_service.dart';
 Color get _kBg => AppC.bg;
 const _kSage   = Color(0xFFA9BC95);
 const _kSageDk = Color(0xFF6E8159);
-const _kSageLt = Color(0xFFE7E8DD);
-const _kInk    = Color(0xFF2E3A24);
-Color get _kSlate => AppC.sub;
-const _kHair   = Color(0xFFE3E2DA);
+// Incoming-bubble surface + primary ink + hairlines flip with the theme so the
+// room is legible in dark mode (was hardcoded light → text/bubbles vanished).
+Color get _kSageLt => AppC.isDark ? AppC.card2 : const Color(0xFFE7E8DD);
+Color get _kInk    => AppC.text;
+Color get _kSlate  => AppC.sub;
+Color get _kHair   => AppC.border;
 const _kWarm   = Color(0xFFC9A24B);
 const _kDanger = Color(0xFFC0392B);
 
@@ -766,7 +768,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           if (((msg['text'] as String?) ?? '').trim().isNotEmpty)
             ListTile(
               leading: const Icon(Icons.shield_rounded, color: Color(0xFF0EA5A4)),
-              title: const T('Check for scams',
+              title: T('Check for scams',
                   style: TextStyle(fontFamily: 'Momo', color: _kInk)),
               onTap: () {
                 Navigator.pop(ctx);
@@ -777,7 +779,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ListTile(
             leading: Icon(Icons.delete_outline_rounded, color: _kSlate),
-            title: const T('Delete for me',
+            title: T('Delete for me',
                 style: TextStyle(fontFamily: 'Momo', color: _kInk)),
             onTap: () {
               Navigator.pop(ctx);
@@ -845,9 +847,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: _isStudyBuddy
-                    ? [Color(0xFFFBF7EC), _kBg]
-                    : [Color(0xFFF7F9F1), _kBg],
+                // Subtle wash on light; in dark mode just sit on the dark bg so
+                // there's no light band at the top.
+                colors: AppC.isDark
+                    ? [_kBg, _kBg]
+                    : _isStudyBuddy
+                        ? const [Color(0xFFFBF7EC), Color(0xFFF7F8FA)]
+                        : const [Color(0xFFF7F9F1), Color(0xFFF7F8FA)],
               ),
             ),
             child: _loading
@@ -891,7 +897,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           padding: const EdgeInsets.fromLTRB(4, 8, 12, 10),
           child: Row(children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
                   color: _kInk, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
@@ -905,7 +911,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   Text(widget.roomName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: _kInk,
                           fontSize: 16.5,
                           fontWeight: FontWeight.bold,
@@ -1103,7 +1109,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               const SizedBox(height: 22),
               Text('Welcome to ${widget.roomName}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Alfa',
@@ -1368,7 +1374,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       ),
       child: isText
           ? Text(msg['text'] as String? ?? '',
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 14.5,
                   height: 1.35,
@@ -1493,7 +1499,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       Flexible(
         child: Text(
           msg['file_name'] as String? ?? 'File',
-          style: const TextStyle(color: _kInk, fontFamily: 'Momo'),
+          style: TextStyle(color: _kInk, fontFamily: 'Momo'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -1597,7 +1603,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 enableSuggestions: false,
                 autocorrect: false,
                 maxLines: 1,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15, fontFamily: 'Momo', color: _kInk),
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
