@@ -88,6 +88,25 @@ class StaffDaleScreen extends StatelessWidget {
       horizontal: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
+          if (Navigator.of(context).canPop())
+            Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).maybePop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.30)),
+                  ),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            ),
           const SizedBox(height: 4),
           Container(
             width: 104,
