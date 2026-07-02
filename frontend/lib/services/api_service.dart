@@ -244,12 +244,17 @@ Future<http.Response> _raw(String method, Uri uri,
       {Map<String, dynamic>? body, bool auth = true}) async {
     final h = await _h(auth: auth);
     final b = body != null ? jsonEncode(body) : null;
+    // Every request is bounded — a stalled/unreachable backend must never hang
+    // an await forever (that's what left the app on a blank screen at startup).
+    // On timeout this throws TimeoutException, which callers handle like any
+    // network error. Uploads use a separate multipart path and aren't affected.
+    const t = Duration(seconds: 20);
     switch (method) {
-      case 'GET':    return _client.get(uri,    headers: h);
-      case 'POST':   return _client.post(uri,   headers: h, body: b);
-      case 'PUT':    return _client.put(uri,    headers: h, body: b);
-      case 'PATCH':  return _client.patch(uri,  headers: h, body: b);
-      case 'DELETE': return _client.delete(uri, headers: h, body: b); // ← body added
+      case 'GET':    return _client.get(uri,    headers: h).timeout(t);
+      case 'POST':   return _client.post(uri,   headers: h, body: b).timeout(t);
+      case 'PUT':    return _client.put(uri,    headers: h, body: b).timeout(t);
+      case 'PATCH':  return _client.patch(uri,  headers: h, body: b).timeout(t);
+      case 'DELETE': return _client.delete(uri, headers: h, body: b).timeout(t); // ← body added
       default:       throw ApiException('Unknown method: $method');
     }
   }

@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform; // ← FIX: needed for Platform.isIOS check
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -257,21 +258,28 @@ Future<void> main() async {
   await AppSettings().load();
   await TranslationService.I.init();
 
-  // ← FIX: FCM init must NEVER kill the app. On iOS simulator it can throw
-  // because APNS tokens aren't issued. Catch and log so runApp() still runs.
-  try {
-    await _initFcm();
-  } catch (e, st) {
-    debugPrint('[FCM] init failed (continuing without push): $e\n$st');
-  }
-
   final hasSession = await AuthService.instance.isLoggedIn;
-  if (hasSession) {
-    await NotificationService.instance.bootstrap();
-    await registerFcmToken();
-  }
 
+  // Render the UI IMMEDIATELY. Everything below does network / APNs / FCM work
+  // and is NOT needed to draw the first frame. Awaiting any of it before
+  // runApp() risks a blank screen on launch: their try/catch blocks guard
+  // THROWN errors, not a stalled request, so a slow/unreachable backend (or an
+  // FCM topic-subscribe that never returns) would hang main() forever and
+  // runApp() would never run. So we defer ALL of it to after the first frame.
   runApp(const TCSApp());
+
+  // Post-frame, fully non-blocking push + session bootstrap.
+  unawaited(() async {
+    try {
+      await _initFcm();
+    } catch (e, st) {
+      debugPrint('[FCM] init failed (continuing without push): $e\n$st');
+    }
+    if (hasSession) {
+      unawaited(NotificationService.instance.bootstrap());
+      unawaited(registerFcmToken());
+    }
+  }());
 }
 
 // ─────────────────────────────────────────────────────────────
