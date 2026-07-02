@@ -19,6 +19,11 @@ const _kG4 = Color(0xFFFF5858);
 
 Color get _kInk => AppC.text;
 Color get _kBg => AppC.bg;
+// Theme-aware form surfaces so the card + fields flip in dark mode.
+Color get _kCard => AppC.card;
+Color get _kField => AppC.card2;
+Color get _kFieldBorder => AppC.border;
+Color get _kHint => AppC.faint;
 
 class LoginIdScreen extends StatefulWidget {
   final String role; // 'student' | 'teaching_staff'
@@ -179,10 +184,10 @@ class _LoginIdScreenState extends State<LoginIdScreen>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kField,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _dobFocused ? _accentColor : Colors.grey.shade200,
+          color: _dobFocused ? _accentColor : _kFieldBorder,
           width: _dobFocused ? 2 : 1.5,
         ),
         boxShadow: _dobFocused
@@ -203,9 +208,9 @@ class _LoginIdScreenState extends State<LoginIdScreen>
         style: TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _kField,
           hintText: TranslationService.I.tr('DD/MM/YYYY'),
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
+          hintStyle: TextStyle(color: _kHint, fontFamily: 'Momo'),
           prefixIcon: Container(
             margin: const EdgeInsets.all(10),
             width: 36,
@@ -540,7 +545,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                           child: Container(
                             padding: const EdgeInsets.all(22),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: _kCard,
                               borderRadius: BorderRadius.circular(26),
                               boxShadow: [
                                 BoxShadow(
@@ -860,10 +865,10 @@ class _LoginFieldState extends State<_LoginField> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kField,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _focused ? widget.accentColor : Colors.grey.shade200,
+          color: _focused ? widget.accentColor : _kFieldBorder,
           width: _focused ? 2 : 1.5,
         ),
         boxShadow: _focused
@@ -885,9 +890,9 @@ class _LoginFieldState extends State<_LoginField> {
         style: TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _kField,
           hintText: widget.hint,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
+          hintStyle: TextStyle(color: _kHint, fontFamily: 'Momo'),
           prefixIcon: Container(
             margin: const EdgeInsets.all(10),
             width: 36,

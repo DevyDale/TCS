@@ -225,14 +225,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     _buildHeader(res),
-                                    SizedBox(height: res.lg),
+                                    SizedBox(height: res.md),
                                     if (context.isPhone)
                                       ..._roles.asMap().entries.map(
                                         (e) => Padding(
                                           padding: const EdgeInsets.only(
-                                            bottom: 14,
+                                            bottom: 10,
                                           ),
                                           child: _AnimatedTile(
                                             animation: _tileAnims[e.key],
@@ -278,26 +278,26 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           tag: _kLogoHeroTag,
           child: _GradientBorderCard(
             animation: _shimmerCtrl,
-            radius: 36,
+            radius: 32,
             borderWidth: 2.5,
             innerColor: _kCard,
-            padding: const EdgeInsets.all(18),
-            child: Icon(Icons.school_rounded, color: _kInk, size: 32),
+            padding: const EdgeInsets.all(14),
+            child: Icon(Icons.school_rounded, color: _kInk, size: 28),
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 16),
         T(
           'Welcome to TCS',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Alfa',
-            fontSize: res.headingXL + 4,
+            fontSize: res.headingXL,
             color: _kInk,
             letterSpacing: -0.4,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         T(
           'Taylors College Social & Arcade',
           textAlign: TextAlign.center,
@@ -308,7 +308,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         // Pill with gradient border — same trick as AI Hub
         _GradientBorderCard(
           animation: _shimmerCtrl,
@@ -500,15 +500,15 @@ class _RoleCardState extends State<_RoleCard>
   Widget _buildHorizontal(R res) {
     final g = widget.role.gradient;
     return Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(13),
       child: Row(
         children: [
           // Role-coloured icon chip
           Hero(
             tag: 'role_icon_${widget.role.title.toLowerCase()}',
             child: Container(
-              width: 58,
-              height: 58,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -519,15 +519,15 @@ class _RoleCardState extends State<_RoleCard>
                 boxShadow: [
                   BoxShadow(
                     color: g.last.withOpacity(0.30),
-                    blurRadius: 14,
+                    blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Icon(widget.role.icon, color: Colors.white, size: 26),
+              child: Icon(widget.role.icon, color: Colors.white, size: 22),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,32 +536,32 @@ class _RoleCardState extends State<_RoleCard>
                   widget.role.title,
                   style: TextStyle(
                     fontFamily: 'Alfa',
-                    fontSize: res.subheading,
+                    fontSize: res.subheading - 1,
                     color: _kInk,
                     letterSpacing: -0.3,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   widget.role.subtitle,
                   style: TextStyle(
                     fontFamily: 'Arch',
-                    fontSize: res.caption,
+                    fontSize: res.caption - 0.5,
                     color: _kSlate,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 5,
+                  spacing: 5,
+                  runSpacing: 4,
                   children: widget.role.perks
                       .take(2)
                       .map(
                         (p) => Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                            horizontal: 7,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
                             color: g.last.withOpacity(0.10),
@@ -572,7 +572,7 @@ class _RoleCardState extends State<_RoleCard>
                             p,
                             style: TextStyle(
                               fontFamily: 'Arch',
-                              fontSize: 10,
+                              fontSize: 9.5,
                               color: g.last,
                               fontWeight: FontWeight.w700,
                             ),
@@ -584,10 +584,10 @@ class _RoleCardState extends State<_RoleCard>
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: g,
@@ -606,7 +606,7 @@ class _RoleCardState extends State<_RoleCard>
             child: const Icon(
               Icons.arrow_forward_ios_rounded,
               color: Colors.white,
-              size: 14,
+              size: 13,
             ),
           ),
         ],

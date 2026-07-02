@@ -241,76 +241,101 @@ Future<void> _performLogout() async {
     useRootNavigator: true,
     builder: (_) => PopScope(
       canPop: false,
+      // Material ancestor is REQUIRED — without it the Text below renders with
+      // Flutter's yellow "no Material" double-underline. It also gives the card
+      // proper elevation/ink rendering.
       child: Center(
-        child: Container(
-          width: 220,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 28,
-          ),
-          decoration: BoxDecoration(
-            color: _card,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      _kG4.withOpacity(0.15),
-                      _kG4.withOpacity(0.05),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 250,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28,
+              vertical: 32,
+            ),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: _kG4.withOpacity(0.12)),
+              boxShadow: [
+                BoxShadow(
+                  color: _kG4.withOpacity(0.14),
+                  blurRadius: 34,
+                  offset: const Offset(0, 14),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Spinner ringed around a logout glyph.
+                SizedBox(
+                  width: 74,
+                  height: 74,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              _kG4.withOpacity(0.16),
+                              _kG4.withOpacity(0.04),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 74,
+                        height: 74,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: const AlwaysStoppedAnimation(_kG4),
+                          backgroundColor: _kG4.withOpacity(0.10),
+                        ),
+                      ),
+                      const Icon(Icons.logout_rounded, color: _kG4, size: 26),
                     ],
                   ),
                 ),
-                child: const Center(
-                  child: SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.8,
-                      color: _kG4,
-                    ),
+
+                const SizedBox(height: 22),
+
+                T(
+                  'Logging you out',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Arch',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: _text,
+                    decoration: TextDecoration.none,
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 7),
 
-              T(
-                'Logging you out',
-                style: TextStyle(
-                  fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: _text,
+                T(
+                  'Securing your session…',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Momo',
+                    fontSize: 12.5,
+                    color: _sub,
+                    height: 1.4,
+                    decoration: TextDecoration.none,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 6),
-
-              T(
-                'Please wait a moment...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Momo',
-                  fontSize: 12,
-                  color: _text.withOpacity(0.6),
-                  height: 1.4,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

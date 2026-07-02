@@ -18,6 +18,13 @@ import 'package:tcs_app/screens/visitor/visitor_dashboard_screen.dart';
 const _kViGrad   = [Color(0xFFF7971E), Color(0xFFFFD200)];
 const _kViAccent = Color(0xFFD97706);
 
+// Theme-aware surfaces so the form card + fields flip in dark mode.
+Color get _kInk         => AppC.text;
+Color get _kCard        => AppC.card;
+Color get _kField       => AppC.card2;
+Color get _kFieldBorder => AppC.border;
+Color get _kHint        => AppC.faint;
+
 class VisitorAuthScreen extends StatefulWidget {
   final String role; // 'visitor' | 'parent'
   const VisitorAuthScreen({super.key, required this.role});
@@ -203,7 +210,7 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
                   SlideTransition(position: _slideAnim, child: Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _kCard,
                       borderRadius: BorderRadius.circular(26),
                       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07),
                           blurRadius: 30, offset: const Offset(0, 14))]),
@@ -305,11 +312,11 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
               decoration: BoxDecoration(
                 gradient: _signUp == t[0]
                     ? const LinearGradient(colors: _kViGrad) : null,
-                color: _signUp == t[0] ? null : Colors.grey.shade100,
+                color: _signUp == t[0] ? null : AppC.card2,
                 borderRadius: BorderRadius.circular(12)),
               child: Text(t[1] as String, style: TextStyle(fontFamily: 'Arch',
                   fontSize: 13, fontWeight: FontWeight.bold,
-                  color: _signUp == t[0] ? Colors.white : Colors.grey.shade600)),
+                  color: _signUp == t[0] ? Colors.white : AppC.sub)),
             ),
           )),
       ]);
@@ -332,7 +339,7 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
           const SizedBox(width: 12),
           Expanded(child: Text.rich(TextSpan(
             style: TextStyle(fontFamily: 'Momo', fontSize: 12.5, height: 1.35,
-                color: Colors.grey.shade700),
+                color: AppC.sub),
             children: const [
               TextSpan(text: 'I have read and agree to the '),
               TextSpan(text: 'Visitor Terms & Conditions',
@@ -348,7 +355,7 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
 
   void _showTerms() {
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.white,
+      context: context, isScrollControlled: true, backgroundColor: _kCard,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => DraggableScrollableSheet(
@@ -357,14 +364,14 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
           controller: scroll, padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
           children: [
             Center(child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey.shade300,
+                decoration: BoxDecoration(color: AppC.border,
                     borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            const Text('Visitor Terms & Conditions',
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: Color(0xFF1F2937))),
+            Text('Visitor Terms & Conditions',
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 20, color: _kInk)),
             const SizedBox(height: 6),
             Text('Please read these before creating a guest account.',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade600)),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12, color: AppC.sub)),
             const SizedBox(height: 18),
             for (final t in _kVisitorTerms) _clause(t.$1, t.$2),
             const SizedBox(height: 12),
@@ -384,13 +391,13 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
             const Padding(padding: EdgeInsets.only(top: 5),
                 child: Icon(Icons.circle, size: 6, color: _kViAccent)),
             const SizedBox(width: 8),
-            Expanded(child: Text(title, style: const TextStyle(fontFamily: 'Arch',
-                fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2937)))),
+            Expanded(child: Text(title, style: TextStyle(fontFamily: 'Arch',
+                fontWeight: FontWeight.bold, fontSize: 14, color: _kInk))),
           ]),
           const SizedBox(height: 4),
           Padding(padding: const EdgeInsets.only(left: 14),
             child: Text(body, style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                height: 1.5, color: Colors.grey.shade600))),
+                height: 1.5, color: AppC.sub))),
         ]),
       );
 }
@@ -428,10 +435,10 @@ class _ViFieldState extends State<_ViField> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kField,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: _focused ? _kViAccent : Colors.grey.shade200,
+            color: _focused ? _kViAccent : _kFieldBorder,
             width: _focused ? 2 : 1.5),
         boxShadow: _focused
             ? [BoxShadow(color: _kViAccent.withOpacity(0.14),
@@ -442,11 +449,11 @@ class _ViFieldState extends State<_ViField> {
         focusNode: widget.focusNode,
         obscureText: widget.obscure,
         keyboardType: widget.keyboardType,
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 15, color: Color(0xFF1F2937)),
+        style: TextStyle(fontFamily: 'Momo', fontSize: 15, color: _kInk),
         decoration: InputDecoration(
-          filled: true, fillColor: Colors.white,
+          filled: true, fillColor: _kField,
           hintText: widget.hint,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontFamily: 'Momo'),
+          hintStyle: TextStyle(color: _kHint, fontFamily: 'Momo'),
           prefixIcon: Container(
             margin: const EdgeInsets.all(10), width: 36, height: 36,
             decoration: BoxDecoration(
