@@ -14,6 +14,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
+import 'package:tcs_app/screens/staff/staff_student_questions_screen.dart';
 
 const _kDaleLottie = 'assets/images/robot.json';
 
@@ -366,11 +367,13 @@ class StaffDaleScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _soonTile(
+          _liveTile(
             context,
             Icons.query_stats_rounded,
             'What students ask',
             const Color(0xFF60A5FA),
+            () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const StaffStudentQuestionsScreen())),
           ),
           const SizedBox(width: 12),
           _soonTile(
@@ -450,6 +453,58 @@ class StaffDaleScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Arch',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppC.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Same look as _soonTile but live: no "SOON" badge, taps through to a page.
+  Widget _liveTile(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: staffCard(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, color: color, size: 18),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.arrow_forward_rounded, color: color, size: 18),
                 ],
               ),
               const SizedBox(height: 12),
