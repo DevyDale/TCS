@@ -212,12 +212,30 @@ Future<void> main() async {
 
   // Phones stay portrait-locked; tablets/iPads (shortestSide ≥ 600dp) are freed
   // to rotate so the wide two-pane / NavigationRail layouts can engage.
-  final view = WidgetsBinding.instance.platformDispatcher.views.first;
-  final shortestSide =
-      (view.physicalSize / view.devicePixelRatio).shortestSide;
-  if (shortestSide >= 600) {
-    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-  } else {
+  //
+  // MUST be crash-proof: at cold start on real devices the platform view list
+  // can still be empty, so `.views.first` throws StateError. An uncaught throw
+  // here aborts main() before runApp() → the app never renders a frame (users
+  // just see a dark screen). So we guard it and default to the safe portrait
+  // lock; the app itself still switches to wide layouts at runtime via
+  // MediaQuery, this only decides whether rotation is *allowed*.
+  try {
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    final view = views.isNotEmpty ? views.first : null;
+    final dpr = view?.devicePixelRatio ?? 0;
+    final shortestSide = (view != null && dpr > 0)
+        ? (view.physicalSize / dpr).shortestSide
+        : 0.0;
+    if (shortestSide >= 600) {
+      await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    } else {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
+  } catch (e) {
+    debugPrint('[startup] orientation setup skipped: $e');
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -283,6 +301,21 @@ class _TCSAppState extends State<TCSApp> {
 
   void _rebuild() { if (mounted) setState(() {}); }
 
+  // Cold start can't reliably read the device size before runApp() (the view
+  // list may be empty), so main() defaults to a safe portrait lock. Once the
+  // first frame has a valid MediaQuery we upgrade tablets/iPads to allow
+  // rotation. Runs once. Never touches phones (they stay portrait).
+  bool _orientationRefined = false;
+  void _refineOrientation(BuildContext context) {
+    if (_orientationRefined) return;
+    final shortest = MediaQuery.maybeOf(context)?.size.shortestSide ?? 0;
+    if (shortest <= 0) return; // metrics not ready yet — try again next frame
+    _orientationRefined = true;
+    if (shortest >= 600) {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppL10nProvider(
@@ -292,6 +325,10 @@ class _TCSAppState extends State<TCSApp> {
         debugShowCheckedModeBanner: false,
         defaultTransition: Transition.cupertino,
         transitionDuration: const Duration(milliseconds: 350),
+        builder: (context, child) {
+          _refineOrientation(context);
+          return child ?? const SizedBox.shrink();
+        },
 
         themeMode: _settings.themeMode,
         theme:     _buildLightTheme(),
