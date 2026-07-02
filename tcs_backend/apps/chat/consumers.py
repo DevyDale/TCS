@@ -48,6 +48,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "is_online": True,
         })
 
+        # Opening the room means every message from the other side has now
+        # reached my device → mark them delivered and tell the senders (so
+        # their ✓ turns into ✓✓). Read is still separate (sent on view).
+        for mid in await self._mark_delivered_for_me():
+            await self.channel_layer.group_send(self.room_group, {
+                "type":         "delivered.receipt",
+                "message_id":   mid,
+                "user_id":      str(self.user.id),
+                "delivered_at": timezone.now().isoformat(),
+            })
+
     async def disconnect(self, code):
         if not hasattr(self, "room_group"):
             return
@@ -265,6 +276,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "read_at":    event["read_at"],
         }))
 
+    async def delivered_receipt(self, event):
+        await self.send(text_data=json.dumps({
+            "event":        "delivered_receipt",
+            "message_id":   event["message_id"],
+            "user_id":      event["user_id"],
+            "delivered_at": event.get("delivered_at"),
+        }))
+
     async def message_reaction(self, event):
         await self.send(text_data=json.dumps({
             "event":             "reaction",
@@ -337,11 +356,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "is_deleted":   False,
                 "is_ai":        False,    # user-sent messages are never AI
                 "is_system":    False,    # nor system
+                "status":       "sent",   # ✓ — becomes delivered/read via receipts
                 "created_at":   msg.created_at.isoformat(),
             }
         except Exception as e:
             logger.error(f"save_message error: {e}")
             return None
+
+    @database_sync_to_async
+    def _mark_delivered_for_me(self):
+        """Mark every not-yet-delivered message in this room that I DIDN'T send
+        as delivered (I just opened the room). Returns the ids so the senders
+        can be notified. Read stays separate."""
+        from .models import Message
+        qs = (Message.objects
+              .filter(room_id=self.room_id, delivered_at__isnull=True,
+                      is_deleted=False)
+              .exclude(sender=self.user))
+        ids = [str(mid) for mid in qs.values_list("id", flat=True)]
+        if ids:
+            qs.update(delivered_at=timezone.now())
+        return ids
 
     @database_sync_to_async
     def _set_mentions(self, message_id, mention_ids):

@@ -1555,6 +1555,9 @@ class ChatWebSocketService {
   void sendTyping(bool isTyping) =>
       _send({'action':'typing','is_typing':isTyping});
 
+  void sendRecording(bool isRecording) =>
+      _send({'action':'recording','is_recording':isRecording});
+
   void sendRead(String messageId) =>
       _send({'action':'read','message_id':messageId});
 

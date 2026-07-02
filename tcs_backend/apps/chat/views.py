@@ -659,6 +659,27 @@ def message_history(request, room_id):
             pass
     msgs = list(qs[:50])
     msgs.reverse()
+
+    # For MY messages, work out how far the other members have read so we can
+    # render ✓ sent / ✓✓ delivered / ✓✓ read. peer_read_at = the furthest point
+    # any other member has read up to (max last_read timestamp).
+    peer_read_at = None
+    for om in (RoomMember.objects.filter(room_id=room_id)
+               .exclude(user=request.user)
+               .select_related("last_read_message")):
+        lr = om.last_read_message
+        if lr and (peer_read_at is None or lr.created_at > peer_read_at):
+            peer_read_at = lr.created_at
+
+    def _status(m):
+        if m.sender_id != request.user.id:
+            return None  # only the sender sees ticks on their own messages
+        if peer_read_at is not None and m.created_at <= peer_read_at:
+            return "read"
+        if m.delivered_at is not None:
+            return "delivered"
+        return "sent"
+
     data = [
         {
             "id":           str(m.id),
@@ -676,6 +697,7 @@ def message_history(request, room_id):
             # Dale messages and system pills correctly on history load.
             "is_ai":        getattr(m, "is_ai", False),
             "is_system":    m.is_system,
+            "status":       _status(m),
             "created_at":   m.created_at.isoformat(),
         }
         for m in msgs

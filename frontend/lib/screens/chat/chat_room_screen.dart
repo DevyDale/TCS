@@ -117,9 +117,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _connectWebSocket();
     _msgCtrl.addListener(() {
       final typing = _msgCtrl.text.isNotEmpty;
-      if (typing != _isTyping) setState(() => _isTyping = typing);
-      // TODO(ws): tell the peer I'm typing.
-      // _chatWs.sendTyping(typing);  // add this to ChatWebSocketService
+      if (typing != _isTyping) {
+        setState(() => _isTyping = typing);
+        // Tell the peer I'm typing (they render "typing…" in the header).
+        _chatWs.sendTyping(typing);
+      }
     });
   }
 
@@ -135,8 +137,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   // Called by the recorder when I start/stop recording.
   void _onMyRecordingChanged(bool recording) {
-    // TODO(ws): tell the peer I'm recording so they see "recording…".
-    // _chatWs.sendRecording(recording);  // add this to ChatWebSocketService
+    // Tell the peer I'm recording so they see "recording audio…".
+    _chatWs.sendRecording(recording);
   }
 
   Future<void> _pickAndSendMedia() async {
@@ -218,7 +220,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   void _onWsMessage(Map<String, dynamic> event) {
-    final type = event['type'] as String? ?? '';
+    // Backend keys events with "event"; keep "type" as a fallback.
+    final type = (event['event'] ?? event['type']) as String? ?? '';
 
     // Presence / typing / recording events (receive side).
     if (type == 'typing' || type == 'recording' || type == 'presence' ||
@@ -227,33 +230,91 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return;
     }
 
+    // Delivery / read receipts → update my sent messages' ticks.
+    if (type == 'delivered_receipt') {
+      _applyReceipt(event['message_id']?.toString(), 'delivered');
+      return;
+    }
+    if (type == 'read_receipt') {
+      _applyReceipt(event['message_id']?.toString(), 'read');
+      return;
+    }
+
     if (type != 'message' && type != 'new_message') return;
 
-    final msg = (event['message'] as Map?)?.cast<String, dynamic>();
-    if (msg == null) return;
+    // The message payload is spread across the event (backend:
+    // {"event":"message", ...fields}); older shape nested it under "message".
+    final msg = (event['message'] as Map?)?.cast<String, dynamic>() ??
+        (Map<String, dynamic>.from(event)..remove('event'));
 
-    // Dedupe: by id, and by non-empty media_url (kills the audio "box").
     final id = msg['id']?.toString();
+    // Already have the real message → ignore the echo.
     if (id != null && _messages.any((m) => m['id']?.toString() == id)) return;
+
+    final senderName = (msg['sender_name'] as String?)?.trim().toLowerCase() ?? '';
+    final isMe = senderName == widget.userName.trim().toLowerCase() ||
+        (msg['sender_id']?.toString() == _myUserId);
+    msg['is_me'] = isMe;
+    if (isMe && msg['status'] == null) msg['status'] = 'sent';
+
+    // My own echo: reconcile with the optimistic temp bubble (same text/type)
+    // so it isn't duplicated — upgrade it to the real id + status instead.
+    if (isMe) {
+      final tIdx = _messages.indexWhere((m) =>
+          (m['id']?.toString().startsWith('temp_') ?? false) &&
+          (m['text'] ?? '') == (msg['text'] ?? '') &&
+          (m['message_type'] ?? 'text') == (msg['message_type'] ?? 'text'));
+      if (tIdx != -1) {
+        setState(() => _messages[tIdx] = {..._messages[tIdx], ...msg});
+        return;
+      }
+    }
+
+    // Dedupe media echoes (kills the duplicate audio "box").
     final mu = (msg['media_url'] as String?) ?? '';
     if (mu.isNotEmpty &&
         _messages.any((m) => (m['media_url'] as String?) == mu)) return;
 
-    final senderName = (msg['sender_name'] as String?)?.trim().toLowerCase() ?? '';
-    final currentNameLower = widget.userName.trim().toLowerCase();
-
-    msg['is_me'] = senderName == currentNameLower ||
-        (msg['sender_id']?.toString() == _myUserId);
-
-    // A message arriving means the peer is around — clear their typing flag.
-    if (msg['is_me'] != true) {
+    if (!isMe) {
+      // A peer message means they're around — clear typing, mark online, and
+      // since I'm looking at the room, immediately mark it read (blue ticks
+      // for them).
       _peerTyping = false;
       _peerRecording = false;
       _peerOnline = true;
+      if (id != null) _chatWs.sendRead(id);
     }
 
     setState(() => _messages.add(msg));
     _scrollToBottom();
+  }
+
+  // Update a sent message's tick state from a receipt. Never downgrade
+  // read → delivered.
+  void _applyReceipt(String? messageId, String status) {
+    if (messageId == null) return;
+    final idx = _messages.indexWhere((m) => m['id']?.toString() == messageId);
+    if (idx == -1) return;
+    if (status == 'delivered' && _messages[idx]['status'] == 'read') return;
+    setState(() => _messages[idx]['status'] = status);
+  }
+
+  // WhatsApp-style delivery tick for my own messages:
+  //   sent      → single grey ✓
+  //   delivered → double grey ✓✓
+  //   read      → double blue ✓✓
+  Widget _statusTick(String? status) {
+    const blue = Color(0xFF34B7F1);
+    final grey = _kSlate.withOpacity(0.6);
+    switch (status) {
+      case 'read':
+        return const Icon(Icons.done_all_rounded, size: 14, color: blue);
+      case 'delivered':
+        return Icon(Icons.done_all_rounded, size: 14, color: grey);
+      case 'sent':
+      default:
+        return Icon(Icons.done_rounded, size: 14, color: grey);
+    }
   }
 
   void _handlePresenceEvent(String type, Map<String, dynamic> event) {
@@ -263,12 +324,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() {
       switch (type) {
         case 'typing':
-          _peerTyping = event['typing'] as bool? ?? true;
+          // Backend field is is_typing.
+          _peerTyping = (event['is_typing'] ?? event['typing']) as bool? ?? true;
           _peerRecording = false;
           _peerOnline = true;
           break;
         case 'recording':
-          _peerRecording = event['recording'] as bool? ?? true;
+          _peerRecording =
+              (event['is_recording'] ?? event['recording']) as bool? ?? true;
           _peerTyping = false;
           _peerOnline = true;
           break;
@@ -284,7 +347,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           break;
         case 'presence':
         case 'last_seen':
-          _peerOnline = event['online'] as bool? ?? _peerOnline;
+          // Backend field is is_online.
+          _peerOnline =
+              (event['is_online'] ?? event['online']) as bool? ?? _peerOnline;
           final ls = event['last_seen'];
           if (ls is String) _peerLastSeen = DateTime.tryParse(ls)?.toLocal();
           if (!_peerOnline) {
@@ -354,6 +419,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _loading = false;
       });
       _scrollToBottom();
+
+      // Opening the chat = I've read the peer's messages. Persist it (drives
+      // their ✓✓ turning blue) and send a live WS read for the latest one.
+      try { await _api.markRoomRead(widget.roomId); } catch (_) {}
+      for (final m in deduped.reversed) {
+        if (m['is_me'] != true) {
+          final id = m['id']?.toString();
+          if (id != null && !id.startsWith('temp_')) _chatWs.sendRead(id);
+          break;
+        }
+      }
     } catch (_) {
       setState(() => _loading = false);
     }
@@ -1166,8 +1242,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 color: _kSlate.withOpacity(0.8))),
                         if (isMe) ...[
                           const SizedBox(width: 3),
-                          const Icon(Icons.done_all_rounded,
-                              size: 13, color: _kSageDk),
+                          _statusTick(msg['status'] as String?),
                         ],
                       ]),
                     ),

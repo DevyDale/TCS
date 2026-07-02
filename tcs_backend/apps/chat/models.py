@@ -137,6 +137,10 @@ class Message(models.Model):
     is_system    = models.BooleanField(default=False)
     is_ai        = models.BooleanField(default=False, db_index=True)   # Phase 1: marks Dale messages
     created_at   = models.DateTimeField(auto_now_add=True)
+    # WhatsApp-style delivery: set once the recipient's device has the message
+    # (they opened the room). "read" is tracked separately via ReadReceipt /
+    # RoomMember.last_read_message. Sender renders ✓ sent → ✓✓ delivered → ✓✓ read.
+    delivered_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "chat_messages"
