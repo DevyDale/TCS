@@ -39,7 +39,9 @@ RATE_LIMIT_KEY = "ai_rate_chat_{user_id}"
 RATE_MAX       = 30        # AI replies per user per hour across all rooms
 RATE_WINDOW    = 3600
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+# gemini-2.0-flash has a free-tier quota of 0 on our key (429s); 2.5-flash is
+# the model the rest of the stack uses and has quota.
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 CHAT_SYSTEM_PROMPT = """You are Dale, the TCS campus AI assistant.
 

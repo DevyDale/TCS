@@ -1092,36 +1092,56 @@ def _coerce_scam_result(raw_text):
 def _scam_check_image(image_b64, sys_prompt):
     """Vision scam check — Gemini reads a screenshot and returns the same JSON
     verdict. image_b64 may be a bare base64 string or a data: URL. Returns a
-    parsed dict or None on failure."""
+    parsed dict or None on failure.
+
+    Uses the native Gemini generateContent HTTP API (same pattern as the rest
+    of this module) rather than the openai client, so it doesn't depend on that
+    package being installed and stays on GEMINI_MODEL (the model with quota —
+    the old gemini-2.0-flash was 429ing with a free-tier limit of 0)."""
     import os as _os
     from django.conf import settings as _settings
     api_key = (getattr(_settings, "GEMINI_API_KEY", None)
                or _os.environ.get("GEMINI_API_KEY"))
     if not api_key:
         return None
-    data_url = image_b64 if image_b64.startswith("data:") \
-        else "data:image/jpeg;base64," + image_b64
+    # Accept a bare base64 string or a data: URL; extract the raw base64.
+    raw_b64 = image_b64
+    mime = "image/jpeg"
+    if image_b64.startswith("data:"):
+        try:
+            header, raw_b64 = image_b64.split(",", 1)
+            mime = header.split(";")[0].split(":", 1)[1] or mime
+        except Exception:
+            raw_b64 = image_b64
+    payload = {
+        "system_instruction": {"parts": [{"text": sys_prompt}]},
+        "contents": [{"role": "user", "parts": [
+            {"text": "Is this a scam? This is a screenshot — read ALL the text "
+                     "in it (it may be a message, email, call log, SMS, social "
+                     "post or job offer) and analyse it."},
+            {"inline_data": {"mime_type": mime, "data": raw_b64}},
+        ]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "response_mime_type": "application/json",
+        },
+    }
+    url = f"{GEMINI_BASE}/{GEMINI_MODEL}:generateContent"
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+        method="POST",
+    )
     try:
-        from openai import OpenAI
-        client = OpenAI(
-            api_key=api_key,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
-        resp = client.chat.completions.create(
-            model="gemini-2.0-flash",
-            messages=[
-                {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": [
-                    {"type": "text", "text":
-                        "Is this a scam? This is a screenshot — read ALL the text "
-                        "in it (it may be a message, email, call log, SMS, social "
-                        "post or job offer) and analyse it."},
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                ]},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-        )
-        return _coerce_scam_result(resp.choices[0].message.content or "")
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data  = json.loads(resp.read().decode("utf-8"))
+            parts = data["candidates"][0]["content"]["parts"]
+            text  = "".join(p.get("text", "") for p in parts)
+        return _coerce_scam_result(text)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore")
+        logger.error("scam_check_image Gemini %s: %s", e.code, body[:300])
+        return None
     except Exception:
         logger.exception("scam_check_image failed")
         return None
