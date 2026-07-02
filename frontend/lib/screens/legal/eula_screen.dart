@@ -33,8 +33,6 @@ const Color _kG1  = Color(0xFF6DD5FA); // cyan
 const Color _kG2  = Color(0xFF8E54E9); // purple
 const Color _kG3  = Color(0xFFF7971E); // amber
 const Color _kG4  = Color(0xFFFF5858); // red
-const Color _kInk = Color(0xFF1A1A2E);
-const Color _kBg  = Color(0xFFF7F8FA);
 
 /// Persists EULA acceptance. Bump the key suffix if the terms change
 /// materially and you need users to re-accept.
@@ -234,7 +232,7 @@ class _EulaScreenState extends State<EulaScreen>
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: AppC.bg,
       body: SafeArea(
         top: false,
         bottom: false,
@@ -333,14 +331,14 @@ class _EulaScreenState extends State<EulaScreen>
                       color: Colors.white, size: 28),
                 ),
                 const SizedBox(height: 16),
-                T(
+                const T(
                   'Terms of Use &\nCommunity Rules',
                   style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                     height: 1.15,
-                    color: AppC.text,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -349,7 +347,7 @@ class _EulaScreenState extends State<EulaScreen>
                   style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 13,
-                    color: AppC.text.withOpacity(0.85),
+                    color: Colors.white.withOpacity(0.85),
                   ),
                 ),
               ],
@@ -406,13 +404,13 @@ class _EulaScreenState extends State<EulaScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    T(
+                    const T(
                       'Skip to end',
                       style: TextStyle(
                         fontFamily: 'Arch',
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: AppC.text,
+                        color: Colors.white,
                       ),
                     ),
                     SizedBox(width: 6),
@@ -542,7 +540,7 @@ class _EulaScreenState extends State<EulaScreen>
                 fontFamily: 'Momo',
                 fontSize: 12.5,
                 height: 1.4,
-                color: enabled ? _kInk : AppC.faint,
+                color: enabled ? AppC.text : AppC.faint,
               ),
             ),
           ),
@@ -601,13 +599,13 @@ class _EulaScreenState extends State<EulaScreen>
                           ]
                         : null,
                   ),
-                  child: T(
+                  child: const T(
                     'Agree & Continue',
                     style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: AppC.text,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -632,12 +630,12 @@ class _SectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: hl ? d.accent.withOpacity(0.06) : Colors.white,
+        color: hl ? d.accent.withOpacity(0.06) : AppC.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: hl
               ? d.accent.withOpacity(0.30)
-              : Colors.black.withOpacity(0.05),
+              : AppC.border,
           width: hl ? 1.4 : 1,
         ),
         boxShadow: hl
@@ -684,12 +682,12 @@ class _SectionCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         d.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
                           fontSize: 14.5,
                           height: 1.2,
-                          color: _kInk,
+                          color: AppC.text,
                         ),
                       ),
                     ),
