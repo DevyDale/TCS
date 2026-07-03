@@ -15,6 +15,7 @@ import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/widgets/ai_assistant_screen.dart';
 import 'package:tcs_app/screens/staff/staff_knowledge_screen.dart';
 import 'package:tcs_app/screens/staff/staff_student_questions_screen.dart';
+import 'package:tcs_app/screens/studyhub/quizzes_screen.dart';
 
 const _kDaleLottie = 'assets/images/robot.json';
 
@@ -376,98 +377,15 @@ class StaffDaleScreen extends StatelessWidget {
                 builder: (_) => const StaffStudentQuestionsScreen())),
           ),
           const SizedBox(width: 12),
-          _soonTile(
+          _liveTile(
             context,
             Icons.quiz_rounded,
             'Quiz curation',
             const Color(0xFFF59E0B),
+            () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const QuizzesScreen(isTeacher: true))),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _soonTile(
-    BuildContext context,
-    IconData icon,
-    String title,
-    Color color,
-  ) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: kStaffG1,
-                duration: const Duration(seconds: 2),
-                content: Text(
-                  '$title — coming soon',
-                  style: const TextStyle(
-                    fontFamily: 'Momo',
-                    fontSize: 12.5,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: staffCard(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Icon(icon, color: color, size: 18),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppC.faint.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'SOON',
-                      style: TextStyle(
-                        fontFamily: 'Arch',
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                        color: AppC.sub,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Arch',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: AppC.text,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
