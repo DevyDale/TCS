@@ -249,3 +249,80 @@ class SafeResponse(models.Model):
         db_table = "moderation_safe_response"
         ordering = ["-created_at"]
         unique_together = (("broadcast", "user"),)
+
+
+class TerminationRecord(models.Model):
+    """Sealed, append-only record of a student termination / escalation action.
+
+    This row is BOTH the accountability record AND the enforcement key. Students
+    authenticate against the roster (dataentry.StudentRecord) and the login view
+    get_or_creates a User, so banning/deleting the User alone does NOT keep a
+    terminated student out — they simply re-verify and a fresh User is minted.
+    The (student_id, date_of_birth) pair on an ACTIVE record is what actually
+    bars access, checked at both registration (verify_student) and login.
+
+    Immutable by design: the sealed fields are never edited after creation. Only
+    `is_active` may flip (via an appeal/lift by a lead), and that flip is itself
+    audited. See is_blocked() for the enforcement check.
+    """
+
+    class Reason(models.TextChoices):
+        CONDUCT     = "conduct",            "Serious misconduct"
+        HARASSMENT  = "harassment",         "Harassment / bullying"
+        ACADEMIC    = "academic_integrity", "Academic dishonesty"
+        REPEAT      = "repeat_violations",  "Repeated violations"
+        SAFETY      = "safety",             "Safety / child-safety"   # routes to lead
+        OTHER       = "other",              "Other"
+
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Enforcement key — denormalised from the roster so it survives User deletion.
+    student_id    = models.CharField(max_length=50, db_index=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    full_name     = models.CharField(max_length=150, blank=True, default="")
+
+    reason        = models.CharField(max_length=24, choices=Reason.choices,
+                                     default=Reason.CONDUCT, db_index=True)
+    note          = models.TextField(blank=True, default="")
+
+    # Permanent = a hard, lead-only bar. Non-permanent rows are used for the
+    # escalation ladder / appeals bookkeeping.
+    is_permanent  = models.BooleanField(default=True)
+    # Whether this bar is currently in force. Only a lead may lift it (appeal).
+    is_active     = models.BooleanField(default=True, db_index=True)
+
+    terminated_by      = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                           on_delete=models.SET_NULL, related_name="+")
+    terminated_by_name = models.CharField(max_length=120, blank=True, default="")
+
+    # Snapshot taken at termination time (content counts, roster info) — survives
+    # the soft-delete of the student's live content.
+    evidence      = models.JSONField(default=dict)
+
+    created_at    = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "moderation_termination_record"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["student_id", "is_active"],
+                         name="term_sid_active_idx"),
+            models.Index(fields=["reason", "-created_at"],
+                         name="term_reason_idx"),
+        ]
+
+    def __str__(self):
+        return f"TERMINATED {self.full_name} ({self.student_id}) [{self.reason}]"
+
+    @classmethod
+    def is_blocked(cls, student_id, date_of_birth=None):
+        """True if there's an active bar for this roster identity. DOB is matched
+        when supplied (defence in depth); student_id alone still bars, since the
+        roster IDs are unique."""
+        if not student_id:
+            return False
+        qs = cls.objects.filter(student_id=str(student_id).strip(), is_active=True)
+        if date_of_birth:
+            qs = qs.filter(models.Q(date_of_birth=date_of_birth) |
+                           models.Q(date_of_birth__isnull=True))
+        return qs.exists()

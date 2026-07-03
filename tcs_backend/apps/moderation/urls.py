@@ -9,6 +9,9 @@ from .staff_views import (
     broadcast_active, broadcast_mark_safe,
     child_safety_cases, child_safety_detail, child_safety_action,
 )
+from .termination_views import (
+    terminate_student, termination_log, lift_termination,
+)
 
 urlpatterns = [
     path("reports/",              ReportCreateView.as_view(),    name="moderation-report"),
@@ -29,6 +32,11 @@ urlpatterns = [
     path("staff/members/",                  staff_members, name="moderation-staff-members"),
     path("staff/members/<uuid:pk>/role/",   set_user_role, name="moderation-staff-set-role"),
     path("staff/engagement/",               engagement_trend, name="moderation-staff-engagement"),
+
+    # Student termination + escalation ladder's terminal action
+    path("staff/terminate/",                     terminate_student, name="moderation-terminate"),
+    path("staff/terminations/",                  termination_log,   name="moderation-terminations"),
+    path("staff/terminations/<uuid:pk>/lift/",   lift_termination,  name="moderation-termination-lift"),
 
     # Child-safety routing (safeguarding leads only)
     path("staff/child-safety/",                  child_safety_cases,  name="moderation-cs-cases"),

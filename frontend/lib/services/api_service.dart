@@ -1455,6 +1455,34 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
       post('/moderation/staff/child-safety/$id/action/',
           body: {'action': action, if (note != null) 'note': note});
 
+  // ── Student termination ──────────────────────────────────
+  Future<dynamic> terminateStudent({
+    required String studentId,
+    required String reason,
+    required String note,
+    required String confirmId,
+    bool permanent = true,
+  }) => post('/moderation/staff/terminate/', body: {
+        'student_id': studentId,
+        'reason':     reason,
+        'note':       note,
+        'confirm_id': confirmId,
+        'permanent':  permanent,
+      });
+
+  Future<dynamic> terminationLog({
+    String? reason, String? staff, String? q, String? since, String? until,
+  }) => get('/moderation/staff/terminations/', query: {
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+        if (staff  != null && staff.isNotEmpty)  'staff':  staff,
+        if (q      != null && q.isNotEmpty)      'q':      q,
+        if (since  != null && since.isNotEmpty)  'since':  since,
+        if (until  != null && until.isNotEmpty)  'until':  until,
+      });
+
+  Future<dynamic> liftTermination(String id) =>
+      post('/moderation/staff/terminations/$id/lift/');
+
   // ── Study sessions ───────────────────────────────────────
   Future<dynamic> studySessions({String when = 'upcoming', bool mine = false,
           String? subject}) =>

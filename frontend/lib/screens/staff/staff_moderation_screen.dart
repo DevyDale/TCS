@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+import 'package:tcs_app/screens/staff/staff_termination_screen.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
@@ -180,6 +181,18 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
                 style: const TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
           ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const StaffTerminationScreen())),
+          child: Container(
+            width: 40, height: 40, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+            child: const Icon(Icons.person_off_rounded,
+                color: Colors.white, size: 20)),
+        ),
       ]),
     );
   }

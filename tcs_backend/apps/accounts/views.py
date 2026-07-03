@@ -48,6 +48,16 @@ class IDLoginView(generics.GenericAPIView):
         ser.is_valid(raise_exception=True)
         d = ser.validated_data
 
+        # Roster-level bar: a terminated student is blocked here BEFORE a User
+        # is minted, so get_or_create can't hand them a fresh account.
+        from apps.moderation.models import TerminationRecord
+        if TerminationRecord.is_blocked(d["user_id"], d.get("date_of_birth")):
+            return Response(
+                {"detail": "Access to this account has been permanently revoked. "
+                           "Please contact the college if you believe this is an error."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         user, created = User.objects.get_or_create(
             user_id=d["user_id"],
             defaults={
@@ -343,13 +353,24 @@ def verify_student(request):
 
     try:
         rec = StudentRecord.objects.get(student_id=sid, date_of_birth=dob)
-        return Response({
-            "success": True,
-            "full_name": rec.full_name,
-            "preferred_name": rec.preferred_name
-        })
     except StudentRecord.DoesNotExist:
         return Response({"success": False}, status=401)
+
+    # Enforcement: a terminated student is barred at the roster layer, so
+    # deleting/recreating the User row can't get them back in.
+    from apps.moderation.models import TerminationRecord
+    if TerminationRecord.is_blocked(sid, rec.date_of_birth):
+        return Response(
+            {"success": False,
+             "detail": "Access to this account has been permanently revoked. "
+                       "Please contact the college if you believe this is an error."},
+            status=403)
+
+    return Response({
+        "success": True,
+        "full_name": rec.full_name,
+        "preferred_name": rec.preferred_name
+    })
 
 
 @api_view(["POST"])
