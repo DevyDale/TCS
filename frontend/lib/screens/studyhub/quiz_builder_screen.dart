@@ -5,9 +5,16 @@
 // teacher is the accuracy gate, nothing publishes until they review and save.
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
+
+// The Dale robot, used in place of a generic AI icon on the generate controls.
+Widget _daleBot(double size) => Lottie.asset('assets/images/robot.json',
+    width: size, height: size, fit: BoxFit.contain,
+    errorBuilder: (_, __, ___) =>
+        Icon(Icons.auto_awesome_rounded, size: size * 0.8, color: kStaffG1));
 
 class _QDraft {
   final textC = TextEditingController();
@@ -130,7 +137,7 @@ class _QuizBuilderScreenState extends State<QuizBuilderScreen> {
                     borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 14),
             Row(children: [
-              const Icon(Icons.auto_awesome_rounded, color: kStaffG1, size: 20),
+              _daleBot(28),
               const SizedBox(width: 8),
               Text('Generate with Dale',
                   style: TextStyle(fontFamily: 'Alfa', fontSize: 17, color: AppC.text)),
@@ -175,7 +182,7 @@ class _QuizBuilderScreenState extends State<QuizBuilderScreen> {
             SizedBox(width: double.infinity, height: 50,
               child: ElevatedButton.icon(
                 onPressed: go,
-                icon: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
+                icon: _daleBot(24),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: kStaffG1,
                     shape: RoundedRectangleBorder(
@@ -243,7 +250,7 @@ class _QuizBuilderScreenState extends State<QuizBuilderScreen> {
           IconButton(
             tooltip: 'Generate with Dale',
             onPressed: _generating ? null : _showGenerateSheet,
-            icon: const Icon(Icons.auto_awesome_rounded)),
+            icon: _daleBot(28)),
         ],
       ),
       body: _generating

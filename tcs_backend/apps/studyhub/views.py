@@ -521,6 +521,15 @@ def quiz_publish(request, pk):
         return Response({"error": "Add questions before publishing."}, status=400)
     q.is_published = not q.is_published   # toggle (unpublish to revise)
     q.save(update_fields=["is_published"])
+
+    # On publish (not on unpublish), fan a tappable notification out to students.
+    if q.is_published:
+        try:
+            from apps.notifications.tasks import push_quiz_published
+            push_quiz_published.delay(str(q.id))
+        except Exception:
+            pass
+
     return Response(_quiz_dict(q))
 
 

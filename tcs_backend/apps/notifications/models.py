@@ -20,6 +20,7 @@ class Notification(models.Model):
         CLUB_EVENT       = "club_event",       "Club Event"
         GAME_REQUEST     = "game_request",     "Game Request"
         EVENT_REMINDER   = "event_reminder",   "Event Reminder"
+        QUIZ_PUBLISHED   = "quiz_published",   "Quiz Published"
         ACHIEVEMENT      = "achievement",      "Achievement"
         ANNOUNCEMENT     = "announcement",     "Announcement"
         SYSTEM           = "system",           "System"

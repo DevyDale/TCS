@@ -37,6 +37,7 @@ import 'chat/chat_requests.dart';
 import 'arcade/game_requests_screen.dart';
 import 'dashboard/group_Screen.dart';
 import 'dashboard/event_details.dart';
+import 'studyhub/quiz_take_screen.dart';
 import 'dashboard/other_user_profile_Screen.dart';
 import 'groups/groups_study_hub_screen.dart';
 import 'feed/post_open_screen.dart';
@@ -160,6 +161,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'announcement':
         _push(NoticeboardScreen(highlightId: id));
+        break;
+
+      // ── Quizzes ────────────────────────────────────────────
+      case 'quiz_published':
+        if (id.isNotEmpty) _push(QuizTakeScreen(quizId: id));
         break;
 
       // ── Emergency / safety ─────────────────────────────────
@@ -511,6 +517,8 @@ class _NotifTile extends StatelessWidget {
         return (icon: Icons.alternate_email_rounded, color: _kViolet);
       case 'announcement':
         return (icon: Icons.campaign_rounded, color: _kViolet);
+      case 'quiz_published':
+        return (icon: Icons.quiz_rounded, color: const Color(0xFFF59E0B));
       case 'emergency':
         return (icon: Icons.warning_amber_rounded, color: _kRed);
       case 'suggestion':

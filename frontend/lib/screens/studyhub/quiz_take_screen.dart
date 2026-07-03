@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/saved_quizzes.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 
 class QuizTakeScreen extends StatefulWidget {
@@ -24,11 +25,30 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
   Map<String, dynamic>? _quiz;
   final Map<String, int> _answers = {};
   Map<String, dynamic>? _result;   // set after submit
+  bool _saved = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    SavedQuizzes.isSaved(widget.quizId)
+        .then((v) { if (mounted) setState(() => _saved = v); });
+  }
+
+  Future<void> _toggleSaved() async {
+    HapticFeedback.selectionClick();
+    final now = await SavedQuizzes.toggle(widget.quizId);
+    if (!mounted) return;
+    setState(() => _saved = now);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: kStaffG1,
+        duration: const Duration(seconds: 2),
+        content: Text(now ? 'Saved for later' : 'Removed from saved',
+            style: const TextStyle(fontFamily: 'Momo', color: Colors.white)),
+      ));
   }
 
   Future<void> _load() async {
@@ -73,6 +93,14 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
         backgroundColor: kStaffG1, foregroundColor: Colors.white,
         title: Text(_quiz?['title']?.toString() ?? 'Quiz',
             style: const TextStyle(fontFamily: 'Alfa', fontSize: 17)),
+        actions: [
+          IconButton(
+            tooltip: _saved ? 'Saved' : 'Save for later',
+            icon: Icon(_saved ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded),
+            onPressed: _toggleSaved,
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: kStaffG1))

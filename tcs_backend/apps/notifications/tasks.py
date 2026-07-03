@@ -461,3 +461,34 @@ def push_birthday_notifications():
 # task modules here so their @shared_tasks (e.g. push_announcement) are
 # actually registered on the worker.
 from . import announcement_tasks  # noqa: E402,F401
+
+
+# ── Studyhub: a teacher published a quiz → tell the students ──────
+
+@shared_task(name="push_quiz_published", ignore_result=True)
+def push_quiz_published(quiz_id):
+    """A teacher published a quiz. Notify every active student so it shows as a
+    tappable tile that opens the quiz to attempt."""
+    from apps.studyhub.models import Quiz
+    try:
+        q = (Quiz.objects.select_related("owner")
+             .prefetch_related("questions").get(id=quiz_id))
+    except Quiz.DoesNotExist:
+        return
+    if not q.is_published:
+        return
+
+    n     = q.questions.count()
+    title = f"New quiz: {q.title}"
+    body  = f"{q.subject} · {n} question{'s' if n != 1 else ''} · tap to attempt"
+    data  = {"type": "quiz_published", "quiz_id": str(q.id)}
+
+    tokens = []
+    # Active students only (terminated/suspended students are is_active=False).
+    for s in (User.objects.filter(role="student", is_active=True)
+              .only("id", "fcm_token").iterator()):
+        _create(str(s.id), str(q.owner_id) if q.owner_id else None,
+                "quiz_published", title, body, "quiz", str(q.id))
+        if s.fcm_token:
+            tokens.append(s.fcm_token)
+    _fcm_send_multi(tokens, title, body, data)

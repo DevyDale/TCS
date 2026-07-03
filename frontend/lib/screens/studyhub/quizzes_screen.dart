@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/saved_quizzes.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/studyhub/quiz_builder_screen.dart';
 import 'package:tcs_app/screens/studyhub/quiz_take_screen.dart';
@@ -24,12 +25,21 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
   final _api = ApiService();
   bool _loading = true;
   List<Map<String, dynamic>> _items = [];
+  bool _savedOnly = false;
+  Set<String> _savedIds = {};
 
   @override
   void initState() {
     super.initState();
     _load();
+    if (!widget.isTeacher) {
+      SavedQuizzes.ids().then((s) { if (mounted) setState(() => _savedIds = s); });
+    }
   }
+
+  List<Map<String, dynamic>> get _visible => (_savedOnly && !widget.isTeacher)
+      ? _items.where((q) => _savedIds.contains(q['id'].toString())).toList()
+      : _items;
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -123,23 +133,50 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                             color: Colors.white.withValues(alpha: 0.85))),
                   ],
                 )),
-                const Icon(Icons.quiz_rounded, color: Colors.white, size: 26),
+                if (widget.isTeacher)
+                  const Icon(Icons.quiz_rounded, color: Colors.white, size: 26)
+                else
+                  GestureDetector(
+                    onTap: () async {
+                      // Refresh saved ids each time so the filter is current.
+                      final s = await SavedQuizzes.ids();
+                      if (!mounted) return;
+                      setState(() { _savedIds = s; _savedOnly = !_savedOnly; });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: _savedOnly ? 0.9 : 0.18),
+                        borderRadius: BorderRadius.circular(20)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(_savedOnly ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                            color: _savedOnly ? kStaffG1 : Colors.white, size: 16),
+                        const SizedBox(width: 5),
+                        Text('Saved', style: TextStyle(fontFamily: 'Arch',
+                            fontWeight: FontWeight.bold, fontSize: 11.5,
+                            color: _savedOnly ? kStaffG1 : Colors.white)),
+                      ]),
+                    ),
+                  ),
               ]),
             )),
             if (_loading)
               const SliverFillRemaining(hasScrollBody: false,
                   child: Center(child: CircularProgressIndicator(color: kStaffG1)))
-            else if (_items.isEmpty)
+            else if (_visible.isEmpty)
               SliverFillRemaining(hasScrollBody: false,
                   child: staffNoResults(widget.isTeacher
                       ? 'No quizzes yet — tap Build to make one.'
-                      : 'No quizzes published yet.'))
+                      : _savedOnly
+                          ? 'No saved quizzes yet — tap the bookmark on a quiz to save it.'
+                          : 'No quizzes published yet.'))
             else
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
                 sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) => widget.isTeacher ? _teacherRow(_items[i]) : _studentRow(_items[i]),
-                  childCount: _items.length,
+                  (_, i) => widget.isTeacher ? _teacherRow(_visible[i]) : _studentRow(_visible[i]),
+                  childCount: _visible.length,
                 )),
               ),
           ],
