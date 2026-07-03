@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import 'arcade_registry.dart';    // playableGames — solo fallback builders
 import 'game_engine.dart';        // MultiplayerSession
 import 'tic_Tac_toe.dart';        // TicTacToeGame (dual-mode)
 // import 'snake_game.dart';      // TODO: re-enable once versus snake is rebuilt
@@ -63,9 +64,17 @@ Future<void> openVersusGame(BuildContext ctx, Map<String, dynamic> session) asyn
   }
 
   if (game == null) {
+    // No real-time versus build for this game — fall back to its solo build so
+    // the match still opens (score battle) instead of dead-ending. Only if the
+    // game isn't built at all do we bail with a message.
+    final builder = playableGames[slug];
+    if (builder != null) {
+      Navigator.of(ctx).push(MaterialPageRoute(builder: builder));
+      return;
+    }
     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
       backgroundColor: Colors.orange.shade800,
-      content: Text('Head-to-head for "${session['game_name'] ?? slug}" is coming soon.'),
+      content: Text('"${session['game_name'] ?? slug}" isn\'t available yet.'),
     ));
     return;
   }

@@ -27,20 +27,9 @@ import '../../services/api_service.dart';
 import '../../services/cache_store.dart';
 
 import 'arcade_Effects.dart';
-import 'campus_Craft_game.dart';
-import 'memory_rush_game.dart';
+import 'arcade_registry.dart';
 import 'player_tag_screen.dart';
-import 'quiz_battle_game.dart';
-import 'spirit_racers_game.dart';
-import 'ninja_tag_game.dart';
-import 'sushi_rush_game.dart';
-import 'battle_bots_game.dart';
-import 'pool_royale_game.dart';
-import 'snake_game.dart';
-import 'number_guesser_game.dart';
-import 'texas_poker_game.dart';
 import 'game_engine.dart';
-import 'tic_Tac_toe.dart';
 
 import 'game_requests_screen.dart';
 import 'live_matches_screen.dart';
@@ -128,20 +117,9 @@ const _gradColors = <Color>[
 // GAME REGISTRY
 // ═════════════════════════════════════════════════════════════
 
-final _playableGames = {
-  'quiz-battle':     (BuildContext ctx) => const QuizBattleGame(),
-  'spirit-racers':   (BuildContext ctx) => const SpiritRacersGame(),
-  'ninja-tag':       (BuildContext ctx) => const NinjaTagGame(),
-  'sushi-rush':      (BuildContext ctx) => const SushiRushGame(),
-  'battle-bots':     (BuildContext ctx) => const BattleBotsGame(),
-  'pool-royale':     (BuildContext ctx) => const PoolRoyaleGame(),
-  'snake':           (BuildContext ctx) => const SnakeGame(),
-  'memory-match':    (BuildContext ctx) => const MemoryMatchGame(),
-  'number-guesser':  (BuildContext ctx) => const NumberGuesserGame(),
-  'tic-tac-toe':     (BuildContext ctx) => const TicTacToeGame(),
-  'campus-craft':    (BuildContext ctx) => const CampusCraftGame(),
-  'texas-poker':     (BuildContext ctx) => const TexasPokerGame(),
-};
+// Single source of truth lives in arcade_registry.dart (shared with the
+// challenge picker + versus launcher).
+final _playableGames = playableGames;
 
 const _gameEmoji = {
   'quiz-battle': '🧠', 'tic-tac-toe': '⭕', 'memory-match': '🃏',
@@ -923,10 +901,10 @@ class _ArcadeScreenState extends State<ArcadeScreen>
       );
     }
 
+    // Only surface games that are actually built — no "Soon" teasers that dead-
+    // end on a "coming soon" dialog when tapped.
     final playable = _games.where((g) => _playableGames.containsKey(g['slug'])).toList();
-    final featured = _games.where((g) => g['is_featured'] == true &&
-        !_playableGames.containsKey(g['slug'])).toList();
-    final hasAny   = playable.isNotEmpty || featured.isNotEmpty || _games.isNotEmpty;
+    final hasAny   = playable.isNotEmpty;
 
     if (!hasAny) {
       return Padding(
@@ -955,13 +933,6 @@ class _ArcadeScreenState extends State<ArcadeScreen>
               shimmer: _shimmerCtrl)),
           const SizedBox(height: 18),
         ],
-        if (featured.isNotEmpty) ...[
-          _sectionLabel(t, 'Featured'),
-          const SizedBox(height: 12),
-          ...featured.map((g) => _FeaturedTile(
-              game: g, onTap: () => _launchGame(g))),
-          const SizedBox(height: 18),
-        ],
         _sectionLabel(t, 'All Games'),
         const SizedBox(height: 12),
         GridView.count(
@@ -969,9 +940,9 @@ class _ArcadeScreenState extends State<ArcadeScreen>
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12,
           childAspectRatio: 0.85,
-          children: _games.map((g) => _GameGridCard(
+          children: playable.map((g) => _GameGridCard(
               game: g,
-              isPlayable: _playableGames.containsKey(g['slug'] as String? ?? ''),
+              isPlayable: true,
               onTap: () => _launchGame(g))).toList()),
       ]),
     );

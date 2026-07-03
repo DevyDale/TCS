@@ -16,6 +16,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
+import 'arcade_registry.dart';
 
 
 const _kDarkBg     = Color(0xFF0D0D1A);
@@ -489,9 +490,12 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
   // ── UI ─────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    // Only offer games that are actually built AND aren't solo-only — so an
+    // accepted challenge never dead-ends on a "coming soon" message.
     final challengable = (widget.games as List)
         .where((g) =>
-            (g as Map)['invite_mode'] != 'solo_only').toList();
+            (g as Map)['invite_mode'] != 'solo_only' &&
+            isGameBuilt((g['slug'] ?? '').toString())).toList();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
