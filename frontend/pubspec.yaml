@@ -38,7 +38,7 @@ dependencies:
   firebase_storage: ^12.3.2
   
   # Supabase
-  supabase_flutter: ^2.0.0
+  supabase_flutter: ^2.12.4
   
   # Image & Media
   file_picker: ^8.1.4
