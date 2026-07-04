@@ -9,7 +9,10 @@ const _kG3 = Color(0xFFF7971E);
 const _kG4 = Color(0xFFFF5858);
 
 class InterestsPage extends StatefulWidget {
-  const InterestsPage({super.key});
+  /// Interests the user has already saved — pre-selected so they can be
+  /// reviewed, removed, or added to (rather than starting from scratch).
+  final List<String> initial;
+  const InterestsPage({super.key, this.initial = const []});
 
   @override
   State<InterestsPage> createState() => _InterestsPageState();
@@ -80,6 +83,8 @@ class _InterestsPageState extends State<InterestsPage>
   @override
   void initState() {
     super.initState();
+    // Pre-select the user's already-saved interests (respecting the max cap).
+    _selected.addAll(widget.initial.take(_max));
     _headerCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700))
       ..forward();

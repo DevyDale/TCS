@@ -367,14 +367,20 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── Navigation ────────────────────────────────────────────
 
   Future<void> _openInterests() async {
-    final r = await Navigator.of(context)
-        .push<List<String>>(MaterialPageRoute(builder: (_) => const InterestsPage()));
+    final r = await Navigator.of(context).push<List<String>>(
+        MaterialPageRoute(builder: (_) => InterestsPage(initial: _interests)));
     if (r != null) {
       setState(() {
         _interests
           ..clear()
           ..addAll(r);
       });
+      // Persist so interests survive leaving the page / reopening the profile.
+      try {
+        await _api.updateProfile({'interests': r});
+      } catch (_) {
+        if (mounted) _snack('Could not save interests', error: true);
+      }
     }
   }
 
@@ -1030,8 +1036,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(width: 8),
                 _aboutBtn(Icons.notes_rounded, 'Bio',
                     hasBio ? _showBioSheet : _openBio),
-                const SizedBox(width: 8),
-                _aboutBtn(Icons.edit_rounded, 'Edit', _openBio),
               ],
             ),
           ],
