@@ -94,6 +94,7 @@ flutter:
     - assets/icons/
     - assets/animations/
     - assets/games/
+    - shorebird.yaml
 
   fonts:
     - family: Alfa

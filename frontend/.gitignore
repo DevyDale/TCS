@@ -113,3 +113,6 @@ htmlcov/
 node_modules/
 >>>>>>> b381fdfba5a52f5db9a1eaaad2684e4f3d3e5afc
 .fixbak/
+
+# Shorebird build cache
+.shorebird/
