@@ -176,6 +176,18 @@ class ApiService {
 
   final _client = http.Client();
 
+  /// Single-flight guard for token refresh. The backend rotates refresh
+  /// tokens and blacklists the old one on every refresh
+  /// (ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION). So if a burst of
+  /// requests all 401 at once (e.g. the dashboard's parallel fetches on a
+  /// cold start with an expired access token) and each refreshes
+  /// independently, only the FIRST succeeds — the rest present the
+  /// now-blacklisted refresh token and fail, leaving their screens empty.
+  /// Collapsing all concurrent refreshes into this one shared future means
+  /// the burst rotates exactly once and every caller retries with the new
+  /// access token.
+  Future<bool>? _refreshInFlight;
+
   /// Best-effort proactive refresh. Call this on app launch (from the
   /// splash) so the first dashboard API call hits a fresh access
   /// token instead of a stale one.
@@ -291,7 +303,24 @@ Future<http.Response> _raw(String method, Uri uri,
   // returning 401 and bubble up as ApiException to the calling screen
   // — but the user remains "logged in" from the splash's perspective
   // and won't be force-routed back to RoleSelection on cold start.
-  Future<bool> _tryRefresh() async {
+  // Single-flight wrapper. Concurrent callers all await the SAME refresh
+  // instead of each firing their own (which would rotate + blacklist the
+  // refresh token out from under one another). The first caller starts the
+  // refresh; everyone else joins it; the slot is cleared once it settles.
+  Future<bool> _tryRefresh() {
+    final inflight = _refreshInFlight;
+    if (inflight != null) return inflight;
+    final f = _doRefresh();
+    _refreshInFlight = f;
+    // Clear the slot when done, but only if it still points at THIS future
+    // (a later refresh may have already replaced it).
+    f.whenComplete(() {
+      if (identical(_refreshInFlight, f)) _refreshInFlight = null;
+    });
+    return f;
+  }
+
+  Future<bool> _doRefresh() async {
     final r = await _Tokens.refresh();
     if (r == null || r.isEmpty) return false;
     try {
