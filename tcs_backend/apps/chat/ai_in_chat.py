@@ -27,6 +27,7 @@ from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
 
 from .models import Message
+from apps.ai import ai_router   # fast multi-provider lane (Groq → … → Gemini)
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ def summon_dale_in_room(room, asker, asker_message=None):
     answers it directly; otherwise Dale summarises / offers help.
     """
     api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
+    if not api_key and not ai_router.available("chat"):
         raise AIError("AI service not configured. Try again later.")
 
     recent = (Message.objects
@@ -173,13 +174,36 @@ def summon_dale_in_room(room, asker, asker_message=None):
             "casual or empty, introduce yourself briefly."
         )
 
-    try:
-        from apps.ai.views import _build_gemini_payload, _call_gemini_oneshot
-        payload = _build_gemini_payload(DALE_SYSTEM_PROMPT, history, user_prompt)
-        ai_text = _call_gemini_oneshot(payload, api_key)
-    except Exception as e:
-        logger.exception("Gemini call failed in summon_dale_in_room")
-        raise AIError(f"Dale couldn't respond right now: {e}")
+    ai_text = ""
+    # Fast path: the shared multi-provider router. Chat lane is
+    # Groq → Cerebras → SambaNova → Gemini; Groq/Cerebras reply in well under a
+    # second, versus several for a direct Gemini call. Failover + circuit-
+    # breaking are handled inside the router.
+    if ai_router.available("chat"):
+        messages = [{"role": "system", "content": DALE_SYSTEM_PROMPT}]
+        for h in history:
+            messages.append({
+                "role":    "assistant" if h["role"] == "model" else "user",
+                "content": h["content"],
+            })
+        messages.append({"role": "user", "content": user_prompt})
+        try:
+            result = ai_router.complete("chat", messages,
+                                        max_tokens=500, temperature=0.7)
+            ai_text = (result.get("text") or "").strip()
+        except Exception:
+            logger.exception("ai_router failed in summon_dale_in_room")
+
+    # Last resort: direct Gemini one-shot (legacy path) if the router had no
+    # providers or every one failed on this request.
+    if not ai_text and api_key:
+        try:
+            from apps.ai.views import _build_gemini_payload, _call_gemini_oneshot
+            payload = _build_gemini_payload(DALE_SYSTEM_PROMPT, history, user_prompt)
+            ai_text = _call_gemini_oneshot(payload, api_key)
+        except Exception as e:
+            logger.exception("Gemini call failed in summon_dale_in_room")
+            raise AIError(f"Dale couldn't respond right now: {e}")
 
     if not ai_text or not ai_text.strip():
         ai_text = ("Hey! I'm Dale \U0001F44B  How can I help with what you're "
