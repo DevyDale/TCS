@@ -17,6 +17,7 @@ urlpatterns = [
     path("scam-check/",     views.scam_check,    name="ai-scam-check"),
     path("extract/",        extract_document,    name="ai-extract"),
     path("announce-assist/", views.announce_assist, name="ai-announce-assist"),
+    path("about-me/", views.about_me, name="ai-about-me"),
 
     # Phase 1 router diagnostics (staff-only)
     path("router/", ai_router_status, name="ai-router-status"),

@@ -160,6 +160,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   String? _myUserId;
   BioData? _bioData;
 
+  // AI-composed "About Me" (bio + interests woven into one paragraph).
+  String? _aboutMe;
+  bool    _aboutLoading = false;
+  String? _aboutSig;      // signature of the bio+interests that produced _aboutMe
+
   File? _avatarFile;
   String? _avatarUrl;
   bool _avatarUploading = false;
@@ -310,6 +315,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         final av = d['avatar_url'] as String?;
         if (av != null && av.isNotEmpty && _avatarFile == null) _avatarUrl = av;
       });
+      // Bio + interests are now loaded — compose (or restore) the About Me.
+      _maybeGenerateAbout();
       },
       onError: (_) {},
     );
@@ -381,13 +388,74 @@ class _ProfileScreenState extends State<ProfileScreen>
       } catch (_) {
         if (mounted) _snack('Could not save interests', error: true);
       }
+      _maybeGenerateAbout();   // interests changed → refresh the About Me
     }
   }
 
   Future<void> _openBio() async {
     final r = await Navigator.of(context)
         .push<BioData>(MaterialPageRoute(builder: (_) => BioPage(existing: _bioData)));
-    if (r != null) setState(() => _bioData = r);
+    if (r != null) {
+      setState(() => _bioData = r);
+      _maybeGenerateAbout();   // bio changed → refresh the About Me
+    }
+  }
+
+  // ── AI "About Me" ─────────────────────────────────────────
+  // Weave the user's bio + interests into one paragraph via /ai/about-me/.
+  // Cached on-device keyed by a signature of the inputs, so we only hit the
+  // model when the bio or interests actually change.
+
+  String get _aboutBioText => (_bioData?.bio ?? '').trim();
+
+  String _computeAboutSig() =>
+      '$_aboutBioText::${(List<String>.from(_interests)..sort()).join(',')}';
+
+  String get _aboutTextKey => 'about_me_text_${_myUserId ?? ''}';
+  String get _aboutSigKey  => 'about_me_sig_${_myUserId ?? ''}';
+
+  /// Generate (or restore from cache) the About Me paragraph. Safe to call
+  /// repeatedly — it no-ops when the inputs are unchanged.
+  Future<void> _maybeGenerateAbout({bool force = false}) async {
+    final bio = _aboutBioText;
+    final interests = List<String>.from(_interests);
+    if (bio.isEmpty && interests.isEmpty) {
+      if (mounted) setState(() { _aboutMe = null; _aboutSig = null; });
+      return;
+    }
+    final sig = _computeAboutSig();
+    if (!force && sig == _aboutSig && (_aboutMe?.isNotEmpty ?? false)) return;
+
+    final p = await SharedPreferences.getInstance();
+    if (!force) {
+      final cachedSig = p.getString(_aboutSigKey);
+      final cachedTxt = p.getString(_aboutTextKey);
+      if (cachedSig == sig && cachedTxt != null && cachedTxt.isNotEmpty) {
+        if (mounted) setState(() { _aboutMe = cachedTxt; _aboutSig = sig; });
+        return;
+      }
+    }
+
+    if (mounted) setState(() => _aboutLoading = true);
+    try {
+      final d = await _api.generateAboutMe(
+        bio: bio,
+        interests: interests,
+        name: widget.preferredName.isNotEmpty
+            ? widget.preferredName
+            : widget.fullName,
+      ) as Map;
+      final about = (d['about'] as String?)?.trim() ?? '';
+      if (about.isNotEmpty) {
+        await p.setString(_aboutTextKey, about);
+        await p.setString(_aboutSigKey, sig);
+        if (mounted) setState(() { _aboutMe = about; _aboutSig = sig; });
+      }
+    } catch (_) {
+      // Leave any previous text in place; the card falls back to the raw bio.
+    } finally {
+      if (mounted) setState(() => _aboutLoading = false);
+    }
   }
 
   Future<void> _openCreatePost() async {
@@ -915,45 +983,79 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: _kCard,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _kBorder),
         ),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: _editSocialLinks,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kPurple, _kBlue]),
-                  borderRadius: BorderRadius.circular(20),
+            // Header: title + inline "Add link" button (mirrors About Me).
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                      color: _kBlue.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.share_rounded,
+                      color: _kBlue, size: 15),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 8),
+                T('Other Socials',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: _kInk)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _editSocialLinks,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient:
+                          const LinearGradient(colors: [_kPurple, _kBlue]),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_rounded, color: Colors.white, size: 15),
+                        SizedBox(width: 4),
+                        T('Add Link',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Links: horizontal scroll of same-size chips, or a prompt.
+            if (chips.isEmpty)
+              T('Add your Instagram, TikTok, YouTube and more.',
+                  style: TextStyle(fontSize: 12.5, color: _kSlate))
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
                   children: [
-                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 5),
-                    T('Add link',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white)),
+                    for (int i = 0; i < chips.length; i++)
+                      Padding(
+                        padding: EdgeInsets.only(
+                            right: i == chips.length - 1 ? 0 : 8),
+                        child: chips[i],
+                      ),
                   ],
                 ),
-              ),
-            ),
-            ...chips,
-            if (chips.isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 2),
-                child: T('Add your Instagram, TikTok, YouTube and more.',
-                    style: TextStyle(fontSize: 12.5, color: _kSlate)),
               ),
           ],
         ),
@@ -979,6 +1081,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header: title + inline edit actions (interests / bio).
             Row(
               children: [
                 Container(
@@ -996,75 +1099,218 @@ class _ProfileScreenState extends State<ProfileScreen>
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                         color: _kInk)),
-              ],
-            ),
-            if (hasBio) ...[
-              const SizedBox(height: 10),
-              Text(bio!.bio!,
-                  style: TextStyle(
-                      fontSize: 14, color: _kInkSoft, height: 1.5)),
-            ],
-            if (_interests.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _interests.map((interest) {
-                  final c = [_kBlue, _kPurple, _kAmber, _kCoral]
-                      [_interests.indexOf(interest) % 4];
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: c.withOpacity(0.10),
-                      border: Border.all(color: c.withOpacity(0.25)),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(interest,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: c)),
-                  );
-                }).toList(),
-              ),
-            ],
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _aboutBtn(Icons.interests_rounded, 'Interests', _openInterests),
+                const Spacer(),
+                _aboutIconBtn(Icons.interests_rounded, 'Edit interests',
+                    _kPurple, _openInterests),
                 const SizedBox(width: 8),
-                _aboutBtn(Icons.notes_rounded, 'Bio',
-                    hasBio ? _showBioSheet : _openBio),
+                _aboutIconBtn(Icons.edit_note_rounded, 'Edit bio',
+                    _kBlue, hasBio ? _showBioSheet : _openBio),
               ],
             ),
+            const SizedBox(height: 12),
+            _aboutBody(hasBio),
           ],
         ),
       ),
     );
   }
 
-  Widget _aboutBtn(IconData icon, String label, VoidCallback onTap) {
-    return Expanded(
+  // Small circular icon-button used in the About Me header.
+  Widget _aboutIconBtn(
+      IconData icon, String tooltip, Color color, VoidCallback onTap) {
+    return Tooltip(
+      message: tooltip,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            color: _kCardLo,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _kBorder),
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.22)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Icon(icon, size: 17, color: color),
+        ),
+      ),
+    );
+  }
+
+  // The card body: AI-woven paragraph, clamped with a "…more" link. Falls
+  // back to the raw bio, then to a friendly prompt when there's nothing yet.
+  Widget _aboutBody(bool hasBio) {
+    if (_aboutLoading && (_aboutMe == null || _aboutMe!.isEmpty)) {
+      return Row(
+        children: [
+          SizedBox(
+            width: 15, height: 15,
+            child: CircularProgressIndicator(strokeWidth: 2, color: _kPurple),
+          ),
+          const SizedBox(width: 10),
+          Text('Composing your About Me…',
+              style: TextStyle(
+                  fontSize: 13, color: _kSlate, fontStyle: FontStyle.italic)),
+        ],
+      );
+    }
+
+    final text = (_aboutMe?.trim().isNotEmpty ?? false)
+        ? _aboutMe!.trim()
+        : (hasBio ? _bioData!.bio!.trim() : '');
+
+    if (text.isEmpty) {
+      return Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 16, color: _kSlate),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Add a bio and a few interests — I’ll write your About Me for you.',
+              style: TextStyle(fontSize: 13, color: _kSlate, height: 1.4),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final style = TextStyle(fontSize: 14, color: _kInkSoft, height: 1.55);
+    const maxLines = 4;
+
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final tp = TextPainter(
+          text: TextSpan(text: text, style: style),
+          maxLines: maxLines,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: c.maxWidth);
+        final overflows = tp.didExceedMaxLines;
+
+        if (!overflows) return Text(text, style: style);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(text,
+                style: style,
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showAboutDialog(text),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('…more',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: _kPurple)),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.expand_more_rounded,
+                      size: 16, color: _kPurple),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Full-text "About Me" dialog opened from the "…more" link.
+  void _showAboutDialog(String text) {
+    HapticFeedback.selectionClick();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.55),
+      builder: (_) => Dialog(
+        backgroundColor: _kCard,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 14, color: _kInkSoft),
-              const SizedBox(width: 5),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: _kInk)),
+              // Header band
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 18, 14, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [_kPurple, _kBlue]),
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.fullName.isNotEmpty
+                            ? 'About ${widget.fullName.split(' ').first}'
+                            : 'About Me',
+                        style: const TextStyle(
+                            fontFamily: 'Alfa',
+                            fontSize: 17,
+                            color: Colors.white),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Body
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(text,
+                      style: TextStyle(
+                          fontSize: 15, height: 1.6, color: _kInk)),
+                ),
+              ),
+              // Interest chips footer (if any)
+              if (_interests.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _interests.map((interest) {
+                      final col = [_kBlue, _kPurple, _kAmber, _kCoral]
+                          [_interests.indexOf(interest) % 4];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: col.withOpacity(0.10),
+                          border: Border.all(color: col.withOpacity(0.25)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(interest,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: col)),
+                      );
+                    }).toList(),
+                  ),
+                ),
             ],
           ),
         ),

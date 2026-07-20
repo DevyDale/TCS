@@ -1174,6 +1174,19 @@ Future<dynamic> updateStudyBuddy(Map<String, dynamic> data) =>
     });
   }
 
+  /// POST /api/ai/about-me/ — weave bio + interests into one warm
+  /// first-person paragraph. Returns {about: String}.
+  Future<dynamic> generateAboutMe({
+    required String bio,
+    required List<String> interests,
+    String? name,
+  }) =>
+      post('/ai/about-me/', body: {
+        'bio': bio,
+        'interests': interests,
+        if (name != null && name.isNotEmpty) 'name': name,
+      });
+
   // ══════════════════════════════════════════════════════════
   // ARCADE
   // ══════════════════════════════════════════════════════════

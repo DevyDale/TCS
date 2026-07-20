@@ -544,6 +544,52 @@ def announce_assist(request):
                         status=503)
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def about_me(request):
+    """Weave a user's bio + interests into one warm first-person 'About Me'
+    paragraph. One-shot, non-streaming.
+    Body: {bio?, interests?[], name?}  →  {about}."""
+    d = request.data
+    bio = (d.get("bio") or "").strip()
+    interests = d.get("interests") or []
+    if isinstance(interests, str):
+        interests = [interests]
+    interests = [str(i).strip() for i in interests if str(i).strip()]
+    name = (d.get("name") or "").strip()
+    if not bio and not interests:
+        return Response({"error": "Add a bio or some interests first."}, status=400)
+
+    sys = (
+        "You write short, warm, first-person 'About Me' blurbs for a student's "
+        "profile on a college community app. Merge the person's bio and interests "
+        "into ONE natural, engaging paragraph of about 45-75 words. Write in the "
+        "first person ('I'), sound authentic and friendly, and weave the interests "
+        "in naturally — do NOT list them mechanically. Return ONLY the paragraph "
+        "text: no markdown, no heading, no surrounding quotes."
+    )
+    parts = []
+    if name:
+        parts.append(f"NAME: {name}")
+    if bio:
+        parts.append(f"BIO: {bio}")
+    if interests:
+        parts.append(f"INTERESTS: {', '.join(interests)}")
+    messages = [
+        {"role": "system", "content": sys},
+        {"role": "user", "content": "\n".join(parts)},
+    ]
+    try:
+        result = ai_router.complete("chat", messages, max_tokens=400, temperature=0.7)
+        text = (result.get("text") or "").strip().strip('"').strip()
+        if not text:
+            return Response({"error": "Could not generate right now."}, status=503)
+        return Response({"about": text})
+    except Exception:
+        return Response({"error": "Dale is busy — try again in a moment."},
+                        status=503)
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ai_status(request):
