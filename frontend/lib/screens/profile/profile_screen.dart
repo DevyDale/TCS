@@ -949,6 +949,31 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ── Links card ────────────────────────────────────────────
 
+  // Card shell with a brand purple→blue gradient border. The outer container
+  // is the gradient; a 1.4px inset reveals it as a hairline border around the
+  // inner (theme-aware) surface.
+  Widget _gradientCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(1.4),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_kPurple, _kBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.6),
+        ),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildLinksCard() {
     final chips = <Widget>[];
     for (final k in _kSocialOrder) {
@@ -982,13 +1007,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kBorder),
-        ),
+      child: _gradientCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1071,13 +1090,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kBorder),
-        ),
+      child: _gradientCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1443,7 +1456,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w800,
-                                color: Color.lerp(_kSlate, Colors.white,
+                                // Active pill is _kInk (AppC.text) — light in
+                                // dark mode — so the active label must resolve
+                                // to AppC.bg to stay readable (dark-on-light in
+                                // dark theme, light-on-dark in light theme).
+                                color: Color.lerp(_kSlate, AppC.bg,
                                     1.0 - (pos - i).abs().clamp(0.0, 1.0)),
                               ),
                             ),
