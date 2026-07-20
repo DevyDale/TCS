@@ -1,0 +1,109 @@
+/* ── TCS web · shared onboarding / auth styling ──────────────────────
+   A premium dark surface (matching the splash) with a drifting particle
+   field, ambient glow blobs, and frosted-glass content cards. */
+
+@font-face { font-family: 'Alfa'; src: url('fonts/alfa.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Arch'; src: url('fonts/arch.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Momo'; src: url('fonts/momo.ttf') format('truetype'); font-display: swap; }
+
+:root {
+  --g1: #6DD5FA; --g2: #8E54E9; --g3: #F7971E; --g4: #FF5858; --pink: #EC4899;
+  --grn1: #11998E; --grn2: #38EF7D;
+  --bg1: #0D0D1A; --bg2: #12103A; --bg3: #1A0D2E;
+  --ink: #EDEDF5;
+  --sub: rgba(255,255,255,0.66);
+  --faint: rgba(255,255,255,0.42);
+  --glass: rgba(255,255,255,0.055);
+  --glass-2: rgba(255,255,255,0.08);
+  --hair: rgba(255,255,255,0.12);
+  --hair-2: rgba(255,255,255,0.18);
+  --err: #FF6B7A;
+  --ok: #45E0A0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg1);
+  color: var(--ink);
+  font-family: 'Momo', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Animated dark gradient backdrop */
+.backdrop {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+  background-size: 200% 200%;
+  animation: bgdrift 12s ease-in-out infinite alternate;
+}
+@keyframes bgdrift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+
+/* Ambient glow blobs */
+.blob { position: fixed; border-radius: 50%; filter: blur(60px); z-index: 1; pointer-events: none; }
+.blob.p { width: 46vmin; height: 46vmin; top: -8vmin;  left: -12vmin; background: rgba(142,84,233,0.22); }
+.blob.o { width: 52vmin; height: 52vmin; bottom: -12vmin; right: -14vmin; background: rgba(247,151,30,0.14); }
+.blob.c { width: 34vmin; height: 34vmin; top: 42%; right: -10vmin; background: rgba(109,213,250,0.14); }
+
+/* Particle canvas (created/served by particles.js) */
+#particles { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+
+/* Content layer */
+.layer { position: relative; z-index: 3; }
+
+/* Frosted-glass card */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--hair);
+  border-radius: 24px;
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+          backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+/* Gradient brand logo tile */
+.brand-mark {
+  display: grid; place-items: center; border-radius: 20px;
+  background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+  box-shadow: 0 16px 34px rgba(142,84,233,0.4);
+}
+.brand-mark svg { fill: #fff; }
+
+/* Gradient wordmark helper */
+.grad-text {
+  background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* Primary gradient button */
+.btn {
+  width: 100%; height: 56px; border: 0; cursor: pointer; border-radius: 16px;
+  color: #fff; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: 0.5px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(90deg, var(--g2), var(--g1));
+  box-shadow: 0 10px 26px rgba(142,84,233,0.45);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.btn:hover { box-shadow: 0 14px 34px rgba(142,84,233,0.6); transform: translateY(-1px); }
+.btn:active { transform: translateY(1px) scale(0.995); }
+.btn[disabled] { opacity: 0.6; cursor: default; box-shadow: none; }
+.btn svg { width: 20px; height: 20px; fill: #fff; }
+
+/* Glass ghost button (e.g. back) */
+.ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--glass-2); border: 1px solid var(--hair); color: var(--ink);
+  border-radius: 14px; cursor: pointer; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ghost:hover { background: rgba(255,255,255,0.14); border-color: var(--hair-2); }
+.ghost svg { width: 18px; height: 18px; fill: currentColor; }
+
+:focus-visible { outline: 2px solid var(--g1); outline-offset: 3px; border-radius: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop { animation: none; }
+}
