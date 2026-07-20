@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Visitor access · TCS</title>
+<meta name="theme-color" content="#0D0D1A" />
+<link rel="stylesheet" href="assets/onboarding.css" />
+<style>
+  .wrap {
+    width: 100%; max-width: 440px; margin: 0 auto; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    padding: max(env(safe-area-inset-top), 22px) 22px max(env(safe-area-inset-bottom), 24px);
+  }
+  .topbar { display: flex; }
+  .back { padding: 10px 14px; }
+
+  .hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 12px; }
+  .role-icon { width: 80px; height: 80px; border-radius: 26px; animation: bob 3s ease-in-out infinite;
+               background: linear-gradient(135deg, #F7971E, #FF5858); box-shadow: 0 16px 34px rgba(247,151,30,0.32); }
+  .role-icon svg { width: 42px; height: 42px; }
+  @keyframes bob { 0%,100% { transform: translateY(-6px); } 50% { transform: translateY(6px); } }
+  .title { font-family: 'Alfa', serif; font-size: clamp(26px, 8vw, 31px); margin-top: 16px; line-height: 1.1; }
+  .lede { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 8px; line-height: 1.5; max-width: 30ch; }
+
+  form { margin-top: 22px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Tab + toggle segmented controls */
+  .seg { display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 5px; border-radius: 14px; border: 1px solid var(--hair); }
+  .seg button { flex: 1; height: 40px; border: 0; cursor: pointer; border-radius: 10px; background: none;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; color: var(--sub); transition: background 0.15s ease, color 0.15s ease; }
+  .seg button[aria-pressed="true"] { background: linear-gradient(90deg, var(--g2), var(--g1)); color: #fff; }
+
+  #fields { display: flex; flex-direction: column; gap: 12px; }
+  .field label { display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; color: var(--ink); margin-bottom: 6px; letter-spacing: 0.3px; }
+  .input { display: flex; align-items: center; height: 52px; border-radius: 14px; background: rgba(255,255,255,0.05);
+           border: 1.5px solid var(--hair); overflow: hidden; transition: border-color 0.15s ease, background 0.15s ease; }
+  .input:focus-within { border-color: var(--g2); background: rgba(255,255,255,0.09); }
+  .input .ic { width: 48px; height: 100%; flex: 0 0 auto; display: grid; place-items: center; border-right: 1px solid var(--hair); }
+  .input .ic svg { width: 20px; height: 20px; fill: var(--faint); }
+  .input:focus-within .ic svg { fill: var(--sub); }
+  .input input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none;
+                 padding: 0 14px; font-family: 'Momo', sans-serif; font-size: 15px; color: var(--ink); }
+  .input input::placeholder { color: var(--faint); }
+
+  /* Terms tick */
+  .terms { display: flex; align-items: flex-start; gap: 10px; font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); line-height: 1.45; }
+  .terms input { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px; accent-color: var(--g2); cursor: pointer; }
+  .terms a { color: var(--g1); font-weight: 700; text-decoration: none; }
+  .terms a:hover { text-decoration: underline; }
+
+  .msg { min-height: 16px; font-family: 'Momo', sans-serif; font-size: 12.5px; }
+  .msg.error { color: var(--err); } .msg.ok { color: var(--ok); }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.45); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  .btn.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .note { text-align: center; font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="blob p"></div><div class="blob o"></div><div class="blob c"></div>
+  <canvas id="particles"></canvas>
+
+  <main class="wrap layer">
+    <div class="topbar">
+      <button class="ghost back" type="button" onclick="location.href='auth.html'">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Back
+      </button>
+    </div>
+
+    <div class="hero">
+      <div class="role-icon brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <h1 class="title">Visitor &amp; <span class="grad-text">Parents</span></h1>
+      <p class="lede">Create a guest account or sign back in.</p>
+    </div>
+
+    <form class="glass" id="form" novalidate>
+      <div class="seg" id="tabs">
+        <button type="button" data-tab="signup" aria-pressed="true">Sign up</button>
+        <button type="button" data-tab="signin" aria-pressed="false">Sign in</button>
+      </div>
+      <div id="fields"></div>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <button class="btn" id="submit" type="submit">
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="submitLabel">Create account &amp; enter</span>
+      </button>
+    </form>
+
+    <p class="note">Visitor accounts only see public club &amp; event posts.</p>
+  </main>
+
+<script src="assets/particles.js"></script>
+<script>
+  var API = 'https://tcs-nsw.duckdns.org/api';
+  var mode = 'signup';   // 'signup' | 'signin'
+  var role = (function () { try { return localStorage.getItem('tcs_role') === 'parent' ? 'parent' : 'visitor'; } catch (e) { return 'visitor'; } })();
+
+  var PERSON = '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  var MAIL   = '<svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>';
+  var AT     = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 4 19.2l-.8-1.8A8 8 0 1 1 20 12v.9a1.1 1.1 0 0 1-2.2 0V8h-1.8v.9A4 4 0 1 0 16 15a3 3 0 0 0 5-2.1V12A10 10 0 0 0 12 2zm0 13a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>';
+  var LOCK   = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6zm3 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
+
+  var fieldsEl = document.getElementById('fields');
+  var submitLabel = document.getElementById('submitLabel');
+
+  function field(id, label, type, ph, icon, extra) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' +
+      '<div class="input"><span class="ic">' + icon + '</span>' +
+      '<input id="' + id + '" type="' + type + '" placeholder="' + (ph || '') + '" ' + (extra || '') + ' autocomplete="off" /></div></div>';
+  }
+
+  function renderFields() {
+    if (mode === 'signup') {
+      fieldsEl.innerHTML =
+        field('username', 'Username', 'text', 'Pick a username', PERSON) +
+        field('email', 'Email', 'email', 'you@example.com', MAIL, 'inputmode="email"') +
+        field('password', 'Password', 'password', 'At least 6 characters', LOCK, 'autocomplete="new-password"') +
+        '<label class="terms"><input type="checkbox" id="tc" />' +
+          '<span>I agree to the <a href="#" onclick="return false">Visitor Terms &amp; Conditions</a>.</span></label>';
+      submitLabel.textContent = 'Create account & enter';
+    } else {
+      fieldsEl.innerHTML =
+        field('identifier', 'Email or username', 'text', 'you@example.com', AT) +
+        field('password', 'Password', 'password', 'Your password', LOCK, 'autocomplete="current-password"');
+      submitLabel.textContent = 'Sign in';
+    }
+  }
+
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab]'); if (!b) return;
+    mode = b.getAttribute('data-tab');
+    this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.getAttribute('data-tab') === mode ? 'true' : 'false'); });
+    setMsg(''); renderFields();
+  });
+
+  var submitEl = document.getElementById('submit');
+  var msgEl = document.getElementById('msg');
+  function setMsg(t, k) { msgEl.textContent = t || ''; msgEl.className = 'msg' + (k ? ' ' + k : ''); }
+  function loading(on) {
+    submitEl.disabled = on; submitEl.classList.toggle('loading', on);
+    submitLabel.textContent = on ? 'Please wait…' : (mode === 'signup' ? 'Create account & enter' : 'Sign in');
+  }
+  function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+  function storeSession(d) {
+    try {
+      if (d.access) localStorage.setItem('tcs_access', d.access);
+      if (d.refresh) localStorage.setItem('tcs_refresh', d.refresh);
+      if (d.user) localStorage.setItem('tcs_user', JSON.stringify(d.user));
+    } catch (e) {}
+  }
+  function loginPassword(identifier, password) {
+    return fetch(API + '/accounts/login-password/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ identifier: identifier, password: password }),
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); });
+  }
+
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault(); setMsg('');
+
+    if (mode === 'signin') {
+      var ident = v('identifier'), pw = document.getElementById('password').value;
+      if (!ident || !pw) { setMsg('Enter your email/username and password.', 'error'); return; }
+      loading(true);
+      loginPassword(ident, pw).then(function (res) {
+        if (!res.ok) { setMsg((res.d && (res.d.detail || res.d.error)) || 'Those details didn’t match.', 'error'); loading(false); return; }
+        storeSession(res.d); setMsg('Signed in — welcome back!', 'ok'); loading(false);
+      }).catch(function () { setMsg('Couldn’t reach the server. Try again.', 'error'); loading(false); });
+      return;
+    }
+
+    // Sign up
+    var username = v('username'), email = v('email'), pw2 = document.getElementById('password').value;
+    var agreed = document.getElementById('tc').checked;
+    if (!username || !email) { setMsg('Enter a username and email.', 'error'); return; }
+    if (!email.includes('@') || !email.includes('.')) { setMsg('Enter a valid email address.', 'error'); return; }
+    if (pw2.length < 6) { setMsg('Password must be at least 6 characters.', 'error'); return; }
+    if (!agreed) { setMsg('Please accept the Visitor Terms & Conditions.', 'error'); return; }
+
+    loading(true);
+    fetch(API + '/accounts/register/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ username: username, email: email, password: pw2, confirm_password: pw2, role: role }),
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          var d = res.d || {};
+          setMsg(String(d.detail || d.error || (d.email && ('Email: ' + d.email)) || (d.username && ('Username: ' + d.username)) || 'Could not create your account.'), 'error');
+          loading(false); return;
+        }
+        return loginPassword(email, pw2).then(function (lr) {
+          if (lr && lr.ok) storeSession(lr.d);
+          setMsg('Account created — welcome to TCS!', 'ok'); loading(false);
+        });
+      })
+      .catch(function () { setMsg('Couldn’t reach the server. Try again.', 'error'); loading(false); });
+  });
+
+  renderFields();
+</script>
+</body>
+</html>

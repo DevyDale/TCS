@@ -26,8 +26,8 @@
   .title { font-family: 'Alfa', serif; font-size: clamp(28px, 8vw, 33px); margin-top: 8px; line-height: 1.1; }
   .lede { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 10px; line-height: 1.5; max-width: 30ch; }
 
-  form { margin-top: 26px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-  #fields { display: flex; flex-direction: column; gap: 16px; }
+  form { margin-top: 24px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  #fields { display: flex; flex-direction: column; gap: 12px; }
 
   /* Staff-type segmented control */
   .seg { display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 5px; border-radius: 14px; border: 1px solid var(--hair); }
@@ -40,10 +40,10 @@
 
   .field label {
     display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px;
-    color: var(--ink); margin-bottom: 8px; letter-spacing: 0.3px;
+    color: var(--ink); margin-bottom: 6px; letter-spacing: 0.3px;
   }
   .input {
-    display: flex; align-items: center; height: 56px; border-radius: 15px;
+    display: flex; align-items: center; height: 52px; border-radius: 14px;
     background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair);
     overflow: hidden; transition: border-color 0.15s ease, background 0.15s ease;
   }
@@ -139,7 +139,9 @@
 
   var params = new URLSearchParams(location.search);
   var role = params.get('role') || (function () { try { return localStorage.getItem('tcs_role'); } catch (e) { return null; } })() || 'student';
-  if (['student', 'staff', 'visitor'].indexOf(role) < 0) role = 'student';
+  // Visitors have their own tabbed sign-up / sign-in screen.
+  if (role === 'visitor') { location.replace('visitor.html'); }
+  if (['student', 'staff'].indexOf(role) < 0) role = 'student';
 
   var staffType = 'teaching_staff';
 

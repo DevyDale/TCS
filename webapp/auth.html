@@ -98,7 +98,7 @@
     var btn = e.target.closest('.role'); if (!btn) return;
     var role = btn.getAttribute('data-role');
     try { localStorage.setItem('tcs_role', role); } catch (err) {}
-    window.location.href = 'login.html?role=' + encodeURIComponent(role);
+    window.location.href = (role === 'visitor') ? 'visitor.html' : ('login.html?role=' + encodeURIComponent(role));
   });
 </script>
 </body>
