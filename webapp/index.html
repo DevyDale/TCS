@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>TCS</title>
+<meta name="theme-color" content="#0D0D1A" />
+<style>
+  /* ── Bundled app fonts (same files the mobile app ships) ───────── */
+  @font-face { font-family: 'Alfa'; src: url('assets/fonts/alfa.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Arch'; src: url('assets/fonts/arch.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Momo'; src: url('assets/fonts/momo.ttf') format('truetype'); font-display: swap; }
+
+  :root {
+    --g1: #6DD5FA;   /* cyan   */
+    --g2: #8E54E9;   /* purple */
+    --g3: #F7971E;   /* orange */
+    --g4: #FF5858;   /* red    */
+    --bg1: #0D0D1A;
+    --bg2: #12103A;
+    --bg3: #1A0D2E;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg1);
+    color: #fff;
+    font-family: 'Momo', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Animated dark gradient backdrop ──────────────────────────── */
+  .backdrop {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+    background-size: 200% 200%;
+    animation: drift 6s ease-in-out infinite alternate;
+    z-index: 0;
+  }
+  @keyframes drift {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+  }
+
+  /* ── Soft glow blobs ──────────────────────────────────────────── */
+  .blob { position: fixed; border-radius: 50%; filter: blur(60px); z-index: 1; pointer-events: none; }
+  .blob.a { width: 45vmin; height: 45vmin; top: 8%;  left: -12vmin;
+            background: rgba(142, 84, 233, 0.18); }
+  .blob.b { width: 52vmin; height: 52vmin; bottom: 10%; right: -14vmin;
+            background: rgba(247, 151, 30, 0.12); }
+
+  /* ── Particle canvas ──────────────────────────────────────────── */
+  #particles { position: fixed; inset: 0; z-index: 2; }
+
+  /* ── Centre stack ─────────────────────────────────────────────── */
+  .stage {
+    position: relative; z-index: 3;
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+    text-align: center;
+  }
+
+  /* ── Logo ─────────────────────────────────────────────────────── */
+  .logo-wrap { position: relative; width: 128px; height: 128px;
+               display: grid; place-items: center; margin-bottom: 28px; }
+  .halo {
+    position: absolute; width: 205px; height: 205px; border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(142,84,233,0.30) 0%, rgba(109,213,250,0.10) 55%, transparent 100%);
+  }
+  .logo {
+    position: relative; width: 128px; height: 128px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    box-shadow: 0 0 32px 6px rgba(142,84,233,0.5);
+    display: grid; place-items: center;
+    transform: scale(0);
+    animation: pop 0.9s cubic-bezier(0.18, 0.89, 0.32, 1.28) 0.12s forwards;
+  }
+  .logo::before {
+    content: ''; position: absolute; inset: 6.4px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .logo svg { width: 60px; height: 60px; fill: #fff; position: relative; }
+  @keyframes pop { to { transform: scale(1); } }
+
+  /* ── Wordmark ─────────────────────────────────────────────────── */
+  .wordmark {
+    font-family: 'Alfa', serif;
+    font-size: clamp(34px, 12vw, 52px);
+    line-height: 1.05; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    opacity: 0; transform: translateY(16px);
+    animation: rise 0.7s ease-out 0.22s forwards;
+  }
+  .subtitle {
+    font-family: 'Arch', sans-serif;
+    font-size: clamp(13px, 3.6vw, 16px);
+    letter-spacing: 3px; color: rgba(255,255,255,0.54);
+    margin-top: 10px;
+    opacity: 0; animation: fade 0.7s ease-out 0.5s forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+  @keyframes fade { to { opacity: 1; } }
+
+  /* ── Progress bar ─────────────────────────────────────────────── */
+  .progress {
+    margin-top: 48px; width: min(60vw, 260px); height: 4px;
+    border-radius: 6px; background: rgba(255,255,255,0.12); overflow: hidden;
+  }
+  .progress > i {
+    display: block; height: 100%; width: 0; border-radius: 6px;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3));
+    animation: fill 0.8s ease-out 0.36s forwards;
+  }
+  @keyframes fill { to { width: 100%; } }
+
+  /* ── Footer credit ────────────────────────────────────────────── */
+  .credit { margin-top: 40px; opacity: 0; animation: fade 0.7s ease-out 0.7s forwards; }
+  .credit .lumora {
+    font-family: 'Arch', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 2.5px; color: #fff;
+  }
+  .credit .tag {
+    font-family: 'Momo', sans-serif; font-size: 11px;
+    letter-spacing: 1px; color: rgba(255,255,255,0.55); margin-top: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="blob a"></div>
+  <div class="blob b"></div>
+  <canvas id="particles"></canvas>
+
+  <main class="stage">
+    <div class="logo-wrap">
+      <div class="halo"></div>
+      <div class="logo" role="img" aria-label="TCS logo">
+        <!-- Material "school" icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+        </svg>
+      </div>
+    </div>
+
+    <h1 class="wordmark">TCS</h1>
+    <p class="subtitle">Learn · Play · Connect</p>
+
+    <div class="progress"><i></i></div>
+
+    <div class="credit">
+      <div class="lumora">Powered by LUMORA</div>
+      <div class="tag">Taylors College Social &amp; Arcade</div>
+    </div>
+  </main>
+
+<script>
+  // ── Floating particles — mirrors the mobile CustomPainter ─────────
+  (function () {
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    const COLORS = ['#6DD5FA', '#8E54E9', '#F7971E', '#FF5858'];
+    let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const P = [];
+
+    function resize() {
+      W = canvas.clientWidth = window.innerWidth;
+      H = canvas.clientHeight = window.innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    for (let i = 0; i < 22; i++) {
+      P.push({
+        x: Math.random(), y: Math.random(),
+        r: Math.random() * 4 + 2,
+        speed: Math.random() * 0.3 + 0.1,
+        color: COLORS[Math.floor(Math.random() * 4)],
+        alpha: Math.random() * 0.5 + 0.2,
+        offset: Math.random() * Math.PI * 2,
+      });
+    }
+
+    const TWO_PI = Math.PI * 2;
+    const start = performance.now();
+    function frame(now) {
+      const progress = (((now - start) / 4000) % 1);   // 4s loop, like the app
+      ctx.clearRect(0, 0, W, H);
+      for (const p of P) {
+        const t = (progress + p.offset / TWO_PI) % 1;
+        let dy = (p.y - t * p.speed) % 1; if (dy < 0) dy += 1;
+        const dx = p.x + Math.sin(t * TWO_PI + p.offset) * 0.04;
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(dx * W, dy * H, p.r, 0, TWO_PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  // ── Hand-off ──────────────────────────────────────────────────────
+  // The mobile splash routes onward after ~1.5s. Enable this once the
+  // next web page exists (e.g. a login / role-selection page):
+  //
+  // setTimeout(() => { window.location.href = 'login.html'; }, 2800);
+</script>
+</body>
+</html>
