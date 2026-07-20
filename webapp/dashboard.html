@@ -248,6 +248,51 @@
   .buddy-card .pillbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; }
   .buddy-card .pillbtn svg { width: 14px; height: 14px; fill: #fff; }
 
+  /* ── Messages tab (master-detail) ─────────────────────────────── */
+  .msg-split { display: flex; height: calc(100dvh - 96px); min-height: 460px; border: 1px solid var(--hair);
+    border-radius: 20px; overflow: hidden; background: rgba(255,255,255,0.03); }
+  .msg-list { width: 322px; flex: 0 0 auto; display: flex; flex-direction: column; border-right: 1px solid var(--hair); }
+  .msg-list-head { padding: 16px 14px 12px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--hair); }
+  .msg-title-row { display: flex; align-items: center; justify-content: space-between; }
+  .msg-title-row h1 { font-family: 'Alfa', serif; font-size: 22px; }
+  .msg-tabs { display: flex; gap: 6px; }
+  .msg-tabs .feed-tab { padding: 7px 14px; font-size: 12px; }
+  .msg-rows { flex: 1; overflow-y: auto; padding: 8px; }
+  .chat-row { display: flex; align-items: center; gap: 11px; padding: 10px; border-radius: 14px; cursor: pointer; transition: background 0.12s ease; }
+  .chat-row:hover { background: var(--glass); }
+  .chat-row.active { background: var(--glass-2); box-shadow: inset 3px 0 0 var(--g1); }
+  .chat-row .cr-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-row .cr-last { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .chat-row .cr-time { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint); flex: 0 0 auto; }
+
+  .msg-detail { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .conv-head { padding: 13px 16px; border-bottom: 1px solid var(--hair); display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+  .conv-head .av { width: 40px; height: 40px; font-size: 15px; }
+  .conv-back { display: none; padding: 8px 10px; }
+  .conv-body { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 7px; }
+  .bubble { max-width: 72%; padding: 9px 13px; border-radius: 16px; font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.45; word-break: break-word; }
+  .bubble.them { align-self: flex-start; background: var(--glass-2); border: 1px solid var(--hair); border-bottom-left-radius: 5px; }
+  .bubble.me { align-self: flex-end; background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; border-bottom-right-radius: 5px; }
+  .bubble .btime { font-size: 9px; opacity: 0.65; margin-top: 4px; text-align: right; }
+  .conv-input { padding: 12px 14px; border-top: 1px solid var(--hair); display: flex; gap: 10px; align-items: center; flex: 0 0 auto; }
+  .conv-input input { flex: 1; min-width: 0; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.05);
+    border: 1.5px solid var(--hair); padding: 0 15px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .conv-input input:focus { border-color: var(--g2); }
+  .conv-input .send { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; border: 0; cursor: pointer;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(142,84,233,0.4); }
+  .conv-input .send svg { width: 20px; height: 20px; fill: #fff; }
+  .conv-empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--faint); font-family: 'Momo', sans-serif; font-size: 13.5px; padding: 30px; }
+  .conv-empty svg { width: 54px; height: 54px; fill: var(--hair-2); margin-bottom: 12px; }
+
+  @media (max-width: 760px) {
+    .msg-split { height: calc(100dvh - 84px); }
+    .msg-list { width: 100%; }
+    .msg-detail { display: none; }
+    .msg-split.show-detail .msg-list { display: none; }
+    .msg-split.show-detail .msg-detail { display: flex; }
+    .conv-back { display: inline-flex; }
+  }
+
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -756,12 +801,121 @@
         .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create group'; });
     });
   }
+  // ── MESSAGES (master-detail) ─────────────────────────────────
+  var MSG = { tab: 'inbox', rooms: [], me: '', active: null, buddies: [], buddiesLoaded: false };
+  function roomName(m) { var o = m.other_user || {}; return (m.room_type === 'group') ? (m.name || 'Group') : (o.name || o.display_name || m.name || 'Chat'); }
+  function roomAvatar(m) { var o = m.other_user || {}; return m.avatar_url || o.avatar_url; }
+
   function renderMessages() {
-    renderListTab({
-      eyebrow: 'INBOX', title: 'Messages', noun: 'chats', searchPh: 'Search messages', path: '/chat/rooms/', grid: false, cardFn: chatCard,
-      action: '<button class="icon-btn addpost-btn" id="ltAction" title="New message"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>',
-      onAction: function () { window.snack('Starting new chats is coming to the web soon', 'info'); }
+    MSG.me = (cachedUser() || {}).user_id || '';
+    MSG.active = null; MSG.buddiesLoaded = false;
+    view.innerHTML =
+      '<div class="msg-split" id="msgSplit">' +
+        '<aside class="msg-list">' +
+          '<div class="msg-list-head">' +
+            '<div class="msg-title-row"><h1>Messages</h1>' +
+              '<button class="icon-btn addpost-btn" id="newChat" title="New chat" style="width:40px;height:40px"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button></div>' +
+            '<div class="search-box">' + SEARCH_SVG + '<input id="msgSearch" placeholder="Search your chats" autocomplete="off" /></div>' +
+            '<div class="feed-tabs msg-tabs" id="msgTabs">' +
+              '<button class="feed-tab active" data-mt="inbox">Inbox</button>' +
+              '<button class="feed-tab" data-mt="bubbles">Bubbles</button>' +
+              '<button class="feed-tab" data-mt="buddies">Buddies</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="msg-rows" id="msgRows"><div class="loading"><div class="spin"></div></div></div>' +
+        '</aside>' +
+        '<section class="msg-detail" id="msgDetail">' +
+          '<div class="conv-empty"><div><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><div>Select a conversation to start chatting</div></div></div>' +
+        '</section>' +
+      '</div>';
+    document.getElementById('newChat').addEventListener('click', function () { window.snack('Starting new chats is coming to the web soon', 'info'); });
+    document.getElementById('msgTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mt]'); if (!b) return;
+      MSG.tab = b.getAttribute('data-mt');
+      this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-mt') === MSG.tab); });
+      drawRows();
     });
+    document.getElementById('msgSearch').addEventListener('input', drawRows);
+    authFetch('/chat/rooms/').then(function (r) {
+      MSG.rooms = r.ok ? listOf(r.d) : [];
+      if (!r.ok) { document.getElementById('msgRows').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load chats.'); return; }
+      drawRows();
+    }).catch(function () { document.getElementById('msgRows').innerHTML = empty('Couldn’t load chats.'); });
+  }
+
+  function chatRow(m) {
+    var name = roomName(m); var last = m.last_message_text || m.last_message || ''; var unread = num(m.unread_count);
+    return '<div class="chat-row' + (MSG.active === m.id ? ' active' : '') + '" data-room="' + esc(m.id) + '">' + avatar(roomAvatar(m), name) +
+      '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:6px"><span class="cr-name">' + esc(name) + '</span><span class="cr-time">' + esc(timeAgo(m.last_message_at)) + '</span></div>' +
+      '<div class="cr-last">' + esc(last || 'No messages yet') + '</div></div>' +
+      (unread ? '<span class="chip" style="background:var(--g2);color:#fff">' + unread + '</span>' : '') + '</div>';
+  }
+  function buddyRow(b) {
+    return '<div class="chat-row" data-buddy="' + esc(b.user_id || '') + '">' + avatar(b.avatar_url, b.name) +
+      '<div style="flex:1;min-width:0"><div class="cr-name">' + esc(b.name || b.display_name || 'Student') + '</div><div class="cr-last">Tap to start a chat</div></div></div>';
+  }
+  function drawRows() {
+    var rows = document.getElementById('msgRows'); if (!rows) return;
+    var q = (document.getElementById('msgSearch').value || '').toLowerCase().trim();
+    if (MSG.tab === 'buddies') {
+      if (!MSG.buddiesLoaded) {
+        rows.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+        authFetch('/chat/users/connected/').then(function (r) { MSG.buddies = r.ok ? listOf(r.d) : []; MSG.buddiesLoaded = true; drawRows(); })
+          .catch(function () { MSG.buddies = []; MSG.buddiesLoaded = true; drawRows(); });
+        return;
+      }
+      var bl = q ? MSG.buddies.filter(function (b) { return (b.name || b.display_name || '').toLowerCase().indexOf(q) >= 0; }) : MSG.buddies;
+      rows.innerHTML = bl.length ? bl.map(buddyRow).join('') : empty('No buddies connected yet.');
+      rows.querySelectorAll('[data-buddy]').forEach(function (el) { el.addEventListener('click', function () { window.snack('Starting a chat is coming to the web soon', 'info'); }); });
+      return;
+    }
+    var list = MSG.rooms.filter(function (m) { return MSG.tab === 'bubbles' ? (m.room_type === 'group') : (m.room_type !== 'group'); });
+    if (q) list = list.filter(function (m) { return roomName(m).toLowerCase().indexOf(q) >= 0; });
+    if (!list.length) { rows.innerHTML = empty('No chats here yet.'); return; }
+    rows.innerHTML = list.map(chatRow).join('');
+    rows.querySelectorAll('[data-room]').forEach(function (el) { el.addEventListener('click', function () { openConversation(el.getAttribute('data-room')); }); });
+  }
+
+  function openConversation(roomId) {
+    var room = MSG.rooms.filter(function (m) { return m.id === roomId; })[0] || {};
+    MSG.active = roomId;
+    document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-room') === roomId); });
+    document.getElementById('msgSplit').classList.add('show-detail');
+    var name = roomName(room);
+    document.getElementById('msgDetail').innerHTML =
+      '<div class="conv-head"><button class="ghost conv-back" id="convBack"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>' +
+        avatar(roomAvatar(room), name) +
+        '<div><div style="font-family:Arch;font-weight:700;font-size:15px">' + esc(name) + '</div>' +
+        '<div class="faint" style="font-size:11px;font-family:Momo">' + (room.room_type === 'group' ? 'Group chat' : 'Direct message') + '</div></div></div>' +
+      '<div class="conv-body" id="convBody"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="conv-input"><input id="convText" placeholder="Message…" autocomplete="off" />' +
+        '<button class="send" id="convSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div>';
+    document.getElementById('convBack').addEventListener('click', function () { document.getElementById('msgSplit').classList.remove('show-detail'); MSG.active = null; document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.remove('active'); }); });
+    function send() {
+      var t = document.getElementById('convText'); var text = t.value.trim(); if (!text) return; t.value = '';
+      fetch(API + '/chat/rooms/' + roomId + '/messages/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ text: text }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t send.', 'error'); return; } loadMessages(roomId, true); })
+        .catch(function () { window.snack('Couldn’t send.', 'error'); });
+    }
+    document.getElementById('convSend').addEventListener('click', send);
+    document.getElementById('convText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    loadMessages(roomId);
+  }
+  function loadMessages(roomId, silent) {
+    var body = document.getElementById('convBody'); if (!body) return;
+    if (!silent) body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    authFetch('/chat/rooms/' + roomId + '/messages/').then(function (r) {
+      if (!r.ok) { body.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load messages.'); return; }
+      var msgs = Array.isArray(r.d) ? r.d : (r.d.messages || listOf(r.d));
+      if (!msgs.length) { body.innerHTML = '<div class="conv-empty">No messages yet — say hi! 👋</div>'; return; }
+      body.innerHTML = msgs.map(function (m) {
+        var mine = m.sender_id && MSG.me && String(m.sender_id) === String(MSG.me);
+        var txt = m.text ? esc(m.text) : (m.media_url ? '📎 Attachment' : '…');
+        return '<div class="bubble ' + (mine ? 'me' : 'them') + '">' + txt + '<div class="btime">' + esc(timeAgo(m.created_at)) + '</div></div>';
+      }).join('');
+      body.scrollTop = body.scrollHeight;
+    }).catch(function () { body.innerHTML = empty('Couldn’t load messages.'); });
   }
   function renderClubs() {
     renderListTab({ eyebrow: 'COMMUNITY', title: 'Clubs', noun: 'clubs', searchPh: 'Search clubs', path: '/clubs/?page=1', grid: true, cardFn: clubCard, wireFn: wireClubActions });
