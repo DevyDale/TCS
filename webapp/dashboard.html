@@ -112,15 +112,19 @@
   }
 
   /* ── HOME tab ─────────────────────────────────────────────────── */
-  .home-greet { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .home-greet { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
   .hg-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .hg-left dotlottie-wc { width: 46px; height: 46px; flex: 0 0 auto; }
   .hg-text { font-family: 'Alfa', serif; font-size: clamp(19px, 4.5vw, 23px); white-space: nowrap; }
-  .sugg-btn { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
-    border: 1px solid rgba(247,151,30,0.4); background: rgba(247,151,30,0.12); color: #F7B955; border-radius: 13px;
-    padding: 9px 14px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; transition: background 0.15s ease; }
+  .hg-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex: 0 0 auto; flex-wrap: wrap; }
+  .sugg-btn, .dale-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    border-radius: 13px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; transition: background 0.15s ease; }
+  .sugg-btn { border: 1px solid rgba(247,151,30,0.4); background: rgba(247,151,30,0.12); color: #F7B955; padding: 9px 14px; }
   .sugg-btn:hover { background: rgba(247,151,30,0.2); }
   .sugg-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .dale-btn { border: 1px solid rgba(142,84,233,0.45); background: rgba(142,84,233,0.16); color: #C6B3F5; padding: 5px 14px 5px 7px; }
+  .dale-btn:hover { background: rgba(142,84,233,0.26); }
+  .dale-btn dotlottie-wc { width: 30px; height: 30px; flex: 0 0 auto; }
 
   .home-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
   .icon-btn { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 14px; cursor: pointer; display: grid; place-items: center;
@@ -279,6 +283,7 @@
 
   // ── HOME (feed) ──────────────────────────────────────────────
   var WAVE = 'https://lottie.host/f5271a44-8c77-49ee-9619-d28b556b78d0/tiMySH0cSe.lottie';
+  var DALE = 'https://lottie.host/ac187fae-55ac-4ce4-93a9-fe037e3e2e57/jSdcU6a1Ig.lottie';
   function greeting() { var h = new Date().getHours(); return h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening'); }
   var FEED_TABS = [ { k: 'all', label: 'All' }, { k: 'following', label: 'Following' }, { k: 'events', label: 'Events' }, { k: 'clubs', label: 'Clubs' } ];
   var HOME = { tab: 'all', items: [], kind: 'posts' };
@@ -288,7 +293,10 @@
       '<div class="home-greet">' +
         '<div class="hg-left"><dotlottie-wc src="' + WAVE + '" autoplay loop></dotlottie-wc>' +
         '<span class="hg-text">' + greeting() + '</span></div>' +
-        '<button class="sugg-btn" id="suggBtn"><svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg> Suggestion Box</button>' +
+        '<div class="hg-actions">' +
+          '<button class="sugg-btn" id="suggBtn"><svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg> Suggestion Box</button>' +
+          '<button class="dale-btn" id="daleBtn"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc> Dale AI</button>' +
+        '</div>' +
       '</div>' +
       '<div class="home-actions">' +
         '<button class="icon-btn addpost-btn" id="addPostBtn" title="New post"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>' +
@@ -303,6 +311,7 @@
       '<div id="feedBody"></div>';
 
     document.getElementById('suggBtn').addEventListener('click', openSuggestionBox);
+    document.getElementById('daleBtn').addEventListener('click', function () { window.snack('Dale AI is coming to the web soon', 'info'); });
     document.getElementById('addPostBtn').addEventListener('click', function () { window.snack('Creating posts from the web is coming soon', 'info'); });
     document.getElementById('refreshBtn').addEventListener('click', function () { this.classList.add('spinning'); loadFeedTab(); });
     document.getElementById('feedSearch').addEventListener('input', function () { filterFeed(this.value); });
