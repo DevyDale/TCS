@@ -12,8 +12,8 @@
 
   :root {
     --g1: #6DD5FA; --g2: #8E54E9; --g3: #F7971E; --g4: #FF5858;
-    --bg: #F7F8FA; --card: #FFFFFF; --ink: #1A1A2E; --slate: #6B7280;
-    --faint: #9AA0AC; --border: #E6E8EE;
+    --bg: #F6F7FB; --card: #FFFFFF; --ink: #171626; --slate: #5B6270;
+    --faint: #9AA0AC; --border: #E7E9F0;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { min-height: 100%; }
@@ -22,49 +22,91 @@
     font-family: 'Momo', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
     display: flex; justify-content: center;
   }
-  .blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; filter: blur(4px); }
-  .blob.a { width: 300px; height: 300px; top: -120px; right: -110px;
-            background: radial-gradient(circle, rgba(142,84,233,.16), transparent 70%); }
-  .blob.b { width: 320px; height: 320px; bottom: -140px; left: -120px;
-            background: radial-gradient(circle, rgba(109,213,250,.16), transparent 70%); }
+  /* Ambient colour, kept faint so the content stays crisp */
+  .blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; }
+  .blob.a { width: 340px; height: 340px; top: -140px; right: -120px;
+            background: radial-gradient(circle, rgba(142,84,233,.14), transparent 70%); }
+  .blob.b { width: 340px; height: 340px; bottom: -150px; left: -130px;
+            background: radial-gradient(circle, rgba(109,213,250,.13), transparent 70%); }
 
   .wrap {
-    position: relative; z-index: 1; width: 100%; max-width: 460px;
+    position: relative; z-index: 1; width: 100%; max-width: 470px;
     min-height: 100dvh; display: flex; flex-direction: column;
-    padding: max(env(safe-area-inset-top), 40px) 24px max(env(safe-area-inset-bottom), 28px);
+    padding: max(env(safe-area-inset-top), 44px) 24px max(env(safe-area-inset-bottom), 26px);
   }
 
-  /* ── Header ─────────────────────────────────────────────────── */
+  /* ── Header: logo → TITLE → supporting text ─────────────────── */
+  .brand { display: flex; flex-direction: column; align-items: center; text-align: center; }
   .logo {
-    width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center;
+    width: 62px; height: 62px; border-radius: 20px; display: grid; place-items: center;
     background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
-    box-shadow: 0 12px 28px rgba(142,84,233,0.35);
+    box-shadow: 0 14px 30px rgba(142,84,233,0.32);
   }
-  .logo svg { width: 34px; height: 34px; fill: #fff; }
-  .h1 { font-family: 'Alfa', serif; font-size: 27px; line-height: 1.15; margin-top: 22px; text-wrap: balance; }
-  .lede { font-family: 'Momo', sans-serif; font-size: 14px; color: var(--slate); margin-top: 8px; line-height: 1.55; }
+  .logo svg { width: 33px; height: 33px; fill: #fff; }
+
+  .title {
+    font-family: 'Alfa', serif; font-size: clamp(28px, 8vw, 34px);
+    line-height: 1.1; letter-spacing: 0.3px; margin-top: 22px; text-wrap: balance;
+  }
+  .title b {
+    font-weight: inherit;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .subtitle {
+    font-family: 'Momo', sans-serif; font-size: 14px; line-height: 1.6;
+    color: var(--slate); margin-top: 12px; max-width: 32ch;
+  }
+
+  /* ── Section label ──────────────────────────────────────────── */
+  .section-label { display: flex; align-items: center; gap: 10px; margin: 38px 0 16px; }
+  .section-label .bar {
+    width: 4px; height: 20px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--g2), var(--g3));
+  }
+  .section-label span {
+    font-family: 'Alfa', serif; font-size: 16px; color: var(--ink); letter-spacing: 0.3px;
+  }
 
   /* ── Role cards ─────────────────────────────────────────────── */
-  .roles { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+  .roles { display: flex; flex-direction: column; gap: 12px; }
   .role {
-    display: flex; align-items: center; gap: 14px; width: 100%;
-    background: var(--card); border: 1px solid var(--border); border-radius: 18px;
-    padding: 16px; cursor: pointer; text-align: left;
-    transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative; display: flex; align-items: center; gap: 15px; width: 100%;
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 17px 16px; cursor: pointer; text-align: left; overflow: hidden;
+    transition: transform 0.14s ease, box-shadow 0.22s ease, border-color 0.2s ease;
   }
-  .role:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(26,26,46,0.08); border-color: transparent; }
-  .role .badge { width: 46px; height: 46px; border-radius: 14px; flex: 0 0 auto; display: grid; place-items: center; }
-  .role .badge svg { width: 24px; height: 24px; fill: #fff; }
+  .role::after {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--accent); opacity: 0; transition: opacity 0.2s ease;
+  }
+  .role:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(23,22,38,0.10); border-color: transparent; }
+  .role:hover::after { opacity: 1; }
+  .role .badge {
+    width: 50px; height: 50px; border-radius: 15px; flex: 0 0 auto; display: grid; place-items: center;
+    background: var(--grad); box-shadow: 0 8px 18px var(--accentSoft);
+  }
+  .role .badge svg { width: 26px; height: 26px; fill: #fff; }
   .role .txt { flex: 1; min-width: 0; }
-  .role .name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 15.5px; color: var(--ink); }
-  .role .desc { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--slate); margin-top: 3px; }
+  .role .name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+  .role .desc { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--slate); margin-top: 4px; line-height: 1.4; }
+  .role .chip {
+    font-family: 'Momo', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--accent); background: var(--accentSoft); padding: 3px 8px; border-radius: 999px;
+    margin-top: 8px; display: inline-block; text-transform: uppercase;
+  }
   .role .chev { color: var(--faint); flex: 0 0 auto; transition: transform 0.2s ease, color 0.2s ease; }
-  .role:hover .chev { transform: translateX(3px); color: var(--g2); }
+  .role:hover .chev { transform: translateX(3px); color: var(--accent); }
   .role .chev svg { width: 20px; height: 20px; fill: currentColor; }
 
-  .foot { margin-top: auto; padding-top: 28px; text-align: center; }
-  .foot .line { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); letter-spacing: 0.5px; }
-  .foot .lumora { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px; color: var(--slate); margin-top: 6px; }
+  /* ── Footer ─────────────────────────────────────────────────── */
+  .foot { margin-top: auto; padding-top: 30px; text-align: center; }
+  .foot .secure {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); letter-spacing: 0.3px;
+  }
+  .foot .secure svg { width: 13px; height: 13px; fill: var(--faint); }
+  .foot .lumora { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px; color: var(--slate); margin-top: 8px; }
 
   :focus-visible { outline: 3px solid rgba(142,84,233,0.5); outline-offset: 2px; border-radius: 16px; }
 </style>
@@ -74,42 +116,60 @@
   <div class="blob b"></div>
 
   <main class="wrap">
-    <div class="logo" role="img" aria-label="TCS">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
-    </div>
-    <h1 class="h1">Welcome to TCS</h1>
-    <p class="lede">Choose how you’re joining, and we’ll get you signed in.</p>
+    <!-- Header: title first, supporting text after -->
+    <header class="brand">
+      <div class="logo" role="img" aria-label="TCS">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+      </div>
+      <h1 class="title">Welcome to <b>TCS</b></h1>
+      <p class="subtitle">One platform for campus life — learn, play, connect. Choose how you’re joining to sign in.</p>
+    </header>
+
+    <!-- Role picker -->
+    <div class="section-label"><span class="bar"></span><span>Who are you?</span></div>
 
     <div class="roles" id="roles">
-      <button class="role" type="button" data-role="student">
-        <span class="badge" style="background:linear-gradient(135deg,#8E54E9,#6DD5FA)">
-          <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+      <button class="role" type="button" data-role="student"
+        style="--grad:linear-gradient(135deg,#4FC3F7,#0288D1);--accent:#0288D1;--accentSoft:rgba(2,136,209,.12)">
+        <span class="badge"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg></span>
+        <span class="txt">
+          <span class="name">Student</span>
+          <span class="desc">Log in with your Student ID &amp; date of birth</span>
+          <span class="chip">ID Login</span>
         </span>
-        <span class="txt"><span class="name">Student</span><span class="desc">Sign in with your student ID</span></span>
         <span class="chev"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></span>
       </button>
 
-      <button class="role" type="button" data-role="staff">
-        <span class="badge" style="background:linear-gradient(135deg,#F7971E,#FF5858)">
-          <svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2zm2 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>
+      <button class="role" type="button" data-role="staff"
+        style="--grad:linear-gradient(135deg,#81C784,#388E3C);--accent:#388E3C;--accentSoft:rgba(56,142,60,.12)">
+        <span class="badge"><svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2zm2 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg></span>
+        <span class="txt">
+          <span class="name">Staff</span>
+          <span class="desc">Teaching &amp; non-teaching staff ID login</span>
+          <span class="chip">Staff</span>
         </span>
-        <span class="txt"><span class="name">Staff</span><span class="desc">Teaching &amp; non-teaching staff</span></span>
         <span class="chev"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></span>
       </button>
 
-      <button class="role" type="button" data-role="visitor">
-        <span class="badge" style="background:linear-gradient(135deg,#11998E,#38EF7D)">
-          <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <button class="role" type="button" data-role="visitor"
+        style="--grad:linear-gradient(135deg,#F7971E,#FF5858);--accent:#E4572E;--accentSoft:rgba(228,87,46,.12)">
+        <span class="badge"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+        <span class="txt">
+          <span class="name">Visitor &amp; Parents</span>
+          <span class="desc">Guests, parents and the wider community</span>
+          <span class="chip">Guest</span>
         </span>
-        <span class="txt"><span class="name">Visitor &amp; Parents</span><span class="desc">Guests, parents and community</span></span>
         <span class="chev"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></span>
       </button>
     </div>
 
-    <div class="foot">
-      <div class="line">Taylors College Social &amp; Arcade</div>
+    <footer class="foot">
+      <div class="secure">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+        Secured · Role-verified
+      </div>
       <div class="lumora">POWERED BY LUMORA</div>
-    </div>
+    </footer>
   </main>
 
 <script>
@@ -117,7 +177,6 @@
     var btn = e.target.closest('.role'); if (!btn) return;
     var role = btn.getAttribute('data-role');
     try { localStorage.setItem('tcs_role', role); } catch (err) {}
-    // Next step: the per-role sign-in form.
     window.location.href = 'login.html?role=' + encodeURIComponent(role);
   });
 </script>
