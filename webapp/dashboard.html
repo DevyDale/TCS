@@ -215,12 +215,38 @@
   .sec-head .eyebrow { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px; color: #B79BF3; display: block; margin-bottom: 2px; }
   .h-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: none; }
   .h-scroll::-webkit-scrollbar { display: none; }
-  .group-card { display: flex; flex-direction: column; gap: 8px; margin: 0; }
-  .h-scroll .group-card { flex: 0 0 auto; width: 200px; }
-  .gc-emoji { font-size: 30px; line-height: 1; }
-  .gc-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; }
-  .gc-meta { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint); }
   .online-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #38EF7D; box-shadow: 0 0 6px #38EF7D; margin-right: 5px; }
+
+  /* Group tile */
+  .group-card { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; border-radius: 18px; }
+  .h-scroll .group-card { flex: 0 0 auto; width: 216px; }
+  .grid2 .group-card { width: auto; }
+  .gc-banner { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; }
+  .gc-badge { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; font-size: 26px;
+    background: rgba(0,0,0,0.24); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
+  .gc-live { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10px; color: #fff; background: rgba(0,0,0,0.3);
+    padding: 4px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #38EF7D; box-shadow: 0 0 6px #38EF7D; }
+  .gc-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .gc-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .gc-sub { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; }
+  .gc-members { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); display: inline-flex; align-items: center; gap: 5px; }
+  .gc-members svg { width: 14px; height: 14px; fill: var(--faint); }
+  .gc-foot .pillbtn { padding: 7px 14px; font-size: 12px; }
+
+  /* Study buddy tile */
+  .buddy-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 14px 16px; margin: 0; }
+  .buddy-av-wrap { position: relative; }
+  .buddy-av-wrap .av { width: 62px; height: 62px; font-size: 21px; border: 2px solid rgba(56,239,125,0.65); }
+  .buddy-online { position: absolute; right: 1px; bottom: 1px; width: 15px; height: 15px; border-radius: 50%;
+    background: #38EF7D; border: 2.5px solid #14121f; box-shadow: 0 0 7px #38EF7D; }
+  .buddy-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; margin-top: 11px; }
+  .buddy-subs { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 4px; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .buddy-card .pillbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; }
+  .buddy-card .pillbtn svg { width: 14px; height: 14px; fill: #fff; }
 
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
@@ -608,24 +634,34 @@
   }
   function renderSHBody() { if (SH.tab === 'groups') renderGroups(); else renderBuddies(); }
 
-  function groupCard(g) {
+  var PEOPLE_SVG = '<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
+  var CHAT_SVG = '<svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>';
+  function groupCard(g, i) {
     var emoji = g.display_emoji || g.theme_icon || '📚';
     var members = num(g.members_count);
     var subject = g.display_subject || g.subject || g.category || '';
     var joined = g.is_member;
+    var live = num(g.active_now);
     return '<div class="group-card card glass">' +
-      '<div class="gc-emoji">' + esc(emoji) + '</div>' +
-      '<div class="gc-name">' + esc(g.name || 'Group') + '</div>' +
-      '<div class="gc-meta">' + (subject ? esc(subject) + ' · ' : '') + members + ' members</div>' +
-      '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:2px" data-group="' + esc(g.id) + '">' + (joined ? 'Open' : 'Join') + '</button></div>';
+      '<div class="gc-banner" style="background:' + GRADS4[(i || 0) % 4] + '">' +
+        '<span class="gc-badge">' + esc(emoji) + '</span>' +
+        (live ? '<span class="gc-live"><span class="live-dot"></span>' + live + '</span>' : '') +
+      '</div>' +
+      '<div class="gc-body">' +
+        '<div class="gc-name">' + esc(g.name || 'Group') + '</div>' +
+        (subject ? '<div class="gc-sub">' + esc(subject) + '</div>' : '') +
+        '<div class="gc-foot"><span class="gc-members">' + PEOPLE_SVG + members + '</span>' +
+          '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" data-group="' + esc(g.id) + '">' + (joined ? 'Open' : 'Join') + '</button></div>' +
+      '</div></div>';
   }
   function buddyCard(b) {
-    var subs = Array.isArray(b.subjects) ? b.subjects.join(', ') : (b.subjects || b.display_subject || '');
-    return '<div class="card glass" style="margin:0"><div class="row" style="align-items:center">' + avatar(b.avatar_url, b.name) +
-      '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14px">' + esc(b.name || 'Student') + '</b>' +
-      '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">' + (subs ? esc(subs) : 'Study buddy') + '</div>' +
-      '<div style="font-family:Momo;font-size:11px;color:#7DE6B0;margin-top:5px"><span class="online-dot"></span>Available now</div></div>' +
-      '<button class="pillbtn" style="align-self:center" data-buddy="' + esc(b.user_id || '') + '">Message</button></div></div>';
+    var subs = Array.isArray(b.subjects) ? b.subjects : (b.subjects ? [b.subjects] : []);
+    var subsStr = subs.slice(0, 3).join(' · ') || b.display_subject || 'Open to any subject';
+    return '<div class="buddy-card card glass">' +
+      '<div class="buddy-av-wrap">' + avatar(b.avatar_url, b.name) + '<span class="buddy-online"></span></div>' +
+      '<div class="buddy-name">' + esc(b.name || 'Student') + '</div>' +
+      '<div class="buddy-subs">' + esc(subsStr) + '</div>' +
+      '<button class="pillbtn" data-buddy="' + esc(b.user_id || '') + '">' + CHAT_SVG + ' Message</button></div>';
   }
 
   function renderGroups() {
@@ -656,7 +692,7 @@
       SH.sugg = r.ok ? listOf(r.d) : [];
       var el = document.getElementById('suggGroups');
       if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
-      el.innerHTML = SH.sugg.length ? '<div class="grid2">' + SH.sugg.map(groupCard).join('') + '</div>' : empty('No suggestions right now.');
+      el.innerHTML = SH.sugg.length ? '<div class="h-scroll">' + SH.sugg.map(groupCard).join('') + '</div>' : empty('No suggestions right now.');
       wireGroupBtns(el);
     }).catch(function () { document.getElementById('suggGroups').innerHTML = empty('Couldn’t load suggestions.'); });
 
@@ -666,7 +702,7 @@
       var fs = q ? SH.sugg.filter(function (g) { return (g.name || '').toLowerCase().indexOf(q) >= 0; }) : SH.sugg;
       var me = document.getElementById('myGroups'), su = document.getElementById('suggGroups');
       me.innerHTML = fm.length ? '<div class="h-scroll">' + fm.map(groupCard).join('') + '</div>' : empty('No matching groups.');
-      su.innerHTML = fs.length ? '<div class="grid2">' + fs.map(groupCard).join('') + '</div>' : empty('No matching groups.');
+      su.innerHTML = fs.length ? '<div class="h-scroll">' + fs.map(groupCard).join('') + '</div>' : empty('No matching groups.');
       wireGroupBtns(me); wireGroupBtns(su);
     });
   }
