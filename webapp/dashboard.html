@@ -432,75 +432,79 @@
     });
   }
 
-  // ── STUDYHUB (quizzes) ───────────────────────────────────────
+  // ── Shared list-tab builder (StudyHub / Messages / Clubs) ────
+  // Same header language as Home: eyebrow + title + live count, then a
+  // search field + refresh button (and an optional leading action button).
+  var SEARCH_SVG = '<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>';
+  var REFRESH_SVG = '<svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6a5.9 5.9 0 0 1 4.2 1.8L13 11h7V4z"/></svg>';
+  function renderListTab(o) {
+    view.innerHTML =
+      '<div class="feed-label"><div><div class="eyebrow">' + o.eyebrow + '</div><div class="feed-title">' + esc(o.title) + '</div></div>' +
+        '<span class="post-count" id="ltCount"></span></div>' +
+      '<div class="home-actions">' + (o.action || '') +
+        '<div class="search-box">' + SEARCH_SVG + '<input id="ltSearch" placeholder="' + esc(o.searchPh || 'Search') + '" autocomplete="off" /></div>' +
+        '<button class="icon-btn refresh-btn" id="ltRefresh" title="Refresh">' + REFRESH_SVG + '</button>' +
+      '</div><div id="ltBody"></div>';
+    var state = { items: [] };
+    function setCount(n) { var el = document.getElementById('ltCount'); if (el) el.textContent = n ? (n + ' ' + o.noun) : ''; }
+    function draw(items) {
+      var body = document.getElementById('ltBody'); if (!body) return;
+      setCount(items.length);
+      if (!items.length) { body.innerHTML = empty('Nothing here yet.'); return; }
+      body.innerHTML = o.grid ? '<div class="grid2">' + items.map(o.cardFn).join('') + '</div>' : items.map(o.cardFn).join('');
+      if (o.wireFn) o.wireFn(body);
+    }
+    function load() {
+      var body = document.getElementById('ltBody'); body.innerHTML = '<div class="loading"><div class="spin"></div>Loading…</div>';
+      authFetch(o.path).then(function (r) {
+        var rb = document.getElementById('ltRefresh'); if (rb) rb.classList.remove('spinning');
+        if (!r.ok) { state.items = []; setCount(0); body.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+        state.items = listOf(r.d); draw(state.items);
+      }).catch(function () { var rb = document.getElementById('ltRefresh'); if (rb) rb.classList.remove('spinning'); body.innerHTML = empty('Couldn’t load.'); window.snack('Couldn’t load', 'error'); });
+    }
+    document.getElementById('ltRefresh').addEventListener('click', function () { this.classList.add('spinning'); load(); });
+    document.getElementById('ltSearch').addEventListener('input', function () {
+      var q = this.value.toLowerCase().trim();
+      draw(q ? state.items.filter(function (it) { return JSON.stringify(it).toLowerCase().indexOf(q) >= 0; }) : state.items);
+    });
+    if (o.action && o.onAction) { var ab = document.getElementById('ltAction'); if (ab) ab.addEventListener('click', o.onAction); }
+    load();
+  }
+
+  function quizCard(q) {
+    var subject = q.subject || q.category || 'General';
+    var count = q.question_count || (q.questions && q.questions.length) || q.total_questions || 0;
+    var diff = q.difficulty || q.level || '';
+    return '<div class="card glass" style="margin:0"><span class="chip" style="background:rgba(129,199,132,.16);color:#8FDC9B">' + esc(subject) + '</span>' +
+      '<div style="font-family:Arch;font-weight:700;font-size:15px;margin-top:10px">' + esc(q.title || 'Untitled quiz') + '</div>' +
+      '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">' + count + ' questions' + (diff ? ' · ' + esc(diff) : '') + '</div>' +
+      '<button class="pillbtn" style="margin-top:12px" data-quiz="' + esc(q.id) + '">Attempt</button></div>';
+  }
+  function wireQuiz(root) { root.querySelectorAll('[data-quiz]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Quiz-taking is coming to the web soon', 'info'); }); }); }
+  function chatCard(m) {
+    var other = m.other_user || {};
+    var name = m.room_type === 'group' ? (m.name || 'Group') : (other.name || other.display_name || m.name || 'Chat');
+    var last = m.last_message_text || m.last_message || '';
+    var unread = num(m.unread_count);
+    return '<div class="card glass" style="margin-bottom:8px"><div class="row" style="align-items:center">' + avatar(m.avatar_url || other.avatar_url, name) +
+      '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
+      '<span class="faint" style="font-size:11px;font-family:Momo">' + esc(timeAgo(m.last_message_at)) + '</span></div>' +
+      '<div class="muted" style="font-family:Momo;font-size:12.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(last || 'No messages yet') + '</div></div>' +
+      (unread ? '<span class="chip" style="background:var(--g2);color:#fff;align-self:center">' + unread + '</span>' : '') + '</div></div>';
+  }
+
   function renderStudyhub() {
-    loading();
-    authFetch('/quiz/?page=1').then(function (r) {
-      if (!r.ok) { view.innerHTML = head('Study Hub', '') + empty((r.d && r.d.detail) || 'Couldn’t load quizzes.'); return; }
-      var qs = listOf(r.d);
-      var html = head('Study Hub', 'Quizzes and study materials.');
-      if (!qs.length) { view.innerHTML = html + empty('No quizzes published yet.'); return; }
-      html += '<div class="grid2">' + qs.map(function (q) {
-        var subject = q.subject || q.category || 'General';
-        var count = q.question_count || (q.questions && q.questions.length) || q.total_questions || 0;
-        var diff = q.difficulty || q.level || '';
-        return '<div class="card glass" style="margin:0"><span class="chip" style="background:rgba(129,199,132,.16);color:#8FDC9B">' + esc(subject) + '</span>' +
-          '<div style="font-family:Arch;font-weight:700;font-size:15px;margin-top:10px">' + esc(q.title || 'Untitled quiz') + '</div>' +
-          '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">' + count + ' questions' + (diff ? ' · ' + esc(diff) : '') + '</div>' +
-          '<button class="pillbtn" style="margin-top:12px" data-quiz="' + esc(q.id) + '">Attempt</button></div>';
-      }).join('') + '</div>';
-      view.innerHTML = html;
-      view.querySelectorAll('[data-quiz]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Quiz-taking is coming to the web soon', 'info'); }); });
-    }).catch(function () { view.innerHTML = head('Study Hub', '') + empty('Couldn’t load quizzes.'); window.snack('Couldn’t load quizzes', 'error'); });
+    renderListTab({ eyebrow: 'LEARN', title: 'Study Hub', noun: 'quizzes', searchPh: 'Search quizzes', path: '/quiz/?page=1', grid: true, cardFn: quizCard, wireFn: wireQuiz });
   }
-
-  // ── MESSAGES (chat rooms) ────────────────────────────────────
   function renderMessages() {
-    loading();
-    authFetch('/chat/rooms/').then(function (r) {
-      if (!r.ok) { view.innerHTML = head('Messages', '') + empty((r.d && r.d.detail) || 'Couldn’t load messages.'); return; }
-      var rooms = listOf(r.d);
-      var html = head('Messages', 'Your conversations.');
-      if (!rooms.length) { view.innerHTML = html + empty('No conversations yet.'); return; }
-      html += rooms.map(function (m) {
-        var other = m.other_user || {};
-        var name = m.room_type === 'group' ? (m.name || 'Group') : (other.name || other.display_name || m.name || 'Chat');
-        var last = m.last_message_text || m.last_message || '';
-        var unread = num(m.unread_count);
-        return '<div class="card glass" style="margin-bottom:8px"><div class="row" style="align-items:center">' +
-          avatar(m.avatar_url || other.avatar_url, name) +
-          '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px">' +
-          '<b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
-          '<span class="faint" style="font-size:11px;font-family:Momo">' + esc(timeAgo(m.last_message_at)) + '</span></div>' +
-          '<div class="muted" style="font-family:Momo;font-size:12.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(last || 'No messages yet') + '</div></div>' +
-          (unread ? '<span class="chip" style="background:var(--g2);color:#fff;align-self:center">' + unread + '</span>' : '') +
-          '</div></div>';
-      }).join('');
-      view.innerHTML = html;
-    }).catch(function () { view.innerHTML = head('Messages', '') + empty('Couldn’t load messages.'); window.snack('Couldn’t load messages', 'error'); });
+    renderListTab({
+      eyebrow: 'INBOX', title: 'Messages', noun: 'chats', searchPh: 'Search messages', path: '/chat/rooms/', grid: false, cardFn: chatCard,
+      action: '<button class="icon-btn addpost-btn" id="ltAction" title="New message"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>',
+      onAction: function () { window.snack('Starting new chats is coming to the web soon', 'info'); }
+    });
   }
-
-  // ── CLUBS ────────────────────────────────────────────────────
   function renderClubs() {
-    loading();
-    authFetch('/clubs/?page=1').then(function (r) {
-      if (!r.ok) { view.innerHTML = head('Clubs', '') + empty((r.d && r.d.detail) || 'Couldn’t load clubs.'); return; }
-      var clubs = listOf(r.d);
-      var html = head('Clubs', 'Find your community.');
-      if (!clubs.length) { view.innerHTML = html + empty('No clubs yet.'); return; }
-      html += '<div class="grid2">' + clubs.map(function (c) {
-        var members = num(c.member_count || c.members_count || (c.members && c.members.length));
-        var cat = c.category || c.type || 'Club';
-        var joined = c.is_member || c.joined;
-        return '<div class="card glass" style="margin:0">' +
-          '<div class="row" style="align-items:center">' + avatar(c.avatar_url || c.cover_url || c.logo_url, c.name) +
-          '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14.5px">' + esc(c.name || 'Club') + '</b>' +
-          '<div class="faint" style="font-family:Momo;font-size:11px;margin-top:3px">' + esc(cat) + ' · ' + members + ' members</div></div></div>' +
-          '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:12px;width:100%" data-club="' + esc(c.id) + '">' + (joined ? 'Joined' : 'Join') + '</button></div>';
-      }).join('') + '</div>';
-      view.innerHTML = html;
-      view.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); });
-    }).catch(function () { view.innerHTML = head('Clubs', '') + empty('Couldn’t load clubs.'); window.snack('Couldn’t load clubs', 'error'); });
+    renderListTab({ eyebrow: 'COMMUNITY', title: 'Clubs', noun: 'clubs', searchPh: 'Search clubs', path: '/clubs/?page=1', grid: true, cardFn: clubCard, wireFn: wireClubActions });
   }
 
   // ── PROFILE ──────────────────────────────────────────────────
@@ -512,7 +516,8 @@
       var name = u.name || u.preferred_name || u.display_name || 'You';
       var role = (u.role || '').replace(/_/g, ' ');
       var interests = Array.isArray(u.interests) ? u.interests : [];
-      var html = head('Profile', 'Your account at a glance.');
+      var html = '<div class="feed-label"><div><div class="eyebrow">YOU</div><div class="feed-title">Profile</div></div>' +
+        '<button class="icon-btn refresh-btn" id="pfRefresh" title="Refresh" style="width:44px;height:44px">' + REFRESH_SVG + '</button></div>';
       html += '<div class="card glass prof-hero">' + avatar(u.avatar_url, name, 'big round') +
         '<div><div style="font-family:Alfa;font-size:22px">' + esc(name) + '</div>' +
         '<div class="faint" style="font-family:Momo;font-size:12.5px;margin-top:4px">@' + esc(u.user_id || u.email || 'me') + '</div>' +
@@ -526,6 +531,7 @@
       if (interests.length) html += '<div class="card glass"><b style="font-family:Arch;font-size:13px">Interests</b><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
         interests.map(function (i) { return '<span class="chip" style="background:var(--glass-2);color:var(--sub);border:1px solid var(--hair)">' + esc(i) + '</span>'; }).join('') + '</div></div>';
       view.innerHTML = html;
+      var rf = document.getElementById('pfRefresh'); if (rf) rf.addEventListener('click', function () { this.classList.add('spinning'); renderProfile(); });
     }).catch(function () { view.innerHTML = head('Profile', '') + empty('Couldn’t load your profile.'); window.snack('Couldn’t load profile', 'error'); });
   }
 
