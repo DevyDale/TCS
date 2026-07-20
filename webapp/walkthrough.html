@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Welcome to TCS</title>
+<meta name="theme-color" content="#F7F8FA" />
+<style>
+  @font-face { font-family: 'Alfa'; src: url('assets/fonts/alfa.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Arch'; src: url('assets/fonts/arch.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Momo'; src: url('assets/fonts/momo.ttf') format('truetype'); font-display: swap; }
+
+  :root {
+    --g1: #6DD5FA; --g2: #8E54E9; --g3: #F7971E; --g4: #FF5858;
+    --pink: #EC4899; --grn1: #11998E; --grn2: #38EF7D;
+    --bg: #F7F8FA; --ink: #1A1A2E; --slate: #6B7280; --dot: #D6D9E0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Momo', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+
+  /* Decorative radial blobs, bleeding off the edges */
+  .blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; }
+  .blob.a { width: 280px; height: 280px; top: -100px; left: -100px;
+            background: radial-gradient(circle, rgba(142,84,233,.20), transparent 70%); }
+  .blob.b { width: 340px; height: 340px; bottom: -140px; right: -140px;
+            background: radial-gradient(circle, rgba(109,213,250,.20), transparent 70%); }
+  .blob.c { width: 160px; height: 160px; top: 42%; right: -60px;
+            background: radial-gradient(circle, rgba(247,151,30,.18), transparent 70%); }
+
+  .screen {
+    position: relative; z-index: 1; height: 100%;
+    display: flex; flex-direction: column;
+    padding: max(env(safe-area-inset-top), 14px) 0 max(env(safe-area-inset-bottom), 20px);
+    max-width: 560px; margin: 0 auto;
+  }
+
+  /* ── Top bar ───────────────────────────────────────────────── */
+  .topbar { display: flex; justify-content: flex-end; padding: 0 20px; height: 44px; align-items: center; }
+  .skip {
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px;
+    letter-spacing: 0.5px; color: var(--slate);
+    background: none; border: 0; cursor: pointer; padding: 10px 12px;
+    transition: opacity 0.2s, color 0.2s; border-radius: 10px;
+  }
+  .skip:hover { color: var(--ink); }
+  .skip.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── Slides ────────────────────────────────────────────────── */
+  .viewport { flex: 1; overflow: hidden; }
+  .track { display: flex; height: 100%; touch-action: pan-y;
+           transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); }
+  .slide {
+    min-width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px 32px; text-align: center; gap: 0;
+  }
+
+  .art { position: relative; width: 240px; height: 240px; display: grid; place-items: center; }
+  .ring {
+    position: absolute; width: 220px; height: 220px; border-radius: 50%;
+    animation: spin 9s linear infinite;
+    -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%);
+            mask: radial-gradient(circle, transparent 58%, #000 59%);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .disc { position: absolute; width: 184px; height: 184px; border-radius: 50%; }
+  .emoji { position: relative; font-size: 90px; line-height: 1; animation: float 2.8s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(-9px); } 50% { transform: translateY(9px); } }
+
+  .title {
+    font-family: 'Alfa', serif; font-size: clamp(26px, 7vw, 30px);
+    color: var(--ink); line-height: 1.15; margin-top: 48px; text-wrap: balance;
+  }
+  .body {
+    font-family: 'Momo', sans-serif; font-size: 14px; line-height: 1.6;
+    color: var(--slate); margin-top: 16px; max-width: 32ch;
+  }
+
+  /* ── Dots ──────────────────────────────────────────────────── */
+  .dots { display: flex; justify-content: center; gap: 8px; margin: 4px 0 24px; }
+  .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--dot);
+         transition: width 0.3s cubic-bezier(0.22,0.61,0.36,1), background 0.3s; }
+  .dot.active { width: 32px; background: linear-gradient(90deg, var(--g2), var(--g1)); }
+
+  /* ── CTA ───────────────────────────────────────────────────── */
+  .cta-wrap { padding: 0 32px; }
+  .cta {
+    width: 100%; height: 58px; border: 0; cursor: pointer; border-radius: 18px;
+    color: #fff; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 16px;
+    letter-spacing: 0.6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    background: linear-gradient(90deg, var(--g2), var(--g1));
+    box-shadow: 0 8px 20px rgba(142,84,233,0.4);
+    transition: transform 0.12s ease, box-shadow 0.2s ease;
+  }
+  .cta:hover { box-shadow: 0 10px 26px rgba(142,84,233,0.5); }
+  .cta:active { transform: translateY(1px) scale(0.995); }
+  .cta svg { width: 20px; height: 20px; fill: #fff; }
+
+  :focus-visible { outline: 3px solid rgba(142,84,233,0.5); outline-offset: 3px; border-radius: 12px; }
+  @media (prefers-reduced-motion: reduce) {
+    .ring, .emoji { animation: none; }
+    .track { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="blob a"></div>
+  <div class="blob b"></div>
+  <div class="blob c"></div>
+
+  <div class="screen">
+    <div class="topbar">
+      <button class="skip" id="skip" type="button">Skip</button>
+    </div>
+
+    <div class="viewport">
+      <div class="track" id="track"></div>
+    </div>
+
+    <div class="dots" id="dots"></div>
+
+    <div class="cta-wrap">
+      <button class="cta" id="cta" type="button">
+        <span id="ctaLabel">Next</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+<script>
+  var AUTH_URL = 'auth.html';
+  var DONE_KEY = 'tcs_walkthrough_done';
+
+  var SLIDES = [
+    { emoji: '🎓', title: 'Welcome to TCS',
+      body: 'Your campus life, all in one place. Connect, share, and discover what’s happening at Taylors.',
+      grad: ['#8E54E9', '#6DD5FA'] },
+    { emoji: '📸', title: 'Share & Connect',
+      body: 'Post moments, browse your feed, message friends, and build your campus story.',
+      grad: ['#F7971E', '#FF5858'] },
+    { emoji: '🎉', title: 'Clubs & Events',
+      body: 'Find your tribe in clubs, never miss an event, and play arcade games with friends.',
+      grad: ['#11998E', '#38EF7D'] },
+    { emoji: '🚀', title: 'Ready to Begin?',
+      body: 'Choose your role and let’s get you set up in seconds.',
+      grad: ['#8E54E9', '#EC4899'] },
+  ];
+
+  function hexA(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  var track = document.getElementById('track');
+  var dotsEl = document.getElementById('dots');
+  var skipEl = document.getElementById('skip');
+  var ctaEl = document.getElementById('cta');
+  var ctaLabel = document.getElementById('ctaLabel');
+  var index = 0;
+
+  SLIDES.forEach(function (s, i) {
+    var a = s.grad[0], b = s.grad[1];
+    var slide = document.createElement('section');
+    slide.className = 'slide';
+    slide.innerHTML =
+      '<div class="art">' +
+        '<div class="ring" style="background:conic-gradient(from 0deg,' + hexA(a, 0.15) + ',' + hexA(b, 0.5) + ',' + hexA(a, 0.15) + ')"></div>' +
+        '<div class="disc" style="background:linear-gradient(135deg,' + a + ',' + b + ');box-shadow:0 16px 36px ' + hexA(a, 0.4) + '"></div>' +
+        '<div class="emoji">' + s.emoji + '</div>' +
+      '</div>' +
+      '<h2 class="title">' + s.title + '</h2>' +
+      '<p class="body">' + s.body + '</p>';
+    track.appendChild(slide);
+
+    var dot = document.createElement('span');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(dot);
+  });
+
+  var dots = dotsEl.querySelectorAll('.dot');
+
+  function render() {
+    track.style.transform = 'translateX(' + (-index * 100) + '%)';
+    dots.forEach(function (d, i) { d.classList.toggle('active', i === index); });
+    var last = index === SLIDES.length - 1;
+    ctaLabel.textContent = last ? 'Get Started' : 'Next';
+    skipEl.classList.toggle('hidden', last);
+  }
+
+  function goTo(i) { index = Math.max(0, Math.min(SLIDES.length - 1, i)); render(); }
+
+  function finish() {
+    try { localStorage.setItem(DONE_KEY, '1'); } catch (e) {}
+    window.location.href = AUTH_URL;
+  }
+
+  ctaEl.addEventListener('click', function () {
+    if (index === SLIDES.length - 1) finish(); else goTo(index + 1);
+  });
+  skipEl.addEventListener('click', finish);
+
+  // Keyboard: arrows to move, Esc to skip.
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') goTo(index + 1);
+    else if (e.key === 'ArrowLeft') goTo(index - 1);
+    else if (e.key === 'Escape') finish();
+  });
+
+  // Swipe / drag.
+  var startX = 0, dragging = false;
+  var vp = document.querySelector('.viewport');
+  vp.addEventListener('pointerdown', function (e) { dragging = true; startX = e.clientX; });
+  window.addEventListener('pointerup', function (e) {
+    if (!dragging) return; dragging = false;
+    var dx = e.clientX - startX;
+    if (dx < -55) goTo(index + 1);
+    else if (dx > 55) goTo(index - 1);
+  });
+
+  render();
+</script>
+</body>
+</html>

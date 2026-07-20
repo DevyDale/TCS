@@ -218,10 +218,15 @@
   })();
 
   // ── Hand-off ──────────────────────────────────────────────────────
-  // The mobile splash routes onward after ~1.5s. Enable this once the
-  // next web page exists (e.g. a login / role-selection page):
-  //
-  // setTimeout(() => { window.location.href = 'login.html'; }, 2800);
+  // Once the splash sequence has played, route onward: first-time
+  // visitors see the walkthrough; returning visitors go straight to auth.
+  (function () {
+    let done = false;
+    try { done = localStorage.getItem('tcs_walkthrough_done') === '1'; } catch (e) {}
+    setTimeout(function () {
+      window.location.href = done ? 'auth.html' : 'walkthrough.html';
+    }, 2600);
+  })();
 </script>
 </body>
 </html>

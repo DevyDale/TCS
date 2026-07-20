@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sign in · TCS</title>
+<meta name="theme-color" content="#F7F8FA" />
+<style>
+  @font-face { font-family: 'Alfa'; src: url('assets/fonts/alfa.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Arch'; src: url('assets/fonts/arch.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Momo'; src: url('assets/fonts/momo.ttf') format('truetype'); font-display: swap; }
+
+  :root {
+    --g1: #6DD5FA; --g2: #8E54E9; --g3: #F7971E; --g4: #FF5858; --err: #DC2626;
+    --bg: #F7F8FA; --card: #FFFFFF; --field: #F1F3F7; --ink: #1A1A2E;
+    --slate: #6B7280; --faint: #9AA0AC; --border: #E6E8EE;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Momo', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+    display: flex; justify-content: center;
+  }
+  .blob { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; }
+  .blob.a { width: 300px; height: 300px; top: -120px; right: -110px;
+            background: radial-gradient(circle, rgba(142,84,233,.14), transparent 70%); }
+  .blob.b { width: 320px; height: 320px; bottom: -140px; left: -120px;
+            background: radial-gradient(circle, rgba(109,213,250,.14), transparent 70%); }
+
+  .wrap {
+    position: relative; z-index: 1; width: 100%; max-width: 440px;
+    min-height: 100dvh; display: flex; flex-direction: column;
+    padding: max(env(safe-area-inset-top), 20px) 24px max(env(safe-area-inset-bottom), 28px);
+  }
+  .back {
+    align-self: flex-start; background: none; border: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 4px;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; color: var(--slate);
+  }
+  .back svg { width: 18px; height: 18px; fill: currentColor; }
+  .back:hover { color: var(--ink); }
+
+  .logo {
+    width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; margin-top: 18px;
+    background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    box-shadow: 0 10px 24px rgba(142,84,233,0.32);
+  }
+  .logo svg { width: 30px; height: 30px; fill: #fff; }
+  .h1 { font-family: 'Alfa', serif; font-size: 25px; line-height: 1.15; margin-top: 20px; }
+  .lede { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--slate); margin-top: 8px; line-height: 1.5; }
+
+  form { margin-top: 26px; display: flex; flex-direction: column; gap: 16px; }
+  .field label {
+    display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px;
+    color: var(--ink); margin-bottom: 7px; letter-spacing: 0.3px;
+  }
+  .field input {
+    width: 100%; height: 52px; border-radius: 14px; border: 1.5px solid var(--border);
+    background: var(--field); padding: 0 16px; font-family: 'Momo', sans-serif; font-size: 15px;
+    color: var(--ink); transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .field input::placeholder { color: var(--faint); }
+  .field input:focus { outline: none; border-color: var(--g2); background: #fff; }
+
+  /* Segmented control (staff type) */
+  .seg { display: flex; gap: 6px; background: var(--field); padding: 4px; border-radius: 14px; }
+  .seg button {
+    flex: 1; height: 42px; border: 0; cursor: pointer; border-radius: 10px; background: none;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; color: var(--slate);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 2px 6px rgba(26,26,46,0.08); }
+
+  .msg { font-family: 'Momo', sans-serif; font-size: 13px; min-height: 18px; }
+  .msg.error { color: var(--err); }
+  .msg.ok { color: #16A34A; }
+
+  .submit {
+    height: 54px; border: 0; cursor: pointer; border-radius: 16px; margin-top: 4px;
+    color: #fff; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, var(--g2), var(--g1));
+    box-shadow: 0 8px 20px rgba(142,84,233,0.4);
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  }
+  .submit:hover { box-shadow: 0 10px 26px rgba(142,84,233,0.5); }
+  .submit:active { transform: translateY(1px); }
+  .submit[disabled] { opacity: 0.65; cursor: default; }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.5); border-top-color: #fff;
+             border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  .submit.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .alt { text-align: center; font-family: 'Momo', sans-serif; font-size: 13px; color: var(--slate); margin-top: 18px; }
+  .alt a { color: var(--g2); font-weight: 700; text-decoration: none; }
+  .alt a:hover { text-decoration: underline; }
+
+  :focus-visible { outline: 3px solid rgba(142,84,233,0.5); outline-offset: 2px; border-radius: 12px; }
+</style>
+</head>
+<body>
+  <div class="blob a"></div>
+  <div class="blob b"></div>
+
+  <main class="wrap">
+    <button class="back" type="button" onclick="location.href='auth.html'">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Back
+    </button>
+
+    <div class="logo" role="img" aria-label="TCS">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+    </div>
+    <h1 class="h1" id="title">Sign in</h1>
+    <p class="lede" id="lede">Enter your details to continue.</p>
+
+    <form id="form" novalidate>
+      <div id="fields"></div>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <button class="submit" id="submit" type="submit">
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="submitLabel">Sign in</span>
+      </button>
+    </form>
+
+    <p class="alt" id="alt"></p>
+  </main>
+
+<script>
+  // Same backend as the mobile app.
+  var API = 'https://tcs-nsw.duckdns.org/api';
+
+  var params = new URLSearchParams(location.search);
+  var role = params.get('role') || (function () {
+    try { return localStorage.getItem('tcs_role'); } catch (e) { return null; }
+  })() || 'student';
+
+  var fieldsEl = document.getElementById('fields');
+  var msgEl = document.getElementById('msg');
+  var submitEl = document.getElementById('submit');
+  var titleEl = document.getElementById('title');
+  var ledeEl = document.getElementById('lede');
+  var altEl = document.getElementById('alt');
+  var staffType = 'teaching_staff';
+
+  function field(id, label, type, ph, extra) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' +
+      '<input id="' + id + '" name="' + id + '" type="' + type + '" placeholder="' + (ph || '') + '" ' +
+      (extra || '') + ' autocomplete="off" /></div>';
+  }
+
+  // Render the form for the selected role.
+  if (role === 'visitor') {
+    titleEl.textContent = 'Visitor sign-in';
+    ledeEl.textContent = 'For guests, parents and the wider community.';
+    fieldsEl.innerHTML =
+      field('email', 'Email', 'email', 'you@example.com', 'inputmode="email"') +
+      field('password', 'Password', 'password', '••••••••');
+    altEl.innerHTML = 'New here? <a href="register.html">Create an account</a>';
+  } else if (role === 'staff') {
+    titleEl.textContent = 'Staff sign-in';
+    ledeEl.textContent = 'Teaching and non-teaching staff.';
+    fieldsEl.innerHTML =
+      '<div class="field"><label>Staff type</label>' +
+        '<div class="seg" id="seg">' +
+          '<button type="button" data-t="teaching_staff" aria-pressed="true">Teaching</button>' +
+          '<button type="button" data-t="non_teaching_staff" aria-pressed="false">Non-teaching</button>' +
+        '</div></div>' +
+      field('user_id', 'Staff ID', 'text', 'e.g. TSC12345') +
+      field('dob', 'Date of birth', 'date', '');
+    document.getElementById('seg').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-t]'); if (!b) return;
+      staffType = b.getAttribute('data-t');
+      this.querySelectorAll('button').forEach(function (x) {
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      });
+    });
+  } else {
+    role = 'student';
+    titleEl.textContent = 'Student sign-in';
+    ledeEl.textContent = 'Use the student ID and date of birth on your record.';
+    fieldsEl.innerHTML =
+      field('user_id', 'Student ID', 'text', 'e.g. STU12345') +
+      field('dob', 'Date of birth', 'date', '');
+  }
+
+  function setMsg(text, kind) { msgEl.textContent = text || ''; msgEl.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function loading(on) {
+    submitEl.disabled = on;
+    submitEl.classList.toggle('loading', on);
+    document.getElementById('submitLabel').textContent = on ? 'Signing in…' : 'Sign in';
+  }
+
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    setMsg('');
+    var url, body;
+
+    if (role === 'visitor') {
+      var email = document.getElementById('email').value.trim();
+      var pw = document.getElementById('password').value;
+      if (!email || !pw) { setMsg('Enter your email and password.', 'error'); return; }
+      url = API + '/accounts/login-password/';
+      body = { identifier: email, password: pw };
+    } else {
+      var uid = document.getElementById('user_id').value.trim();
+      var dob = document.getElementById('dob').value; // YYYY-MM-DD
+      if (!uid || !dob) { setMsg('Enter your ID and date of birth.', 'error'); return; }
+      url = API + '/accounts/login/';
+      body = { user_id: uid, date_of_birth: dob, role: role === 'staff' ? staffType : 'student' };
+    }
+
+    loading(true);
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          setMsg((res.d && (res.d.detail || res.d.error)) || 'Those details didn’t match. Please try again.', 'error');
+          loading(false); return;
+        }
+        try {
+          if (res.d.access) localStorage.setItem('tcs_access', res.d.access);
+          if (res.d.refresh) localStorage.setItem('tcs_refresh', res.d.refresh);
+          if (res.d.user) localStorage.setItem('tcs_user', JSON.stringify(res.d.user));
+        } catch (e) {}
+        setMsg('Signed in — welcome back!', 'ok');
+        // Next: window.location.href = 'home.html';
+        loading(false);
+      })
+      .catch(function () {
+        setMsg('Couldn’t reach the server. Check your connection and try again.', 'error');
+        loading(false);
+      });
+  });
+</script>
+</body>
+</html>
