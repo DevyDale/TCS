@@ -157,8 +157,26 @@
   .feed-tab.active { color: #fff; border-color: transparent; background: linear-gradient(90deg, var(--g2), var(--g1));
     box-shadow: 0 8px 18px rgba(142,84,233,0.35); }
 
-  /* Post card — vertical list, full width */
-  .post { padding: 0; margin-bottom: 14px; overflow: hidden; }
+  /* Post card — vertical list, full width, gradient border */
+  .post { position: relative; padding: 0; margin-bottom: 14px; overflow: hidden; border-radius: 20px;
+    background: rgba(255,255,255,0.05); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.3); }
+  .post::before { content: ''; position: absolute; inset: 0; border-radius: 20px; padding: 1.6px; pointer-events: none;
+    background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; }
+
+  /* Google-Photos-style image grid (Events posters / Club posts) */
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 6px; }
+  .photo { position: relative; aspect-ratio: 1; border: 0; cursor: pointer; border-radius: 12px; overflow: hidden;
+    background-size: cover; background-position: center; background-color: var(--glass-2);
+    transition: transform 0.15s ease; }
+  .photo:hover { transform: scale(0.98); }
+  .photo .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 11px 9px; text-align: left;
+    background: linear-gradient(transparent, rgba(0,0,0,0.82)); color: #fff; font-family: 'Arch', sans-serif;
+    font-weight: 700; font-size: 11.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .photo .txtbody { position: absolute; inset: 0; padding: 13px; font-family: 'Momo', sans-serif; font-size: 12px;
+    color: #fff; line-height: 1.5; overflow: hidden; text-align: left; }
   .post-top { display: flex; align-items: center; gap: 12px; padding: 15px 16px 0; }
   .post-av { width: 46px; height: 46px; border-radius: 50%; padding: 2px; flex: 0 0 auto;
     background: linear-gradient(135deg, var(--g2), var(--g1)); }
@@ -312,7 +330,7 @@
 
     document.getElementById('suggBtn').addEventListener('click', openSuggestionBox);
     document.getElementById('daleBtn').addEventListener('click', function () { window.snack('Dale AI is coming to the web soon', 'info'); });
-    document.getElementById('addPostBtn').addEventListener('click', function () { window.snack('Creating posts from the web is coming soon', 'info'); });
+    document.getElementById('addPostBtn').addEventListener('click', openCreatePost);
     document.getElementById('refreshBtn').addEventListener('click', function () { this.classList.add('spinning'); loadFeedTab(); });
     document.getElementById('feedSearch').addEventListener('input', function () { filterFeed(this.value); });
     document.getElementById('feedTabs').addEventListener('click', function (e) {
@@ -327,7 +345,7 @@
 
   function setPostCount(n) {
     var el = document.getElementById('postCount'); if (!el) return;
-    var noun = HOME.kind === 'events' ? 'events' : (HOME.kind === 'clubs' ? 'clubs' : 'posts');
+    var noun = HOME.kind === 'events' ? 'events' : 'posts';
     el.textContent = n ? (n + ' ' + noun) : '';
   }
   function loadFeedTab() {
@@ -336,8 +354,8 @@
     var tab = HOME.tab, path;
     if (tab === 'all') { path = '/posts/feed/?type=home&page=1'; HOME.kind = 'posts'; }
     else if (tab === 'following') { path = '/posts/feed/?type=following&page=1'; HOME.kind = 'posts'; }
-    else if (tab === 'events') { path = '/events/?page=1'; HOME.kind = 'events'; }
-    else { path = '/clubs/?page=1'; HOME.kind = 'clubs'; }
+    else if (tab === 'events') { path = '/clubs/events-feed/?page=1'; HOME.kind = 'events'; }
+    else { path = '/posts/feed/?type=club_posts&page=1'; HOME.kind = 'clubposts'; }
     authFetch(path).then(function (r) {
       var rb = document.getElementById('refreshBtn'); if (rb) rb.classList.remove('spinning');
       if (!r.ok) { HOME.items = []; setPostCount(0); body.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
@@ -353,8 +371,8 @@
     setPostCount(items.length);
     if (!items.length) { body.innerHTML = empty('Nothing here yet.'); return; }
     if (HOME.kind === 'posts') { body.innerHTML = items.map(postCard).join(''); wirePostActions(body); }
-    else if (HOME.kind === 'events') { body.innerHTML = '<div class="grid2">' + items.map(eventCard).join('') + '</div>'; }
-    else { body.innerHTML = '<div class="grid2">' + items.map(clubCard).join('') + '</div>'; wireClubActions(body); }
+    else if (HOME.kind === 'events') { body.innerHTML = '<div class="photo-grid">' + items.map(eventPhoto).join('') + '</div>'; wirePhotos(body, 'The event page is coming to the web soon'); }
+    else { body.innerHTML = '<div class="photo-grid">' + items.map(clubPostPhoto).join('') + '</div>'; wirePhotos(body, 'Post view is coming to the web soon'); }
   }
   function filterFeed(q) {
     q = (q || '').toLowerCase().trim();
@@ -367,7 +385,7 @@
     var handle = a.user_id || a.username || 'user';
     var text = p.content || p.text || p.caption || '';
     var img = p.image_url || p.media_url || (p.media && p.media[0] && (p.media[0].url || p.media[0].image_url));
-    return '<article class="post glass">' +
+    return '<article class="post">' +
       '<div class="post-top"><div class="post-av">' + avatar(a.avatar_url, name) + '</div>' +
         '<div class="post-meta"><div class="pn">' + esc(name) + '</div><div class="ph">@' + esc(handle) + ' · ' + esc(timeAgo(p.created_at)) + '</div></div></div>' +
       (text ? '<div class="post-text">' + esc(text) + '</div>' : '') +
@@ -380,17 +398,24 @@
   }
   function wirePostActions(root) { root.querySelectorAll('.pa[data-act]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Post actions are coming to the web soon', 'info'); }); }); }
   function wireClubActions(root) { root.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); }); }
-  function eventCard(e) {
-    var when = e.start_at || e.date || e.starts_at || e.event_date;
-    var loc = e.location || e.venue || '';
-    var cat = e.category || e.type || 'Event';
-    var d = when ? new Date(when) : null;
-    var dateStr = d && !isNaN(d) ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
-    return '<div class="card glass" style="margin:0"><span class="chip" style="background:rgba(79,195,247,.16);color:#7FD3F5">' + esc(cat) + '</span>' +
-      '<div style="font-family:Arch;font-weight:700;font-size:15px;margin-top:10px">' + esc(e.title || e.name || 'Event') + '</div>' +
-      (dateStr ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">📅 ' + esc(dateStr) + '</div>' : '') +
-      (loc ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">📍 ' + esc(loc) + '</div>' : '') + '</div>';
+  // Google-Photos-style tiles for the Events (posters) and Clubs (posts) feeds
+  var GRADS4 = ['linear-gradient(135deg,#4FC3F7,#0288D1)', 'linear-gradient(135deg,#F7971E,#FF5858)', 'linear-gradient(135deg,#11998E,#38EF7D)', 'linear-gradient(135deg,#8E54E9,#EC4899)'];
+  function eventPhoto(e, i) {
+    var img = e.card_url || e.poster_url || e.image_url || e.cover_url;
+    var title = e.title || e.name || 'Event';
+    if (img) return '<button class="photo" data-photo style="background-image:url(' + esc(img) + ')"><span class="cap">' + esc(title) + '</span></button>';
+    return '<button class="photo" data-photo style="background:' + GRADS4[i % 4] + '"><span class="cap">' + esc(title) + '</span></button>';
   }
+  function clubPostPhoto(p, i) {
+    var a = p.author || p.user || {};
+    var name = a.name || a.display_name || 'Club';
+    var m = (p.media && p.media[0]) || null;
+    var img = m && (m.thumbnail_url || m.url);
+    var text = p.content || p.text || '';
+    if (img) return '<button class="photo" data-photo style="background-image:url(' + esc(img) + ')"><span class="cap">' + esc(name) + '</span></button>';
+    return '<button class="photo" data-photo style="background:' + GRADS4[i % 4] + '"><span class="txtbody">' + esc(text.slice(0, 140)) + '</span><span class="cap">' + esc(name) + '</span></button>';
+  }
+  function wirePhotos(root, msg) { root.querySelectorAll('[data-photo]').forEach(function (b) { b.addEventListener('click', function () { window.snack(msg, 'info'); }); }); }
   function clubCard(c) {
     var members = num(c.member_count || c.members_count || (c.members && c.members.length));
     var cat = c.category || c.type || 'Club';
@@ -406,6 +431,31 @@
   function openModal(html) { modalBox.innerHTML = html; overlay.classList.add('open'); }
   function closeModal() { overlay.classList.remove('open'); modalBox.innerHTML = ''; }
   overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+
+  function openCreatePost() {
+    openModal(
+      '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></div>' +
+      '<h2>New post</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Share something with campus.</p>' +
+      '<textarea id="cpText" rows="5" placeholder="What’s on your mind?"></textarea>' +
+      '<button class="btn" id="cpSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Post</span></button>'
+    );
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('cpSubmit').addEventListener('click', function () {
+      var text = document.getElementById('cpText').value.trim();
+      if (!text) { window.snack('Write something first.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Posting…';
+      fetch(API + '/posts/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ post_type: 'post', content: text, visibility: 'public' }) })
+        .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post — please try again.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Post'; return; }
+          closeModal(); window.snack('Posted!', 'ok');
+          if ((HOME.tab === 'all' || HOME.tab === 'following')) { var s = document.getElementById('feedSearch'); if (s) s.value = ''; loadFeedTab(); }
+        })
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Post'; });
+    });
+  }
 
   function openSuggestionBox() {
     openModal(
