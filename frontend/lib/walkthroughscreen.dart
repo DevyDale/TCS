@@ -28,7 +28,7 @@ const _kPink   = Color(0xFFEC4899);
 const _kEmGrn  = Color(0xFF11998E);
 const _kEmGrn2 = Color(0xFF38EF7D);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 
 // ── Languages ─────────────────────────────────────────────────────
@@ -286,7 +286,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 10),
                 child: Text(_T.t(_lang, 'skip'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 14, color: _kSlate, letterSpacing: 0.5)),
               ),
@@ -320,7 +320,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
             fontFamily: 'Arch', fontWeight: FontWeight.bold,
             fontSize: 12, color: _kInk, letterSpacing: 0.6)),
           const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down_rounded,
+          Icon(Icons.keyboard_arrow_down_rounded,
             size: 18, color: _kSlate),
         ]),
       ),

@@ -33,7 +33,7 @@ Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _kBlue   = Color(0xFF6DD5FA);
@@ -311,7 +311,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   boxShadow: [BoxShadow(
                       color: Colors.black.withOpacity(0.06),
                       blurRadius: 8, offset: const Offset(0, 2))]),
-              child: const Icon(Icons.ios_share_rounded,
+              child: Icon(Icons.ios_share_rounded,
                   color: _kInkSoft, size: 16)))),
 
         // Avatar with animated gradient ring
@@ -538,7 +538,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           decoration: BoxDecoration(
             color: _kCard, shape: BoxShape.circle,
             border: Border.all(color: _kBorder, width: 1.5)),
-          child: const Icon(Icons.ios_share_rounded,
+          child: Icon(Icons.ios_share_rounded,
               size: 18, color: _kInkSoft))),
     ]);
   }

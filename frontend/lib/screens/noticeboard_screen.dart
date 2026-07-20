@@ -17,7 +17,7 @@ const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
 // Text drawn ON the fixed pastel sticky notes / pills — must stay dark in both
 // themes, since the note colours never flip.
-const _kInk = Color(0xFF1A1A2E);
+Color get _kInk => AppC.text;
 const _bgTop = Color(0xFF241247);
 const _bgBot = Color(0xFF130A26);
 

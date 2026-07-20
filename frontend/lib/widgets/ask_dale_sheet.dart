@@ -26,7 +26,7 @@ import 'package:lottie/lottie.dart';
 // Ask-Dale sheet blends with the conversation instead of AI-Hub purple.
 const _kG1   = Color(0xFFA9BC95); // sage
 const _kG2   = Color(0xFF6E8159); // sage dark
-const _kInk  = Color(0xFF2E3A24);
+Color get _kInk => AppC.text;
 Color get _kSlate => AppC.sub;
 const _kRed  = Color(0xFFFF4F6E);
 
@@ -101,7 +101,7 @@ class _AskDaleSheetState extends State<_AskDaleSheet> {
         backgroundColor: AppC.card,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const T('Remove Dale from this chat?',
+        title: T('Remove Dale from this chat?',
             style: TextStyle(
                 fontFamily: 'Alfa', fontSize: 16, color: _kInk)),
         content: T(

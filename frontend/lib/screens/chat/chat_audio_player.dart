@@ -10,7 +10,7 @@ import 'package:just_audio/just_audio.dart';
 
 // ── Sage palette ──
 const _kSageDk = Color(0xFF6E8159);
-const _kInk    = Color(0xFF2E3A24);
+Color get _kInk => AppC.text;
 Color get _kSlate => AppC.sub;
 
 class ChatAudioPlayer extends StatefulWidget {

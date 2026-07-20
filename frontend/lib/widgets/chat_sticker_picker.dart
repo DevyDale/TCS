@@ -26,7 +26,7 @@ import '../../../services/api_service.dart';
 const _kG1   = Color(0xFF6DD5FA);
 const _kG2   = Color(0xFF8E54E9);
 Color get _kInk => AppC.text;
-const _kSlate = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 
 /// Public entry point — call this to show the picker.
 Future<void> showStickerPicker(
@@ -280,11 +280,11 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                         imageUrl: thumb,
                         fit: BoxFit.contain,
                         errorWidget: (_, __, ___) =>
-                            const Icon(Icons.collections_rounded,
+                            Icon(Icons.collections_rounded,
                                 color: _kSlate, size: 18),
                         placeholder: (_, __) => const SizedBox.shrink(),
                       )
-                    : const Icon(Icons.collections_rounded,
+                    : Icon(Icons.collections_rounded,
                         color: _kSlate, size: 18),
               ),
             );

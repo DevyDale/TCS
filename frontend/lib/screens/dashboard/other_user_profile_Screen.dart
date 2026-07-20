@@ -48,7 +48,7 @@ Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _kBlue = Color(0xFF6DD5FA);
@@ -1105,7 +1105,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
             if (showBio) ...[
               const SizedBox(height: 10),
               Text(bioText,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14, color: _kInkSoft, height: 1.5)),
             ],
             if (showInterests) ...[

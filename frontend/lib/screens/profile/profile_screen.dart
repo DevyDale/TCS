@@ -54,7 +54,7 @@ Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _kBlue = Color(0xFF6DD5FA);
@@ -716,7 +716,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     borderRadius: BorderRadius.circular(11),
                     border: Border.all(color: _kBorder),
                   ),
-                  child: const Icon(Icons.settings_rounded,
+                  child: Icon(Icons.settings_rounded,
                       color: _kInkSoft, size: 17),
                 ),
               ),
@@ -1001,7 +1001,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (hasBio) ...[
               const SizedBox(height: 10),
               Text(bio!.bio!,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14, color: _kInkSoft, height: 1.5)),
             ],
             if (_interests.isNotEmpty) ...[

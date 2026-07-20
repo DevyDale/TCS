@@ -30,7 +30,7 @@ import 'package:tcs_app/services/api_service.dart';
 Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kInk => AppC.text;
-const _kInkSoft = Color(0xFF3C4A30);
+Color get _kInkSoft => AppC.sub;
 Color get _kSlate => AppC.sub;
 Color get _kSlateLight => AppC.sub;
 Color get _kBorder => AppC.border;
@@ -802,7 +802,7 @@ class _SuggestionChipState extends State<_SuggestionChip> {
               const SizedBox(width: 8),
               Text(
                 widget.label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -866,7 +866,7 @@ class _MiniUserAvatar extends StatelessWidget {
       child: Center(
         child: Text(
           initial,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Arch',
             fontWeight: FontWeight.bold,
             fontSize: 12,

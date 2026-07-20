@@ -39,7 +39,7 @@ const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 
 /// Convenience entry point — call this instead of constructing the
@@ -254,7 +254,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
               '· $name',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 13,
                 color: _kSlate,
@@ -262,7 +262,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: _kSlate),
+            icon: Icon(Icons.close_rounded, color: _kSlate),
             onPressed: () => Navigator.pop(context),
           ),
         ],
