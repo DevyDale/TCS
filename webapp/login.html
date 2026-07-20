@@ -195,6 +195,14 @@
 
   var submitEl = document.getElementById('submit');
   function setMsg(t, k) { if (t) window.snack(t, k === 'ok' ? 'ok' : (k === 'error' ? 'error' : 'info')); }
+  function apiError(d, fallback) {
+    if (!d) return fallback;
+    if (d.detail) return d.detail;
+    if (d.error) return d.error;
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors.length) return d.non_field_errors[0];
+    for (var k in d) { if (Array.isArray(d[k]) && d[k].length) return d[k][0]; }
+    return fallback;
+  }
   function loading(on) {
     submitEl.disabled = on; submitEl.classList.toggle('loading', on);
     document.getElementById('submitLabel').textContent = on ? 'Signing in…' : 'Sign in';
@@ -218,7 +226,7 @@
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
-        if (!res.ok) { setMsg((res.d && (res.d.detail || res.d.error)) || 'Those details didn’t match. Please try again.', 'error'); loading(false); return; }
+        if (!res.ok) { setMsg(apiError(res.d, 'Those details didn’t match. Please try again.'), 'error'); loading(false); return; }
         try {
           if (res.d.access) localStorage.setItem('tcs_access', res.d.access);
           if (res.d.refresh) localStorage.setItem('tcs_refresh', res.d.refresh);

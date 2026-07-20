@@ -141,6 +141,14 @@
   var submitEl = document.getElementById('submit');
   function setMsg(t, k) { if (t) window.snack(t, k === 'ok' ? 'ok' : (k === 'error' ? 'error' : 'info')); }
   function goDash() { setTimeout(function () { location.href = 'dashboard.html'; }, 700); }
+  function apiError(d, fallback) {
+    if (!d) return fallback;
+    if (d.detail) return d.detail;
+    if (d.error) return d.error;
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors.length) return d.non_field_errors[0];
+    for (var k in d) { if (Array.isArray(d[k]) && d[k].length) return (k === 'password' || k === 'email' || k === 'username' ? k + ': ' : '') + d[k][0]; }
+    return fallback;
+  }
   function loading(on) {
     submitEl.disabled = on; submitEl.classList.toggle('loading', on);
     submitLabel.textContent = on ? 'Please wait…' : (mode === 'signup' ? 'Create account & enter' : 'Sign in');
@@ -169,7 +177,7 @@
       if (!ident || !pw) { setMsg('Enter your email/username and password.', 'error'); return; }
       loading(true);
       loginPassword(ident, pw).then(function (res) {
-        if (!res.ok) { setMsg((res.d && (res.d.detail || res.d.error)) || 'Those details didn’t match.', 'error'); loading(false); return; }
+        if (!res.ok) { setMsg(apiError(res.d, 'Those details didn’t match.'), 'error'); loading(false); return; }
         storeSession(res.d); window.snack('Signed in — welcome back!', 'ok', 1400); goDash();
       }).catch(function () { setMsg('Couldn’t reach the server. Try again.', 'error'); loading(false); });
       return;
@@ -189,11 +197,7 @@
       body: JSON.stringify({ username: username, email: email, password: pw2, confirm_password: pw2, role: role }),
     }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
-        if (!res.ok) {
-          var d = res.d || {};
-          setMsg(String(d.detail || d.error || (d.email && ('Email: ' + d.email)) || (d.username && ('Username: ' + d.username)) || 'Could not create your account.'), 'error');
-          loading(false); return;
-        }
+        if (!res.ok) { setMsg(apiError(res.d, 'Could not create your account.'), 'error'); loading(false); return; }
         return loginPassword(email, pw2).then(function (lr) {
           if (lr && lr.ok) storeSession(lr.d);
           window.snack('Account created — welcome to TCS!', 'ok', 1400); goDash();
