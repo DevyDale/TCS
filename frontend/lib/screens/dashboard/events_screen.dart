@@ -21,6 +21,7 @@ import 'package:gradient_borders/gradient_borders.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_store.dart';
 import 'event_details.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
@@ -54,29 +55,57 @@ class _EventsScreenState extends State<EventsScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  String get _eventsKey => 'events:${_selectedCategory.toLowerCase()}';
+
+  void _applyEvents(dynamic data) {
     if (!mounted) return;
-    setState(() { _loading = true; _error = null; });
+    // Endpoint may be paginated (results+count) or a bare list.
+    final List list = data is Map && data['results'] is List
+        ? data['results'] as List
+        : (data as List);
+    setState(() {
+      _events  = list.cast<Map<String, dynamic>>();
+      _loading = false;
+      _error   = null;
+    });
+  }
+
+  // Cache-first: paints the last-known events for this category instantly
+  // (memory → disk), then revalidates. Spinner only on the first-ever load.
+  void _load() {
+    CacheStore.I.swr(
+      _eventsKey,
+      fetch: () => _api.getEvents(
+        category: _selectedCategory == 'All'
+            ? null
+            : _selectedCategory.toLowerCase(),
+      ),
+      onData: (data, _) => _applyEvents(data),
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          if (_events.isEmpty) _error = 'Could not load events. Pull to retry.';
+        });
+      },
+    );
+  }
+
+  // Awaitable network refresh — pull-to-refresh.
+  Future<void> _refresh() async {
     try {
       final data = await _api.getEvents(
         category: _selectedCategory == 'All'
             ? null
             : _selectedCategory.toLowerCase(),
       );
-      // Endpoint may be paginated (results+count) or a bare list.
-      final List list = data is Map && data['results'] is List
-          ? data['results'] as List
-          : (data as List);
-      if (!mounted) return;
-      setState(() {
-        _events  = list.cast<Map<String, dynamic>>();
-        _loading = false;
-      });
+      await CacheStore.I.put(_eventsKey, data);
+      _applyEvents(data);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error   = 'Could not load events. Pull to retry.';
+        if (_events.isEmpty) _error = 'Could not load events. Pull to retry.';
       });
     }
   }
@@ -125,7 +154,7 @@ class _EventsScreenState extends State<EventsScreen> {
                     maxWidth: Responsive.contentMaxWidth(context)),
                 child: RefreshIndicator(
               color: _kG2,
-              onRefresh: _load,
+              onRefresh: _refresh,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics()),

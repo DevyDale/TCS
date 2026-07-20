@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/services/api_service.dart';
+import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/services/saved_quizzes.dart';
 import 'package:tcs_app/screens/staff/staff_ui.dart';
 import 'package:tcs_app/screens/studyhub/quiz_builder_screen.dart';
@@ -41,14 +42,33 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
       ? _items.where((q) => _savedIds.contains(q['id'].toString())).toList()
       : _items;
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  String get _quizKey =>
+      'quizzes:${widget.isTeacher ? 'teacher' : 'student'}';
+
+  void _applyQuizzes(dynamic data) {
+    if (!mounted) return;
+    final list = ((data as Map)['results'] as List? ?? [])
+        .map((e) => (e as Map).cast<String, dynamic>()).toList();
+    setState(() { _items = list; _loading = false; });
+  }
+
+  // Cache-first: paints the last-known list instantly (memory → disk), then
+  // revalidates in the background. A spinner shows only on the first-ever load.
+  void _load() {
+    CacheStore.I.swr(
+      _quizKey,
+      fetch: () => _api.listQuizzes(mine: widget.isTeacher),
+      onData: (data, _) => _applyQuizzes(data),
+      onError: (_) { if (mounted) setState(() => _loading = false); },
+    );
+  }
+
+  // Awaitable network refresh — pull-to-refresh and after mutations.
+  Future<void> _refresh() async {
     try {
-      final d = await _api.listQuizzes(mine: widget.isTeacher) as Map;
-      final list = (d['results'] as List? ?? [])
-          .map((e) => (e as Map).cast<String, dynamic>()).toList();
-      if (!mounted) return;
-      setState(() { _items = list; _loading = false; });
+      final data = await _api.listQuizzes(mine: widget.isTeacher);
+      await CacheStore.I.put(_quizKey, data);
+      _applyQuizzes(data);
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -57,18 +77,18 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
   Future<void> _build() async {
     final made = await Navigator.push(context,
         MaterialPageRoute(builder: (_) => const QuizBuilderScreen()));
-    if (made == true) _load();
+    if (made == true) _refresh();
   }
 
   Future<void> _take(Map<String, dynamic> q) async {
     await Navigator.push(context, MaterialPageRoute(
         builder: (_) => QuizTakeScreen(quizId: q['id'].toString())));
-    _load();
+    _refresh();
   }
 
   Future<void> _togglePublish(Map<String, dynamic> q) async {
     HapticFeedback.selectionClick();
-    try { await _api.publishQuiz(q['id'].toString()); _load(); }
+    try { await _api.publishQuiz(q['id'].toString()); _refresh(); }
     catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +107,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
             child: const Text('Delete', style: TextStyle(color: Color(0xFFDC2626)))),
       ]));
     if (ok != true) return;
-    try { await _api.deleteStudyQuiz(q['id'].toString()); _load(); } catch (_) {}
+    try { await _api.deleteStudyQuiz(q['id'].toString()); _refresh(); } catch (_) {}
   }
 
   @override
@@ -104,7 +124,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
               onPressed: _build)
           : null,
       body: RefreshIndicator(
-        onRefresh: _load, color: kStaffG1,
+        onRefresh: _refresh, color: kStaffG1,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
