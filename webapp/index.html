@@ -221,10 +221,13 @@
   // Once the splash sequence has played, route onward: first-time
   // visitors see the walkthrough; returning visitors go straight to auth.
   (function () {
-    let done = false;
-    try { done = localStorage.getItem('tcs_walkthrough_done') === '1'; } catch (e) {}
+    let done = false, signedIn = false;
+    try {
+      done = localStorage.getItem('tcs_walkthrough_done') === '1';
+      signedIn = !!localStorage.getItem('tcs_access');
+    } catch (e) {}
     setTimeout(function () {
-      window.location.href = done ? 'auth.html' : 'walkthrough.html';
+      window.location.href = signedIn ? 'dashboard.html' : (done ? 'auth.html' : 'walkthrough.html');
     }, 2600);
   })();
 </script>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dashboard · TCS</title>
+<meta name="theme-color" content="#0D0D1A" />
+<link rel="stylesheet" href="assets/onboarding.css" />
+<style>
+  .app { width: 100%; max-width: 720px; margin: 0 auto; min-height: 100dvh;
+         padding: max(env(safe-area-inset-top), 16px) 18px max(env(safe-area-inset-bottom), 28px); }
+
+  /* Top bar */
+  .bar { display: flex; align-items: center; gap: 12px; }
+  .bar .mark { width: 40px; height: 40px; border-radius: 12px; }
+  .bar .mark svg { width: 22px; height: 22px; }
+  .bar .word { font-family: 'Alfa', serif; font-size: 20px; }
+  .bar .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+          background: var(--glass-2); border: 1px solid var(--hair); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; }
+  .pill svg { width: 15px; height: 15px; fill: var(--g3); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+            background: linear-gradient(135deg, var(--g2), var(--g1)); font-family: 'Alfa', serif; font-size: 16px; color: #fff; overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .logout { padding: 9px 12px; }
+
+  /* Greeting */
+  .greet { margin-top: 26px; }
+  .greet .hi { font-family: 'Alfa', serif; font-size: clamp(26px, 7vw, 32px); line-height: 1.12; }
+  .greet .hi .grad-text { }
+  .greet .sub { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 8px; }
+  .rolechip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 6px 12px; border-radius: 999px;
+              font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 0.4px;
+              background: rgba(142,84,233,0.16); color: #C6B3F5; border: 1px solid rgba(142,84,233,0.3); text-transform: capitalize; }
+
+  /* Stats */
+  .stats { margin-top: 22px; padding: 4px; display: grid; grid-template-columns: repeat(4, 1fr); }
+  .stat { text-align: center; padding: 14px 6px; }
+  .stat .n { font-family: 'Alfa', serif; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat .l { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint); letter-spacing: 0.4px; margin-top: 4px; text-transform: uppercase; }
+  .stat + .stat { border-left: 1px solid var(--hair); }
+
+  /* Section label */
+  .sl { display: flex; align-items: center; gap: 10px; margin: 30px 2px 14px; }
+  .sl .bar2 { width: 4px; height: 18px; border-radius: 2px; background: linear-gradient(180deg, var(--g2), var(--g3)); }
+  .sl span { font-family: 'Alfa', serif; font-size: 15px; }
+
+  /* Feature grid */
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 540px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  .tile { padding: 16px; text-align: left; cursor: pointer; border-radius: 18px;
+          transition: transform 0.14s ease, background 0.2s ease, border-color 0.2s ease; display: flex; flex-direction: column; gap: 10px; }
+  .tile:hover { transform: translateY(-2px); background: var(--glass-2); border-color: var(--hair-2); }
+  .tile .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--g); }
+  .tile .ic svg { width: 23px; height: 23px; fill: #fff; }
+  .tile .t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
+  .tile .d { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); line-height: 1.4; }
+
+  .demo-note { text-align: center; font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 26px; }
+  .skeleton { color: transparent; background: rgba(255,255,255,0.08); border-radius: 6px; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="blob p"></div><div class="blob o"></div><div class="blob c"></div>
+
+  <main class="app layer">
+    <div class="bar">
+      <div class="mark brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg></div>
+      <span class="word grad-text">TCS</span>
+      <span class="spacer"></span>
+      <span class="pill" id="tokenPill"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/></svg><span id="tokens">—</span></span>
+      <div class="avatar" id="avatar">?</div>
+      <button class="ghost logout" id="logout" type="button">Log out</button>
+    </div>
+
+    <section class="greet">
+      <div class="hi">Welcome back, <span class="grad-text" id="firstName">there</span> 👋</div>
+      <div class="sub" id="handle">Loading your profile…</div>
+      <div class="rolechip" id="roleChip" style="display:none"></div>
+    </section>
+
+    <div class="stats glass">
+      <div class="stat"><div class="n" id="s_level">—</div><div class="l">Level</div></div>
+      <div class="stat"><div class="n" id="s_tokens">—</div><div class="l">Tokens</div></div>
+      <div class="stat"><div class="n" id="s_followers">—</div><div class="l">Followers</div></div>
+      <div class="stat"><div class="n" id="s_following">—</div><div class="l">Following</div></div>
+    </div>
+
+    <div class="sl"><span class="bar2"></span><span>Explore</span></div>
+    <div class="grid" id="grid"></div>
+
+    <div class="demo-note">Web demo · signed in against the live TCS backend</div>
+  </main>
+
+<script src="assets/snackbar.js"></script>
+<script>
+  var API = 'https://tcs-nsw.duckdns.org/api';
+
+  function tok() { try { return localStorage.getItem('tcs_access'); } catch (e) { return null; } }
+  function cachedUser() { try { return JSON.parse(localStorage.getItem('tcs_user') || 'null'); } catch (e) { return null; } }
+  function clearSession() { ['tcs_access','tcs_refresh','tcs_user'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); }
+
+  // Guard: no token → back to sign-in.
+  if (!tok()) { location.replace('auth.html'); }
+
+  var TILES = [
+    { t: 'Feed', d: 'Campus moments', g: 'linear-gradient(135deg,#8E54E9,#6DD5FA)', i: 'M4 4h16v4H4zM4 10h16v4H4zM4 16h10v4H4z' },
+    { t: 'Chat', d: 'Message friends', g: 'linear-gradient(135deg,#11998E,#38EF7D)', i: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z' },
+    { t: 'Clubs', d: 'Find your tribe', g: 'linear-gradient(135deg,#F7971E,#FF5858)', i: 'M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
+    { t: 'Events', d: 'What’s on', g: 'linear-gradient(135deg,#4FC3F7,#0288D1)', i: 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10z' },
+    { t: 'Arcade', d: 'Play & compete', g: 'linear-gradient(135deg,#EC4899,#8E54E9)', i: 'M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z' },
+    { t: 'Study Hub', d: 'Quizzes & notes', g: 'linear-gradient(135deg,#81C784,#388E3C)', i: 'M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z' },
+    { t: 'Dale AI', d: 'Your assistant', g: 'linear-gradient(135deg,#6DD5FA,#8E54E9)', i: 'M12 2a2 2 0 0 1 2 2v1h3a3 3 0 0 1 3 3v3h1a1 1 0 0 1 0 2h-1v3a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-3H3a1 1 0 0 1 0-2h1V8a3 3 0 0 1 3-3h3V4a2 2 0 0 1 2-2zM9 11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z' },
+    { t: 'Profile', d: 'Your account', g: 'linear-gradient(135deg,#F7971E,#EC4899)', i: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
+  ];
+  var grid = document.getElementById('grid');
+  TILES.forEach(function (x) {
+    var el = document.createElement('button');
+    el.className = 'tile glass'; el.style.setProperty('--g', x.g);
+    el.innerHTML = '<span class="ic"><svg viewBox="0 0 24 24"><path d="' + x.i + '"/></svg></span>' +
+                   '<span class="t">' + x.t + '</span><span class="d">' + x.d + '</span>';
+    el.addEventListener('click', function () { window.snack(x.t + ' is coming to the web soon', 'info'); });
+    grid.appendChild(el);
+  });
+
+  document.getElementById('logout').addEventListener('click', function () {
+    var r = tok();
+    if (r) { fetch(API + '/accounts/logout/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + r }, body: JSON.stringify({ refresh: localStorage.getItem('tcs_refresh') || '' }) }).catch(function(){}); }
+    clearSession();
+    window.snack('Signed out', 'ok', 1200);
+    setTimeout(function () { location.href = 'auth.html'; }, 600);
+  });
+
+  function refreshToken() {
+    var r; try { r = localStorage.getItem('tcs_refresh'); } catch (e) {}
+    if (!r) return Promise.resolve(false);
+    return fetch(API + '/accounts/token/refresh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh: r }) })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (d) { if (d && d.access) { localStorage.setItem('tcs_access', d.access); if (d.refresh) localStorage.setItem('tcs_refresh', d.refresh); return true; } return false; })
+      .catch(function () { return false; });
+  }
+
+  function getMe(retry) {
+    return fetch(API + '/users/me/', { headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (res) {
+        if (res.status === 401 && !retry) { return refreshToken().then(function (ok) { return ok ? getMe(true) : Promise.reject('unauthorized'); }); }
+        if (!res.ok) return Promise.reject('http ' + res.status);
+        return res.json();
+      });
+  }
+
+  function fmt(n) { return (n == null || isNaN(n)) ? '0' : String(n); }
+  function paint(u) {
+    var name = u.preferred_name || u.name || u.display_name || 'there';
+    var first = String(name).split(' ')[0];
+    document.getElementById('firstName').textContent = first;
+    document.getElementById('handle').textContent = u.user_id ? ('@' + String(u.user_id)) : (u.email || 'Signed in');
+    var role = (u.role || '').replace(/_/g, ' ');
+    var chip = document.getElementById('roleChip');
+    if (role) { chip.textContent = role; chip.style.display = 'inline-flex'; }
+
+    var av = document.getElementById('avatar');
+    if (u.avatar_url) { av.innerHTML = '<img src="' + u.avatar_url + '" alt="" />'; }
+    else { av.textContent = (first[0] || '?').toUpperCase(); }
+
+    document.getElementById('s_level').textContent = fmt(u.level != null ? u.level : 1);
+    document.getElementById('s_tokens').textContent = fmt(u.tokens);
+    document.getElementById('s_followers').textContent = fmt(u.followers_count);
+    document.getElementById('s_following').textContent = fmt(u.following_count);
+    document.getElementById('tokens').textContent = fmt(u.tokens);
+  }
+
+  // Paint cached first (instant), then refresh from the live backend.
+  var cu = cachedUser(); if (cu) { try { paint(cu); } catch (e) {} }
+  getMe(false)
+    .then(function (u) { paint(u); try { localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {} })
+    .catch(function (err) {
+      if (err === 'unauthorized') { clearSession(); window.snack('Session expired — please sign in again', 'error'); setTimeout(function () { location.href = 'auth.html'; }, 1400); }
+      else { window.snack('Couldn’t refresh your profile', 'error'); }
+    });
+</script>
+</body>
+</html>

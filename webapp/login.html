@@ -103,7 +103,6 @@
 
     <form class="glass" id="form" novalidate>
       <div id="fields"></div>
-      <div class="msg" id="msg" role="status" aria-live="polite"></div>
       <button class="btn" id="submit" type="submit">
         <span class="spinner" aria-hidden="true"></span>
         <span id="submitLabel">Sign in</span>
@@ -119,6 +118,7 @@
   </main>
 
 <script src="assets/particles.js"></script>
+<script src="assets/snackbar.js"></script>
 <script>
   var API = 'https://tcs-nsw.duckdns.org/api';
 
@@ -194,8 +194,7 @@
   }
 
   var submitEl = document.getElementById('submit');
-  var msgEl = document.getElementById('msg');
-  function setMsg(t, k) { msgEl.textContent = t || ''; msgEl.className = 'msg' + (k ? ' ' + k : ''); }
+  function setMsg(t, k) { if (t) window.snack(t, k === 'ok' ? 'ok' : (k === 'error' ? 'error' : 'info')); }
   function loading(on) {
     submitEl.disabled = on; submitEl.classList.toggle('loading', on);
     document.getElementById('submitLabel').textContent = on ? 'Signing in…' : 'Sign in';
@@ -225,8 +224,8 @@
           if (res.d.refresh) localStorage.setItem('tcs_refresh', res.d.refresh);
           if (res.d.user) localStorage.setItem('tcs_user', JSON.stringify(res.d.user));
         } catch (e) {}
-        setMsg('Signed in — welcome back!', 'ok');
-        loading(false);
+        window.snack('Signed in — welcome back!', 'ok', 1400);
+        setTimeout(function () { location.href = 'dashboard.html'; }, 700);
       })
       .catch(function () { setMsg('Couldn’t reach the server. Check your connection and try again.', 'error'); loading(false); });
   });
