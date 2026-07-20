@@ -66,6 +66,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -174,7 +175,20 @@ class ApiService {
   static final ApiService instance = ApiService._();
   factory ApiService() => instance;
 
-  final _client = http.Client();
+  // Keep-alive HTTP client. Dart's default HttpClient tears idle sockets down
+  // after 15s, so navigating between pages after a short pause re-pays the full
+  // TLS handshake (~300ms) on the next request. We hold connections open far
+  // longer and pool several per host so a page's parallel requests reuse warm
+  // sockets instead of dialing new ones.
+  final http.Client _client = _buildKeepAliveClient();
+
+  static http.Client _buildKeepAliveClient() {
+    final io = HttpClient()
+      ..idleTimeout          = const Duration(seconds: 90)
+      ..connectionTimeout    = const Duration(seconds: 15)
+      ..maxConnectionsPerHost = 8;
+    return IOClient(io);
+  }
 
   /// Single-flight guard for token refresh. The backend rotates refresh
   /// tokens and blacklists the old one on every refresh
