@@ -27,6 +27,7 @@
   .lede { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 10px; line-height: 1.5; max-width: 30ch; }
 
   form { margin-top: 26px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  #fields { display: flex; flex-direction: column; gap: 16px; }
 
   /* Staff-type segmented control */
   .seg { display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 5px; border-radius: 14px; border: 1px solid var(--hair); }
@@ -47,9 +48,10 @@
     overflow: hidden; transition: border-color 0.15s ease, background 0.15s ease;
   }
   .input:focus-within { border-color: var(--g2); background: rgba(255,255,255,0.09); }
-  .input .ic { width: 52px; height: 100%; flex: 0 0 auto; display: grid; place-items: center;
-               background: var(--grad); }
-  .input .ic svg { width: 22px; height: 22px; fill: #fff; }
+  .input .ic { width: 50px; height: 100%; flex: 0 0 auto; display: grid; place-items: center;
+               border-right: 1px solid var(--hair); }
+  .input .ic svg { width: 21px; height: 21px; fill: var(--faint); }
+  .input:focus-within .ic svg { fill: var(--sub); }
   .input input {
     flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none;
     padding: 0 15px; font-family: 'Momo', sans-serif; font-size: 15px; color: var(--ink);
@@ -145,10 +147,9 @@
   document.getElementById('roleIcon').style.background = GRADS[role];
   document.getElementById('roleIcon').style.boxShadow = '0 16px 34px rgba(142,84,233,0.35)';
 
-  var grad = GRADS[role];
   function fieldHTML(id, label, type, ph, icon, extra) {
     return '<div class="field"><label for="' + id + '">' + label + '</label>' +
-      '<div class="input" style="--grad:' + grad + '">' +
+      '<div class="input">' +
         '<span class="ic">' + icon + '</span>' +
         '<input id="' + id + '" type="' + type + '" placeholder="' + (ph || '') + '" ' + (extra || '') + ' autocomplete="off" />' +
       '</div></div>';
@@ -164,7 +165,6 @@
     lede.textContent = 'For guests, parents and the wider community.';
     fields.innerHTML =
       fieldHTML('email', 'Email', 'email', 'you@example.com', MAIL_ICON, 'inputmode="email"') +
-      '<div style="height:2px"></div>' +
       fieldHTML('password', 'Password', 'password', '••••••••', LOCK_ICON);
     alt.innerHTML = 'New here? <a href="register.html">Create an account</a>';
   } else if (role === 'staff') {
@@ -176,9 +176,7 @@
           '<button type="button" data-t="teaching_staff" aria-pressed="true">Teaching</button>' +
           '<button type="button" data-t="non_teaching_staff" aria-pressed="false">Non-teaching</button>' +
         '</div></div>' +
-      '<div style="height:2px"></div>' +
       fieldHTML('user_id', 'Staff ID', 'text', 'e.g. TSC12345', ID_ICON, 'inputmode="numeric"') +
-      '<div style="height:2px"></div>' +
       fieldHTML('dob', 'Date of birth', 'date', '', CAKE_ICON);
     document.getElementById('seg').addEventListener('click', function (e) {
       var b = e.target.closest('button[data-t]'); if (!b) return;
@@ -190,7 +188,6 @@
     lede.textContent = 'Use the Student ID and date of birth on your record.';
     fields.innerHTML =
       fieldHTML('user_id', 'Student ID', 'text', 'e.g. STU12345', ID_ICON, 'inputmode="numeric"') +
-      '<div style="height:2px"></div>' +
       fieldHTML('dob', 'Date of birth', 'date', '', CAKE_ICON);
   }
 
