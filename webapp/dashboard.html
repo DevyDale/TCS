@@ -153,11 +153,8 @@
   .feed-tab.active { color: #fff; border-color: transparent; background: linear-gradient(90deg, var(--g2), var(--g1));
     box-shadow: 0 8px 18px rgba(142,84,233,0.35); }
 
-  /* Feed fills the width — posts flow into responsive columns */
-  .feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; align-items: start; }
-
-  /* Post card */
-  .post { padding: 0; margin: 0; overflow: hidden; }
+  /* Post card — vertical list, full width */
+  .post { padding: 0; margin-bottom: 14px; overflow: hidden; }
   .post-top { display: flex; align-items: center; gap: 12px; padding: 15px 16px 0; }
   .post-av { width: 46px; height: 46px; border-radius: 50%; padding: 2px; flex: 0 0 auto;
     background: linear-gradient(135deg, var(--g2), var(--g1)); }
@@ -346,7 +343,7 @@
     var body = document.getElementById('feedBody'); if (!body) return;
     setPostCount(items.length);
     if (!items.length) { body.innerHTML = empty('Nothing here yet.'); return; }
-    if (HOME.kind === 'posts') { body.innerHTML = '<div class="feed-grid">' + items.map(postCard).join('') + '</div>'; wirePostActions(body); }
+    if (HOME.kind === 'posts') { body.innerHTML = items.map(postCard).join(''); wirePostActions(body); }
     else if (HOME.kind === 'events') { body.innerHTML = '<div class="grid2">' + items.map(eventCard).join('') + '</div>'; }
     else { body.innerHTML = '<div class="grid2">' + items.map(clubCard).join('') + '</div>'; wireClubActions(body); }
   }
