@@ -167,23 +167,23 @@ class _StaffAuditScreenState extends State<StaffAuditScreen> {
           child: TextField(
             controller: _searchCtrl,
             onChanged: _onSearch,
-            style: const TextStyle(fontFamily: 'Momo', fontSize: 14,
-                color: Color(0xFF1F2937)),
+            style: TextStyle(fontFamily: 'Momo', fontSize: 14,
+                color: AppC.text),
             cursorColor: const Color(0xFF7C3AED),
             decoration: InputDecoration(
               hintText: 'Search by staff, action or detail…',
               hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                  color: Colors.grey.shade500),
+                  color: AppC.faint),
               prefixIcon: const Icon(Icons.search_rounded,
                   color: Color(0xFF7C3AED), size: 20),
               suffixIcon: _searchCtrl.text.isNotEmpty
                   ? GestureDetector(
                       onTap: () { _searchCtrl.clear(); _onSearch(''); },
                       child: Icon(Icons.close_rounded,
-                          color: Colors.grey.shade500, size: 18))
+                          color: AppC.sub, size: 18))
                   : null,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppC.card,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: 8, vertical: 13),

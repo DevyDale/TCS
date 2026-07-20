@@ -35,7 +35,7 @@ import 'package:tcs_app/screens/ai/scam_check_screen.dart';
 Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 Color get _kInk => AppC.text;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.text;
 Color get _kSlate => AppC.sub;
 Color get _kSlateLight => AppC.sub;
 Color get _kBorder => AppC.border;
@@ -986,13 +986,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 border: Border.all(color: _kBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: AppC.shadow,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: _kInkSoft,
                 size: 16,
@@ -1015,13 +1015,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 border: Border.all(color: _kBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: AppC.shadow,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(Icons.menu_rounded, color: _kInkSoft, size: 20),
+              child: Icon(Icons.menu_rounded, color: _kInkSoft, size: 20),
             ),
           ),
           const SizedBox(width: 10),
@@ -1273,7 +1273,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   BoxShadow(
                     color: isUser
                         ? _theme.gradient.last.withOpacity(0.18)
-                        : Colors.black.withOpacity(0.03),
+                        : AppC.shadow,
                     blurRadius: isUser ? 12 : 6,
                     offset: const Offset(0, 3),
                   ),
@@ -1611,7 +1611,7 @@ class _SuggestionChipState extends State<_SuggestionChip> {
             border: Border.all(color: _kBorder),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: AppC.shadow,
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
@@ -1624,7 +1624,7 @@ class _SuggestionChipState extends State<_SuggestionChip> {
               const SizedBox(width: 8),
               Text(
                 widget.label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -1682,7 +1682,7 @@ class _MiniUserAvatar extends StatelessWidget {
       child: Center(
         child: Text(
           initial,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Arch',
             fontWeight: FontWeight.bold,
             fontSize: 12,

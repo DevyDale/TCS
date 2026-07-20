@@ -113,7 +113,7 @@ class _AiMarkdownState extends State<AiMarkdown>
         ),
         // Fallback (when richCodeBlocks: false)
         codeblockDecoration: BoxDecoration(
-          color: const Color(0xFFF7F8FB),
+          color: AppC.card2,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: _kBorder),
         ),

@@ -81,7 +81,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         foregroundColor: _kInk,
         elevation: 0,
         title: const T('Blocked users',
@@ -102,14 +102,14 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   const SizedBox(height: 80),
-                  Icon(Icons.shield_outlined, size: 64, color: Colors.grey.shade400),
+                  Icon(Icons.shield_outlined, size: 64, color: AppC.faint),
                   const SizedBox(height: 16),
                   Center(
                     child: Text("You haven't blocked anyone.",
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 14,
-                            color: Colors.grey.shade600)),
+                            color: AppC.sub)),
                   ),
                   const SizedBox(height: 8),
                   Center(
@@ -122,7 +122,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 12.5,
-                            color: Colors.grey.shade500,
+                            color: AppC.sub,
                             height: 1.55),
                       ),
                     ),
@@ -149,13 +149,13 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppC.card,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
                       radius: 22,
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: AppC.border,
                       backgroundImage: avatar.isNotEmpty
                           ? CachedNetworkImageProvider(avatar)
                           : null,
@@ -179,7 +179,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                             style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,
-                                color: Colors.grey.shade600)),
+                                color: AppC.sub)),
                     trailing: TextButton(
                       onPressed: () => _confirmUnblock(b),
                       style: TextButton.styleFrom(

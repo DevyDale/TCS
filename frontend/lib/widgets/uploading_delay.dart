@@ -28,7 +28,7 @@ import 'package:tcs_app/theme/app_colors.dart';
 
 Color get _kCard => AppC.card;
 Color get _kInk => AppC.text;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.text;
 Color get _kSlate => AppC.sub;
 
 const _gradColors = <Color>[
@@ -107,7 +107,7 @@ class _UploadingCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 40,
                 height: 40,
                 child: CircularProgressIndicator(

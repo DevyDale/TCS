@@ -379,7 +379,7 @@ class _CaseSheetState extends State<_CaseSheet> {
               child: CircularProgressIndicator(color: _kCoral)))
           : ListView(controller: scroll, padding: const EdgeInsets.all(20), children: [
               Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(
-                  color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+                  color: AppC.faint, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text((c['student'] ?? 'Student').toString(), style: TextStyle(
                   fontFamily: 'Alfa', fontSize: 20, color: AppC.text)),

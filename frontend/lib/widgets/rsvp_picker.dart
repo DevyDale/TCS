@@ -44,9 +44,9 @@ class RsvpPicker extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F8),
+        color: AppC.bg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppC.border),
       ),
       child: Row(
         children: [
@@ -92,7 +92,7 @@ class RsvpPicker extends StatelessWidget {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
+          color: active ? AppC.card : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           boxShadow: active
               ? [
@@ -113,7 +113,7 @@ class RsvpPicker extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: active ? accent : Colors.grey.shade500,
+              color: active ? accent : AppC.sub,
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -125,7 +125,7 @@ class RsvpPicker extends StatelessWidget {
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: active ? accent : Colors.grey.shade600,
+                  color: active ? accent : AppC.sub,
                 ),
               ),
             ),

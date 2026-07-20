@@ -445,7 +445,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
           children: [
             Container(width: 44, height: 5,
               margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: Colors.white24,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(3))),
             // Child-safety routing always available — any staff can escalate up.
             if (r['has_cs_case'] != true)
@@ -465,8 +465,8 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
                       style: TextStyle(fontFamily: 'Arch', fontSize: 13, color: _kRed)),
                 ]),
               ),
-            const Divider(height: 1, color: Colors.white12),
-            _sheetAction(Icons.close_rounded, 'Dismiss report', Colors.white70,
+            Divider(height: 1, color: AppC.divider),
+            _sheetAction(Icons.close_rounded, 'Dismiss report', AppC.sub,
                 () => _act(r, 'dismiss')),
             _sheetAction(Icons.check_rounded, 'Mark reviewed (no action)', _kG1,
                 () => _act(r, 'review')),
@@ -514,7 +514,7 @@ class _StaffModerationScreenState extends State<StaffModerationScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
+              child: T('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () { Navigator.pop(ctx); onYes(); },
               child: const T('Confirm', style: TextStyle(color: _kRed))),
         ],

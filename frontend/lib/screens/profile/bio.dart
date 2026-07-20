@@ -173,7 +173,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Stack(
         children: [
           Positioned(top: 0, left: 0, right: 0, height: 180,
@@ -315,8 +315,8 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
       required Color color, required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+        color: AppC.card, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
@@ -576,7 +576,7 @@ class _BioPageState extends State<BioPage> with TickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Text(item.$1, style: TextStyle(
                   fontFamily: 'Momo', fontSize: 12,
-                  color: item.$2 ? const Color(0xFF1A1A2E) : AppC.faint,
+                  color: item.$2 ? AppC.text : AppC.faint,
                   decoration: item.$2 ? null : TextDecoration.lineThrough,
                 )),
               ]),
@@ -652,7 +652,7 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: AppC.bg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppC.border, width: 1.5),
       ),
@@ -700,7 +700,7 @@ class _Dropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: AppC.bg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppC.border, width: 1.5),
       ),
@@ -718,7 +718,7 @@ class _Dropdown extends StatelessWidget {
                 color: AppC.text),
             items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
             onChanged: onChanged,
-            dropdownColor: Colors.white,
+            dropdownColor: AppC.card,
             borderRadius: BorderRadius.circular(14),
             icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppC.faint),
           ),

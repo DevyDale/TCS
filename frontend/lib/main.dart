@@ -307,7 +307,18 @@ class _TCSAppState extends State<TCSApp> {
     super.dispose();
   }
 
-  void _rebuild() { if (mounted) setState(() {}); }
+  void _rebuild() {
+    if (!mounted) return;
+    // Rebuild MaterialApp itself (theme/locale swap)...
+    setState(() {});
+    // ...then force EVERY element in the tree — including pages already pushed
+    // on the Navigator and const subtrees — to rebuild. AppC reads
+    // AppSettings().isDark directly rather than via an InheritedWidget, so a
+    // plain setState only repaints this widget; cached route pages would keep
+    // the old theme until popped/re-pushed (the "not all pages change" bug).
+    // forceAppUpdate walks the whole element tree and marks each dirty.
+    Get.forceAppUpdate();
+  }
 
   // Cold start can't reliably read the device size before runApp() (the view
   // list may be empty), so main() defaults to a safe portrait lock. Once the
@@ -339,8 +350,8 @@ class _TCSAppState extends State<TCSApp> {
         },
 
         themeMode: _settings.themeMode,
-        theme:     _buildLightTheme(),
-        darkTheme: _buildDarkTheme(),
+        theme:     _lightTheme,
+        darkTheme: _darkTheme,
 
         locale: _settings.locale,
         supportedLocales: const [
@@ -364,7 +375,10 @@ class _TCSAppState extends State<TCSApp> {
   }
 
   // ── Light theme ───────────────────────────────────────────
-  ThemeData _buildLightTheme() => ThemeData(
+  // Built ONCE (static final), not per-build. ColorScheme.fromSeed runs the
+  // Material-3 tonal-palette algorithm, which is expensive; recomputing both
+  // themes on every rebuild is what made the light/dark switch feel sluggish.
+  static final ThemeData _lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(
@@ -415,7 +429,7 @@ class _TCSAppState extends State<TCSApp> {
   );
 
   // ── Dark theme ────────────────────────────────────────────
-  ThemeData _buildDarkTheme() => ThemeData(
+  static final ThemeData _darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(

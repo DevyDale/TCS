@@ -70,8 +70,11 @@ class AppSettings extends ChangeNotifier {
   Future<void> setDark(bool v) async {
     if (_dark == v) return;
     _dark = v;
-    (await SharedPreferences.getInstance()).setBool('dark_mode', v);
+    // Repaint FIRST. The old order awaited SharedPreferences before notifying,
+    // so every theme toggle visibly waited on disk I/O before anything moved.
+    // Persistence is not something the UI needs to block on.
     notifyListeners();
+    (await SharedPreferences.getInstance()).setBool('dark_mode', v);
   }
 
   Future<void> setLang(String v) async {

@@ -69,7 +69,7 @@ class _EmergencyDetailScreenState extends State<EmergencyDetailScreen> {
           decoration: const InputDecoration(hintText: 'What changed?')),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+            child: Text('Cancel', style: TextStyle(color: AppC.sub))),
         TextButton(onPressed: () => Navigator.pop(ctx, true),
             child: Text('Post', style: TextStyle(color: _color,
                 fontWeight: FontWeight.bold))),

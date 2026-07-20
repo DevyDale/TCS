@@ -341,7 +341,7 @@ class _StaffAnnouncementComposeScreenState
             decoration: _dec('Describe the poster')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Generate',
                   style: TextStyle(color: _kAmber, fontWeight: FontWeight.bold))),

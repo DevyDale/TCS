@@ -92,7 +92,9 @@ class _ChatAudioPlayerState extends State<ChatAudioPlayer> {
     final accent   = isMe ? _kInk : _kSageDk;            // icon + progress fill
     final circleBg = isMe ? Colors.white.withOpacity(0.40)
                           : _kSageDk.withOpacity(0.12);
-    final track    = isMe ? _kInk.withOpacity(0.18) : const Color(0xFFD7D9CC);
+    final track    = isMe
+        ? _kInk.withOpacity(0.18)
+        : (AppC.isDark ? AppC.border : const Color(0xFFD7D9CC));
     final timeColor = isMe ? _kInk.withOpacity(0.70) : _kSlate;
 
     final progress = _total.inMilliseconds == 0

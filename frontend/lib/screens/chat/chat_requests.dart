@@ -160,7 +160,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 13,
-              color: Colors.grey.shade700,
+              color: AppC.sub,
               height: 1.5),
         ),
         actions: [
@@ -170,7 +170,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                 style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600)),
+                    color: AppC.sub)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -261,11 +261,11 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
     final label = _timeAgo(iso);
     if (label.isEmpty) return const SizedBox.shrink();
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.schedule_rounded, size: 11, color: Colors.grey.shade400),
+      Icon(Icons.schedule_rounded, size: 11, color: AppC.faint),
       const SizedBox(width: 3),
       Text(label,
           style: TextStyle(
-              fontFamily: 'Momo', fontSize: 10.5, color: Colors.grey.shade500)),
+              fontFamily: 'Momo', fontSize: 10.5, color: AppC.sub)),
     ]);
   }
 
@@ -275,9 +275,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Container(
         decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppC.card2,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200)),
+            border: Border.all(color: AppC.border)),
         child: TextField(
           controller: ctrl,
           onChanged: onChanged,
@@ -285,12 +285,12 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           decoration: InputDecoration(
             isDense: true,
             prefixIcon:
-                Icon(Icons.search_rounded, color: Colors.grey.shade500, size: 20),
+                Icon(Icons.search_rounded, color: AppC.sub, size: 20),
             suffixIcon: ctrl.text.isNotEmpty
                 ? IconButton(
                     splashRadius: 18,
                     icon: Icon(Icons.close_rounded,
-                        size: 18, color: Colors.grey.shade500),
+                        size: 18, color: AppC.sub),
                     onPressed: () {
                       ctrl.clear();
                       onChanged('');
@@ -299,7 +299,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                 : null,
             hintText: hint,
             hintStyle: TextStyle(
-                fontFamily: 'Momo', fontSize: 13, color: Colors.grey.shade500),
+                fontFamily: 'Momo', fontSize: 13, color: AppC.sub),
             border: InputBorder.none,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -400,7 +400,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               ),
             ],
           ),
-          tabTextColor: Colors.grey.shade600,
+          tabTextColor: AppC.sub,
           selectedTabTextColor: Colors.white,
           textStyle: const TextStyle(
               fontFamily: 'Arch', fontSize: 13, fontWeight: FontWeight.w600),
@@ -459,7 +459,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                         child: T('No matches',
                             style: TextStyle(
                                 fontFamily: 'Momo',
-                                color: Colors.grey.shade500))),
+                                color: AppC.sub))),
                   ],
                 )
               : ListView(
@@ -520,7 +520,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                         child: T('No matches',
                             style: TextStyle(
                                 fontFamily: 'Momo',
-                                color: Colors.grey.shade500))),
+                                color: AppC.sub))),
                   ],
                 )
               : ListView(
@@ -550,7 +550,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         children: [
           const SizedBox(height: 100),
           Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 52, color: Colors.grey.shade300),
+            Icon(icon, size: 52, color: AppC.border),
             const SizedBox(height: 16),
             Text(title,
                 style: TextStyle(
@@ -561,7 +561,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
               child: Text(sub,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontFamily: 'Momo', color: Colors.grey.shade500)),
+                      fontFamily: 'Momo', color: AppC.sub)),
             ),
           ]),
         ],
@@ -579,13 +579,13 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                   fontFamily: 'Arch',
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                   letterSpacing: 0.6)),
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppC.card2,
                 borderRadius: BorderRadius.circular(8)),
             child: Text('$count',
                 style: TextStyle(
@@ -639,7 +639,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           border: Border.all(color: _kG4.withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: AppC.shadow,
                 blurRadius: 10,
                 offset: const Offset(0, 3))
           ]),
@@ -675,7 +675,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                         style: TextStyle(
                             fontFamily: 'Momo',
                             fontSize: 11,
-                            color: Colors.grey.shade500)),
+                            color: AppC.sub)),
                 ]),
               ])),
           Container(
@@ -693,7 +693,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
         const SizedBox(height: 10),
         Text('$inviter invited you to join.',
             style: TextStyle(
-                fontFamily: 'Momo', fontSize: 12, color: Colors.grey.shade700)),
+                fontFamily: 'Momo', fontSize: 12, color: AppC.sub)),
         if ((r['created_at'] as String? ?? '').isNotEmpty) ...[
           const SizedBox(height: 6),
           _timeChip(r['created_at'] as String? ?? ''),
@@ -703,13 +703,13 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppC.bg,
                   borderRadius: BorderRadius.circular(10)),
               child: Text(message.isNotEmpty ? message : bubbleAbout,
                   style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 13,
-                      color: Colors.grey.shade700,
+                      color: AppC.sub,
                       height: 1.4))),
         ],
         const SizedBox(height: 14),
@@ -720,9 +720,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300)),
+                    border: Border.all(color: AppC.border)),
                 child: Center(
                     child: T('Decline',
                         style: TextStyle(
@@ -770,7 +770,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           border: Border.all(color: _kG3.withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: AppC.shadow,
                 blurRadius: 10,
                 offset: const Offset(0, 3))
           ]),
@@ -810,7 +810,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 12,
-                        color: Colors.grey.shade500)),
+                        color: AppC.sub)),
                 if ((r['created_at'] as String? ?? '').isNotEmpty) ...[
                   const SizedBox(height: 3),
                   _timeChip(r['created_at'] as String? ?? ''),
@@ -833,13 +833,13 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
           Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppC.bg,
                   borderRadius: BorderRadius.circular(10)),
               child: Text(message,
                   style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 13,
-                      color: Colors.grey.shade700,
+                      color: AppC.sub,
                       height: 1.4))),
         ],
         const SizedBox(height: 14),
@@ -850,9 +850,9 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
             child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppC.card2,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300)),
+                    border: Border.all(color: AppC.border)),
                 child: Center(
                     child: T('Decline',
                         style: TextStyle(
@@ -894,14 +894,14 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppC.border),
         ),
         child: Row(children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: Colors.grey.shade200,
+            backgroundColor: AppC.card2,
             backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
             child: avatar.isEmpty
                 ? Text(initial,
@@ -923,7 +923,7 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen>
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 12,
-                        color: Colors.grey.shade600)),
+                        color: AppC.sub)),
                 if (created.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   _timeChip(created),

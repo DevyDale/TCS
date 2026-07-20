@@ -296,11 +296,12 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg     = isDark ? const Color(0xFF0F0F1F) : const Color(0xFFF7F7FB);
-    final card   = isDark ? const Color(0xFF1A1A2E) : Colors.white;
-    final text   = isDark ? Colors.white               : const Color(0xFF1A1A2E);
-    final sub    = isDark ? Colors.white60             : AppC.faint;
+    // Single source of truth: the app palette, not a local light/dark fork.
+    final isDark = AppC.isDark;
+    final bg     = AppC.bg;
+    final card   = AppC.card;
+    final text   = AppC.text;
+    final sub    = AppC.faint;
 
     return Scaffold(
       backgroundColor: bg,
@@ -335,15 +336,16 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
               child: const Icon(Icons.check_rounded,
                   color: Colors.white, size: 60))),
           const SizedBox(height: 28),
-          T('Thank you! 🙏',
+          // Success screen is a full-bleed category gradient — text stays white.
+          const T('Thank you! 🙏',
               style: TextStyle(fontFamily: 'Alfa',
-                  fontSize: 36, color: AppC.text)),
+                  fontSize: 36, color: Colors.white)),
           const SizedBox(height: 12),
           T('Your suggestion has been received.\n'
               'We appreciate your feedback!',
             textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo', fontSize: 15,
-                color: AppC.text.withOpacity(0.85), height: 1.6)),
+                color: Colors.white.withOpacity(0.85), height: 1.6)),
           const SizedBox(height: 36),
           GestureDetector(
             onTap: () {
@@ -362,10 +364,10 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.4))),
-              child: T('Submit another',
+              child: const T('Submit another',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 15, color: AppC.text)),
+                    fontSize: 15, color: Colors.white)),
             ),
           ),
           const SizedBox(height: 12),
@@ -416,8 +418,9 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                         color: Colors.white.withOpacity(0.25))),
                   child: Text(
                     '${_currentCat!.emoji} ${_currentCat!.label}',
-                    style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 12, color: AppC.text))),
+                    // Chip sits on the hero gradient — stays white.
+                    style: const TextStyle(fontFamily: 'Momo',
+                        fontSize: 12, color: Colors.white))),
             ]),
           ),
           Padding(
@@ -429,12 +432,13 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                   child: const T('📬',
                       style: TextStyle(fontSize: 52)))),
               const SizedBox(height: 12),
-              T('Suggestion Box', style: TextStyle(
-                  fontFamily: 'Alfa', fontSize: 28, color: AppC.text)),
+              // Hero header text sits on the category gradient — stays white.
+              const T('Suggestion Box', style: TextStyle(
+                  fontFamily: 'Alfa', fontSize: 28, color: Colors.white)),
               const SizedBox(height: 6),
               T('Your name will be attached — speak freely!',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    color: AppC.text.withOpacity(0.8))),
+                    color: Colors.white.withOpacity(0.8))),
             ])),
         ])),
       ),
@@ -569,7 +573,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
           color: card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: isDark ? Colors.white12 : AppC.border,
+              color: AppC.border,
               width: 1.5)),
         child: Center(child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -611,8 +615,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 color: sel ? null : card,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: sel ? Colors.transparent
-                      : isDark ? Colors.white12 : AppC.border,
+                  color: sel ? Colors.transparent : AppC.border,
                   width: 1.5),
                 boxShadow: sel ? [BoxShadow(
                   color: c.gradient.first.withOpacity(0.35),
@@ -690,9 +693,10 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
                 Text(_formEnabled
                         ? 'Send Suggestion'
                         : 'Choose a category',
-                  style: TextStyle(fontFamily: 'Arch',
+                  // Label sits on the gradient submit button — stays white.
+                  style: const TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 16, color: AppC.text)),
+                    fontSize: 16, color: Colors.white)),
               ])),
       ),
     );
@@ -707,7 +711,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
         color: card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: isDark ? Colors.white12 : AppC.border,
+            color: AppC.border,
             width: 1.5)),
       child: Column(children: [
 
@@ -902,7 +906,7 @@ class _SuggestionBoxScreenState extends State<SuggestionBoxScreen>
           color: card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? Colors.white12 : AppC.border,
+            color: AppC.border,
             width: 1.5),
           boxShadow: [BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0 : 0.03),

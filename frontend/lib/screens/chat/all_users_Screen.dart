@@ -297,7 +297,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                 // Search bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppC.card,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(
                         color: Colors.black.withOpacity(0.1),
@@ -306,14 +306,15 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                   child: TextField(
                     controller: _searchCtrl,
                     onChanged: (_) => _applyFilter(),
-                    style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                    style: TextStyle(
+                        fontFamily: 'Momo', fontSize: 14, color: _kInk),
                     decoration: InputDecoration(
                       hintText: TranslationService.I.tr('Search by name...'),
                       hintStyle: TextStyle(
-                          fontFamily: 'Momo', color: Colors.grey.shade400,
+                          fontFamily: 'Momo', color: AppC.faint,
                           fontSize: 13),
                       prefixIcon: Icon(Icons.search_rounded,
-                          color: Colors.grey.shade400, size: 20),
+                          color: AppC.faint, size: 20),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
@@ -321,7 +322,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                                 _applyFilter();
                               },
                               child: Icon(Icons.close_rounded,
-                                  color: Colors.grey.shade400, size: 18))
+                                  color: AppC.faint, size: 18))
                           : null,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -381,7 +382,7 @@ class _AllUsersScreenState extends State<AllUsersScreen>
                       const SizedBox(height: 6),
                       T('Try a different search or filter',
                           style: TextStyle(fontFamily: 'Momo',
-                              fontSize: 13, color: Colors.grey.shade400)),
+                              fontSize: 13, color: AppC.faint)),
                     ]))
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -448,7 +449,7 @@ class _UserTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04),
@@ -488,7 +489,7 @@ class _UserTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.green.shade500,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: AppC.card, width: 2),
                   ),
                 ),
               ),
@@ -517,12 +518,12 @@ class _UserTile extends StatelessWidget {
               const SizedBox(height: 4),
               Row(children: [
                 Icon(Icons.people_outline_rounded,
-                    size: 11, color: Colors.grey.shade400),
+                    size: 11, color: AppC.faint),
                 const SizedBox(width: 3),
                 Text(
                   followers > 0 ? '$followers followers' : 'No followers yet',
                   style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 10, color: Colors.grey.shade400),
+                      fontSize: 10, color: AppC.faint),
                 ),
               ]),
             ],
@@ -541,10 +542,10 @@ class _UserTile extends StatelessWidget {
                     colors: gradient,
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight),
-                color: isFollowing ? Colors.grey.shade100 : null,
+                color: isFollowing ? AppC.card2 : null,
                 borderRadius: BorderRadius.circular(12),
                 border: isFollowing
-                    ? Border.all(color: Colors.grey.shade300)
+                    ? Border.all(color: AppC.border)
                     : null,
                 boxShadow: isFollowing ? null : [
                   BoxShadow(color: gradient.last.withOpacity(0.3),
@@ -555,7 +556,7 @@ class _UserTile extends StatelessWidget {
                 Icon(
                   isFollowing ? Icons.check_rounded : Icons.person_add_rounded,
                   size: 13,
-                  color: isFollowing ? Colors.grey.shade500 : Colors.white,
+                  color: isFollowing ? AppC.sub : Colors.white,
                 ),
                 const SizedBox(width: 5),
                 Text(
@@ -563,7 +564,7 @@ class _UserTile extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color: isFollowing ? Colors.grey.shade500 : Colors.white,
+                    color: isFollowing ? AppC.sub : Colors.white,
                   ),
                 ),
               ]),

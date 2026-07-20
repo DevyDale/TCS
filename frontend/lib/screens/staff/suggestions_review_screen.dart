@@ -228,7 +228,7 @@ class _SuggestionsReviewScreenState extends State<SuggestionsReviewScreen> {
             crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
             children: [
               Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(
-                  color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+                  color: AppC.border, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 14),
               Text((s['title'] ?? '').toString(), style: TextStyle(fontFamily: 'Alfa',
                   fontSize: 18, color: AppC.text)),
@@ -287,7 +287,7 @@ class _SuggestionsReviewScreenState extends State<SuggestionsReviewScreen> {
                 child: const Text('Save', style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, color: Colors.white)))),
               const SizedBox(height: 16),
-              const Divider(color: Colors.white12),
+              Divider(color: AppC.divider),
               const SizedBox(height: 8),
               Text('REPLY TO STUDENT', style: TextStyle(fontFamily: 'Arch', fontSize: 10,
                   fontWeight: FontWeight.bold, letterSpacing: 1, color: AppC.sub)),

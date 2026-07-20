@@ -406,7 +406,7 @@ class _GroupScreenState extends State<GroupScreen>
             const SizedBox(height: 18),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
+                color: AppC.bg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppC.border)),
               child: TextField(
@@ -446,10 +446,11 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_indigo, _deep]),
                     borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: T('Share',
+                  // Label sits on the indigo→deep gradient: stays white.
+                  child: const Center(child: T('Share',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: AppC.text, fontSize: 13))),
+                          color: Colors.white, fontSize: 13))),
                 ),
               )),
             ]),
@@ -798,7 +799,7 @@ class _GroupScreenState extends State<GroupScreen>
             const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
+                color: AppC.bg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppC.border)),
               child: TextField(
@@ -838,10 +839,11 @@ class _GroupScreenState extends State<GroupScreen>
                   decoration: BoxDecoration(
                     color: _kG4,
                     borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: T('Dissolve',
+                  // Label sits on the solid red destructive button: stays white.
+                  child: const Center(child: T('Dissolve',
                       style: TextStyle(fontFamily: 'Arch',
                           fontWeight: FontWeight.bold,
-                          color: AppC.text, fontSize: 13))),
+                          color: Colors.white, fontSize: 13))),
                 ),
               )),
             ]),
@@ -1173,7 +1175,10 @@ class _GroupScreenState extends State<GroupScreen>
 
   Widget _buildChatTab() {
     return Column(children: [
-      const _StudyVibeBanner(),
+      // NOT const: reads AppC at build time (a const subtree is skipped
+      // when the parent rebuilds on a theme flip).
+      // ignore: prefer_const_constructors
+      _StudyVibeBanner(),
       Expanded(
         child: _loadingMsgs
             ? const Center(child: CircularProgressIndicator(color: _indigo))
@@ -1746,8 +1751,9 @@ class _GroupScreenState extends State<GroupScreen>
                       gradient: LinearGradient(colors: [_kG1, _kG2])),
                     child: Center(
                       child: Text(initial,
-                          style: TextStyle(
-                              color: AppC.text,
+                          // Initial sits on the _kG1→_kG2 avatar gradient.
+                          style: const TextStyle(
+                              color: Colors.white,
                               fontFamily: 'Arch',
                               fontWeight: FontWeight.bold)))),
                   title: Text(name,
@@ -1806,8 +1812,9 @@ class _GroupScreenState extends State<GroupScreen>
                         gradient: LinearGradient(colors: [_kG1, _kG2])),
                       child: Center(
                         child: Text(initial,
-                            style: TextStyle(
-                                color: AppC.text,
+                            // Initial sits on the _kG1→_kG2 avatar gradient.
+                            style: const TextStyle(
+                                color: Colors.white,
                                 fontFamily: 'Arch',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 17)))),
@@ -1993,7 +2000,7 @@ class _GroupScreenState extends State<GroupScreen>
             gradient: outlined
                 ? null
                 : LinearGradient(colors: [color.withOpacity(0.85), color]),
-            color: outlined ? Colors.white : null,
+            color: outlined ? AppC.card : null,
             border: outlined ? Border.all(color: color, width: 1.5) : null,
             borderRadius: BorderRadius.circular(14),
             boxShadow: outlined

@@ -613,7 +613,7 @@ class _GroupsStudyHubScreenState
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: AppC.card2,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppC.border)),
             child: TextField(
@@ -1286,9 +1286,9 @@ class _GroupCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppC.card,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black, width: 1.5),
+          border: Border.all(color: AppC.ink, width: 1.5),
           boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, 3))]),
         child: Row(children: [
           Container(
@@ -1413,7 +1413,7 @@ class _BuddyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppC.border),
         boxShadow: [BoxShadow(
-          color: Colors.black.withOpacity(0.03),
+          color: AppC.shadow,
           blurRadius: 8, offset: const Offset(0, 2))]),
       child: Row(children: [
         // Avatar with a live online dot.
@@ -1581,7 +1581,7 @@ class _ActivityCard extends StatelessWidget {
         color: AppC.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(
-          color: Colors.black.withOpacity(0.03),
+          color: AppC.shadow,
           blurRadius: 8, offset: const Offset(0, 2))]),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1663,7 +1663,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
         color: AppC.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _kG2.withOpacity(0.3)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, 3))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -1707,7 +1707,7 @@ class _StudyBuddyRequestCard extends StatelessWidget {
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(color: Colors.grey.shade50,
+            decoration: BoxDecoration(color: AppC.card2,
                 borderRadius: BorderRadius.circular(10)),
             child: Text(message,
                 style: TextStyle(fontFamily: 'Momo',

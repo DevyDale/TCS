@@ -334,7 +334,7 @@ class _ClubScreenState extends State<ClubScreen> {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -588,7 +588,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppC.card,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _kG4, width: 1.5),
                 ),
@@ -697,9 +697,9 @@ class _ClubScreenState extends State<ClubScreen> {
                             imageUrl: _coverUrl!,
                             fit: BoxFit.cover,
                             placeholder: (_, __) =>
-                                Container(color: Colors.grey.shade100),
+                                Container(color: AppC.card2),
                             errorWidget: (_, __, ___) =>
-                                Container(color: Colors.grey.shade100),
+                                Container(color: AppC.card2),
                           ),
                           Container(
                             decoration: BoxDecoration(
@@ -737,7 +737,7 @@ class _ClubScreenState extends State<ClubScreen> {
                   child: Container(
                     width: 38, height: 38,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
+                      color: AppC.card.withOpacity(0.95),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -888,9 +888,9 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Container(
         width: 108, height: 108,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 6),
+          border: Border.all(color: AppC.card, width: 6),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.12),
@@ -1000,7 +1000,7 @@ class _ClubScreenState extends State<ClubScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
@@ -1044,7 +1044,7 @@ class _ClubScreenState extends State<ClubScreen> {
   void _showAboutSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1063,7 +1063,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 child: Container(
                   width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppC.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1118,7 +1118,7 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -1337,7 +1337,7 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -1465,7 +1465,7 @@ class _ClubScreenState extends State<ClubScreen> {
                       decoration: BoxDecoration(
                         color: _kPresident,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: AppC.card, width: 2),
                       ),
                       child: const Icon(Icons.star_rounded,
                           color: Colors.white, size: 12),
@@ -1514,7 +1514,7 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -1670,9 +1670,9 @@ class _ClubScreenState extends State<ClubScreen> {
                       imageUrl: mediaUrl,
                       fit: BoxFit.cover,
                       placeholder: (_, __) => Container(
-                          color: Colors.grey.shade100),
+                          color: AppC.card2),
                       errorWidget: (_, __, ___) => Container(
-                          color: Colors.grey.shade200),
+                          color: AppC.card2),
                     ),
                     if (isVideo)
                       Container(
@@ -1733,7 +1733,7 @@ class _ClubScreenState extends State<ClubScreen> {
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(color: _kBg),
                   errorWidget: (_, __, ___) => Container(
-                    color: Colors.grey.shade200,
+                    color: AppC.card2,
                     child: const Icon(Icons.broken_image_rounded,
                         color: _kSlate),
                   ),
@@ -1804,7 +1804,7 @@ class _ClubScreenState extends State<ClubScreen> {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1857,9 +1857,9 @@ class _ClubScreenState extends State<ClubScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppC.card2,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppC.border),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1885,7 +1885,7 @@ class _ClubScreenState extends State<ClubScreen> {
           child: Container(
             width: double.infinity, height: 50,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _kG4, width: 1.5),
             ),
@@ -1964,7 +1964,7 @@ class _ClubScreenState extends State<ClubScreen> {
         child: Center(
           child: Column(
             children: [
-              Icon(icon, color: Colors.grey.shade300, size: 36),
+              Icon(icon, color: AppC.faint, size: 36),
               const SizedBox(height: 8),
               Text(message,
                   textAlign: TextAlign.center,
@@ -2003,7 +2003,7 @@ class _ClubScreenState extends State<ClubScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -2086,7 +2086,7 @@ class _ClubScreenState extends State<ClubScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: _kG4, width: 1.2),
             ),
@@ -2185,7 +2185,7 @@ class _ClubScreenState extends State<ClubScreen> {
     HapticFeedback.lightImpact();
     final created = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -2210,7 +2210,7 @@ class _ClubScreenState extends State<ClubScreen> {
     HapticFeedback.lightImpact();
     final sent = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -2269,7 +2269,7 @@ class _ClubScreenState extends State<ClubScreen> {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2477,7 +2477,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2588,7 +2588,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
           hintText: hint,
           hintStyle: TextStyle(
               fontFamily: 'Momo', fontSize: 13,
-              color: Colors.grey.shade400),
+              color: AppC.faint),
           filled: true,
           fillColor: _kBg,
           border: OutlineInputBorder(
@@ -2715,7 +2715,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2747,7 +2747,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
                 hintText: TranslationService.I.tr('Search by name…'),
                 hintStyle: TextStyle(
                     fontFamily: 'Momo', fontSize: 13,
-                    color: Colors.grey.shade400),
+                    color: AppC.faint),
                 prefixIcon: const Icon(Icons.search_rounded,
                     color: _kSlate),
                 filled: true,
@@ -2774,7 +2774,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontFamily: 'Momo', fontSize: 13,
-                                  color: Colors.grey.shade500)),
+                                  color: AppC.sub)),
                         ),
                       )
                     : ListView.separated(
@@ -2868,7 +2868,7 @@ class _InviteMembersSheetState extends State<_InviteMembersSheet> {
                                     border: Border.all(
                                         color: selected
                                             ? _kIndigo
-                                            : Colors.grey.shade400,
+                                            : AppC.border,
                                         width: 1.5),
                                   ),
                                   child: selected
@@ -2977,7 +2977,7 @@ class _EventDetailSheet extends StatelessWidget {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -3341,7 +3341,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -3471,7 +3471,7 @@ class _ClubPostDetailSheetState extends State<_ClubPostDetailSheet> {
                     gradient: canType
                         ? const LinearGradient(colors: [_kIndigo, _kDeep])
                         : null,
-                    color: canType ? null : Colors.grey.shade300,
+                    color: canType ? null : AppC.faint,
                     shape: BoxShape.circle,
                   ),
                   child: _posting

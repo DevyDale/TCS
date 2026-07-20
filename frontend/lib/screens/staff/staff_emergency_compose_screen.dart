@@ -108,7 +108,7 @@ class _StaffEmergencyComposeScreenState
             style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: Text(_drill ? 'Send drill' : 'Send now',
                   style: const TextStyle(color: _kCoral,

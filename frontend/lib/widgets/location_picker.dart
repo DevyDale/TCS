@@ -70,8 +70,8 @@ import 'package:http/http.dart' as http;
 
 // ─── Theme tokens (matches the rest of the app) ──────────────
 const Color _kG2  = Color(0xFF8E54E9);
-const Color _kInk = Color(0xFF1A1A2E);
-const Color _kBg  = Color(0xFFF7F8FA);
+Color get _kInk => AppC.text;
+Color get _kBg  => AppC.bg;
 
 
 // ─── Default quick-picks ─────────────────────────────────────
@@ -366,7 +366,7 @@ class _LocationPickerState extends State<LocationPicker> {
     child: Row(children: [
       const Icon(Icons.place_rounded, color: _kG2, size: 20),
       const SizedBox(width: 8),
-      const T('Add a location',
+      T('Add a location',
           style: TextStyle(fontFamily: 'Alfa', fontSize: 17, color: _kInk)),
       const Spacer(),
       IconButton(
@@ -396,7 +396,7 @@ class _LocationPickerState extends State<LocationPicker> {
             _pickFreeText();
           }
         },
-        style: const TextStyle(
+        style: TextStyle(
             fontFamily: 'Momo', fontSize: 14, color: _kInk),
         decoration: InputDecoration(
           hintText: TranslationService.I.tr('Search any place — café, mall, building…'),
@@ -461,7 +461,7 @@ class _LocationPickerState extends State<LocationPicker> {
               children: [
                 Text('Use "$text"',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -544,7 +544,7 @@ class _LocationPickerState extends State<LocationPicker> {
             children: [
               Text(r.name,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -604,7 +604,7 @@ class _LocationPickerState extends State<LocationPicker> {
         const Icon(Icons.school_rounded, size: 13, color: _kG2),
         const SizedBox(width: 6),
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Arch',
               fontWeight: FontWeight.bold,
               fontSize: 12,
@@ -755,7 +755,7 @@ class _LocationFieldButtonState extends State<LocationFieldButton> {
         decoration: BoxDecoration(
           color: hasValue || _picking
               ? accent.withOpacity(0.08)
-              : Colors.white,
+              : AppC.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: hasValue || _picking

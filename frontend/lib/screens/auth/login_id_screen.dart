@@ -617,7 +617,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                             Icon(
                               Icons.lock_rounded,
                               size: 13,
-                              color: Colors.grey.shade400,
+                              color: AppC.faint,
                             ),
                             const SizedBox(width: 6),
                             T(
@@ -625,7 +625,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                               style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,
-                                color: Colors.grey.shade500,
+                                color: AppC.sub,
                               ),
                             ),
                           ],
@@ -700,7 +700,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
               color: _eulaAccepted ? _accentColor : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: _eulaAccepted ? _accentColor : Colors.grey.shade400,
+                color: _eulaAccepted ? _accentColor : AppC.faint,
                 width: 2,
               ),
             ),
@@ -716,7 +716,7 @@ class _LoginIdScreenState extends State<LoginIdScreen>
                   fontFamily: 'Momo',
                   fontSize: 12.5,
                   height: 1.35,
-                  color: Colors.grey.shade700,
+                  color: AppC.sub,
                 ),
                 children: [
                   const TextSpan(text: 'I agree to the '),

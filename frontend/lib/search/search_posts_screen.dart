@@ -21,7 +21,7 @@ const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 
 const _kFieldAll      = 'all';
@@ -153,7 +153,7 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -182,7 +182,7 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
                       setState(() => _results = []);
                     },
                     child: Icon(Icons.close_rounded,
-                        color: Colors.grey.shade400),
+                        color: AppC.faint),
                   )
                 : null,
             border: InputBorder.none,
@@ -226,10 +226,10 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? tint : Colors.white,
+          color: active ? tint : AppC.card,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: active ? tint : Colors.grey.shade200,
+            color: active ? tint : AppC.border,
             width: 1.5,
           ),
           boxShadow: active ? [
@@ -298,7 +298,7 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
+            Icon(icon, size: 56, color: AppC.border),
             const SizedBox(height: 12),
             Text(title, style: TextStyle(
               fontFamily: 'Alfa',
@@ -312,7 +312,7 @@ class _SearchPostsScreenState extends State<SearchPostsScreen> {
               style: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 12,
-                color: Colors.grey.shade500,
+                color: AppC.sub,
                 height: 1.5,
               ),
             ),
@@ -351,7 +351,7 @@ class _PostResultCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -402,7 +402,7 @@ class _PostResultCard extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 10,
-                      color: Colors.grey.shade500,
+                      color: AppC.sub,
                     ),
                   ),
                 ],
@@ -435,9 +435,9 @@ class _PostResultCard extends StatelessWidget {
                 width: double.infinity, height: 140,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => Container(
-                    height: 140, color: const Color(0xFFEDEEF3)),
+                    height: 140, color: AppC.card2),
                 errorWidget: (_, __, ___) => Container(
-                    height: 140, color: const Color(0xFFEDEEF3)),
+                    height: 140, color: AppC.card2),
               ),
             ),
           ],
@@ -468,7 +468,7 @@ class _PostResultCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 11,
-                    color: Colors.grey.shade500,
+                    color: AppC.sub,
                   ),
                 ),
               ),
@@ -477,21 +477,21 @@ class _PostResultCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(children: [
             Icon(Icons.favorite_outline_rounded,
-                size: 13, color: Colors.grey.shade400),
+                size: 13, color: AppC.faint),
             const SizedBox(width: 4),
             Text('$likes', style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 11,
-              color: Colors.grey.shade400,
+              color: AppC.faint,
             )),
             const SizedBox(width: 14),
             Icon(Icons.chat_bubble_outline_rounded,
-                size: 13, color: Colors.grey.shade400),
+                size: 13, color: AppC.faint),
             const SizedBox(width: 4),
             Text('$comments', style: TextStyle(
               fontFamily: 'Momo',
               fontSize: 11,
-              color: Colors.grey.shade400,
+              color: AppC.faint,
             )),
           ]),
         ],

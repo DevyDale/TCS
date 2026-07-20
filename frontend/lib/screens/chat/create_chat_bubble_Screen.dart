@@ -245,9 +245,9 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
               child: Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.white, shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFF7F8FA), width: 3),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08),
+                  color: AppC.card, shape: BoxShape.circle,
+                  border: Border.all(color: AppC.bg, width: 3),
+                  boxShadow: [BoxShadow(color: AppC.shadow,
                       blurRadius: 4, offset: const Offset(0, 2))],
                 ),
                 child: Icon(
@@ -267,7 +267,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
         Center(child: T(
             'Name it, describe it, invite people in.',
             style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                color: Colors.grey.shade500))),
+                color: AppC.sub))),
         const SizedBox(height: 24),
 
         // Name
@@ -405,11 +405,11 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
           Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-              color: selected ? _kG2.withOpacity(0.12) : Colors.grey.shade100,
+              color: selected ? _kG2.withOpacity(0.12) : AppC.card2,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18,
-                color: selected ? _kG2 : Colors.grey.shade500),
+                color: selected ? _kG2 : AppC.sub),
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -417,7 +417,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
                 fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
             const SizedBox(height: 2),
             Text(body, style: TextStyle(fontFamily: 'Momo',
-                fontSize: 12, color: Colors.grey.shade500, height: 1.3)),
+                fontSize: 12, color: AppC.sub, height: 1.3)),
           ])),
           const SizedBox(width: 8),
           AnimatedContainer(
@@ -430,7 +430,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
                   : null,
               border: selected
                   ? null
-                  : Border.all(color: Colors.grey.shade300, width: 1.5),
+                  : Border.all(color: AppC.border, width: 1.5),
             ),
             child: selected
                 ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
@@ -460,11 +460,11 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
             T('No members yet',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    fontSize: 13, color: Colors.grey.shade600)),
+                    fontSize: 13, color: AppC.sub)),
             const SizedBox(height: 4),
             Text('Tap "Add" to find people to invite',
                 style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 12, color: Colors.grey.shade400)),
+                    fontSize: 12, color: AppC.faint)),
           ]),
         ),
       );
@@ -506,7 +506,7 @@ class _CreateChatBubbleScreenState extends State<CreateChatBubbleScreen> {
         const SizedBox(width: 6),
         GestureDetector(
           onTap: () => _removeMember(id),
-          child: Icon(Icons.close_rounded, size: 14, color: Colors.grey.shade500),
+          child: Icon(Icons.close_rounded, size: 14, color: AppC.sub),
         ),
       ]),
     );

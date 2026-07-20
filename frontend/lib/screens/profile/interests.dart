@@ -143,7 +143,7 @@ class _InterestsPageState extends State<InterestsPage>
     final count = _selected.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Stack(
         children: [
           // ── Top gradient strip ──────────────────────────────
@@ -357,7 +357,7 @@ class _InterestsPageState extends State<InterestsPage>
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: _canSave
-                              ? const Color(0xFF1A1A2E)
+                              ? AppC.text
                               : AppC.sub,
                         ),
                       ),
@@ -666,7 +666,7 @@ class _CategorySectionState extends State<_CategorySection> {
                             : null,
                         color: sel
                             ? null
-                            : const Color(0xFFF7F8FA),
+                            : AppC.bg,
                         borderRadius:
                             BorderRadius.circular(10),
                         border: Border.all(

@@ -53,7 +53,7 @@ class StaffCampusScreen extends StatelessWidget {
             offset: const Offset(0, -26),
             child: Column(children: [
               const SizedBox(height: 30),
-              const StaffSectionLabel('On campus',
+              StaffSectionLabel('On campus',
                   subtitle: 'Run events and join the fun'),
 
               _featureWide(context,

@@ -74,7 +74,7 @@ class ChatStickerBubble extends StatelessWidget {
   Widget _placeholder({bool broken = false, bool loading = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEEF3),
+        color: AppC.card2,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Center(

@@ -229,9 +229,9 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -241,7 +241,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
           Container(
             width: 36, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -259,7 +259,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                   T('Share profile',
                     style: TextStyle(
                       fontFamily: 'Arch', fontSize: 12,
-                      color: Colors.grey.shade500, letterSpacing: 0.6,
+                      color: AppC.sub, letterSpacing: 0.6,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -274,7 +274,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
             ]),
           ),
 
-          Container(height: 1, color: Colors.grey.shade100),
+          Container(height: 1, color: AppC.divider),
 
           // Chats
           if (_loading)
@@ -288,7 +288,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
               child: T('No chats yet — accept a chat request first.',
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 13,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                 ),
               ),
             )
@@ -301,7 +301,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
             )),
 
           // Copy-link footer
-          Container(height: 1, color: Colors.grey.shade100),
+          Container(height: 1, color: AppC.divider),
           GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
@@ -314,12 +314,12 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                   horizontal: 20, vertical: 16),
               child: Row(children: [
                 Icon(Icons.link_rounded,
-                    color: Colors.grey.shade700, size: 18),
+                    color: AppC.sub, size: 18),
                 const SizedBox(width: 12),
                 T('Copy profile link',
                   style: TextStyle(
                     fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                    fontSize: 13, color: Colors.grey.shade700,
+                    fontSize: 13, color: AppC.sub,
                   ),
                 ),
               ]),

@@ -134,7 +134,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Column(children: [
         _buildHeader(),
         _buildStepper(),
@@ -236,7 +236,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: selected ? _indigo.withOpacity(0.1) : Colors.white,
+              color: selected ? _indigo.withOpacity(0.1) : AppC.card,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: selected ? _indigo : AppC.border,
                   width: selected ? 2 : 1.5),
@@ -273,7 +273,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
-              color: sel ? _kG2.withOpacity(0.1) : Colors.white,
+              color: sel ? _kG2.withOpacity(0.1) : AppC.card,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: sel ? _kG2 : AppC.border, width: sel ? 2 : 1.5),
             ),
@@ -319,7 +319,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
-              color: sel ? _indigo.withOpacity(0.1) : Colors.white,
+              color: sel ? _indigo.withOpacity(0.1) : AppC.card,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: sel ? _indigo : AppC.border, width: sel ? 2 : 1.5),
             ),
@@ -430,7 +430,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+            decoration: BoxDecoration(color: AppC.card, borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppC.border)),
             child: Row(children: [
               Container(width: 34, height: 34,
@@ -470,12 +470,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           Text(_icon, style: const TextStyle(fontSize: 52)),
           const SizedBox(height: 12),
           Text(_namCtrl.text.trim(), textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Alfa', fontSize: 22, color: AppC.text)),
+              style: const TextStyle(fontFamily: 'Alfa', fontSize: 22, color: Colors.white)),
           if (_desCtrl.text.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(_desCtrl.text.trim(), textAlign: TextAlign.center,
                 style: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                    color: AppC.text.withOpacity(0.75))),
+                    color: Colors.white.withOpacity(0.75))),
           ],
           const SizedBox(height: 16),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -499,8 +499,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
     decoration: BoxDecoration(color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(20)),
-    child: Text(label, style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-        fontWeight: FontWeight.bold, color: AppC.text)),
+    child: Text(label, style: const TextStyle(fontFamily: 'Momo', fontSize: 11,
+        fontWeight: FontWeight.bold, color: Colors.white)),
   );
 
   Widget _reviewRow(String label, String value) => Padding(
@@ -536,8 +536,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
               : Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(isLast ? '🚀 Create Group' : 'Continue',
-                      style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                          color: AppC.text, fontSize: 15)),
+                      style: const TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
+                          color: Colors.white, fontSize: 15)),
                   if (!isLast) ...[
                     const SizedBox(width: 6),
                     const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
@@ -554,7 +554,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Widget _input(TextEditingController c, String hint,
       {int maxLines = 1, int? maxLen}) => Container(
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+    decoration: BoxDecoration(color: AppC.card, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppC.border)),
     child: TextField(
       controller: c, maxLines: maxLines, maxLength: maxLen,
@@ -571,7 +571,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   Widget _switchRow(String label, bool value, IconData icon, ValueChanged<bool> onChanged) =>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+        decoration: BoxDecoration(color: AppC.card, borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppC.border)),
         child: Row(children: [
           Icon(icon, color: value ? _indigo : AppC.faint, size: 20),

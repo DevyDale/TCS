@@ -29,7 +29,7 @@ const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 const _kIndigo = Color(0xFF3F51B5);
 const _kDeep   = Color(0xFF512DA8);
@@ -189,7 +189,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -221,7 +221,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
                       _runSearch();
                     },
                     child: Icon(Icons.close_rounded,
-                        color: Colors.grey.shade400),
+                        color: AppC.faint),
                   )
                 : null,
             border: InputBorder.none,
@@ -252,10 +252,10 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: active ? _kIndigo : Colors.white,
+                color: active ? _kIndigo : AppC.card,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: active ? _kIndigo : Colors.grey.shade200,
+                  color: active ? _kIndigo : AppC.border,
                   width: 1.5,
                 ),
                 boxShadow: active
@@ -299,7 +299,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
                 isSearching
                     ? Icons.search_off_rounded
                     : Icons.groups_outlined,
-                size: 56, color: Colors.grey.shade300,
+                size: 56, color: AppC.border,
               ),
               const SizedBox(height: 12),
               Text(isSearching ? 'No matching clubs' : 'No clubs yet',
@@ -314,7 +314,7 @@ class _SearchClubsScreenState extends State<SearchClubsScreen> {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                   height: 1.5,
                 ),
               ),
@@ -368,7 +368,7 @@ class _ClubResultCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -432,7 +432,7 @@ class _ClubResultCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Icon(Icons.lock_rounded,
-                            size: 11, color: Colors.grey.shade500),
+                            size: 11, color: AppC.sub),
                       ),
                     ],
                   ]),
@@ -441,7 +441,7 @@ class _ClubResultCard extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 11,
-                        color: Colors.grey.shade500,
+                        color: AppC.sub,
                       )),
                   if (tagline.isNotEmpty) ...[
                     const SizedBox(height: 6),

@@ -19,7 +19,7 @@ import '../../services/api_service.dart';
 import 'arcade_registry.dart';
 
 
-const _kDarkBg     = Color(0xFF0D0D1A);
+Color get _kDarkBg => AppC.bg;
 Color get _kDarkCard => AppC.card;
 Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
@@ -210,16 +210,16 @@ class _IncomingList extends StatelessWidget {
     if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: () async => onRefresh(),
-        child: ListView(children: const [
-          SizedBox(height: 120),
-          Center(child: T('🎮', style: TextStyle(fontSize: 64))),
-          SizedBox(height: 12),
+        child: ListView(children: [
+          const SizedBox(height: 120),
+          const Center(child: T('🎮', style: TextStyle(fontSize: 64))),
+          const SizedBox(height: 12),
           Center(child: T('No challenges right now',
-            style: TextStyle(fontFamily: 'Alfa', color: Colors.white60,
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.sub,
                 fontSize: 16))),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Center(child: T('Pull down to refresh',
-            style: TextStyle(fontFamily: 'Momo', color: Colors.white24,
+            style: TextStyle(fontFamily: 'Momo', color: AppC.faint,
                 fontSize: 12))),
         ]),
       );
@@ -312,7 +312,7 @@ class _IncomingCard extends StatelessWidget {
             ? 'Accepting deducts 🪙 ${req.wager} from your wallet.'
             : '⚠ Not enough tokens (you have $myTokens 🪙).',
           style: TextStyle(fontFamily: 'Momo', fontSize: 11,
-              color: canAfford ? Colors.white38 : _kNeonRed)),
+              color: canAfford ? AppC.faint : _kNeonRed)),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: GestureDetector(onTap: onDecline,
@@ -332,10 +332,10 @@ class _IncomingCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [
                     Color(0xFF388E3C), Color(0xFF1B5E20)]),
                   borderRadius: BorderRadius.circular(12)),
-                child: Center(child: T('⚔  Accept',
+                child: const Center(child: T('⚔  Accept',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 14,
-                      color: AppC.text)))))))
+                      color: Colors.white)))))))
         ]),
       ]),
     );
@@ -511,7 +511,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
             hintStyle: TextStyle(fontFamily: 'Momo',
                 color: AppC.text.withOpacity(0.3)),
             filled: true, fillColor: _kDarkCard,
-            prefixIcon: const Icon(Icons.search, color: Colors.white54),
+            prefixIcon: Icon(Icons.search, color: AppC.sub),
             suffixIcon: _searching
               ? const Padding(padding: EdgeInsets.all(14),
                   child: SizedBox(width: 16, height: 16,
@@ -536,7 +536,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
           Container(
             decoration: BoxDecoration(color: _kDarkCard,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05))),
+                border: Border.all(color: AppC.border)),
             padding: const EdgeInsets.all(8),
             child: Column(children: _searchResults.map((u) {
               final id  = u['user_id']      as String? ?? '';
@@ -570,7 +570,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                             fontWeight: FontWeight.bold, fontSize: 13,
                             color: AppC.text)),
                       Text(n, style: TextStyle(fontFamily: 'Momo',
-                          fontSize: 10, color: Colors.white38)),
+                          fontSize: 10, color: AppC.faint)),
                     ])),
                     if (sel) const Icon(Icons.check_circle_rounded,
                         color: _kNeonPurple, size: 20),
@@ -596,13 +596,12 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 color:    sel ? null : _kDarkCard2,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: sel ? Colors.transparent
-                               : Colors.white.withOpacity(0.07))),
+                    color: sel ? Colors.transparent : AppC.border)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Text(m['name'] as String? ?? '',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 12,
-                      color: sel ? Colors.white : Colors.white60)),
+                      color: sel ? Colors.white : AppC.sub)),
                 if (royale) ...[
                   const SizedBox(width: 6),
                   Container(padding: const EdgeInsets.symmetric(
@@ -623,16 +622,16 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
               ? '💡 Royale: invite up to $_kMaxRecipients players. '
                   'Winner takes the whole pot.'
               : '🆚 1-on-1 challenge.',
-            style: const TextStyle(fontFamily: 'Momo',
-                fontSize: 11, color: Colors.white54)),
+            style: TextStyle(fontFamily: 'Momo',
+                fontSize: 11, color: AppC.sub)),
         ],
 
         const SizedBox(height: 22),
         _stepLabel('3', 'Set wager'),
         const SizedBox(height: 6),
         Text('You have ${widget.myTokens} 🪙',
-          style: const TextStyle(fontFamily: 'Momo',
-              fontSize: 12, color: Colors.white38)),
+          style: TextStyle(fontFamily: 'Momo',
+              fontSize: 12, color: AppC.faint)),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: _kWagerOptions.map((amt) {
           final sel = _wager == amt;
@@ -650,13 +649,12 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 color:    sel ? null : _kDarkCard2,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: sel ? Colors.transparent
-                               : Colors.white.withOpacity(0.07))),
+                    color: sel ? Colors.transparent : AppC.border)),
               child: Text(amt == 0 ? 'Free' : '🪙 $amt',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold, fontSize: 13,
-                    color: ok ? (sel ? Colors.white : Colors.white60)
-                              : Colors.white24))));
+                    color: ok ? (sel ? Colors.white : AppC.sub)
+                              : AppC.faint))));
         }).toList()),
 
         const SizedBox(height: 32),
@@ -677,9 +675,9 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2.5))
-                : T('⚔  Send Challenge',
+                : const T('⚔  Send Challenge',
                     style: TextStyle(fontFamily: 'Alfa',
-                        fontSize: 16, color: AppC.text))))),
+                        fontSize: 16, color: Colors.white))))),
         ),
         const SizedBox(height: 32),
       ],
@@ -702,7 +700,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
                 fontWeight: FontWeight.bold,
                 fontSize: 12, color: AppC.text)),
           const SizedBox(width: 6),
-          const Icon(Icons.close, size: 14, color: Colors.white70),
+          Icon(Icons.close, size: 14, color: AppC.sub),
         ])));
   }
 
@@ -712,7 +710,7 @@ class _NewChallengeTabState extends State<_NewChallengeTab> {
         gradient: const LinearGradient(colors: [_kNeonBlue, _kNeonPurple]),
         shape: BoxShape.circle),
       child: Center(child: Text(num,
-        style: TextStyle(color: AppC.text, fontFamily: 'Arch',
+        style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
             fontWeight: FontWeight.bold, fontSize: 12)))),
     const SizedBox(width: 8),
     Text(text, style: TextStyle(fontFamily: 'Alfa',

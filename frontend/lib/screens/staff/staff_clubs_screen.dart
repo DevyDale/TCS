@@ -116,8 +116,8 @@ class _StaffClubsScreenState extends State<StaffClubsScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel',
+                  style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Remove',
                   style: TextStyle(color: Color(0xFFB3261E),
@@ -427,7 +427,7 @@ class _StaffClubsScreenState extends State<StaffClubsScreen> {
                 bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Container(width: 38, height: 4,
-                  decoration: BoxDecoration(color: Colors.white24,
+                  decoration: BoxDecoration(color: AppC.border,
                       borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 16),
               Row(children: [

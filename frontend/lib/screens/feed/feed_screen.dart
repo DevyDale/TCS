@@ -1538,7 +1538,7 @@ class _PostCardState extends State<_PostCard>
         boxShadow: [
           BoxShadow(color: _kG2.withOpacity(0.12),
               blurRadius: 18, offset: const Offset(0, 8)),
-          BoxShadow(color: Colors.black.withOpacity(0.04),
+          BoxShadow(color: AppC.shadow,
               blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -3006,7 +3006,7 @@ class _ShareSheetState extends State<_ShareSheet> {
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: sel ? _kViolet.withOpacity(0.07) : Colors.white,
+          color: sel ? _kViolet.withOpacity(0.07) : AppC.card,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: sel ? _kViolet.withOpacity(0.5) : AppC.border,
@@ -3233,7 +3233,7 @@ class _EventCardState extends State<_EventCard>
         boxShadow: [
           BoxShadow(color: _kG2.withOpacity(0.12),
               blurRadius: 18, offset: const Offset(0, 8)),
-          BoxShadow(color: Colors.black.withOpacity(0.04),
+          BoxShadow(color: AppC.shadow,
               blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),

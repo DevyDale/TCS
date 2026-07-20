@@ -119,7 +119,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
+              child: T('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const T('Upload', style: TextStyle(color: _kG1))),
         ],
@@ -170,7 +170,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.text.withOpacity(.8))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const T('Cancel', style: TextStyle(color: Colors.white54))),
+              child: T('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const T('Delete', style: TextStyle(color: _kRed))),
         ],
@@ -265,8 +265,8 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         backgroundColor: _kG2,
         onPressed: _busy ? null : _upload,
         icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
-        label: T('Upload material',
-            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: AppC.text)),
+        label: const T('Upload material',
+            style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: Colors.white)),
       ),
       body: (_loading || _tick)
           ? DaleLoader(done: _tick, doneLabel: 'Dale is ready')
@@ -523,7 +523,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: _card, borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12)),
+          border: Border.all(color: AppC.border)),
         child: Row(children: [
           Icon(Icons.search_rounded, size: 18, color: AppC.text.withOpacity(.4)),
           const SizedBox(width: 8),
@@ -553,7 +553,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
           decoration: BoxDecoration(
             color: _activeOnly ? _kG2 : _card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _activeOnly ? _kG2 : Colors.white12)),
+            border: Border.all(color: _activeOnly ? _kG2 : AppC.border)),
           child: Row(children: [
             Icon(Icons.bolt_rounded, size: 16,
                 color: _activeOnly ? Colors.white : AppC.text.withOpacity(.5)),
@@ -612,7 +612,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
         decoration: BoxDecoration(
           color: _card, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: (active ? _kG1 : Colors.white24).withOpacity(.25)),
+          border: Border.all(color: active ? _kG1.withOpacity(.25) : AppC.border),
         ),
         child: Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -657,7 +657,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
         builder: (ctx, scroll) => Column(children: [
           const SizedBox(height: 10),
           Container(width: 38, height: 4,
-              decoration: BoxDecoration(color: Colors.white24,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
@@ -677,7 +677,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
                       color: AppC.text.withOpacity(.5))),
             ),
           ),
-          const Divider(height: 1, color: Colors.white12),
+          Divider(height: 1, color: AppC.divider),
           Expanded(child: FutureBuilder(
             future: _api.get('/ai/knowledge/${d['id']}/chunks/')
                 .catchError((_) => <String, dynamic>{}),
@@ -704,7 +704,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: _bg, borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white10)),
+                      border: Border.all(color: AppC.border)),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Passage ${(c['ordinal'] ?? i) + 1}',

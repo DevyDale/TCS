@@ -14,7 +14,7 @@ import 'spectator_screen.dart';
 
 
 
-const _kDarkBg     = Color(0xFF0D0D1A);
+Color get _kDarkBg => AppC.bg;
 Color get _kDarkCard => AppC.card;
 Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
@@ -95,17 +95,17 @@ class _LiveMatchesScreenState extends State<LiveMatchesScreen> {
         child: _loading
           ? const Center(child: CircularProgressIndicator(color: _kNeonBlue))
           : _sessions.isEmpty
-            ? ListView(children: const [
-                SizedBox(height: 120),
-                Center(child: T('🎮', style: TextStyle(fontSize: 64))),
-                SizedBox(height: 14),
+            ? ListView(children: [
+                const SizedBox(height: 120),
+                const Center(child: T('🎮', style: TextStyle(fontSize: 64))),
+                const SizedBox(height: 14),
                 Center(child: T('No live matches right now',
                   style: TextStyle(fontFamily: 'Alfa',
-                      color: Colors.white60, fontSize: 16))),
-                SizedBox(height: 6),
+                      color: AppC.sub, fontSize: 16))),
+                const SizedBox(height: 6),
                 Center(child: T('Pull down to refresh',
                   style: TextStyle(fontFamily: 'Momo',
-                      color: Colors.white24, fontSize: 12))),
+                      color: AppC.faint, fontSize: 12))),
               ])
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -190,13 +190,13 @@ class _MatchCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10)),
                     child: Row(mainAxisSize: MainAxisSize.min,
                         children: [
-                      Icon(Icons.visibility_rounded,
+                      const Icon(Icons.visibility_rounded,
                           color: Colors.white, size: 14),
-                      SizedBox(width: 6),
-                      T('Watch',
+                      const SizedBox(width: 6),
+                      const T('Watch',
                         style: TextStyle(fontFamily: 'Arch',
                             fontWeight: FontWeight.bold, fontSize: 12,
-                            color: AppC.text)),
+                            color: Colors.white)),
                     ])),
                 ]),
               ]),
@@ -225,9 +225,9 @@ class _MatchCard extends StatelessWidget {
                 fontSize: 10)) : null),
         const SizedBox(width: 6),
         Text('@${tag.isNotEmpty ? tag : name}',
-          style: const TextStyle(fontFamily: 'Arch',
+          style: TextStyle(fontFamily: 'Arch',
               fontWeight: FontWeight.bold, fontSize: 11,
-              color: Colors.white70)),
+              color: AppC.sub)),
       ]),
     );
   }

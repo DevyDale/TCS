@@ -21,7 +21,7 @@ import 'package:intl/intl.dart';
 // bubble blends with the conversation instead of using the AI-Hub purple.
 const _kG1   = Color(0xFFA9BC95); // sage
 const _kG2   = Color(0xFF6E8159); // sage dark
-const _kInk  = Color(0xFF2E3A24);
+Color get _kInk => AppC.text;
 
 class DaleMessageBubble extends StatelessWidget {
   final Map<String, dynamic> message;
@@ -85,7 +85,7 @@ class DaleMessageBubble extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stack) => Icon(
                       Icons.smart_toy_rounded,
-                      color: AppC.card,
+                      color: Colors.white,
                       size: 18),
                 ),
               ),
@@ -139,7 +139,7 @@ class DaleMessageBubble extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: AppC.shadow,
                             blurRadius: 8,
                             offset: const Offset(0, 2)),
                       ],
@@ -161,7 +161,7 @@ class DaleMessageBubble extends StatelessWidget {
                         children: [
                           Text(
                             text,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Momo',
                               fontSize: 14.5,
                               color: _kInk,

@@ -54,7 +54,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Column(children: [
         // Header + search
         Container(
@@ -73,7 +73,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
             const SizedBox(width: 10),
             Expanded(child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA), borderRadius: BorderRadius.circular(14),
+                color: AppC.card2, borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: _ctrl, autofocus: true, enableSuggestions: false,
@@ -141,7 +141,7 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      decoration: BoxDecoration(color: AppC.card, borderRadius: BorderRadius.circular(14),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)]),
       child: Row(children: [
         Container(width: 44, height: 44,
@@ -181,12 +181,12 @@ class _StudyHubSearchScreenState extends State<StudyHubSearchScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+      decoration: BoxDecoration(color: AppC.card, borderRadius: BorderRadius.circular(14),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)]),
       child: Row(children: [
         Container(width: 44, height: 44, decoration: BoxDecoration(shape: BoxShape.circle,
             gradient: const LinearGradient(colors: [_kG2, _indigo])),
-          child: Center(child: Text(initial, style: TextStyle(color: AppC.text,
+          child: Center(child: Text(initial, style: const TextStyle(color: Colors.white,
               fontFamily: 'Arch', fontWeight: FontWeight.bold, fontSize: 18)))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

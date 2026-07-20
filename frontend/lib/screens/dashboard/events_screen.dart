@@ -112,7 +112,7 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: Column(
         children: [
           // Gradient top bar — runs under the status bar, with the search
@@ -147,7 +147,10 @@ class _EventsScreenState extends State<EventsScreen> {
                       child: _buildError(_error!),
                     )
                   else if (_filteredEvents.isEmpty)
-                    const SliverFillRemaining(
+                    // NOT const: _EmptyState reads AppC at build time and a
+                    // const subtree would be skipped on a theme flip.
+                    // ignore: prefer_const_constructors
+                    SliverFillRemaining(
                       hasScrollBody: false,
                       child: _EmptyState(),
                     )
@@ -250,14 +253,14 @@ class _EventsScreenState extends State<EventsScreen> {
         // Search field — lives inside the top bar.
         TextField(
           onChanged: (v) => setState(() => _searchQuery = v),
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search for events...'),
             hintStyle: TextStyle(
-                fontFamily: 'Momo', color: Colors.grey.shade400, fontSize: 13),
+                fontFamily: 'Momo', color: AppC.faint, fontSize: 13),
             prefixIcon: const Icon(Icons.search_rounded, color: _kG2),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppC.card,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
             border: OutlineInputBorder(
@@ -384,7 +387,7 @@ class _FeaturedCard extends StatelessWidget {
         width: 300,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(24),
           border: const GradientBoxBorder(
             gradient: LinearGradient(
@@ -482,7 +485,7 @@ class _EventListCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(20),
           border: const GradientBoxBorder(
             gradient: LinearGradient(
@@ -665,9 +668,9 @@ class _FilterChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
         selectedColor: _kG2,
-        backgroundColor: Colors.white,
+        backgroundColor: AppC.card,
         labelStyle: TextStyle(
-          color: selected ? Colors.white : Colors.black87,
+          color: selected ? Colors.white : AppC.text,
           fontWeight: FontWeight.bold,
         ),
       ),

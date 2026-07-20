@@ -160,8 +160,8 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
           bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         height: h * 0.88,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(children: [
@@ -169,7 +169,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
           _buildHeader(),
           _buildSearchField(),
           if (_selectedOrder.isNotEmpty) _buildSelectedRow(),
-          const Divider(height: 1, color: Color(0xFFEFEFEF)),
+          Divider(height: 1, color: AppC.divider),
           Expanded(child: _buildBody()),
           _buildConfirmBar(),
         ]),
@@ -182,7 +182,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
     child: Center(child: Container(
         width: 42, height: 4,
         decoration: BoxDecoration(
-            color: Colors.grey.shade300,
+            color: AppC.border,
             borderRadius: BorderRadius.circular(2)))),
   );
 
@@ -196,10 +196,10 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
         child: Container(
           width: 32, height: 32,
           decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppC.card2,
               shape: BoxShape.circle),
           child: Icon(Icons.close_rounded,
-              size: 18, color: Colors.grey.shade700),
+              size: 18, color: AppC.sub),
         ),
       ),
     ]),
@@ -209,7 +209,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
     padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
     child: Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppC.card2,
         borderRadius: BorderRadius.circular(14),
       ),
       child: TextField(
@@ -217,12 +217,12 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
         style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
         decoration: InputDecoration(
           hintText: TranslationService.I.tr('Search by name or ID'),
-          hintStyle: TextStyle(fontFamily: 'Momo', color: Colors.grey.shade500),
-          prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade500),
+          hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
+          prefixIcon: Icon(Icons.search_rounded, color: AppC.sub),
           suffixIcon: _qCtrl.text.isEmpty
               ? null
               : IconButton(
-                  icon: Icon(Icons.close_rounded, color: Colors.grey.shade500),
+                  icon: Icon(Icons.close_rounded, color: AppC.sub),
                   onPressed: () { _qCtrl.clear(); _runSearch(); }),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -340,7 +340,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                         fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
                 const SizedBox(height: 2),
                 Text(role, style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 11, color: Colors.grey.shade500)),
+                    fontSize: 11, color: AppC.sub)),
               ])),
               const SizedBox(width: 8),
               AnimatedContainer(
@@ -353,7 +353,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                       : null,
                   border: selected
                       ? null
-                      : Border.all(color: Colors.grey.shade300, width: 1.5),
+                      : Border.all(color: AppC.border, width: 1.5),
                 ),
                 child: selected
                     ? const Icon(Icons.check_rounded,
@@ -372,14 +372,14 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
   }) => Center(child: Padding(
     padding: const EdgeInsets.all(40),
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 44, color: Colors.grey.shade300),
+      Icon(icon, size: 44, color: AppC.border),
       const SizedBox(height: 14),
       Text(title, style: TextStyle(fontFamily: 'Alfa',
           fontSize: 16, color: _kInk)),
       const SizedBox(height: 6),
       Text(body, textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'Momo',
-              fontSize: 13, color: Colors.grey.shade500)),
+              fontSize: 13, color: AppC.sub)),
     ]),
   ));
 

@@ -251,11 +251,11 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
                   )),
                   const SizedBox(height: 18),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.lock_rounded, size: 13, color: Colors.grey.shade400),
+                    Icon(Icons.lock_rounded, size: 13, color: AppC.faint),
                     const SizedBox(width: 6),
                     Text('Visitor accounts only see public club & event posts',
                         style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                            color: Colors.grey.shade500)),
+                            color: AppC.sub)),
                   ]),
                 ],
               )),
@@ -332,7 +332,7 @@ class _VisitorAuthScreenState extends State<VisitorAuthScreen>
               color: _agreed ? _kViAccent : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                  color: _agreed ? _kViAccent : Colors.grey.shade400, width: 2)),
+                  color: _agreed ? _kViAccent : AppC.faint, width: 2)),
             child: _agreed
                 ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
                 : null),

@@ -18,7 +18,7 @@ import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 
 
-const _kDarkBg     = Color(0xFF0D0D1A);
+Color get _kDarkBg => AppC.bg;
 Color get _kDarkCard => AppC.card;
 Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
@@ -177,8 +177,8 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const T('Cancel',
-              style: TextStyle(fontFamily: 'Momo', color: Colors.white60))),
+            child: T('Cancel',
+              style: TextStyle(fontFamily: 'Momo', color: AppC.sub))),
           GestureDetector(onTap: () => Navigator.pop(context, true),
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -187,10 +187,10 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                 gradient: const LinearGradient(
                     colors: [_kNeonOrange, _kNeonRed]),
                 borderRadius: BorderRadius.circular(10)),
-              child: T('Send',
+              child: const T('Send',
                 style: TextStyle(fontFamily: 'Arch',
                     fontWeight: FontWeight.bold,
-                    color: AppC.text, fontSize: 13)))),
+                    color: Colors.white, fontSize: 13)))),
           const SizedBox(width: 12),
         ],
       ),
@@ -257,19 +257,19 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   blurRadius: 18, offset: const Offset(0, 6))]),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                T('YOUR BALANCE',
+                const T('YOUR BALANCE',
                   style: TextStyle(fontFamily: 'Momo',
                       letterSpacing: 2, fontSize: 10,
-                      color: AppC.text.withOpacity(0.7))),
+                      color: Colors.white70)),
                 const SizedBox(height: 6),
                 Text('🪙 $_myTokens',
-                  style: TextStyle(fontFamily: 'Alfa',
-                      fontSize: 36, color: AppC.text)),
+                  style: const TextStyle(fontFamily: 'Alfa',
+                      fontSize: 36, color: Colors.white)),
                 const SizedBox(height: 4),
-                T('Daily cap: 500 · Max per send: 200',
+                const T('Daily cap: 500 · Max per send: 200',
                   style: TextStyle(fontFamily: 'Momo',
                       fontSize: 11,
-                      color: AppC.text.withOpacity(0.7))),
+                      color: Colors.white70)),
               ]),
           ),
           const SizedBox(height: 22),
@@ -287,15 +287,15 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
               hintStyle: TextStyle(fontFamily: 'Momo',
                   color: AppC.text.withOpacity(0.3)),
               filled: true, fillColor: _kDarkCard,
-              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+              prefixIcon: Icon(Icons.search, color: AppC.sub),
               suffixIcon: _searching
                 ? const Padding(padding: EdgeInsets.all(14),
                     child: SizedBox(width: 16, height: 16,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: _kNeonBlue)))
                 : (_selectedRecipient != null
-                    ? IconButton(icon: const Icon(Icons.close,
-                          color: Colors.white54),
+                    ? IconButton(icon: Icon(Icons.close,
+                          color: AppC.sub),
                         onPressed: _clearRecipient)
                     : null),
               border: OutlineInputBorder(
@@ -334,11 +334,11 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                           style: TextStyle(fontFamily: 'Arch',
                               fontWeight: FontWeight.bold, fontSize: 13,
                               color: AppC.text)),
-                        Text(n, style: const TextStyle(fontFamily: 'Momo',
-                            fontSize: 10, color: Colors.white38)),
+                        Text(n, style: TextStyle(fontFamily: 'Momo',
+                            fontSize: 10, color: AppC.faint)),
                       ])),
-                      const Icon(Icons.chevron_right,
-                          color: Colors.white38),
+                      Icon(Icons.chevron_right,
+                          color: AppC.faint),
                     ])));
               }).toList()),
             ),
@@ -383,12 +383,11 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                 decoration: BoxDecoration(
                   color: _kDarkCard2,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.07))),
+                  border: Border.all(color: AppC.border)),
                 child: Text('🪙 $amt',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 13,
-                      color: disabled ? Colors.white24 : Colors.white60))));
+                      color: disabled ? AppC.faint : AppC.sub))));
           }).toList()),
 
           const SizedBox(height: 22),
@@ -428,9 +427,9 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
                   ? const SizedBox(width: 22, height: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.5))
-                  : T('💸  Send Tokens',
+                  : const T('💸  Send Tokens',
                       style: TextStyle(fontFamily: 'Alfa',
-                          fontSize: 16, color: AppC.text)))))),
+                          fontSize: 16, color: Colors.white)))))),
 
           const SizedBox(height: 28),
           _sectionLabel('Recent transfers'),
@@ -467,7 +466,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: _kDarkCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.05))),
+          border: Border.all(color: AppC.border)),
       child: Row(children: [
         CircleAvatar(radius: 18,
           backgroundColor: _kNeonPurple.withOpacity(0.2),
@@ -514,7 +513,7 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
         gradient: LinearGradient(colors: [_kNeonOrange, _kNeonRed]),
         shape: BoxShape.circle),
       child: Center(child: Text(n,
-        style: TextStyle(color: AppC.text, fontFamily: 'Arch',
+        style: const TextStyle(color: Colors.white, fontFamily: 'Arch',
             fontWeight: FontWeight.bold, fontSize: 12)))),
     const SizedBox(width: 8),
     Text(text, style: TextStyle(fontFamily: 'Alfa',
@@ -522,8 +521,8 @@ class _TransferTokensScreenState extends State<TransferTokensScreen> {
   ]);
 
   Widget _sectionLabel(String t) => Text(t.toUpperCase(),
-    style: const TextStyle(fontFamily: 'Momo', letterSpacing: 2,
-        fontSize: 11, color: Colors.white54));
+    style: TextStyle(fontFamily: 'Momo', letterSpacing: 2,
+        fontSize: 11, color: AppC.sub));
 
   String _ago(String iso) {
     try {

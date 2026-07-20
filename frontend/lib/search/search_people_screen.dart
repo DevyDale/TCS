@@ -34,7 +34,7 @@ const _kG2     = Color(0xFF8E54E9);
 const _kG3     = Color(0xFFF7971E);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 
 const _kRoleAll      = 'all';
@@ -250,7 +250,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -279,7 +279,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
                       setState(() => _all = []);
                     },
                     child: Icon(Icons.close_rounded,
-                        color: Colors.grey.shade400),
+                        color: AppC.faint),
                   )
                 : null,
             border: InputBorder.none,
@@ -323,10 +323,10 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? tint : Colors.white,
+          color: active ? tint : AppC.card,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: active ? tint : Colors.grey.shade200,
+            color: active ? tint : AppC.border,
             width: 1.5,
           ),
           boxShadow: active ? [
@@ -408,7 +408,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
+            Icon(icon, size: 56, color: AppC.border),
             const SizedBox(height: 12),
             Text(title, style: TextStyle(
               fontFamily: 'Alfa',
@@ -422,7 +422,7 @@ class _SearchPeopleScreenState extends State<SearchPeopleScreen> {
               style: TextStyle(
                 fontFamily: 'Momo',
                 fontSize: 12,
-                color: Colors.grey.shade500,
+                color: AppC.sub,
                 height: 1.5,
               ),
             ),
@@ -462,7 +462,7 @@ class _PersonResultCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -531,7 +531,7 @@ class _PersonResultCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Momo',
                     fontSize: 11,
-                    color: Colors.grey.shade500,
+                    color: AppC.sub,
                   ),
                 ),
               ],
@@ -546,10 +546,10 @@ class _PersonResultCard extends StatelessWidget {
                 gradient: isFollowing ? null : const LinearGradient(
                   colors: [_kG1, _kG2],
                 ),
-                color: isFollowing ? Colors.grey.shade100 : null,
+                color: isFollowing ? AppC.card2 : null,
                 borderRadius: BorderRadius.circular(10),
                 border: isFollowing
-                    ? Border.all(color: Colors.grey.shade300)
+                    ? Border.all(color: AppC.border)
                     : null,
               ),
               child: Text(
@@ -558,7 +558,7 @@ class _PersonResultCard extends StatelessWidget {
                   fontFamily: 'Arch',
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: isFollowing ? Colors.grey.shade600 : Colors.white,
+                  color: isFollowing ? AppC.sub : Colors.white,
                 ),
               ),
             ),

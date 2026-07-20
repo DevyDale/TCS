@@ -33,7 +33,7 @@ Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _kBlue   = Color(0xFF6DD5FA);
@@ -183,7 +183,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   void _snack(String msg, {Color? color, bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(color: Colors.white)),
+      // Snack fill is _kInk (flips with the theme), so the label must be _kBg.
+      content: Text(msg, style: TextStyle(
+          color: (color != null || error) ? Colors.white : _kBg1)),
       backgroundColor: color ?? (error ? _kCoral : _kInk),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -244,8 +246,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
               decoration: BoxDecoration(
                 color: _kInk, borderRadius: BorderRadius.circular(12)),
-              child: const T('Try again', style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w800,
+              child: T('Try again', style: TextStyle(
+                  color: _kBg1, fontWeight: FontWeight.w800,
                   fontSize: 13)),
             ),
           ),
@@ -311,7 +313,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   boxShadow: [BoxShadow(
                       color: Colors.black.withOpacity(0.06),
                       blurRadius: 8, offset: const Offset(0, 2))]),
-              child: const Icon(Icons.ios_share_rounded,
+              child: Icon(Icons.ios_share_rounded,
                   color: _kInkSoft, size: 16)))),
 
         // Avatar with animated gradient ring
@@ -490,18 +492,20 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               radius: 14, borderWidth: 1.4,
               innerColor: _kInk,
               padding: const EdgeInsets.symmetric(vertical: 14),
+              // Fill is _kInk, which flips with the theme — the label has to
+              // ride on _kBg, not a fixed white.
               child: _busyFollow
-                ? const Center(child: SizedBox(width: 18, height: 18,
+                ? Center(child: SizedBox(width: 18, height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white)))
-                : const Row(mainAxisAlignment: MainAxisAlignment.center,
+                        strokeWidth: 2, color: _kBg1)))
+                : Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                     Icon(Icons.person_add_alt_1_rounded,
-                        size: 16, color: Colors.white),
-                    SizedBox(width: 6),
+                        size: 16, color: _kBg1),
+                    const SizedBox(width: 6),
                     T('Follow', style: TextStyle(
                         fontWeight: FontWeight.w800, fontSize: 13,
-                        color: Colors.white, letterSpacing: -0.2)),
+                        color: _kBg1, letterSpacing: -0.2)),
                   ])),
       )),
       const SizedBox(width: 10),
@@ -538,7 +542,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           decoration: BoxDecoration(
             color: _kCard, shape: BoxShape.circle,
             border: Border.all(color: _kBorder, width: 1.5)),
-          child: const Icon(Icons.ios_share_rounded,
+          child: Icon(Icons.ios_share_rounded,
               size: 18, color: _kInkSoft))),
     ]);
   }

@@ -443,7 +443,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                 decoration: BoxDecoration(color: _kG4,
                     borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: Colors.white, width: 1.5)),
+                    border: Border.all(color: AppC.card, width: 1.5)),
                 child: Center(child: Text(
                     _totalRequests > 99 ? '99+' : '$_totalRequests',
                     style: const TextStyle(color: Colors.white, fontSize: 10,
@@ -812,7 +812,7 @@ Widget _buildSearchField() {
                 child: Container(width: 13, height: 13,
                   decoration: BoxDecoration(color: Colors.green.shade500,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2)))),
+                      border: Border.all(color: AppC.card, width: 2)))),
           ]),
           const SizedBox(width: 12),
 

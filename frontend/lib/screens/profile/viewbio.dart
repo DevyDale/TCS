@@ -128,7 +128,9 @@ class _BioPageState extends State<BioPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.blue.shade50, Colors.white],
+            colors: AppC.isDark
+                ? [AppC.bg, AppC.bg]
+                : [Colors.blue.shade50, Colors.white],
           ),
         ),
         child: Center(
@@ -217,7 +219,7 @@ class _BioPageState extends State<BioPage> {
                               selected: selected,
                               backgroundColor: selected ? Colors.blue.shade100 : AppC.card2,
                               selectedColor: Colors.blue.shade300,
-                              labelStyle: TextStyle(color: selected ? Colors.blue.shade900 : Colors.black87),
+                              labelStyle: TextStyle(color: selected ? Colors.blue.shade900 : AppC.text),
                               onSelected: (val) {
                                 setState(() {
                                   if (val) {
@@ -275,7 +277,7 @@ class _BioPageState extends State<BioPage> {
                               selected: selected,
                               backgroundColor: selected ? Colors.orange.shade100 : AppC.card2,
                               selectedColor: Colors.orange.shade300,
-                              labelStyle: TextStyle(color: selected ? Colors.orange.shade900 : Colors.black87),
+                              labelStyle: TextStyle(color: selected ? Colors.orange.shade900 : AppC.text),
                               onSelected: (val) {
                                 setState(() {
                                   if (val) {

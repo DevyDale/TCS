@@ -155,7 +155,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   bool  get _hasLocation => _locationCtrl.text.trim().isNotEmpty;
   bool  get _hasFeeling  => _feelingSlug != null && _feelingSlug!.isNotEmpty;
   Color get _textColor   =>
-      _hasBg ? _fweetTextColor(_selectedBg!) : const Color(0xFF1A1A2E);
+      _hasBg ? _fweetTextColor(_selectedBg!) : AppC.text;
 
   Color get _counterColor {
     if (_remaining < 0)  return _kG4;
@@ -292,7 +292,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
               colors: [_selectedBg!, _selectedBg!.withOpacity(0.75)],
               begin: Alignment.topLeft, end: Alignment.bottomRight,
             ) : null,
-            color: _hasBg ? null : Colors.white,
+            color: _hasBg ? null : AppC.card,
           ),
           child: SafeArea(
             child: Column(children: [
@@ -310,7 +310,7 @@ class _CreateFweetPageState extends State<CreateFweetPage>
   // ── App bar ──────────────────────────────────────────────
 
   Widget _buildAppBar() {
-    final onBg  = _hasBg ? Colors.white : const Color(0xFF1A1A2E);
+    final onBg  = _hasBg ? Colors.white : AppC.text;
     final dimBg = _hasBg ? Colors.white.withOpacity(0.18) : AppC.card2;
 
     return Padding(
@@ -552,7 +552,7 @@ const SizedBox(width: 12),
       decoration: BoxDecoration(
         color: _hasBg
             ? Colors.black.withOpacity(0.18)
-            : Colors.grey.shade50,
+            : AppC.bg,
         border: Border(top: BorderSide(
             color: _hasBg
                 ? Colors.white.withOpacity(0.15)
@@ -638,7 +638,7 @@ const SizedBox(width: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: _visibility == opt.$1
-                    ? _kG2.withOpacity(0.08) : Colors.grey.shade50,
+                    ? _kG2.withOpacity(0.08) : AppC.bg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _visibility == opt.$1
@@ -659,7 +659,7 @@ const SizedBox(width: 12),
                   Text(opt.$1, style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 15,
                       color: _visibility == opt.$1
-                          ? _kG2 : const Color(0xFF1A1A2E))),
+                          ? _kG2 : AppC.text)),
                   Text(opt.$3, style: TextStyle(fontFamily: 'Momo',
                       fontSize: 12, color: AppC.faint)),
                 ]),
@@ -736,7 +736,7 @@ const SizedBox(width: 12),
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: _feelingSlug == f.slug
-                        ? _kG3.withOpacity(0.12) : Colors.grey.shade50,
+                        ? _kG3.withOpacity(0.12) : AppC.bg,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: _feelingSlug == f.slug
@@ -745,7 +745,7 @@ const SizedBox(width: 12),
                       style: TextStyle(fontFamily: 'Momo',
                           fontWeight: FontWeight.w600, fontSize: 14,
                           color: _feelingSlug == f.slug
-                              ? _kG3 : const Color(0xFF1A1A2E))),
+                              ? _kG3 : AppC.text)),
                 ),
               )).toList()),
           const SizedBox(height: 8),
@@ -800,7 +800,7 @@ const SizedBox(width: 12),
                     color: color,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: sel ? Colors.black : Colors.transparent,
+                        color: sel ? AppC.ink : Colors.transparent,
                         width: sel ? 3 : 0),
                     boxShadow: sel ? [BoxShadow(
                         color: color.withOpacity(0.5),
@@ -823,7 +823,7 @@ const SizedBox(width: 12),
                 decoration: BoxDecoration(
                   color: sel
                       ? (opt['color'] as Color).withOpacity(0.1)
-                      : Colors.grey.shade50,
+                      : AppC.bg,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                       color: sel
@@ -922,7 +922,7 @@ class _ToolPill extends StatelessWidget {
         border: Border.all(
             color: gradient.first.withOpacity(0.25), width: 1.5),
         boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppC.shadow,
             blurRadius: 6, offset: const Offset(0, 2))],
       );
     }

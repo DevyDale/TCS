@@ -27,7 +27,7 @@ Color get _kCardLo => AppC.card2;
 
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _gradColors = <Color>[

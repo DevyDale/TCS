@@ -32,9 +32,9 @@ const _kG2    = Color(0xFF8E54E9);  // purple
 const _kG3    = Color(0xFFF7971E);  // amber
 const _kG4    = Color(0xFFFF5858);  // coral
 Color get _kInk => AppC.text;
-const _kField = Color(0xFFF1F2F6);
+Color get _kField => AppC.card2;
 Color get _kSlate => AppC.sub;
-const _kHair  = Color(0xFFECEDF1);
+Color get _kHair  => AppC.divider;
 
 const _kHistoryKey = 'search_history_v1';
 
@@ -442,7 +442,7 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           _buildHeader(),
@@ -665,7 +665,7 @@ Widget _buildHeader() {
               fontFamily: 'Arch', fontWeight: FontWeight.w600, fontSize: 12),
           labelPadding: EdgeInsets.zero,
           indicator: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(11),
             boxShadow: [
               BoxShadow(color: Colors.black.withOpacity(0.07),
@@ -772,7 +772,7 @@ Widget _buildHeader() {
         ),
         padding: const EdgeInsets.all(2),
         child: Material(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(10),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -816,7 +816,7 @@ Widget _buildHeader() {
                   child: Container(
                     width: 34, height: 34,
                     decoration: BoxDecoration(
-                        color: Colors.grey.shade100, shape: BoxShape.circle),
+                        color: AppC.card2, shape: BoxShape.circle),
                     child: Icon(Icons.close_rounded,
                         size: 18, color: _kSlate),
                   ),
@@ -892,7 +892,7 @@ Widget _buildHeader() {
   }
 
   BoxDecoration get _cardBox => BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kHair),
       );
@@ -979,7 +979,7 @@ Widget _buildHeader() {
                         fontWeight: FontWeight.bold, fontSize: 13, color: _kInk)),
                 Text(p['post_type'] as String? ?? '',
                     style: TextStyle(fontFamily: 'Momo',
-                        fontSize: 11, color: Colors.grey.shade400)),
+                        fontSize: 11, color: AppC.faint)),
               ],
             )),
             _pill(p['post_type'] as String? ?? 'post', _kG2),
@@ -994,15 +994,15 @@ Widget _buildHeader() {
           _postMedia(p),
           const SizedBox(height: 8),
           Row(children: [
-            Icon(Icons.favorite_outline_rounded, size: 13, color: Colors.grey.shade400),
+            Icon(Icons.favorite_outline_rounded, size: 13, color: AppC.faint),
             const SizedBox(width: 4),
             Text('${p['like_count'] ?? p['likes_count'] ?? 0}',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: Colors.grey.shade400)),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: AppC.faint)),
             const SizedBox(width: 12),
-            Icon(Icons.chat_bubble_outline_rounded, size: 13, color: Colors.grey.shade400),
+            Icon(Icons.chat_bubble_outline_rounded, size: 13, color: AppC.faint),
             const SizedBox(width: 4),
             Text('${p['comment_count'] ?? p['comments_count'] ?? 0}',
-                style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: Colors.grey.shade400)),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 11, color: AppC.faint)),
             const Spacer(),
             Icon(Icons.chevron_right_rounded, size: 16, color: _kSlate),
           ]),
@@ -1043,7 +1043,7 @@ Widget _buildHeader() {
                       fontWeight: FontWeight.bold, fontSize: 14, color: _kInk)),
               Text(u['role'] as String? ?? '',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                      color: Colors.grey.shade500)),
+                      color: AppC.sub)),
             ],
           )),
           GestureDetector(
@@ -1065,15 +1065,15 @@ Widget _buildHeader() {
               decoration: BoxDecoration(
                 gradient: isFollowing ? null
                     : const LinearGradient(colors: [_kG1, _kG2]),
-                color: isFollowing ? Colors.grey.shade100 : null,
+                color: isFollowing ? AppC.card2 : null,
                 borderRadius: BorderRadius.circular(10),
                 border: isFollowing
-                    ? Border.all(color: Colors.grey.shade300) : null,
+                    ? Border.all(color: AppC.border) : null,
               ),
               child: Text(isFollowing ? 'Following' : 'Follow',
                   style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 12,
-                      color: isFollowing ? Colors.grey.shade600 : Colors.white)),
+                      color: isFollowing ? AppC.sub : Colors.white)),
             ),
           ),
         ]),
@@ -1112,7 +1112,7 @@ Widget _buildHeader() {
             Text('${g['members_count'] ?? 0} members'
                  '${g['category'] != null ? ' · ${g['category']}' : ''}',
                 style: TextStyle(fontFamily: 'Momo', fontSize: 12,
-                    color: Colors.grey.shade500)),
+                    color: AppC.sub)),
           ])),
         GestureDetector(
           onTap: () async {
@@ -1180,17 +1180,17 @@ Widget _buildHeader() {
             const SizedBox(height: 4),
             if (dateStr.isNotEmpty)
               Text(dateStr, style: TextStyle(fontFamily: 'Momo',
-                  fontSize: 12, color: Colors.grey.shade600)),
+                  fontSize: 12, color: AppC.sub)),
             if (loc.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Row(children: [
-                  Icon(Icons.place_rounded, size: 11, color: Colors.grey.shade400),
+                  Icon(Icons.place_rounded, size: 11, color: AppC.faint),
                   const SizedBox(width: 3),
                   Expanded(child: Text(loc,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontFamily: 'Momo',
-                          fontSize: 11, color: Colors.grey.shade500))),
+                          fontSize: 11, color: AppC.sub))),
                 ]),
               ),
           ],
@@ -1442,7 +1442,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
     final media   = _media;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: Column(children: [
           Padding(
@@ -1479,7 +1479,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                   padding: const EdgeInsets.all(2),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppC.card,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
@@ -1501,7 +1501,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                         if (role.isNotEmpty)
                           Text(role,
                               style: TextStyle(fontFamily: 'Momo',
-                                  fontSize: 11.5, color: Colors.grey.shade500)),
+                                  fontSize: 11.5, color: AppC.sub)),
                       ],
                     )),
                     Icon(Icons.chevron_right_rounded,
@@ -1575,7 +1575,7 @@ class _PostDetailScreenState extends State<_PostDetailScreen> {
                   ),
                 ],
                 const SizedBox(height: 18),
-                const Divider(height: 1, color: _kHair),
+                Divider(height: 1, color: _kHair),
                 const SizedBox(height: 14),
                 Row(children: [
                   _DetailAction(
@@ -1759,9 +1759,9 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
       maxChildSize: 0.95,
       minChildSize: 0.4,
       builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppC.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Padding(
           padding: EdgeInsets.only(
@@ -1771,7 +1771,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppC.border,
                   borderRadius: BorderRadius.circular(2)),
             ),
             Padding(
@@ -1789,7 +1789,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
                   : _comments.isEmpty
                       ? Center(child: T('No comments yet. Be the first!',
                           style: TextStyle(fontFamily: 'Momo', fontSize: 12.5,
-                              color: Colors.grey.shade500)))
+                              color: AppC.sub)))
                       : ListView.builder(
                           controller: scrollCtrl,
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -1802,7 +1802,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                  border: Border(top: BorderSide(color: AppC.border)),
                 ),
                 child: Row(children: [
                   Expanded(child: TextField(
@@ -1812,7 +1812,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
                     decoration: InputDecoration(
                       hintText: TranslationService.I.tr('Add a comment…'),
                       hintStyle: TextStyle(fontFamily: 'Momo', fontSize: 13,
-                          color: Colors.grey.shade400),
+                          color: AppC.faint),
                       filled: true,
                       fillColor: _kField,
                       border: OutlineInputBorder(
@@ -1832,7 +1832,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
                         gradient: canSend
                             ? const LinearGradient(colors: [_kG1, _kG2])
                             : null,
-                        color: canSend ? null : Colors.grey.shade300,
+                        color: canSend ? null : AppC.border,
                         shape: BoxShape.circle,
                       ),
                       child: _posting
@@ -1893,7 +1893,7 @@ class _PostCommentsSheetState extends State<_PostCommentsSheet> {
               if (when.isNotEmpty)
                 Text(when,
                     style: TextStyle(fontFamily: 'Momo', fontSize: 10,
-                        color: Colors.grey.shade400)),
+                        color: AppC.faint)),
             ]),
             const SizedBox(height: 3),
             Text(text,
@@ -2093,9 +2093,9 @@ class _SharePostSheetState extends State<_SharePostSheet> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (_, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: AppC.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(children: [
             const SizedBox(height: 10),
@@ -2207,7 +2207,7 @@ class _SharePostSheetState extends State<_SharePostSheet> {
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: sel ? _kG2.withOpacity(0.07) : Colors.white,
+          color: sel ? _kG2.withOpacity(0.07) : AppC.card,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: sel ? _kG2.withOpacity(0.5) : _kHair, width: 1.4),

@@ -495,10 +495,13 @@ _group([
                   title: l.settingsDarkMode,
                   subtitle: _dark ? l.settingsDarkOn : l.settingsDarkOff,
                   value: _dark,
-                  onChanged: (v) async {
+                  onChanged: (v) {
                     HapticFeedback.lightImpact();
-                    await _s.setDark(v);          // re-themes the whole app
-                    if (mounted) setState(() => _dark = v);
+                    // Flip the switch and re-theme the app in the SAME frame.
+                    // Awaiting setDark() first made the thumb lag behind the
+                    // toggle while SharedPreferences was written.
+                    setState(() => _dark = v);
+                    _s.setDark(v);   // notifies immediately, persists in background
                   },
                 ),
               ]),

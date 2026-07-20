@@ -112,7 +112,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
     FocusScope.of(context).unfocus();
     final result = await showModalBottomSheet<XFile>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -174,7 +174,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                                 width: 100,
                                 height: 100,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppC.card,
                                   shape: BoxShape.circle,
                                   border: Border.all(color: _kG2.withOpacity(0.4), width: 3),
                                   image: _logoFile != null 
@@ -204,7 +204,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                               Container(
                                 height: 100,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppC.card,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: _kG2.withOpacity(0.4), width: 3),
                                   image: _coverFile != null 
@@ -411,7 +411,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
         12 + MediaQuery.of(context).viewInsets.bottom * 0.0,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -485,9 +485,9 @@ class _CreateClubPageState extends State<CreateClubPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppC.border),
       ),
       child: TextFormField(
         controller: controller,
@@ -501,7 +501,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
           hintStyle: TextStyle(
             fontFamily: 'Momo',
             fontSize: 13,
-            color: Colors.grey.shade400,
+            color: AppC.faint,
           ),
           border: InputBorder.none,
           counterText: '',
@@ -530,10 +530,10 @@ class _CreateClubPageState extends State<CreateClubPage> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
-              color: active ? _kG2 : Colors.white,
+              color: active ? _kG2 : AppC.card,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? _kG2 : Colors.grey.shade200,
+                color: active ? _kG2 : AppC.border,
                 width: 1.5,
               ),
             ),
@@ -565,10 +565,10 @@ class _CreateClubPageState extends State<CreateClubPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: value ? _kIndigo.withOpacity(0.4) : Colors.grey.shade200,
+            color: value ? _kIndigo.withOpacity(0.4) : AppC.border,
           ),
         ),
         child: Row(children: [
@@ -597,7 +597,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: AppC.sub,
                       height: 1.4,
                     )),
               ],
@@ -730,7 +730,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -762,7 +762,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                   'Generation takes 5-30 seconds.',
                   style: TextStyle(
                     fontFamily: 'Momo', fontSize: 12.5,
-                    color: Colors.grey.shade600, height: 1.5,
+                    color: AppC.sub, height: 1.5,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -780,7 +780,7 @@ class _AiLogoSheetState extends State<_AiLogoSheet> {
                       hintText: TranslationService.I.tr('e.g. minimalist owl mascot, navy blue and gold, modern flat illustration'),
                       hintStyle: TextStyle(
                           fontFamily: 'Momo', fontSize: 13,
-                          color: Colors.grey.shade400),
+                          color: AppC.faint),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),

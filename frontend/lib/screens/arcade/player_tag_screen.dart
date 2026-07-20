@@ -131,7 +131,7 @@ Future<void> _pickAvatar() async {
     final grad = _colorOptions[_selectedColor];
 
     return Scaffold(
-      backgroundColor: kDarkBg,
+      backgroundColor: AppC.bg,
       body: SafeArea(
         child: ResponsiveBody(
           maxWidth: 560, // Nice max width on tablets/desktops
@@ -149,12 +149,12 @@ Future<void> _pickAvatar() async {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: kDarkCard2,
+                        color: AppC.card2,
                         borderRadius: BorderRadius.circular(r.radiusMd),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                        border: Border.all(color: AppC.border),
                       ),
-                      child: const Icon(Icons.arrow_back_rounded,
-                          color: Colors.white60, size: 22),
+                      child: Icon(Icons.arrow_back_rounded,
+                          color: AppC.sub, size: 22),
                     ),
                   ),
                 ),

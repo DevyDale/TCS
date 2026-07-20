@@ -512,7 +512,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: FadeTransition(
         opacity: _fadeAnim,
         child: Column(children: [
@@ -540,14 +540,14 @@ class _CreatePostPageState extends State<CreatePostPage>
       padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 8,
           left: 8, right: 16, bottom: 14),
-      decoration: BoxDecoration(color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05),
+      decoration: BoxDecoration(color: AppC.card,
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, 2))]),
       child: Row(children: [
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(width: 40, height: 40,
-            decoration: BoxDecoration(color: Colors.grey.shade100,
+            decoration: BoxDecoration(color: AppC.card2,
                 borderRadius: BorderRadius.circular(12)),
             child: Icon(Icons.close_rounded, color: _kInk, size: 20))),
         const SizedBox(width: 12),
@@ -589,14 +589,14 @@ class _CreatePostPageState extends State<CreatePostPage>
   void _pickVisibility() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           T('Who can see this post?',
@@ -616,29 +616,29 @@ class _CreatePostPageState extends State<CreatePostPage>
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: _visibility == opt.$1
-                    ? _kG2.withOpacity(0.08) : Colors.grey.shade50,
+                    ? _kG2.withOpacity(0.08) : AppC.bg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _visibility == opt.$1
-                      ? _kG2.withOpacity(0.3) : Colors.grey.shade200,
+                      ? _kG2.withOpacity(0.3) : AppC.border,
                   width: _visibility == opt.$1 ? 1.5 : 1)),
               child: Row(children: [
                 Container(width: 40, height: 40,
                   decoration: BoxDecoration(
                     color: (_visibility == opt.$1
-                            ? _kG2 : Colors.grey.shade300)
+                            ? _kG2 : AppC.border)
                         .withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10)),
                   child: Icon(opt.$2,
                       color: _visibility == opt.$1
-                          ? _kG2 : Colors.grey.shade500, size: 20)),
+                          ? _kG2 : AppC.sub, size: 20)),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(opt.$1, style: TextStyle(fontFamily: 'Arch',
                       fontWeight: FontWeight.bold, fontSize: 15,
                       color: _visibility == opt.$1 ? _kG2 : _kInk)),
                   Text(opt.$3, style: TextStyle(fontFamily: 'Momo',
-                      fontSize: 12, color: Colors.grey.shade500)),
+                      fontSize: 12, color: AppC.sub)),
                 ]),
                 const Spacer(),
                 if (_visibility == opt.$1)
@@ -659,10 +659,10 @@ class _CreatePostPageState extends State<CreatePostPage>
           margin: const EdgeInsets.all(16),
           height: 240,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppC.card,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200, width: 2),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+            border: Border.all(color: AppC.border, width: 2),
+            boxShadow: [BoxShadow(color: AppC.shadow,
                 blurRadius: 10, offset: const Offset(0, 3))]),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             ShaderMask(
@@ -676,7 +676,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             Text('Up to $_kMaxMedia items · $_kMaxImageMb MB photos · '
                  '$_kMaxVideoMb MB video',
                 style: TextStyle(fontFamily: 'Momo',
-                    fontSize: 12, color: Colors.grey.shade400)),
+                    fontSize: 12, color: AppC.faint)),
             const SizedBox(height: 20),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               _MediaBtn(icon: Icons.photo_library_rounded,
@@ -779,7 +779,7 @@ class _CreatePostPageState extends State<CreatePostPage>
           Text('${_media.length}/$_kMaxMedia',
             style: TextStyle(fontFamily: 'Momo', fontSize: 12,
               color: _media.length == _kMaxMedia
-                  ? _kG4 : Colors.grey.shade400,
+                  ? _kG4 : AppC.faint,
               fontWeight: _media.length == _kMaxMedia
                   ? FontWeight.bold : FontWeight.normal)),
         ]),
@@ -897,14 +897,14 @@ class _CreatePostPageState extends State<CreatePostPage>
   void _showMediaPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           T('Add to your post', style: TextStyle(
@@ -916,7 +916,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             '$_kMaxVideoMb MB video',
             textAlign: TextAlign.center,
             style: TextStyle(fontFamily: 'Momo',
-                fontSize: 12, color: Colors.grey.shade400)),
+                fontSize: 12, color: AppC.faint)),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(child: _BigMediaBtn(
@@ -943,9 +943,9 @@ class _CreatePostPageState extends State<CreatePostPage>
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, 3))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -967,7 +967,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             decoration: InputDecoration(
               hintText: TranslationService.I.tr('Write a caption...'),
               hintStyle: TextStyle(fontFamily: 'Momo',
-                  color: Colors.grey.shade400, fontSize: 15),
+                  color: AppC.faint, fontSize: 15),
               border: InputBorder.none))),
         ]),
         if (_feeling != null) ...[
@@ -996,14 +996,14 @@ class _CreatePostPageState extends State<CreatePostPage>
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _tag == t ? _kG2.withOpacity(0.12) : Colors.white,
+              color: _tag == t ? _kG2.withOpacity(0.12) : AppC.card,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: _tag == t ? _kG2.withOpacity(0.4) : Colors.grey.shade200,
+                color: _tag == t ? _kG2.withOpacity(0.4) : AppC.border,
                 width: 1.5)),
             child: Text(t, style: TextStyle(fontFamily: 'Momo', fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _tag == t ? _kG2 : Colors.grey.shade500))),
+                color: _tag == t ? _kG2 : AppC.sub))),
         )).toList()),
       ),
     );
@@ -1015,14 +1015,14 @@ class _CreatePostPageState extends State<CreatePostPage>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppC.card,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, 3))]),
       child: Column(children: [
         // ── Location row — opens LocationPicker, shows spinner while open ──
         _buildLocationRow(),
-        Divider(height: 1, color: Colors.grey.shade100),
+        Divider(height: 1, color: AppC.divider),
         _DetailRow(icon: Icons.emoji_emotions_rounded, color: _kG3,
           child: GestureDetector(
             onTap: _pickFeeling,
@@ -1032,10 +1032,10 @@ class _CreatePostPageState extends State<CreatePostPage>
                 Text(_feeling ?? 'How are you feeling?',
                   style: TextStyle(fontFamily: 'Momo', fontSize: 14,
                       color: _feeling != null
-                          ? _kInk : Colors.grey.shade400)),
+                          ? _kInk : AppC.faint)),
                 const Spacer(),
                 Icon(Icons.keyboard_arrow_right_rounded,
-                    color: Colors.grey.shade300, size: 20),
+                    color: AppC.border, size: 20),
               ])))),
         ]),
     );
@@ -1074,7 +1074,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               style: TextStyle(
                 fontFamily: 'Momo', fontSize: 14,
                 color: _pickingLocation || !hasLocation
-                    ? Colors.grey.shade400 : _kInk,
+                    ? AppC.faint : _kInk,
               ),
             ),
           )),
@@ -1085,14 +1085,14 @@ class _CreatePostPageState extends State<CreatePostPage>
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Icon(Icons.close_rounded,
-                    size: 16, color: Colors.grey.shade400),
+                    size: 16, color: AppC.faint),
               ),
             )
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.keyboard_arrow_right_rounded,
-                  color: Colors.grey.shade300, size: 20),
+                  color: AppC.border, size: 20),
             ),
         ]),
       ),
@@ -1102,7 +1102,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   void _pickFeeling() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
@@ -1122,11 +1122,11 @@ class _CreatePostPageState extends State<CreatePostPage>
                     horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: _feeling == f
-                      ? _kG2.withOpacity(0.12) : Colors.grey.shade50,
+                      ? _kG2.withOpacity(0.12) : AppC.bg,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _feeling == f
-                        ? _kG2.withOpacity(0.3) : Colors.grey.shade200)),
+                        ? _kG2.withOpacity(0.3) : AppC.border)),
                 child: Text(f, style: TextStyle(fontFamily: 'Momo',
                     fontWeight: FontWeight.w600, fontSize: 14,
                     color: _feeling == f ? _kG2 : _kInk))),
@@ -1154,15 +1154,15 @@ class _CreatePostPageState extends State<CreatePostPage>
       padding: EdgeInsets.fromLTRB(16, 12, 16,
           MediaQuery.of(context).padding.bottom + 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+        color: AppC.card,
+        border: Border(top: BorderSide(color: AppC.border)),
+        boxShadow: [BoxShadow(color: AppC.shadow,
             blurRadius: 10, offset: const Offset(0, -3))]),
       child: Row(children: [
         if (barLabel.isNotEmpty)
           Expanded(child: Text(barLabel,
             style: TextStyle(fontFamily: 'Momo',
-                fontSize: 12, color: Colors.grey.shade400)))
+                fontSize: 12, color: AppC.faint)))
         else
           const Spacer(),
         GestureDetector(
@@ -1241,15 +1241,15 @@ class _MediaBtn extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: AppC.bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5)),
+        border: Border.all(color: AppC.border, width: 1.5)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 18, color: Colors.grey.shade600),
+        Icon(icon, size: 18, color: AppC.sub),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(fontFamily: 'Arch',
             fontWeight: FontWeight.bold,
-            fontSize: 13, color: Colors.grey.shade700)),
+            fontSize: 13, color: AppC.sub)),
       ])));
 }
 

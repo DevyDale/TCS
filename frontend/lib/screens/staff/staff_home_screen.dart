@@ -129,8 +129,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel',
+                  style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Log out',
                   style: TextStyle(color: Color(0xFFE11D48),

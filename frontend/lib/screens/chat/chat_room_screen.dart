@@ -989,7 +989,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             'assets/images/robot.json',
                             errorBuilder: (context, error, stack) => Icon(
                                 Icons.smart_toy_rounded,
-                                color: AppC.card,
+                                color: Colors.white,
                                 size: 22),
                           ),
                         ),
@@ -1034,8 +1034,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ? const Icon(Icons.bubble_chart_rounded,
                         color: Colors.white, size: 19)
                     : Text(initial,
-                        style: TextStyle(
-                            color: AppC.text,
+                        style: const TextStyle(
+                            color: Colors.white,
                             fontFamily: 'Arch',
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
@@ -1103,7 +1103,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     _isStudyBuddy
                         ? Icons.menu_book_rounded
                         : Icons.waving_hand_rounded,
-                    color: AppC.card,
+                    color: Colors.white,
                     size: 40),
               ),
               const SizedBox(height: 22),
@@ -1421,7 +1421,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         );
       }
       if (url.isEmpty) {
-        return const Icon(Icons.broken_image_rounded, size: 60, color: Colors.grey);
+        return Icon(Icons.broken_image_rounded, size: 60, color: AppC.faint);
       }
       return ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -1530,8 +1530,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       ),
       child: Center(
           child: Text(initial,
-              style: TextStyle(
-                  color: AppC.text,
+              style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   fontFamily: 'Arch'))),

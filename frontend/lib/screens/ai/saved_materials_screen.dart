@@ -44,7 +44,7 @@ Color get _kBorder => AppC.border;
 
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 const _gradColors = <Color>[
@@ -281,7 +281,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
               _buildTypeFilterRow(),
               Expanded(
                 child: _loading
-                    ? const Center(child: CircularProgressIndicator(
+                    ? Center(child: CircularProgressIndicator(
                         color: _kInkSoft, strokeWidth: 2.5))
                     : _filtered.isEmpty
                         ? _buildEmpty()
@@ -310,7 +310,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             message: 'Upload a document',
             child: GestureDetector(
               onTap: _uploadToLibrary,
-              child: const Icon(Icons.upload_file_rounded,
+              child: Icon(Icons.upload_file_rounded,
                   color: _kInkSoft, size: 22),
             ),
           ),
@@ -329,7 +329,7 @@ class _SavedMaterialsScreenState extends State<SavedMaterialsScreen>
             child: GestureDetector(
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const SavedQuizzesScreen())),
-              child: const Icon(Icons.quiz_outlined,
+              child: Icon(Icons.quiz_outlined,
                   color: _kInkSoft, size: 22),
             ),
           ),
@@ -802,7 +802,7 @@ class _MaterialCard extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 90),
           child: Text(label,
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: _kInkSoft,
+              style: TextStyle(color: _kInkSoft,
                   fontSize: 10.5, fontWeight: FontWeight.w700))),
       ]),
     );
@@ -883,7 +883,7 @@ class _SafeRobotLottie extends StatelessWidget {
           shape: BoxShape.circle,
           color: _kCardLo,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.smart_toy_rounded,
           color: _kInkSoft,
           size: 18,

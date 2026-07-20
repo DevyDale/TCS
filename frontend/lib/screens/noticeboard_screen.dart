@@ -15,7 +15,9 @@ import 'package:tcs_app/widgets/t_text.dart';
 
 const _kG1 = Color(0xFF6DD5FA);
 const _kG2 = Color(0xFF8E54E9);
-Color get _kInk => AppC.text;
+// Text drawn ON the fixed pastel sticky notes / pills — must stay dark in both
+// themes, since the note colours never flip.
+const _kInk = Color(0xFF1A1A2E);
 const _bgTop = Color(0xFF241247);
 const _bgBot = Color(0xFF130A26);
 
@@ -343,15 +345,15 @@ class _DetailSheet extends StatelessWidget {
       initialChildSize: .7, minChildSize: .4, maxChildSize: .95,
       expand: false,
       builder: (_, ctrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppC.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: ListView(controller: ctrl,
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             Center(child: Container(width: 44, height: 5,
-              decoration: BoxDecoration(color: Colors.grey.shade300,
+              decoration: BoxDecoration(color: AppC.border,
                   borderRadius: BorderRadius.circular(3)))),
             const SizedBox(height: 16),
             Row(children: [
@@ -374,18 +376,18 @@ class _DetailSheet extends StatelessWidget {
                     errorBuilder: (_, __, ___) => const SizedBox.shrink())),
             const SizedBox(height: 14),
             Text((data['title'] ?? '').toString(),
-                style: TextStyle(fontFamily: 'Alfa', fontSize: 22, color: _kInk)),
+                style: TextStyle(fontFamily: 'Alfa', fontSize: 22, color: AppC.text)),
             const SizedBox(height: 10),
             Text((data['body'] ?? '').toString(),
                 style: TextStyle(fontFamily: 'Momo', fontSize: 14,
-                    height: 1.5, color: _kInk.withOpacity(.85))),
+                    height: 1.5, color: AppC.text.withOpacity(.85))),
             const SizedBox(height: 20),
             Row(children: [
               const Icon(Icons.verified_rounded, size: 16, color: _kG2),
               const SizedBox(width: 6),
               Text((data['author_name'] ?? 'Staff').toString(),
                   style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold,
-                      fontSize: 12, color: Colors.grey.shade700)),
+                      fontSize: 12, color: AppC.sub)),
             ]),
           ]),
       ),

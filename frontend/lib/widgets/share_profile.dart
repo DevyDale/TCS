@@ -209,8 +209,8 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
       maxChildSize:     0.85,
       expand: false,
       builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(children: [
@@ -228,7 +228,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
     child: Container(
       width: 36, height: 4,
       decoration: BoxDecoration(
-        color: Colors.grey.shade300,
+        color: AppC.border,
         borderRadius: BorderRadius.circular(2),
       ),
     ),
@@ -277,7 +277,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
         decoration: BoxDecoration(
           color: _kBg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppC.border),
         ),
         child: TextField(
           controller: _searchCtrl,
@@ -311,7 +311,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.chat_bubble_outline_rounded,
-                  size: 48, color: Colors.grey.shade300),
+                  size: 48, color: AppC.border),
               const SizedBox(height: 12),
               Text(
                 _recent.isEmpty
@@ -332,7 +332,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                 ),
               ),
             ],
@@ -425,7 +425,7 @@ class _ChatRow extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'Momo',
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: AppC.sub,
                     ),
                   ),
                 ],

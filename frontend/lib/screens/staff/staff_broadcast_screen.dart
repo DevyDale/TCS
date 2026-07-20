@@ -92,8 +92,8 @@ class _StaffBroadcastScreenState extends State<StaffBroadcastScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel',
+                  style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: Text('Send now',
                   style: TextStyle(color: _sevColor,
@@ -138,7 +138,7 @@ class _StaffBroadcastScreenState extends State<StaffBroadcastScreen> {
               const SizedBox(height: 10),
               _composer(),
               const SizedBox(height: 22),
-              const StaffSectionLabel('Recent alerts',
+              StaffSectionLabel('Recent alerts',
                   subtitle: 'Tap to see who replied safe'),
               if (_loading)
                 const Padding(padding: EdgeInsets.all(20),
@@ -367,7 +367,7 @@ class _StaffBroadcastScreenState extends State<StaffBroadcastScreen> {
             return Column(children: [
               const SizedBox(height: 10),
               Container(width: 38, height: 4,
-                  decoration: BoxDecoration(color: Colors.white24,
+                  decoration: BoxDecoration(color: AppC.border,
                       borderRadius: BorderRadius.circular(2))),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -378,7 +378,7 @@ class _StaffBroadcastScreenState extends State<StaffBroadcastScreen> {
                       const Color(0xFFF59E0B)),
                 ]),
               ),
-              const Divider(height: 1, color: Colors.white12),
+              Divider(height: 1, color: AppC.divider),
               Expanded(child: ListView(
                 controller: scroll,
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),

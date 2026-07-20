@@ -27,7 +27,7 @@ Color get _kCard => AppC.card;
 Color get _kCardLo => AppC.card2;
 Color get _kBorder => AppC.border;
 Color get _kInk => AppC.text;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.text;
 Color get _kSlate => AppC.sub;
 Color get _kSlate2 => AppC.sub;
 
@@ -527,8 +527,8 @@ Widget _buildSearchBar() {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: SizedBox(height: 96,
-              child: Row(children: List.generate(4, (_) => const Padding(
-                padding: EdgeInsets.only(right: 10),
+              child: Row(children: List.generate(4, (_) => Padding(
+                padding: const EdgeInsets.only(right: 10),
                 child: _RecentSkeleton(),
               )))),
           )
@@ -615,11 +615,11 @@ Widget _buildSearchBar() {
                   horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
                 color: _kInk, borderRadius: BorderRadius.circular(11)),
-              child: const T('Clear filter',
+              child: T('Clear filter',
                   style: TextStyle(
                       fontFamily: 'Arch',
                       fontWeight: FontWeight.w800,
-                      color: Colors.white, fontSize: 12)),
+                      color: AppC.bg, fontSize: 12)),
             ),
           ),
         ],
@@ -939,6 +939,9 @@ class _GradientBorderBox extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════
 
 class _RecentSkeleton extends StatelessWidget {
+  // Intentionally NOT invoked as `const` at the call site: the body reads
+  // theme-aware AppC getters, and a const instance would be canonicalised and
+  // skipped on rebuild, so it wouldn't repaint on a light/dark switch.
   const _RecentSkeleton();
   @override
   Widget build(BuildContext context) => Container(

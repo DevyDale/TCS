@@ -94,8 +94,8 @@ class _ReportSheetState extends State<ReportSheet> {
       maxChildSize: 0.95,
       expand: false,
       builder: (ctx, sc) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppC.card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: EdgeInsets.only(bottom: pad),
@@ -106,7 +106,7 @@ class _ReportSheetState extends State<ReportSheet> {
               child: Container(
                 width: 44, height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppC.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -126,7 +126,7 @@ class _ReportSheetState extends State<ReportSheet> {
                     style: TextStyle(
                         fontFamily: 'Momo',
                         fontSize: 12.5,
-                        color: Colors.grey.shade700,
+                        color: AppC.sub,
                         height: 1.5),
                   ),
                 ],
@@ -143,10 +143,10 @@ class _ReportSheetState extends State<ReportSheet> {
                       decoration: BoxDecoration(
                         color: _reasonKey == e.key
                             ? _kG2.withOpacity(0.08)
-                            : Colors.grey.shade50,
+                            : AppC.bg,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: _reasonKey == e.key ? _kG2 : Colors.grey.shade200,
+                          color: _reasonKey == e.key ? _kG2 : AppC.border,
                           width: _reasonKey == e.key ? 1.5 : 1,
                         ),
                       ),
@@ -174,10 +174,10 @@ class _ReportSheetState extends State<ReportSheet> {
                     decoration: InputDecoration(
                       hintText: TranslationService.I.tr('Add details (optional)'),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: AppC.card2,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
+                        borderSide: BorderSide(color: AppC.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),

@@ -267,10 +267,10 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
             gradient: active
                 ? const LinearGradient(colors: [_kIndigo, _kDeep])
                 : null,
-            color: active ? null : Colors.white,
+            color: active ? null : AppC.card,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: active ? Colors.transparent : Colors.grey.shade200,
+              color: active ? Colors.transparent : AppC.border,
             ),
             boxShadow: active
                 ? [
@@ -308,7 +308,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
               blurRadius: 8, offset: const Offset(0, 3))]),
@@ -325,7 +325,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
                 ? GestureDetector(
                     onTap: () { _searchCtrl.clear();
                         setState(() => _searchQuery = ''); },
-                    child: Icon(Icons.close_rounded, color: Colors.grey.shade400))
+                    child: Icon(Icons.close_rounded, color: AppC.faint))
                 : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -357,10 +357,10 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: active ? _kG2 : Colors.white,
+                color: active ? _kG2 : AppC.card,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: active ? _kG2 : Colors.grey.shade200,
+                  color: active ? _kG2 : AppC.border,
                   width: 1.5,
                 ),
               ),
@@ -440,7 +440,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
+            Icon(icon, size: 56, color: AppC.faint),
             const SizedBox(height: 12),
             Text(title,
                 style: TextStyle(
@@ -451,7 +451,7 @@ class _ClubsListScreenState extends State<ClubsListScreen> {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                   height: 1.5,
                 )),
           ],
@@ -494,7 +494,7 @@ class _ClubCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -531,9 +531,9 @@ class _ClubCard extends StatelessWidget {
                   Container(
                     width: 52, height: 52,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppC.card,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: AppC.card, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.10),
@@ -587,7 +587,7 @@ class _ClubCard extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Icon(Icons.lock_rounded,
-                                  size: 11, color: Colors.grey.shade500),
+                                  size: 11, color: AppC.sub),
                             ),
                           ],
                         ]),
@@ -599,7 +599,7 @@ class _ClubCard extends StatelessWidget {
                               style: TextStyle(
                                 fontFamily: 'Momo',
                                 fontSize: 12,
-                                color: Colors.grey.shade500,
+                                color: AppC.sub,
                                 height: 1.4,
                               )),
                         ],

@@ -112,7 +112,7 @@ class StaffConsoleScreen extends StatelessWidget {
         ),
         child: Center(child: Text(
           _firstName.isNotEmpty ? _firstName[0].toUpperCase() : 'S',
-          style: TextStyle(fontFamily: 'Alfa', fontSize: 24, color: AppC.text),
+          style: const TextStyle(fontFamily: 'Alfa', fontSize: 24, color: Colors.white),
         )),
       ),
       const SizedBox(width: 14),
@@ -144,11 +144,11 @@ class StaffConsoleScreen extends StatelessWidget {
 
   Widget _statStrip() => Padding(
     padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-    child: Row(children: const [
+    child: Row(children: [
       _StatTile(label: 'Flags pending', value: '—', accent: _kG4, icon: Icons.flag_rounded),
-      SizedBox(width: 12),
+      const SizedBox(width: 12),
       _StatTile(label: 'Active today', value: '—', accent: _kG1, icon: Icons.bolt_rounded),
-      SizedBox(width: 12),
+      const SizedBox(width: 12),
       _StatTile(label: 'Upcoming', value: '—', accent: _kG3, icon: Icons.event_rounded),
     ]),
   );
@@ -268,7 +268,7 @@ class _StaffSection extends StatelessWidget {
         backgroundColor: _bg, elevation: 0,
         title: Text(pillar.title,
             style: TextStyle(fontFamily: 'Alfa', fontSize: 18, color: AppC.text)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppC.text),
       ),
       body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(

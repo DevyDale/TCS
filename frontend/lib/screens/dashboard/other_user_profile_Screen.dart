@@ -357,7 +357,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
   void _showMoreMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1187,7 +1187,9 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen>
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w800,
-                                color: Color.lerp(_kSlate, Colors.white,
+                                // Selected label sits on the _kInk pill, so it
+                                // has to invert with the theme, not stay white.
+                                color: Color.lerp(_kSlate, AppC.card,
                                     1.0 - (pos - i).abs().clamp(0.0, 1.0)),
                               ),
                             ),
@@ -1604,7 +1606,7 @@ class _PostDetailScreen extends StatelessWidget {
     } catch (_) {}
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       body: SafeArea(
         child: Column(children: [
           Padding(

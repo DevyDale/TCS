@@ -67,7 +67,7 @@ class HighlightCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppC.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(

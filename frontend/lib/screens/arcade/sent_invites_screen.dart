@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 
 
-const _kDarkBg     = Color(0xFF0D0D1A);
+Color get _kDarkBg => AppC.bg;
 Color get _kDarkCard => AppC.card;
 Color get _kDarkCard2 => AppC.card2;
 const _kNeonBlue   = Color(0xFF6DD5FA);
@@ -57,22 +57,22 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
             borderRadius: BorderRadius.circular(18)),
         title: T('Cancel challenge?',
           style: TextStyle(fontFamily: 'Alfa', color: AppC.text)),
-        content: const T(
+        content: T(
           'Your wager will be refunded. Recipients will see this challenge '
           'as cancelled.',
-          style: TextStyle(fontFamily: 'Momo', color: Colors.white70)),
+          style: TextStyle(fontFamily: 'Momo', color: AppC.sub)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const T('Keep', style: TextStyle(
-                fontFamily: 'Momo', color: Colors.white60))),
+            child: T('Keep', style: TextStyle(
+                fontFamily: 'Momo', color: AppC.sub))),
           GestureDetector(onTap: () => Navigator.pop(context, true),
             child: Container(padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 9),
               decoration: BoxDecoration(color: _kNeonRed,
                   borderRadius: BorderRadius.circular(10)),
-              child: T('Cancel',
+              child: const T('Cancel',
                 style: TextStyle(fontFamily: 'Arch',
-                    fontWeight: FontWeight.bold, color: AppC.text)))),
+                    fontWeight: FontWeight.bold, color: Colors.white)))),
           const SizedBox(width: 12),
         ],
       ),
@@ -113,13 +113,13 @@ class _SentInvitesScreenState extends State<SentInvitesScreen> {
         child: _loading
           ? const Center(child: CircularProgressIndicator(color: _kNeonBlue))
           : _invites.isEmpty
-            ? ListView(children: const [
-                SizedBox(height: 100),
-                Center(child: T('📬', style: TextStyle(fontSize: 56))),
-                SizedBox(height: 12),
+            ? ListView(children: [
+                const SizedBox(height: 100),
+                const Center(child: T('📬', style: TextStyle(fontSize: 56))),
+                const SizedBox(height: 12),
                 Center(child: Text("You haven't sent any challenges yet",
                   style: TextStyle(fontFamily: 'Alfa',
-                      color: Colors.white60, fontSize: 15))),
+                      color: AppC.sub, fontSize: 15))),
               ])
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -156,7 +156,7 @@ class _InviteCard extends StatelessWidget {
       switch (status) {
         case 'started':   return _kNeonBlue;
         case 'completed': return Colors.green.shade400;
-        case 'expired':   return Colors.white38;
+        case 'expired':   return AppC.faint;
         case 'cancelled': return _kNeonRed;
         default:          return _kNeonOrange;
       }
@@ -226,8 +226,8 @@ class _InviteCard extends StatelessWidget {
                 switch (st) {
                   case 'accepted':       return Colors.green.shade400;
                   case 'declined':       return _kNeonRed;
-                  case 'auto_declined':  return Colors.white38;
-                  case 'expired':        return Colors.white38;
+                  case 'auto_declined':  return AppC.faint;
+                  case 'expired':        return AppC.faint;
                   default:               return _kNeonOrange;
                 }
               }

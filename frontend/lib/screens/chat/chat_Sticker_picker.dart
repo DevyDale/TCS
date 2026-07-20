@@ -26,7 +26,7 @@ const _kG1     = Color(0xFF6DD5FA);
 const _kG2     = Color(0xFF8E54E9);
 const _kG4     = Color(0xFFFF5858);
 Color get _kInk => AppC.text;
-const _kSlate  = Color(0xFF64687A);
+Color get _kSlate => AppC.sub;
 
 const _kMyStickersKey = 'my_stickers_v1';
 
@@ -165,7 +165,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const T('Cancel',
+            child: T('Cancel',
                 style: TextStyle(fontFamily: 'Momo', color: _kSlate)),
           ),
           TextButton(
@@ -209,9 +209,9 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppC.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(children: [
         Padding(
@@ -219,7 +219,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
           child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -243,12 +243,12 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
             const Spacer(),
             IconButton(
               icon: Icon(Icons.close_rounded,
-                  color: Colors.grey.shade400),
+                  color: AppC.faint),
               onPressed: () => Navigator.pop(context),
             ),
           ]),
         ),
-        const Divider(height: 1, color: Color(0xFFEDEEF3)),
+        Divider(height: 1, color: AppC.divider),
         Expanded(child: _buildBody()),
         _buildTabs(),
       ]),
@@ -294,7 +294,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
           borderRadius: BorderRadius.circular(14),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FA),
+              color: AppC.bg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Padding(
@@ -303,13 +303,13 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   ? CachedNetworkImage(
                       imageUrl: url,
                       fit: BoxFit.contain,
-                      errorWidget: (_, __, ___) => const Icon(
+                      errorWidget: (_, __, ___) => Icon(
                           Icons.broken_image_rounded,
-                          color: Color(0xFFB0B3BD)),
+                          color: AppC.faint),
                       placeholder: (_, __) => const SizedBox.shrink(),
                     )
-                  : const Icon(Icons.image_rounded,
-                      color: Color(0xFFB0B3BD)),
+                  : Icon(Icons.image_rounded,
+                      color: AppC.faint),
             ),
           ),
         );
@@ -380,7 +380,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
           onLongPress: () => _confirmRemove(idx),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FA),
+              color: AppC.bg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Padding(
@@ -400,7 +400,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
+            Icon(icon, size: 56, color: AppC.border),
             const SizedBox(height: 12),
             Text(title,
                 style: TextStyle(
@@ -411,7 +411,7 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                   height: 1.5,
                 )),
           ],
@@ -423,8 +423,8 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
   Widget _buildTabs() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        color: AppC.bg,
+        border: Border(top: BorderSide(color: AppC.border)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: SizedBox(
@@ -449,10 +449,10 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                     gradient: active
                         ? const LinearGradient(colors: [_kG1, _kG2])
                         : null,
-                    color: active ? null : Colors.white,
+                    color: active ? null : AppC.card,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: active ? _kG2 : Colors.grey.shade200,
+                      color: active ? _kG2 : AppC.border,
                       width: active ? 1.5 : 1,
                     ),
                   ),
@@ -473,10 +473,10 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                 width: 50, height: 50,
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: active ? _kG2.withOpacity(0.12) : Colors.white,
+                  color: active ? _kG2.withOpacity(0.12) : AppC.card,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: active ? _kG2 : Colors.grey.shade200,
+                    color: active ? _kG2 : AppC.border,
                     width: active ? 1.5 : 1,
                   ),
                 ),
@@ -485,11 +485,11 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                         imageUrl: thumb,
                         fit: BoxFit.contain,
                         errorWidget: (_, __, ___) =>
-                            const Icon(Icons.collections_rounded,
+                            Icon(Icons.collections_rounded,
                                 color: _kSlate, size: 18),
                         placeholder: (_, __) => const SizedBox.shrink(),
                       )
-                    : const Icon(Icons.collections_rounded,
+                    : Icon(Icons.collections_rounded,
                         color: _kSlate, size: 18),
               ),
             );

@@ -27,7 +27,7 @@ Color get _kBorder => AppC.border;
 
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 // Image-Gen identity (orange → red) for filled buttons & selected chips
@@ -303,7 +303,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.refresh_rounded,
                       color: _kInkSoft,
                       size: 20,
@@ -497,7 +497,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                   ),
                   child: Text(
                     s,
-                    style: const TextStyle(color: _kInkSoft, fontSize: 11),
+                    style: TextStyle(color: _kInkSoft, fontSize: 11),
                   ),
                 ),
               );
@@ -721,7 +721,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
                       shaderCallback: (rect) => LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [_kCardLo, Color(0xFFE8E8EE), _kCardLo],
+                        colors: [_kCardLo, AppC.border, _kCardLo],
                         stops: [
                           (_loadingCtrl.value - 0.3).clamp(0.0, 1.0),
                           _loadingCtrl.value,
@@ -860,7 +860,7 @@ class _ImageGeneratorScreenState extends State<ImageGeneratorScreen>
     ),
     child: Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: _kInkSoft,
         fontSize: 10,
         fontWeight: FontWeight.w700,

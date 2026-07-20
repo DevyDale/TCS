@@ -26,7 +26,7 @@ Color get _kBorder => AppC.border;
 
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 // Shared sweep-gradient palette for animated borders
@@ -291,7 +291,7 @@ class _CompanionListScreenState extends State<CompanionListScreen>
                 alignment: Alignment.center,
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: _kInkSoft,
                       fontSize: 12,
                       fontWeight: FontWeight.w600),

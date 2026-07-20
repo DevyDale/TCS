@@ -95,7 +95,7 @@ class _FireWardenScreenState extends State<FireWardenScreen> {
             style: TextStyle(fontFamily: 'Momo', color: AppC.sub, height: 1.4)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+              child: Text('Cancel', style: TextStyle(color: AppC.sub))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
               child: Text(_drill ? 'Start drill' : 'Evacuate',
                   style: const TextStyle(color: _kCoral,
@@ -158,7 +158,7 @@ class _FireWardenScreenState extends State<FireWardenScreen> {
             return ListView(controller: scroll,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 30), children: [
                 Center(child: Container(width: 38, height: 4,
-                    decoration: BoxDecoration(color: Colors.white24,
+                    decoration: BoxDecoration(color: AppC.border,
                         borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
                 Text('Safe check-in', style: TextStyle(fontFamily: 'Alfa',
@@ -206,7 +206,7 @@ class _FireWardenScreenState extends State<FireWardenScreen> {
                     ] else
                       _executePanel(),
                     const SizedBox(height: 8),
-                    const StaffSectionLabel('Evacuation history'),
+                    StaffSectionLabel('Evacuation history'),
                     if (_history.isEmpty)
                       Padding(padding: const EdgeInsets.all(16),
                         child: Text('No evacuations recorded yet.',

@@ -44,7 +44,7 @@ Color get _kBorder => AppC.border; // soft hairline (back button)
 
 Color get _kSlate2 => AppC.sub; // tertiary text
 Color get _kSlate => AppC.sub; // secondary text
-const _kInkSoft  = Color(0xFF374151); // mid text / icons
+Color get _kInkSoft => AppC.sub; // mid text / icons
 Color get _kInk => AppC.text; // primary text
 
 // Sweep gradient colors used for ALL animated borders on this page.
@@ -308,7 +308,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                 : '$_greeting 👋',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: _kInkSoft,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -533,7 +533,7 @@ class _AiHubScreenState extends State<AiHubScreen>
           children: [
             Row(
               children: [
-                const Icon(Icons.bolt_rounded,
+                Icon(Icons.bolt_rounded,
                     color: _kInkSoft, size: 15),
                 const SizedBox(width: 6),
                 T('Hourly usage',
@@ -557,7 +557,7 @@ class _AiHubScreenState extends State<AiHubScreen>
                 value: pct,
                 minHeight: 6,
                 backgroundColor: _kCardLo,
-                valueColor: const AlwaysStoppedAnimation(_kInkSoft),
+                valueColor: AlwaysStoppedAnimation(_kInkSoft),
               ),
             ),
             const SizedBox(height: 8),
@@ -600,7 +600,7 @@ class _SafeRobotLottie extends StatelessWidget {
           shape: BoxShape.circle,
           color: _kCardLo,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.smart_toy_rounded,
           color: _kInkSoft,
           size: 14,
@@ -673,7 +673,7 @@ class _ToolTileState extends State<_ToolTile> {
             ),
           ),
           const SizedBox(width: 10),
-          const Icon(Icons.arrow_forward_rounded,
+          Icon(Icons.arrow_forward_rounded,
               color: _kInkSoft, size: 18),
         ],
       );

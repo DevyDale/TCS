@@ -52,7 +52,7 @@ Color get _kSlate => AppC.sub;
 Color get _kBg => AppC.bg;
 Color get _kCard => AppC.card;
 const _kRed    = Color(0xFFFF5858);
-const _kTabBg  = Color(0xFFF0F0F3); // unselected pill fill
+Color get _kTabBg => AppC.card2; // unselected pill fill
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});

@@ -64,12 +64,13 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
     final c = TextEditingController(text: _subjects);
     showDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: AppC.card,
-      title: const Text('My subjects'),
+      title: Text('My subjects', style: TextStyle(color: AppC.text)),
       content: TextField(
         controller: c, autofocus: true,
         style: TextStyle(fontFamily: 'Momo', color: AppC.text),
-        decoration: const InputDecoration(
-            hintText: 'e.g. Year 12 Chemistry, Year 11 Biology')),
+        decoration: InputDecoration(
+            hintText: 'e.g. Year 12 Chemistry, Year 11 Biology',
+            hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint))),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         TextButton(
@@ -138,7 +139,7 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
               _officeHours(),
               const SizedBox(height: 18),
               // ── Everyday teaching actions first ──
-              const StaffSectionLabel('Teach',
+              StaffSectionLabel('Teach',
                   subtitle: 'Your day-to-day with students'),
               _tile(
                 icon: Icons.forum_rounded,
@@ -169,7 +170,7 @@ class _StaffStudyHubScreenState extends State<StaffStudyHubScreen> {
                 onTap: () => _push(const SessionsScreen(isTeacher: true))),
               const SizedBox(height: 18),
               // ── Overview / read-the-room tools below ──
-              const StaffSectionLabel('Overview',
+              StaffSectionLabel('Overview',
                   subtitle: 'See the whole subject & where demand is'),
               _tile(
                 icon: Icons.dashboard_rounded,

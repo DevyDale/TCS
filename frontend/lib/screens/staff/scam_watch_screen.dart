@@ -88,7 +88,7 @@ class _ScamWatchScreenState extends State<ScamWatchScreen> {
               bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 38, height: 4, decoration: BoxDecoration(
-                color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                color: AppC.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             Row(children: [
               const Icon(Icons.warning_amber_rounded, color: _kCoral, size: 20),

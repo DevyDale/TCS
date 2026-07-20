@@ -170,7 +170,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppC.bg,
       body: _event == null
           ? _buildLoadingOrError()
           : RefreshIndicator(
@@ -352,7 +352,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 style: TextStyle(
                   fontFamily: 'Momo',
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: AppC.sub,
                 ),
               ),
             ],
@@ -364,9 +364,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppC.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppC.border),
             ),
             child: Row(
               children: [
@@ -441,7 +441,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   );
 
   Widget _vDivider() => Container(
-    width: 1, height: 24, color: Colors.grey.shade200,
+    width: 1, height: 24, color: AppC.border,
   );
 
   Widget _infoRow({
@@ -505,8 +505,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          color: AppC.card,
+          border: Border(top: BorderSide(color: AppC.border)),
         ),
         child: RsvpPicker(
           status:    status,

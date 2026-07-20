@@ -132,8 +132,8 @@ class PrivacyToggleSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppC.card,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
@@ -144,7 +144,7 @@ class PrivacyToggleSheet extends StatelessWidget {
           Container(
             width: 36, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppC.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -169,7 +169,7 @@ class PrivacyToggleSheet extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 12,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                 ),
               ),
             ),
@@ -196,7 +196,7 @@ class PrivacyToggleSheet extends StatelessWidget {
           color: selected ? _kG2.withOpacity(0.06) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _kG2.withOpacity(0.5) : Colors.grey.shade200,
+            color: selected ? _kG2.withOpacity(0.5) : AppC.border,
             width: 1.5,
           ),
         ),
@@ -205,12 +205,12 @@ class PrivacyToggleSheet extends StatelessWidget {
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: selected ? _kG2 : Colors.grey.shade100,
+              color: selected ? _kG2 : AppC.card2,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               o.icon,
-              color: selected ? Colors.white : Colors.grey.shade600,
+              color: selected ? Colors.white : AppC.sub,
               size: 18,
             ),
           ),
@@ -231,7 +231,7 @@ class PrivacyToggleSheet extends StatelessWidget {
               Text(o.description,
                 style: TextStyle(
                   fontFamily: 'Momo', fontSize: 11,
-                  color: Colors.grey.shade500,
+                  color: AppC.sub,
                 ),
               ),
             ],

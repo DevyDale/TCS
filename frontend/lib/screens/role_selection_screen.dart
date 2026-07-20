@@ -93,7 +93,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(children: [
-        Container(color: Colors.grey.shade50),
+        Container(color: AppC.bg),
         Positioned(top: -60, right: -60,
             child: _GlassBlob(color: _kG1.withOpacity(0.18), size: 220)),
         Positioned(bottom: 120, left: -80,

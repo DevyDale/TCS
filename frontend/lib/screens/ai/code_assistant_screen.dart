@@ -44,7 +44,7 @@ Color get _kBorder => AppC.border;
 
 Color get _kSlate2 => AppC.sub;
 Color get _kSlate => AppC.sub;
-const _kInkSoft = Color(0xFF374151);
+Color get _kInkSoft => AppC.sub;
 Color get _kInk => AppC.text;
 
 // Code-helper identity: teal/green pair used only for user
@@ -784,7 +784,7 @@ class _CodeAssistantScreenState extends State<CodeAssistantScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.bolt_rounded, color: _kInkSoft, size: 12),
+                Icon(Icons.bolt_rounded, color: _kInkSoft, size: 12),
                 const SizedBox(width: 4),
                 Text(
                   '$_rateLimitUsed / $_rateLimitMax',
