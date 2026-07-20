@@ -6,6 +6,7 @@
 <title>Student Hub · TCS</title>
 <meta name="theme-color" content="#0D0D1A" />
 <link rel="stylesheet" href="assets/onboarding.css" />
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
 <style>
   body { overflow: hidden; }
   .app { position: fixed; inset: 0; z-index: 3; display: flex; }
@@ -109,6 +110,91 @@
     .nav-item { justify-content: center; padding: 13px 0; }
     .inner { padding: 22px 16px 60px; }
   }
+
+  /* ── HOME tab ─────────────────────────────────────────────────── */
+  .home-greet { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .hg-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .hg-left dotlottie-wc { width: 46px; height: 46px; flex: 0 0 auto; }
+  .hg-text { font-family: 'Alfa', serif; font-size: clamp(19px, 4.5vw, 23px); white-space: nowrap; }
+  .sugg-btn { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    border: 1px solid rgba(247,151,30,0.4); background: rgba(247,151,30,0.12); color: #F7B955; border-radius: 13px;
+    padding: 9px 14px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; transition: background 0.15s ease; }
+  .sugg-btn:hover { background: rgba(247,151,30,0.2); }
+  .sugg-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .home-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .icon-btn { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 14px; cursor: pointer; display: grid; place-items: center;
+    border: 1px solid var(--hair); color: #fff; }
+  .addpost-btn { background: linear-gradient(135deg, var(--g2), var(--g1)); border: 0; box-shadow: 0 8px 20px rgba(142,84,233,0.4); }
+  .addpost-btn svg { width: 24px; height: 24px; fill: #fff; }
+  .refresh-btn { background: var(--glass-2); color: var(--sub); }
+  .refresh-btn:hover { background: rgba(255,255,255,0.14); color: var(--ink); }
+  .refresh-btn svg { width: 21px; height: 21px; fill: currentColor; transition: transform 0.2s ease; }
+  .refresh-btn.spinning svg { animation: rot 0.7s linear infinite; }
+  .search-box { flex: 1; min-width: 0; height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px;
+    border-radius: 14px; background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair); transition: border-color 0.15s ease; }
+  .search-box:focus-within { border-color: var(--g2); }
+  .search-box svg { width: 19px; height: 19px; fill: var(--faint); flex: 0 0 auto; }
+  .search-box input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink);
+    font-family: 'Momo', sans-serif; font-size: 14px; }
+  .search-box input::placeholder { color: var(--faint); }
+
+  .feed-label { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .feed-label .eyebrow { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px; color: #B79BF3; }
+  .feed-label .feed-title { font-family: 'Alfa', serif; font-size: 21px; margin-top: 2px; }
+  .feed-label .post-count { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums; }
+
+  .feed-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
+  .feed-tabs::-webkit-scrollbar { display: none; }
+  .feed-tab { flex: 0 0 auto; cursor: pointer; border-radius: 20px; padding: 9px 18px; border: 1px solid var(--hair);
+    background: var(--glass); color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px;
+    transition: transform 0.2s cubic-bezier(0.22,0.61,0.36,1), background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+  .feed-tab:hover { color: var(--ink); }
+  .feed-tab.active { color: #fff; border-color: transparent; background: linear-gradient(90deg, var(--g2), var(--g1));
+    box-shadow: 0 8px 18px rgba(142,84,233,0.35); }
+
+  /* Post card */
+  .post { padding: 0; margin-bottom: 14px; overflow: hidden; }
+  .post-top { display: flex; align-items: center; gap: 12px; padding: 15px 16px 0; }
+  .post-av { width: 46px; height: 46px; border-radius: 50%; padding: 2px; flex: 0 0 auto;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); }
+  .post-av .av { width: 100%; height: 100%; border: 2px solid #14121f; }
+  .post-meta { min-width: 0; }
+  .post-meta .pn { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; }
+  .post-meta .ph { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .post-text { padding: 12px 16px 0; font-family: 'Momo', sans-serif; font-size: 14px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+  .post-media { margin: 12px 0 0; }
+  .post-media img { display: block; width: 100%; max-height: 420px; object-fit: cover; }
+  .post-actions { display: flex; gap: 8px; padding: 12px 14px; }
+  .pa { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; border: 0; border-radius: 11px;
+    padding: 8px 13px; background: var(--glass-2); color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px;
+    transition: background 0.15s ease, color 0.15s ease; }
+  .pa:hover { background: rgba(255,255,255,0.12); color: var(--ink); }
+  .pa.like:hover { color: #FF6B7A; } .pa svg { width: 16px; height: 16px; fill: currentColor; }
+  .pa.share { margin-left: auto; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { width: 100%; max-width: 460px; max-height: 86vh; overflow-y: auto; padding: 22px; }
+  .modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .modal-head .mi { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--g3), var(--g4)); }
+  .modal-head .mi svg { width: 22px; height: 22px; fill: #fff; }
+  .modal-head h2 { font-family: 'Alfa', serif; font-size: 20px; }
+  .modal-head .x { margin-left: auto; }
+  .modal .sub { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); margin-bottom: 16px; line-height: 1.5; }
+  .modal label { display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; margin: 14px 0 7px; }
+  .modal input, .modal textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair);
+    border-radius: 13px; padding: 13px 14px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; resize: vertical; }
+  .modal input:focus, .modal textarea:focus { border-color: var(--g2); }
+  .modal input::placeholder, .modal textarea::placeholder { color: var(--faint); }
+  .cat-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cat { cursor: pointer; border-radius: 999px; padding: 8px 13px; border: 1px solid var(--hair); background: var(--glass);
+    color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
+  .cat.sel { background: linear-gradient(90deg, var(--g2), var(--g1)); color: #fff; border-color: transparent; }
 </style>
 </head>
 <body>
@@ -148,6 +234,7 @@
   </div>
 
   <div class="notif-panel glass" id="notifPanel"><h3>Notifications</h3><div id="notifList"></div></div>
+  <div class="modal-overlay" id="modalOverlay"><div class="modal glass" id="modalBox"></div></div>
 
 <script src="assets/snackbar.js"></script>
 <script>
@@ -191,30 +278,158 @@
   function empty(msg) { return '<div class="empty">' + esc(msg) + '</div>'; }
 
   // ── HOME (feed) ──────────────────────────────────────────────
+  var WAVE = 'https://lottie.host/f5271a44-8c77-49ee-9619-d28b556b78d0/tiMySH0cSe.lottie';
+  function greeting() { var h = new Date().getHours(); return h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening'); }
+  var FEED_TABS = [ { k: 'all', label: 'All' }, { k: 'following', label: 'Following' }, { k: 'events', label: 'Events' }, { k: 'clubs', label: 'Clubs' } ];
+  var HOME = { tab: 'all', items: [], kind: 'posts' };
+
   function renderHome() {
-    loading();
-    authFetch('/posts/feed/?type=home&page=1').then(function (r) {
-      if (!r.ok) { view.innerHTML = head('Home', '') + empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
-      var posts = listOf(r.d);
-      var html = head('Home', 'The latest from around campus.');
-      if (!posts.length) { view.innerHTML = html + empty('No posts yet — check back soon.'); return; }
-      html += posts.map(function (p) {
-        var a = p.author || p.user || {};
-        var name = a.name || a.display_name || a.preferred_name || 'Someone';
-        var img = p.image_url || p.media_url || (p.media && p.media[0] && (p.media[0].url || p.media[0].image_url));
-        var text = p.content || p.text || p.caption || '';
-        return '<div class="card glass"><div class="row">' + avatar(a.avatar_url, name) +
-          '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px">' +
-          '<b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
-          '<span class="faint" style="font-size:11px;font-family:Momo">' + esc(timeAgo(p.created_at)) + '</span></div>' +
-          (text ? '<div class="muted" style="font-family:Momo;font-size:13.5px;line-height:1.5;margin-top:6px">' + esc(text) + '</div>' : '') +
-          (img ? '<img src="' + esc(img) + '" alt="" style="width:100%;border-radius:14px;margin-top:10px;max-height:360px;object-fit:cover" />' : '') +
-          '<div style="display:flex;gap:18px;margin-top:12px;color:var(--faint);font-family:Momo;font-size:12px">' +
-          '<span>♥ ' + num(p.like_count || p.likes_count) + '</span><span>💬 ' + num(p.comment_count || p.comments_count) + '</span></div>' +
-          '</div></div></div>';
-      }).join('');
-      view.innerHTML = html;
-    }).catch(function () { view.innerHTML = head('Home', '') + empty('Couldn’t load the feed.'); window.snack('Couldn’t load the feed', 'error'); });
+    view.innerHTML =
+      '<div class="home-greet">' +
+        '<div class="hg-left"><dotlottie-wc src="' + WAVE + '" autoplay loop></dotlottie-wc>' +
+        '<span class="hg-text">' + greeting() + '</span></div>' +
+        '<button class="sugg-btn" id="suggBtn"><svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg> Suggestion Box</button>' +
+      '</div>' +
+      '<div class="home-actions">' +
+        '<button class="icon-btn addpost-btn" id="addPostBtn" title="New post"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>' +
+        '<div class="search-box"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><input id="feedSearch" placeholder="Search the feed" autocomplete="off" /></div>' +
+        '<button class="icon-btn refresh-btn" id="refreshBtn" title="Refresh"><svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6a5.9 5.9 0 0 1 4.2 1.8L13 11h7V4z"/></svg></button>' +
+      '</div>' +
+      '<div class="feed-label"><div><div class="eyebrow">LATEST</div><div class="feed-title">Campus Feed</div></div>' +
+        '<span class="post-count" id="postCount"></span></div>' +
+      '<div class="feed-tabs" id="feedTabs">' +
+        FEED_TABS.map(function (t) { return '<button class="feed-tab' + (t.k === HOME.tab ? ' active' : '') + '" data-ft="' + t.k + '">' + t.label + '</button>'; }).join('') +
+      '</div>' +
+      '<div id="feedBody"></div>';
+
+    document.getElementById('suggBtn').addEventListener('click', openSuggestionBox);
+    document.getElementById('addPostBtn').addEventListener('click', function () { window.snack('Creating posts from the web is coming soon', 'info'); });
+    document.getElementById('refreshBtn').addEventListener('click', function () { this.classList.add('spinning'); loadFeedTab(); });
+    document.getElementById('feedSearch').addEventListener('input', function () { filterFeed(this.value); });
+    document.getElementById('feedTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ft]'); if (!b) return;
+      HOME.tab = b.getAttribute('data-ft');
+      this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-ft') === HOME.tab); });
+      var s = document.getElementById('feedSearch'); if (s) s.value = '';
+      loadFeedTab();
+    });
+    loadFeedTab();
+  }
+
+  function setPostCount(n) {
+    var el = document.getElementById('postCount'); if (!el) return;
+    var noun = HOME.kind === 'events' ? 'events' : (HOME.kind === 'clubs' ? 'clubs' : 'posts');
+    el.textContent = n ? (n + ' ' + noun) : '';
+  }
+  function loadFeedTab() {
+    var body = document.getElementById('feedBody');
+    body.innerHTML = '<div class="loading"><div class="spin"></div>Loading…</div>';
+    var tab = HOME.tab, path;
+    if (tab === 'all') { path = '/posts/feed/?type=home&page=1'; HOME.kind = 'posts'; }
+    else if (tab === 'following') { path = '/posts/feed/?type=following&page=1'; HOME.kind = 'posts'; }
+    else if (tab === 'events') { path = '/events/?page=1'; HOME.kind = 'events'; }
+    else { path = '/clubs/?page=1'; HOME.kind = 'clubs'; }
+    authFetch(path).then(function (r) {
+      var rb = document.getElementById('refreshBtn'); if (rb) rb.classList.remove('spinning');
+      if (!r.ok) { HOME.items = []; setPostCount(0); body.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
+      HOME.items = listOf(r.d);
+      renderFeedItems(HOME.items);
+    }).catch(function () {
+      var rb = document.getElementById('refreshBtn'); if (rb) rb.classList.remove('spinning');
+      body.innerHTML = empty('Couldn’t load the feed.'); window.snack('Couldn’t load the feed', 'error');
+    });
+  }
+  function renderFeedItems(items) {
+    var body = document.getElementById('feedBody'); if (!body) return;
+    setPostCount(items.length);
+    if (!items.length) { body.innerHTML = empty('Nothing here yet.'); return; }
+    if (HOME.kind === 'posts') { body.innerHTML = items.map(postCard).join(''); wirePostActions(body); }
+    else if (HOME.kind === 'events') { body.innerHTML = '<div class="grid2">' + items.map(eventCard).join('') + '</div>'; }
+    else { body.innerHTML = '<div class="grid2">' + items.map(clubCard).join('') + '</div>'; wireClubActions(body); }
+  }
+  function filterFeed(q) {
+    q = (q || '').toLowerCase().trim();
+    if (!q) { renderFeedItems(HOME.items); return; }
+    renderFeedItems(HOME.items.filter(function (it) { return JSON.stringify(it).toLowerCase().indexOf(q) >= 0; }));
+  }
+  function postCard(p) {
+    var a = p.author || p.user || {};
+    var name = a.name || a.display_name || a.preferred_name || 'Someone';
+    var handle = a.user_id || a.username || 'user';
+    var text = p.content || p.text || p.caption || '';
+    var img = p.image_url || p.media_url || (p.media && p.media[0] && (p.media[0].url || p.media[0].image_url));
+    return '<article class="post glass">' +
+      '<div class="post-top"><div class="post-av">' + avatar(a.avatar_url, name) + '</div>' +
+        '<div class="post-meta"><div class="pn">' + esc(name) + '</div><div class="ph">@' + esc(handle) + ' · ' + esc(timeAgo(p.created_at)) + '</div></div></div>' +
+      (text ? '<div class="post-text">' + esc(text) + '</div>' : '') +
+      (img ? '<div class="post-media"><img src="' + esc(img) + '" alt="" /></div>' : '') +
+      '<div class="post-actions">' +
+        '<button class="pa like" data-act><svg viewBox="0 0 24 24"><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18z"/></svg>' + num(p.like_count || p.likes_count) + '</button>' +
+        '<button class="pa" data-act><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>' + num(p.comment_count || p.comments_count) + '</button>' +
+        '<button class="pa share" data-act><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 1 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"/></svg></button>' +
+      '</div></article>';
+  }
+  function wirePostActions(root) { root.querySelectorAll('.pa[data-act]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Post actions are coming to the web soon', 'info'); }); }); }
+  function wireClubActions(root) { root.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); }); }
+  function eventCard(e) {
+    var when = e.start_at || e.date || e.starts_at || e.event_date;
+    var loc = e.location || e.venue || '';
+    var cat = e.category || e.type || 'Event';
+    var d = when ? new Date(when) : null;
+    var dateStr = d && !isNaN(d) ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    return '<div class="card glass" style="margin:0"><span class="chip" style="background:rgba(79,195,247,.16);color:#7FD3F5">' + esc(cat) + '</span>' +
+      '<div style="font-family:Arch;font-weight:700;font-size:15px;margin-top:10px">' + esc(e.title || e.name || 'Event') + '</div>' +
+      (dateStr ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">📅 ' + esc(dateStr) + '</div>' : '') +
+      (loc ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">📍 ' + esc(loc) + '</div>' : '') + '</div>';
+  }
+  function clubCard(c) {
+    var members = num(c.member_count || c.members_count || (c.members && c.members.length));
+    var cat = c.category || c.type || 'Club';
+    var joined = c.is_member || c.joined;
+    return '<div class="card glass" style="margin:0"><div class="row" style="align-items:center">' + avatar(c.avatar_url || c.cover_url || c.logo_url, c.name) +
+      '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14.5px">' + esc(c.name || 'Club') + '</b>' +
+      '<div class="faint" style="font-family:Momo;font-size:11px;margin-top:3px">' + esc(cat) + ' · ' + members + ' members</div></div></div>' +
+      '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:12px;width:100%" data-club="' + esc(c.id) + '">' + (joined ? 'Joined' : 'Join') + '</button></div>';
+  }
+
+  // ── Modal + Suggestion Box ───────────────────────────────────
+  var overlay = document.getElementById('modalOverlay'), modalBox = document.getElementById('modalBox');
+  function openModal(html) { modalBox.innerHTML = html; overlay.classList.add('open'); }
+  function closeModal() { overlay.classList.remove('open'); modalBox.innerHTML = ''; }
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+
+  function openSuggestionBox() {
+    openModal(
+      '<div class="modal-head"><div class="mi"><svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg></div>' +
+      '<h2>Suggestion Box</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Got an idea to make TCS better? Tell the team.</p>' +
+      '<label>Category</label><div class="cat-row" id="catRow"><span class="faint" style="font-size:12px;font-family:Momo">Loading…</span></div>' +
+      '<label>Title</label><input id="sgTitle" placeholder="A short summary" maxlength="120" />' +
+      '<label>Your suggestion</label><textarea id="sgMsg" rows="4" placeholder="Describe your idea…"></textarea>' +
+      '<button class="btn" id="sgSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Send suggestion</span></button>'
+    );
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var sel = { id: '' };
+    authFetch('/feedback/categories/').then(function (r) {
+      var cats = listOf(r.d); var row = document.getElementById('catRow');
+      if (!r.ok || !cats.length) { row.innerHTML = '<span class="faint" style="font-size:12px;font-family:Momo">' + esc((r.d && r.d.detail) || 'No categories') + '</span>'; return; }
+      row.innerHTML = cats.map(function (c, i) { return '<button type="button" class="cat' + (i === 0 ? ' sel' : '') + '" data-cat="' + esc(c.id || c.slug || c.value) + '">' + esc(c.label || c.name) + '</button>'; }).join('');
+      sel.id = (cats[0].id || cats[0].slug || cats[0].value);
+      row.addEventListener('click', function (e) { var b = e.target.closest('[data-cat]'); if (!b) return; sel.id = b.getAttribute('data-cat'); row.querySelectorAll('.cat').forEach(function (x) { x.classList.toggle('sel', x === b); }); });
+    }).catch(function () {});
+    document.getElementById('sgSubmit').addEventListener('click', function () {
+      var title = document.getElementById('sgTitle').value.trim(), msg = document.getElementById('sgMsg').value.trim();
+      if (!title || !msg) { window.snack('Add a title and your suggestion.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Sending…';
+      fetch(API + '/feedback/suggest/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ title: title, message: msg, category: sel.id }) })
+        .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t send — please try again.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Send suggestion'; return; }
+          closeModal(); window.snack('Thanks! Your suggestion was sent.', 'ok');
+        })
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Send suggestion'; });
+    });
   }
 
   // ── STUDYHUB (quizzes) ───────────────────────────────────────
