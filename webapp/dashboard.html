@@ -195,6 +195,33 @@
   .pa.like:hover { color: #FF6B7A; } .pa svg { width: 16px; height: 16px; fill: currentColor; }
   .pa.share { margin-left: auto; }
 
+  /* ── Study Hub tab ────────────────────────────────────────────── */
+  .lockin-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+  .lockin-left { display: flex; align-items: center; gap: 11px; }
+  .grad-icn { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: 0 0 auto;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); box-shadow: 0 10px 22px rgba(142,84,233,0.35); }
+  .grad-icn svg { width: 24px; height: 24px; fill: #fff; }
+  .lockin-title { font-family: 'Alfa', serif; font-size: clamp(20px, 5vw, 25px); }
+  .lockin-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lib-btn { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; border-radius: 13px; padding: 9px 14px;
+    border: 1px solid rgba(109,213,250,0.4); background: rgba(109,213,250,0.14); color: #8BD5F5;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; transition: background 0.15s ease; }
+  .lib-btn:hover { background: rgba(109,213,250,0.24); }
+  .lib-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .sh-actions { display: flex; align-items: center; gap: 10px; margin: 16px 0 18px; }
+  .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin: 4px 0 14px; }
+  .sec-head .sh-title { font-family: 'Alfa', serif; font-size: 19px; }
+  .sec-head .eyebrow { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px; color: #B79BF3; display: block; margin-bottom: 2px; }
+  .h-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: none; }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .group-card { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+  .h-scroll .group-card { flex: 0 0 auto; width: 200px; }
+  .gc-emoji { font-size: 30px; line-height: 1; }
+  .gc-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; }
+  .gc-meta { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint); }
+  .online-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #38EF7D; box-shadow: 0 0 6px #38EF7D; margin-right: 5px; }
+
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -552,8 +579,146 @@
       (unread ? '<span class="chip" style="background:var(--g2);color:#fff;align-self:center">' + unread + '</span>' : '') + '</div></div>';
   }
 
+  // ── STUDY HUB (Groups / Study Buddies) ───────────────────────
+  var SH = { tab: 'groups', mine: [], sugg: [], buddies: [] };
   function renderStudyhub() {
-    renderListTab({ eyebrow: 'LEARN', title: 'Study Hub', noun: 'quizzes', searchPh: 'Search quizzes', path: '/quiz/?page=1', grid: true, cardFn: quizCard, wireFn: wireQuiz });
+    view.innerHTML =
+      '<div class="lockin-row">' +
+        '<div class="lockin-left"><span class="grad-icn"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg></span>' +
+          '<span class="lockin-title">Let’s Lock In</span></div>' +
+        '<div class="lockin-actions">' +
+          '<button class="dale-btn" id="shDale"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc> Dale</button>' +
+          '<button class="lib-btn" id="shLib"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg> Digital Library</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="feed-tabs" id="shTabs">' +
+        '<button class="feed-tab' + (SH.tab === 'groups' ? ' active' : '') + '" data-sh="groups">Groups</button>' +
+        '<button class="feed-tab' + (SH.tab === 'buddies' ? ' active' : '') + '" data-sh="buddies">Study Buddies</button>' +
+      '</div>' +
+      '<div id="shBody"></div>';
+    document.getElementById('shDale').addEventListener('click', function () { window.snack('Dale is coming to the web soon', 'info'); });
+    document.getElementById('shLib').addEventListener('click', function () { window.snack('Digital Library is coming to the web soon', 'info'); });
+    document.getElementById('shTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-sh]'); if (!b) return;
+      SH.tab = b.getAttribute('data-sh');
+      this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-sh') === SH.tab); });
+      renderSHBody();
+    });
+    renderSHBody();
+  }
+  function renderSHBody() { if (SH.tab === 'groups') renderGroups(); else renderBuddies(); }
+
+  function groupCard(g) {
+    var emoji = g.display_emoji || g.theme_icon || '📚';
+    var members = num(g.members_count);
+    var subject = g.display_subject || g.subject || g.category || '';
+    var joined = g.is_member;
+    return '<div class="group-card card glass">' +
+      '<div class="gc-emoji">' + esc(emoji) + '</div>' +
+      '<div class="gc-name">' + esc(g.name || 'Group') + '</div>' +
+      '<div class="gc-meta">' + (subject ? esc(subject) + ' · ' : '') + members + ' members</div>' +
+      '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:2px" data-group="' + esc(g.id) + '">' + (joined ? 'Open' : 'Join') + '</button></div>';
+  }
+  function buddyCard(b) {
+    var subs = Array.isArray(b.subjects) ? b.subjects.join(', ') : (b.subjects || b.display_subject || '');
+    return '<div class="card glass" style="margin:0"><div class="row" style="align-items:center">' + avatar(b.avatar_url, b.name) +
+      '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14px">' + esc(b.name || 'Student') + '</b>' +
+      '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">' + (subs ? esc(subs) : 'Study buddy') + '</div>' +
+      '<div style="font-family:Momo;font-size:11px;color:#7DE6B0;margin-top:5px"><span class="online-dot"></span>Available now</div></div>' +
+      '<button class="pillbtn" style="align-self:center" data-buddy="' + esc(b.user_id || '') + '">Message</button></div></div>';
+  }
+
+  function renderGroups() {
+    var body = document.getElementById('shBody');
+    body.innerHTML =
+      '<div class="sh-actions">' +
+        '<button class="icon-btn addpost-btn" id="grpCreate" title="Create group"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>' +
+        '<div class="search-box">' + SEARCH_SVG + '<input id="grpSearch" placeholder="Search groups" autocomplete="off" /></div>' +
+      '</div>' +
+      '<div class="sec-head"><div><span class="eyebrow">MINE</span><span class="sh-title">My Groups</span></div><span class="post-count" id="myCount"></span></div>' +
+      '<div id="myGroups"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="sec-head" style="margin-top:26px"><div><span class="eyebrow">DISCOVER</span><span class="sh-title">Suggested Groups</span></div>' +
+        '<button class="pillbtn" id="grpCreate2">＋ Create Group</button></div>' +
+      '<div id="suggGroups"><div class="loading"><div class="spin"></div></div></div>';
+    document.getElementById('grpCreate').addEventListener('click', openCreateGroup);
+    document.getElementById('grpCreate2').addEventListener('click', openCreateGroup);
+
+    authFetch('/groups/?filter=mine').then(function (r) {
+      SH.mine = r.ok ? listOf(r.d) : [];
+      var el = document.getElementById('myGroups'); var cnt = document.getElementById('myCount');
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+      if (cnt) cnt.textContent = SH.mine.length ? SH.mine.length + ' groups' : '';
+      el.innerHTML = SH.mine.length ? '<div class="h-scroll">' + SH.mine.map(groupCard).join('') + '</div>' : empty('You haven’t joined any groups yet.');
+      wireGroupBtns(el);
+    }).catch(function () { document.getElementById('myGroups').innerHTML = empty('Couldn’t load your groups.'); });
+
+    authFetch('/groups/?filter=suggested').then(function (r) {
+      SH.sugg = r.ok ? listOf(r.d) : [];
+      var el = document.getElementById('suggGroups');
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+      el.innerHTML = SH.sugg.length ? '<div class="grid2">' + SH.sugg.map(groupCard).join('') + '</div>' : empty('No suggestions right now.');
+      wireGroupBtns(el);
+    }).catch(function () { document.getElementById('suggGroups').innerHTML = empty('Couldn’t load suggestions.'); });
+
+    document.getElementById('grpSearch').addEventListener('input', function () {
+      var q = this.value.toLowerCase().trim();
+      var fm = q ? SH.mine.filter(function (g) { return (g.name || '').toLowerCase().indexOf(q) >= 0; }) : SH.mine;
+      var fs = q ? SH.sugg.filter(function (g) { return (g.name || '').toLowerCase().indexOf(q) >= 0; }) : SH.sugg;
+      var me = document.getElementById('myGroups'), su = document.getElementById('suggGroups');
+      me.innerHTML = fm.length ? '<div class="h-scroll">' + fm.map(groupCard).join('') + '</div>' : empty('No matching groups.');
+      su.innerHTML = fs.length ? '<div class="grid2">' + fs.map(groupCard).join('') + '</div>' : empty('No matching groups.');
+      wireGroupBtns(me); wireGroupBtns(su);
+    });
+  }
+  function wireGroupBtns(root) { root.querySelectorAll('[data-group]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Group pages are coming to the web soon', 'info'); }); }); }
+
+  function renderBuddies() {
+    var body = document.getElementById('shBody');
+    body.innerHTML =
+      '<div class="sh-actions"><div class="search-box" style="flex:1">' + SEARCH_SVG + '<input id="budSearch" placeholder="Search for study buddies" autocomplete="off" /></div></div>' +
+      '<div class="sec-head"><div><span class="eyebrow">ONLINE</span><span class="sh-title">Available Now</span></div><span class="post-count" id="budCount"></span></div>' +
+      '<div id="buddies"><div class="loading"><div class="spin"></div></div></div>';
+    function draw(list) {
+      var el = document.getElementById('buddies'), cnt = document.getElementById('budCount');
+      if (cnt) cnt.textContent = list.length ? list.length + ' available' : '';
+      el.innerHTML = list.length ? '<div class="grid2">' + list.map(buddyCard).join('') + '</div>' : empty('No study buddies available right now.');
+      el.querySelectorAll('[data-buddy]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Messaging buddies is coming to the web soon', 'info'); }); });
+    }
+    authFetch('/groups/buddies/').then(function (r) {
+      SH.buddies = r.ok ? listOf(r.d) : [];
+      if (!r.ok) { document.getElementById('buddies').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+      draw(SH.buddies);
+      document.getElementById('budSearch').addEventListener('input', function () {
+        var q = this.value.toLowerCase().trim();
+        draw(q ? SH.buddies.filter(function (b) { return JSON.stringify(b).toLowerCase().indexOf(q) >= 0; }) : SH.buddies);
+      });
+    }).catch(function () { document.getElementById('buddies').innerHTML = empty('Couldn’t load study buddies.'); });
+  }
+
+  function openCreateGroup() {
+    openModal(
+      '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h11v-2c0-2.66 2.33-4 5-4z"/></svg></div>' +
+      '<h2>Create a group</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Start a study group and invite your classmates.</p>' +
+      '<label>Group name</label><input id="cgName" placeholder="e.g. Calculus Crew" maxlength="80" />' +
+      '<label>Subject</label><input id="cgSubject" placeholder="e.g. Mathematics" maxlength="60" />' +
+      '<label>Description</label><textarea id="cgDesc" rows="3" placeholder="What’s this group about?"></textarea>' +
+      '<button class="btn" id="cgSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Create group</span></button>'
+    );
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('cgSubmit').addEventListener('click', function () {
+      var name = document.getElementById('cgName').value.trim();
+      if (!name) { window.snack('Give your group a name.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Creating…';
+      fetch(API + '/groups/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ name: name, subject: document.getElementById('cgSubject').value.trim(), description: document.getElementById('cgDesc').value.trim(), is_public: true }) })
+        .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t create the group.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create group'; return; }
+          closeModal(); window.snack('Group created!', 'ok'); if (SH.tab === 'groups') renderSHBody();
+        })
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create group'; });
+    });
   }
   function renderMessages() {
     renderListTab({
