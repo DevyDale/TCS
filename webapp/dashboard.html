@@ -3,135 +3,158 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Dashboard · TCS</title>
+<title>Student Hub · TCS</title>
 <meta name="theme-color" content="#0D0D1A" />
 <link rel="stylesheet" href="assets/onboarding.css" />
 <style>
-  .app { width: 100%; max-width: 720px; margin: 0 auto; min-height: 100dvh;
-         padding: max(env(safe-area-inset-top), 16px) 18px max(env(safe-area-inset-bottom), 28px); }
+  body { overflow: hidden; }
+  .app { position: fixed; inset: 0; z-index: 3; display: flex; }
 
-  /* Top bar */
-  .bar { display: flex; align-items: center; gap: 12px; }
-  .bar .mark { width: 40px; height: 40px; border-radius: 12px; }
-  .bar .mark svg { width: 22px; height: 22px; }
-  .bar .word { font-family: 'Alfa', serif; font-size: 20px; }
-  .bar .spacer { flex: 1; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
-          background: var(--glass-2); border: 1px solid var(--hair); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; }
-  .pill svg { width: 15px; height: 15px; fill: var(--g3); }
-  .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
-            background: linear-gradient(135deg, var(--g2), var(--g1)); font-family: 'Alfa', serif; font-size: 16px; color: #fff; overflow: hidden; }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .logout { padding: 9px 12px; }
+  /* ── Sidebar ─────────────────────────────────────────────────── */
+  .side {
+    width: 264px; flex: 0 0 auto; height: 100%;
+    background: rgba(16,15,28,0.72); border-right: 1px solid var(--hair);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    display: flex; flex-direction: column;
+    padding: 20px 16px max(env(safe-area-inset-bottom), 16px);
+  }
+  .side-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 4px 6px; }
+  .brand-title { font-family: 'Alfa', serif; font-size: 26px; line-height: 1;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .brand-sub { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 4px; letter-spacing: 0.4px; }
+  .notif-btn { position: relative; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 13px; cursor: pointer;
+    background: var(--glass-2); border: 1px solid var(--hair); color: var(--ink);
+    display: grid; place-items: center; transition: background 0.15s ease, border-color 0.15s ease; }
+  .notif-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--hair-2); }
+  .notif-btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .notif-btn .dot { position: absolute; top: 7px; right: 8px; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 8px; background: var(--g4); color: #fff; font-family: 'Arch', sans-serif; font-weight: 700;
+    font-size: 9.5px; display: none; align-items: center; justify-content: center; border: 2px solid #14121f; }
+  .notif-btn .dot.show { display: flex; }
 
-  /* Greeting */
-  .greet { margin-top: 26px; }
-  .greet .hi { font-family: 'Alfa', serif; font-size: clamp(26px, 7vw, 32px); line-height: 1.12; }
-  .greet .hi .grad-text { }
-  .greet .sub { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 8px; }
-  .rolechip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 6px 12px; border-radius: 999px;
-              font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 0.4px;
-              background: rgba(142,84,233,0.16); color: #C6B3F5; border: 1px solid rgba(142,84,233,0.3); text-transform: capitalize; }
+  .grad-divider { height: 2px; margin: 16px 6px 14px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4)); opacity: 0.9; }
 
-  /* Stats */
-  .stats { margin-top: 22px; padding: 4px; display: grid; grid-template-columns: repeat(4, 1fr); }
-  .stat { text-align: center; padding: 14px 6px; }
-  .stat .n { font-family: 'Alfa', serif; font-size: 20px; font-variant-numeric: tabular-nums; }
-  .stat .l { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint); letter-spacing: 0.4px; margin-top: 4px; text-transform: uppercase; }
-  .stat + .stat { border-left: 1px solid var(--hair); }
+  .nav { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 13px; width: 100%; padding: 12px 14px; border: 0; cursor: pointer;
+    background: none; border-radius: 14px; color: var(--sub); text-align: left;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; transition: background 0.15s ease, color 0.15s ease; }
+  .nav-item svg { width: 21px; height: 21px; fill: currentColor; flex: 0 0 auto; }
+  .nav-item:hover { background: var(--glass); color: var(--ink); }
+  .nav-item.active { color: #fff; background: linear-gradient(90deg, rgba(142,84,233,0.28), rgba(109,213,250,0.12));
+    box-shadow: inset 3px 0 0 var(--g1); }
 
-  /* Section label */
-  .sl { display: flex; align-items: center; gap: 10px; margin: 30px 2px 14px; }
-  .sl .bar2 { width: 4px; height: 18px; border-radius: 2px; background: linear-gradient(180deg, var(--g2), var(--g3)); }
-  .sl span { font-family: 'Alfa', serif; font-size: 15px; }
+  .side-bottom { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--hair); display: flex; flex-direction: column; gap: 4px; }
+  .nav-item.arcade { color: #F5C36B; }
+  .nav-item.arcade:hover { background: rgba(247,151,30,0.12); }
+  .nav-item.logout { color: #FF8A9B; }
+  .nav-item.logout:hover { background: rgba(228,68,90,0.12); }
 
-  /* Feature grid */
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  @media (min-width: 540px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  .tile { padding: 16px; text-align: left; cursor: pointer; border-radius: 18px;
-          transition: transform 0.14s ease, background 0.2s ease, border-color 0.2s ease; display: flex; flex-direction: column; gap: 10px; }
-  .tile:hover { transform: translateY(-2px); background: var(--glass-2); border-color: var(--hair-2); }
-  .tile .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--g); }
-  .tile .ic svg { width: 23px; height: 23px; fill: #fff; }
-  .tile .t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
-  .tile .d { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); line-height: 1.4; }
+  /* ── Content ─────────────────────────────────────────────────── */
+  .content { flex: 1; height: 100%; overflow-y: auto; }
+  .inner { max-width: 760px; margin: 0 auto; padding: 30px 26px 60px; }
+  .view-head { margin-bottom: 20px; }
+  .view-head h1 { font-family: 'Alfa', serif; font-size: 27px; line-height: 1.1; }
+  .view-head p { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 6px; }
 
-  .demo-note { text-align: center; font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 26px; }
-  .skeleton { color: transparent; background: rgba(255,255,255,0.08); border-radius: 6px; animation: pulse 1.2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .card { padding: 16px; margin-bottom: 12px; }
+  .row { display: flex; gap: 12px; }
+  .av { width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); font-family: 'Alfa', serif; font-size: 15px; color: #fff; overflow: hidden; }
+  .av img { width: 100%; height: 100%; object-fit: cover; }
+  .muted { color: var(--sub); } .faint { color: var(--faint); }
+  .chip { display: inline-block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10.5px; letter-spacing: 0.4px;
+    padding: 3px 9px; border-radius: 999px; text-transform: uppercase; }
+  .pillbtn { border: 0; cursor: pointer; border-radius: 12px; padding: 8px 16px; color: #fff;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px;
+    background: linear-gradient(90deg, var(--g2), var(--g1)); }
+  .pillbtn.ghost2 { background: var(--glass-2); border: 1px solid var(--hair); color: var(--ink); }
+
+  .empty, .loading { text-align: center; padding: 50px 20px; font-family: 'Momo', sans-serif; color: var(--faint); font-size: 13.5px; }
+  .spin { width: 26px; height: 26px; border: 3px solid rgba(255,255,255,0.18); border-top-color: var(--g1);
+    border-radius: 50%; margin: 0 auto 12px; animation: rot 0.8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* Notifications dropdown */
+  .notif-panel { position: fixed; top: 66px; left: 16px; width: 300px; max-height: 60vh; overflow-y: auto;
+    z-index: 40; padding: 8px; display: none; }
+  .notif-panel.open { display: block; }
+  .notif-panel h3 { font-family: 'Arch', sans-serif; font-size: 13px; padding: 8px 10px; color: var(--ink); }
+  .notif-item { padding: 10px; border-radius: 12px; }
+  .notif-item + .notif-item { margin-top: 2px; }
+  .notif-item:hover { background: var(--glass); }
+  .notif-item .t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink); }
+  .notif-item .b { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 3px; line-height: 1.4; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+
+  /* Profile */
+  .prof-hero { display: flex; align-items: center; gap: 18px; padding: 22px; }
+  .prof-hero .big { width: 84px; height: 84px; font-size: 30px; border-radius: 26px; }
+  .prof-hero .big.round { border-radius: 50%; }
+  .prof-stats { display: grid; grid-template-columns: repeat(4,1fr); padding: 4px; margin: 12px 0; }
+  .prof-stats .s { text-align: center; padding: 14px 4px; }
+  .prof-stats .s + .s { border-left: 1px solid var(--hair); }
+  .prof-stats .n { font-family: 'Alfa', serif; font-size: 19px; }
+  .prof-stats .l { font-family: 'Momo', sans-serif; font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+
+  /* Mobile: collapse sidebar to an icon rail */
+  @media (max-width: 780px) {
+    .side { width: 74px; padding: 16px 10px; }
+    .brand-sub, .nav-item span, .brand-title { display: none; }
+    .side-head { justify-content: center; }
+    .notif-btn { width: 44px; height: 44px; }
+    .grad-divider { margin: 14px 2px; }
+    .nav-item { justify-content: center; padding: 13px 0; }
+    .inner { padding: 22px 16px 60px; }
+  }
 </style>
 </head>
 <body>
   <div class="backdrop"></div>
-  <div class="blob p"></div><div class="blob o"></div><div class="blob c"></div>
+  <div class="blob p"></div><div class="blob o"></div>
 
-  <main class="app layer">
-    <div class="bar">
-      <div class="mark brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg></div>
-      <span class="word grad-text">TCS</span>
-      <span class="spacer"></span>
-      <span class="pill" id="tokenPill"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/></svg><span id="tokens">—</span></span>
-      <div class="avatar" id="avatar">?</div>
-      <button class="ghost logout" id="logout" type="button">Log out</button>
-    </div>
+  <div class="app">
+    <aside class="side">
+      <div class="side-head">
+        <div>
+          <div class="brand-title">TCS</div>
+          <div class="brand-sub">StudentHub</div>
+        </div>
+        <button class="notif-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-5-6.7V4a2 2 0 0 0-4 0v.3A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
+          <span class="dot" id="notifDot">0</span>
+        </button>
+      </div>
 
-    <section class="greet">
-      <div class="hi">Welcome back, <span class="grad-text" id="firstName">there</span> 👋</div>
-      <div class="sub" id="handle">Loading your profile…</div>
-      <div class="rolechip" id="roleChip" style="display:none"></div>
-    </section>
+      <div class="grad-divider"></div>
 
-    <div class="stats glass">
-      <div class="stat"><div class="n" id="s_level">—</div><div class="l">Level</div></div>
-      <div class="stat"><div class="n" id="s_tokens">—</div><div class="l">Tokens</div></div>
-      <div class="stat"><div class="n" id="s_followers">—</div><div class="l">Followers</div></div>
-      <div class="stat"><div class="n" id="s_following">—</div><div class="l">Following</div></div>
-    </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item" data-tab="home"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Home</span></button>
+        <button class="nav-item" data-tab="studyhub"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/></svg><span>StudyHub</span></button>
+        <button class="nav-item" data-tab="messages"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><span>Messages</span></button>
+        <button class="nav-item" data-tab="clubs"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span>Clubs</span></button>
+        <button class="nav-item" data-tab="profile"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span>Profile</span></button>
+      </nav>
 
-    <div class="sl"><span class="bar2"></span><span>Explore</span></div>
-    <div class="grid" id="grid"></div>
+      <div class="side-bottom">
+        <button class="nav-item arcade" id="arcadeBtn"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg><span>Arcade</span></button>
+        <button class="nav-item logout" id="logout"><svg viewBox="0 0 24 24"><path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-9a2 2 0 0 0-2 2v4h2V5h9v14h-9v-4H9v4a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg><span>Log Out</span></button>
+      </div>
+    </aside>
 
-    <div class="demo-note">Web demo · signed in against the live TCS backend</div>
-  </main>
+    <main class="content"><div class="inner" id="view"></div></main>
+  </div>
+
+  <div class="notif-panel glass" id="notifPanel"><h3>Notifications</h3><div id="notifList"></div></div>
 
 <script src="assets/snackbar.js"></script>
 <script>
   var API = 'https://tcs-nsw.duckdns.org/api';
-
   function tok() { try { return localStorage.getItem('tcs_access'); } catch (e) { return null; } }
-  function cachedUser() { try { return JSON.parse(localStorage.getItem('tcs_user') || 'null'); } catch (e) { return null; } }
   function clearSession() { ['tcs_access','tcs_refresh','tcs_user'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); }
-
-  // Guard: no token → back to sign-in.
   if (!tok()) { location.replace('auth.html'); }
-
-  var TILES = [
-    { t: 'Feed', d: 'Campus moments', g: 'linear-gradient(135deg,#8E54E9,#6DD5FA)', i: 'M4 4h16v4H4zM4 10h16v4H4zM4 16h10v4H4z' },
-    { t: 'Chat', d: 'Message friends', g: 'linear-gradient(135deg,#11998E,#38EF7D)', i: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z' },
-    { t: 'Clubs', d: 'Find your tribe', g: 'linear-gradient(135deg,#F7971E,#FF5858)', i: 'M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
-    { t: 'Events', d: 'What’s on', g: 'linear-gradient(135deg,#4FC3F7,#0288D1)', i: 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10z' },
-    { t: 'Arcade', d: 'Play & compete', g: 'linear-gradient(135deg,#EC4899,#8E54E9)', i: 'M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z' },
-    { t: 'Study Hub', d: 'Quizzes & notes', g: 'linear-gradient(135deg,#81C784,#388E3C)', i: 'M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z' },
-    { t: 'Dale AI', d: 'Your assistant', g: 'linear-gradient(135deg,#6DD5FA,#8E54E9)', i: 'M12 2a2 2 0 0 1 2 2v1h3a3 3 0 0 1 3 3v3h1a1 1 0 0 1 0 2h-1v3a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-3H3a1 1 0 0 1 0-2h1V8a3 3 0 0 1 3-3h3V4a2 2 0 0 1 2-2zM9 11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z' },
-    { t: 'Profile', d: 'Your account', g: 'linear-gradient(135deg,#F7971E,#EC4899)', i: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
-  ];
-  var grid = document.getElementById('grid');
-  TILES.forEach(function (x) {
-    var el = document.createElement('button');
-    el.className = 'tile glass'; el.style.setProperty('--g', x.g);
-    el.innerHTML = '<span class="ic"><svg viewBox="0 0 24 24"><path d="' + x.i + '"/></svg></span>' +
-                   '<span class="t">' + x.t + '</span><span class="d">' + x.d + '</span>';
-    el.addEventListener('click', function () { window.snack(x.t + ' is coming to the web soon', 'info'); });
-    grid.appendChild(el);
-  });
-
-  document.getElementById('logout').addEventListener('click', function () {
-    var r = tok();
-    if (r) { fetch(API + '/accounts/logout/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + r }, body: JSON.stringify({ refresh: localStorage.getItem('tcs_refresh') || '' }) }).catch(function(){}); }
-    clearSession();
-    window.snack('Signed out', 'ok', 1200);
-    setTimeout(function () { location.href = 'auth.html'; }, 600);
-  });
 
   function refreshToken() {
     var r; try { r = localStorage.getItem('tcs_refresh'); } catch (e) {}
@@ -141,45 +164,208 @@
       .then(function (d) { if (d && d.access) { localStorage.setItem('tcs_access', d.access); if (d.refresh) localStorage.setItem('tcs_refresh', d.refresh); return true; } return false; })
       .catch(function () { return false; });
   }
-
-  function getMe(retry) {
-    return fetch(API + '/users/me/', { headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+  function authFetch(path, retry) {
+    return fetch(API + path, { headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
       .then(function (res) {
-        if (res.status === 401 && !retry) { return refreshToken().then(function (ok) { return ok ? getMe(true) : Promise.reject('unauthorized'); }); }
-        if (!res.ok) return Promise.reject('http ' + res.status);
-        return res.json();
+        if (res.status === 401 && !retry) { return refreshToken().then(function (ok) { if (!ok) { clearSession(); location.replace('auth.html'); return Promise.reject('unauth'); } return authFetch(path, true); }); }
+        return res.json().then(function (d) { return { ok: res.ok, d: d }; });
       });
   }
+  function listOf(d) { return Array.isArray(d) ? d : (d && (d.results || d.items || d.data)) || []; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function initial(s) { s = String(s || '?').trim(); return (s[0] || '?').toUpperCase(); }
+  function num(n) { return (n == null || isNaN(n)) ? 0 : n; }
+  function avatar(url, name, cls) {
+    return '<div class="av ' + (cls || '') + '">' + (url ? '<img src="' + esc(url) + '" alt="" />' : esc(initial(name))) + '</div>';
+  }
+  function timeAgo(iso) {
+    if (!iso) return ''; var t = new Date(iso).getTime(); if (isNaN(t)) return '';
+    var s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return 'now'; if (s < 3600) return Math.floor(s/60) + 'm';
+    if (s < 86400) return Math.floor(s/3600) + 'h'; if (s < 604800) return Math.floor(s/86400) + 'd';
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  var view = document.getElementById('view');
+  function loading() { view.innerHTML = '<div class="loading"><div class="spin"></div>Loading…</div>'; }
+  function head(title, sub) { return '<div class="view-head"><h1>' + esc(title) + '</h1><p>' + esc(sub) + '</p></div>'; }
+  function empty(msg) { return '<div class="empty">' + esc(msg) + '</div>'; }
 
-  function fmt(n) { return (n == null || isNaN(n)) ? '0' : String(n); }
-  function paint(u) {
-    var name = u.preferred_name || u.name || u.display_name || 'there';
-    var first = String(name).split(' ')[0];
-    document.getElementById('firstName').textContent = first;
-    document.getElementById('handle').textContent = u.user_id ? ('@' + String(u.user_id)) : (u.email || 'Signed in');
-    var role = (u.role || '').replace(/_/g, ' ');
-    var chip = document.getElementById('roleChip');
-    if (role) { chip.textContent = role; chip.style.display = 'inline-flex'; }
-
-    var av = document.getElementById('avatar');
-    if (u.avatar_url) { av.innerHTML = '<img src="' + u.avatar_url + '" alt="" />'; }
-    else { av.textContent = (first[0] || '?').toUpperCase(); }
-
-    document.getElementById('s_level').textContent = fmt(u.level != null ? u.level : 1);
-    document.getElementById('s_tokens').textContent = fmt(u.tokens);
-    document.getElementById('s_followers').textContent = fmt(u.followers_count);
-    document.getElementById('s_following').textContent = fmt(u.following_count);
-    document.getElementById('tokens').textContent = fmt(u.tokens);
+  // ── HOME (feed) ──────────────────────────────────────────────
+  function renderHome() {
+    loading();
+    authFetch('/posts/feed/?type=home&page=1').then(function (r) {
+      if (!r.ok) { view.innerHTML = head('Home', '') + empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
+      var posts = listOf(r.d);
+      var html = head('Home', 'The latest from around campus.');
+      if (!posts.length) { view.innerHTML = html + empty('No posts yet — check back soon.'); return; }
+      html += posts.map(function (p) {
+        var a = p.author || p.user || {};
+        var name = a.name || a.display_name || a.preferred_name || 'Someone';
+        var img = p.image_url || p.media_url || (p.media && p.media[0] && (p.media[0].url || p.media[0].image_url));
+        var text = p.content || p.text || p.caption || '';
+        return '<div class="card glass"><div class="row">' + avatar(a.avatar_url, name) +
+          '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px">' +
+          '<b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
+          '<span class="faint" style="font-size:11px;font-family:Momo">' + esc(timeAgo(p.created_at)) + '</span></div>' +
+          (text ? '<div class="muted" style="font-family:Momo;font-size:13.5px;line-height:1.5;margin-top:6px">' + esc(text) + '</div>' : '') +
+          (img ? '<img src="' + esc(img) + '" alt="" style="width:100%;border-radius:14px;margin-top:10px;max-height:360px;object-fit:cover" />' : '') +
+          '<div style="display:flex;gap:18px;margin-top:12px;color:var(--faint);font-family:Momo;font-size:12px">' +
+          '<span>♥ ' + num(p.like_count || p.likes_count) + '</span><span>💬 ' + num(p.comment_count || p.comments_count) + '</span></div>' +
+          '</div></div></div>';
+      }).join('');
+      view.innerHTML = html;
+    }).catch(function () { view.innerHTML = head('Home', '') + empty('Couldn’t load the feed.'); window.snack('Couldn’t load the feed', 'error'); });
   }
 
-  // Paint cached first (instant), then refresh from the live backend.
-  var cu = cachedUser(); if (cu) { try { paint(cu); } catch (e) {} }
-  getMe(false)
-    .then(function (u) { paint(u); try { localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {} })
-    .catch(function (err) {
-      if (err === 'unauthorized') { clearSession(); window.snack('Session expired — please sign in again', 'error'); setTimeout(function () { location.href = 'auth.html'; }, 1400); }
-      else { window.snack('Couldn’t refresh your profile', 'error'); }
-    });
+  // ── STUDYHUB (quizzes) ───────────────────────────────────────
+  function renderStudyhub() {
+    loading();
+    authFetch('/quiz/?page=1').then(function (r) {
+      if (!r.ok) { view.innerHTML = head('Study Hub', '') + empty((r.d && r.d.detail) || 'Couldn’t load quizzes.'); return; }
+      var qs = listOf(r.d);
+      var html = head('Study Hub', 'Quizzes and study materials.');
+      if (!qs.length) { view.innerHTML = html + empty('No quizzes published yet.'); return; }
+      html += '<div class="grid2">' + qs.map(function (q) {
+        var subject = q.subject || q.category || 'General';
+        var count = q.question_count || (q.questions && q.questions.length) || q.total_questions || 0;
+        var diff = q.difficulty || q.level || '';
+        return '<div class="card glass" style="margin:0"><span class="chip" style="background:rgba(129,199,132,.16);color:#8FDC9B">' + esc(subject) + '</span>' +
+          '<div style="font-family:Arch;font-weight:700;font-size:15px;margin-top:10px">' + esc(q.title || 'Untitled quiz') + '</div>' +
+          '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">' + count + ' questions' + (diff ? ' · ' + esc(diff) : '') + '</div>' +
+          '<button class="pillbtn" style="margin-top:12px" data-quiz="' + esc(q.id) + '">Attempt</button></div>';
+      }).join('') + '</div>';
+      view.innerHTML = html;
+      view.querySelectorAll('[data-quiz]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Quiz-taking is coming to the web soon', 'info'); }); });
+    }).catch(function () { view.innerHTML = head('Study Hub', '') + empty('Couldn’t load quizzes.'); window.snack('Couldn’t load quizzes', 'error'); });
+  }
+
+  // ── MESSAGES (chat rooms) ────────────────────────────────────
+  function renderMessages() {
+    loading();
+    authFetch('/chat/rooms/').then(function (r) {
+      if (!r.ok) { view.innerHTML = head('Messages', '') + empty((r.d && r.d.detail) || 'Couldn’t load messages.'); return; }
+      var rooms = listOf(r.d);
+      var html = head('Messages', 'Your conversations.');
+      if (!rooms.length) { view.innerHTML = html + empty('No conversations yet.'); return; }
+      html += rooms.map(function (m) {
+        var other = m.other_user || {};
+        var name = m.room_type === 'group' ? (m.name || 'Group') : (other.name || other.display_name || m.name || 'Chat');
+        var last = m.last_message_text || m.last_message || '';
+        var unread = num(m.unread_count);
+        return '<div class="card glass" style="margin-bottom:8px"><div class="row" style="align-items:center">' +
+          avatar(m.avatar_url || other.avatar_url, name) +
+          '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px">' +
+          '<b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
+          '<span class="faint" style="font-size:11px;font-family:Momo">' + esc(timeAgo(m.last_message_at)) + '</span></div>' +
+          '<div class="muted" style="font-family:Momo;font-size:12.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(last || 'No messages yet') + '</div></div>' +
+          (unread ? '<span class="chip" style="background:var(--g2);color:#fff;align-self:center">' + unread + '</span>' : '') +
+          '</div></div>';
+      }).join('');
+      view.innerHTML = html;
+    }).catch(function () { view.innerHTML = head('Messages', '') + empty('Couldn’t load messages.'); window.snack('Couldn’t load messages', 'error'); });
+  }
+
+  // ── CLUBS ────────────────────────────────────────────────────
+  function renderClubs() {
+    loading();
+    authFetch('/clubs/?page=1').then(function (r) {
+      if (!r.ok) { view.innerHTML = head('Clubs', '') + empty((r.d && r.d.detail) || 'Couldn’t load clubs.'); return; }
+      var clubs = listOf(r.d);
+      var html = head('Clubs', 'Find your community.');
+      if (!clubs.length) { view.innerHTML = html + empty('No clubs yet.'); return; }
+      html += '<div class="grid2">' + clubs.map(function (c) {
+        var members = num(c.member_count || c.members_count || (c.members && c.members.length));
+        var cat = c.category || c.type || 'Club';
+        var joined = c.is_member || c.joined;
+        return '<div class="card glass" style="margin:0">' +
+          '<div class="row" style="align-items:center">' + avatar(c.avatar_url || c.cover_url || c.logo_url, c.name) +
+          '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14.5px">' + esc(c.name || 'Club') + '</b>' +
+          '<div class="faint" style="font-family:Momo;font-size:11px;margin-top:3px">' + esc(cat) + ' · ' + members + ' members</div></div></div>' +
+          '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:12px;width:100%" data-club="' + esc(c.id) + '">' + (joined ? 'Joined' : 'Join') + '</button></div>';
+      }).join('') + '</div>';
+      view.innerHTML = html;
+      view.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); });
+    }).catch(function () { view.innerHTML = head('Clubs', '') + empty('Couldn’t load clubs.'); window.snack('Couldn’t load clubs', 'error'); });
+  }
+
+  // ── PROFILE ──────────────────────────────────────────────────
+  function renderProfile() {
+    loading();
+    authFetch('/users/me/').then(function (r) {
+      if (!r.ok) { view.innerHTML = head('Profile', '') + empty((r.d && r.d.detail) || 'Couldn’t load your profile.'); return; }
+      var u = r.d || {};
+      var name = u.name || u.preferred_name || u.display_name || 'You';
+      var role = (u.role || '').replace(/_/g, ' ');
+      var interests = Array.isArray(u.interests) ? u.interests : [];
+      var html = head('Profile', 'Your account at a glance.');
+      html += '<div class="card glass prof-hero">' + avatar(u.avatar_url, name, 'big round') +
+        '<div><div style="font-family:Alfa;font-size:22px">' + esc(name) + '</div>' +
+        '<div class="faint" style="font-family:Momo;font-size:12.5px;margin-top:4px">@' + esc(u.user_id || u.email || 'me') + '</div>' +
+        (role ? '<span class="chip" style="background:rgba(142,84,233,.18);color:#C6B3F5;margin-top:10px;text-transform:capitalize">' + esc(role) + '</span>' : '') + '</div></div>';
+      html += '<div class="card glass prof-stats" style="display:grid">' +
+        '<div class="s"><div class="n">' + num(u.level != null ? u.level : 1) + '</div><div class="l">Level</div></div>' +
+        '<div class="s"><div class="n">' + num(u.tokens) + '</div><div class="l">Tokens</div></div>' +
+        '<div class="s"><div class="n">' + num(u.followers_count) + '</div><div class="l">Followers</div></div>' +
+        '<div class="s"><div class="n">' + num(u.following_count) + '</div><div class="l">Following</div></div></div>';
+      if (u.bio) html += '<div class="card glass"><b style="font-family:Arch;font-size:13px">About</b><div class="muted" style="font-family:Momo;font-size:13.5px;line-height:1.6;margin-top:8px">' + esc(u.bio) + '</div></div>';
+      if (interests.length) html += '<div class="card glass"><b style="font-family:Arch;font-size:13px">Interests</b><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+        interests.map(function (i) { return '<span class="chip" style="background:var(--glass-2);color:var(--sub);border:1px solid var(--hair)">' + esc(i) + '</span>'; }).join('') + '</div></div>';
+      view.innerHTML = html;
+    }).catch(function () { view.innerHTML = head('Profile', '') + empty('Couldn’t load your profile.'); window.snack('Couldn’t load profile', 'error'); });
+  }
+
+  var TABS = { home: renderHome, studyhub: renderStudyhub, messages: renderMessages, clubs: renderClubs, profile: renderProfile };
+  function setTab(name) {
+    if (!TABS[name]) name = 'home';
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
+    try { localStorage.setItem('tcs_tab', name); } catch (e) {}
+    TABS[name]();
+  }
+  document.getElementById('nav').addEventListener('click', function (e) {
+    var b = e.target.closest('.nav-item[data-tab]'); if (b) setTab(b.getAttribute('data-tab'));
+  });
+  document.getElementById('arcadeBtn').addEventListener('click', function () { window.snack('Arcade lives in the mobile app for now', 'info'); });
+  document.getElementById('logout').addEventListener('click', function () {
+    var r = tok();
+    if (r) { fetch(API + '/accounts/logout/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + r }, body: JSON.stringify({ refresh: localStorage.getItem('tcs_refresh') || '' }) }).catch(function () {}); }
+    clearSession(); window.snack('Signed out', 'ok', 1000);
+    setTimeout(function () { location.href = 'auth.html'; }, 600);
+  });
+
+  // Notifications
+  var notifPanel = document.getElementById('notifPanel');
+  document.getElementById('notifBtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = notifPanel.classList.toggle('open');
+    if (open) loadNotifs();
+  });
+  document.addEventListener('click', function (e) { if (!notifPanel.contains(e.target)) notifPanel.classList.remove('open'); });
+  function loadNotifs() {
+    var list = document.getElementById('notifList');
+    list.innerHTML = '<div class="loading" style="padding:20px"><div class="spin"></div></div>';
+    authFetch('/notifications/?page=1').then(function (r) {
+      if (!r.ok) { list.innerHTML = '<div class="empty" style="padding:24px">' + esc((r.d && r.d.detail) || 'Couldn’t load notifications.') + '</div>'; return; }
+      var n = listOf(r.d);
+      if (!n.length) { list.innerHTML = '<div class="empty" style="padding:24px">You’re all caught up.</div>'; return; }
+      list.innerHTML = n.slice(0, 15).map(function (x) {
+        return '<div class="notif-item"><div class="t">' + esc(x.title || x.verb || 'Notification') + '</div>' +
+          '<div class="b">' + esc(x.body || x.message || x.text || '') + '</div></div>';
+      }).join('');
+    }).catch(function () { list.innerHTML = '<div class="empty" style="padding:24px">Couldn’t load notifications.</div>'; });
+  }
+  function loadNotifCount() {
+    authFetch('/notifications/unread-count/').then(function (r) {
+      if (!r.ok) return;
+      var c = (r.d && (r.d.count != null ? r.d.count : r.d.unread)) || 0;
+      var dot = document.getElementById('notifDot');
+      if (c > 0) { dot.textContent = c > 99 ? '99+' : c; dot.classList.add('show'); } else { dot.classList.remove('show'); }
+    }).catch(function () {});
+  }
+
+  // Boot
+  var start = 'home'; try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {}
+  setTab(start);
+  loadNotifCount();
 </script>
 </body>
 </html>
