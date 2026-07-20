@@ -413,9 +413,10 @@ class _GroupScreenState extends State<GroupScreen>
                 controller: ctrl,
                 autofocus: true,
                 keyboardType: TextInputType.url,
-                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
                 decoration: InputDecoration(
                   hintText: TranslationService.I.tr('https://example.com'),
+                  hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 14, vertical: 14),
@@ -804,7 +805,7 @@ class _GroupScreenState extends State<GroupScreen>
                 border: Border.all(color: AppC.border)),
               child: TextField(
                 controller: reasonCtrl, autofocus: true, maxLines: 3,
-                style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+                style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
                 decoration: InputDecoration(
                   hintText: TranslationService.I.tr('Reason for dissolving...'),
                   hintStyle: TextStyle(fontFamily: 'Momo',
@@ -1630,8 +1631,8 @@ class _GroupScreenState extends State<GroupScreen>
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.reply_rounded, color: _indigo),
-              title: const T('Reply',
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
+              title: T('Reply',
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text)),
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() => _replyingTo = m);
@@ -1639,8 +1640,8 @@ class _GroupScreenState extends State<GroupScreen>
             ),
             ListTile(
               leading: const Icon(Icons.copy_rounded, color: _indigo),
-              title: const T('Copy text',
-                  style: TextStyle(fontFamily: 'Momo', fontSize: 14)),
+              title: T('Copy text',
+                  style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text)),
               onTap: () {
                 Clipboard.setData(
                     ClipboardData(text: (m['content'] as String?) ?? ''));

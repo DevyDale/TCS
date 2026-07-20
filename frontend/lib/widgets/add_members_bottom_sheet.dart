@@ -214,7 +214,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
       ),
       child: TextField(
         controller: _qCtrl, autofocus: true,
-        style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+        style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
         decoration: InputDecoration(
           hintText: TranslationService.I.tr('Search by name or ID'),
           hintStyle: TextStyle(fontFamily: 'Momo', color: AppC.faint),
@@ -265,7 +265,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                     name.split(' ').first,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontFamily: 'Momo', fontSize: 10))),
+                    style: TextStyle(fontFamily: 'Momo', fontSize: 10, color: AppC.text))),
               ]),
               Positioned(top: -2, right: -2, child: Container(
                   width: 18, height: 18,

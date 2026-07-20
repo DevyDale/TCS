@@ -281,7 +281,7 @@ class _ShareProfileSheetState extends State<ShareProfileSheet> {
         ),
         child: TextField(
           controller: _searchCtrl,
-          style: const TextStyle(fontFamily: 'Momo', fontSize: 14),
+          style: TextStyle(fontFamily: 'Momo', fontSize: 14, color: AppC.text),
           decoration: InputDecoration(
             hintText: TranslationService.I.tr('Search recent chats...'),
             hintStyle: TextStyle(

@@ -331,7 +331,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppC.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => SafeArea(
@@ -344,7 +344,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
               Center(child: Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppC.border,
                   borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 18),
               Text(_T.t(_lang, 'choose_lang'),
@@ -377,7 +377,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
             : null,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _kG2.withOpacity(0.5) : Colors.grey.shade200,
+            color: selected ? _kG2.withOpacity(0.5) : AppC.border,
             width: selected ? 1.5 : 1.0),
         ),
         child: Row(children: [
@@ -394,7 +394,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen>
               const SizedBox(height: 2),
               Text(info.code, style: TextStyle(
                 fontFamily: 'Momo', fontSize: 11,
-                color: Colors.grey.shade500, letterSpacing: 1.0)),
+                color: AppC.sub, letterSpacing: 1.0)),
             ])),
           if (selected) const Icon(Icons.check_circle_rounded,
             color: _kG2, size: 24),

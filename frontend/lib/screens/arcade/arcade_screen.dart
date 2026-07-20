@@ -1629,7 +1629,6 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final t        = _ThemeScope.of(context);
     final mq       = MediaQuery.of(context);
     final maxH     = mq.size.height * 0.85;
     final cats     = kAvatarCategoryLabels.keys.toList();
@@ -1639,7 +1638,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
       constraints: BoxConstraints(maxHeight: maxH),
       child: Container(
         decoration: BoxDecoration(
-          color: t.bg1,
+          color: AppC.bg,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -1651,7 +1650,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                 Container(
                   width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: t.border,
+                    color: AppC.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1660,13 +1659,13 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                   'Choose your avatar',
                   style: TextStyle(
                     fontSize: 19, fontWeight: FontWeight.w900,
-                    color: t.ink, letterSpacing: -0.4,
+                    color: AppC.text, letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 4),
                 T(
                   'Pick one — you can change it any time',
-                  style: TextStyle(fontSize: 12, color: t.slate),
+                  style: TextStyle(fontSize: 12, color: AppC.sub),
                 ),
                 const SizedBox(height: 16),
               ]),
@@ -1691,10 +1690,10 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: active ? t.ink : t.card,
+                        color: active ? AppC.ink : AppC.card,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: active ? Colors.transparent : t.border,
+                          color: active ? Colors.transparent : AppC.border,
                         ),
                       ),
                       child: Text(
@@ -1702,8 +1701,8 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                         style: TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w800,
                           color: active
-                              ? (t.isDark ? t.bg1 : Colors.white)
-                              : t.ink,
+                              ? (AppC.isDark ? AppC.bg : Colors.white)
+                              : AppC.text,
                         ),
                       ),
                     ),
@@ -1736,7 +1735,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? t.ink : Colors.transparent,
+                          color: isSelected ? AppC.ink : Colors.transparent,
                           width: 3,
                         ),
                       ),
@@ -1757,16 +1756,16 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        color: t.card,
+                        color: AppC.card,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: t.border),
+                        border: Border.all(color: AppC.border),
                       ),
                       alignment: Alignment.center,
                       child: T(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w800,
-                          color: t.ink, letterSpacing: -0.2,
+                          color: AppC.text, letterSpacing: -0.2,
                         ),
                       ),
                     ),
@@ -1786,7 +1785,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                       duration: const Duration(milliseconds: 180),
                       height: 50,
                       decoration: BoxDecoration(
-                        color: _selected == null ? t.border : t.ink,
+                        color: _selected == null ? AppC.border : AppC.ink,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       alignment: Alignment.center,
@@ -1797,8 +1796,8 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                         style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w800,
                           color: _selected == null
-                              ? t.slate
-                              : (t.isDark ? t.bg1 : Colors.white),
+                              ? AppC.sub
+                              : (AppC.isDark ? AppC.bg : Colors.white),
                           letterSpacing: -0.2,
                         ),
                       ),

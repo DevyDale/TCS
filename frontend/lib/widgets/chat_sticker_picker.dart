@@ -194,12 +194,12 @@ class _StickerPickerSheetState extends State<_StickerPickerSheet> {
                   ? CachedNetworkImage(
                       imageUrl: url,
                       fit: BoxFit.contain,
-                      errorWidget: (_, __, ___) => const Icon(
+                      errorWidget: (_, __, ___) => Icon(
                           Icons.broken_image_rounded,
-                          color: Color(0xFFB0B3BD)),
+                          color: AppC.faint),
                       placeholder: (_, __) => const SizedBox.shrink(),
                     )
-                  : const Icon(Icons.image_rounded, color: Color(0xFFB0B3BD)),
+                  : Icon(Icons.image_rounded, color: AppC.faint),
             ),
           ),
         );
