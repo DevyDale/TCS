@@ -294,7 +294,9 @@
   }
 
   /* Messages: taller search + header icon buttons */
-  .msg-list-head .search-box { height: 54px; }
+  .msg-list-head .search-box { height: 64px; border-radius: 18px; padding: 0 18px; }
+  .msg-list-head .search-box input { font-size: 15px; }
+  .msg-list-head .search-box svg { width: 21px; height: 21px; }
   .msg-head-btns { display: flex; gap: 8px; }
   .msg-icon-btn { position: relative; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--hair);
     background: var(--glass-2); color: var(--sub); display: grid; place-items: center; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
@@ -407,7 +409,14 @@
     return fetch(API + path, { headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
       .then(function (res) {
         if (res.status === 401 && !retry) { return refreshToken().then(function (ok) { if (!ok) { clearSession(); location.replace('auth.html'); return Promise.reject('unauth'); } return authFetch(path, true); }); }
-        return res.json().then(function (d) { return { ok: res.ok, d: d }; });
+        // Tolerate non-JSON responses (HTML 404/500/502) so callers get a
+        // status-aware message instead of a bare promise rejection.
+        return res.text().then(function (body) {
+          var d; try { d = body ? JSON.parse(body) : {}; } catch (e) {
+            d = { detail: res.status === 404 ? 'This feature isn’t available yet.' : ('Server error (' + res.status + ').') };
+          }
+          return { ok: res.ok, status: res.status, d: d };
+        });
       });
   }
   function listOf(d) { return Array.isArray(d) ? d : (d && (d.results || d.items || d.data)) || []; }
