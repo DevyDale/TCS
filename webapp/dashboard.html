@@ -302,6 +302,47 @@
   .pillbtn.us-req { background: rgba(247,151,30,0.14); color: var(--g3); border: 1px solid rgba(247,151,30,0.45); flex: 0 0 auto; }
   .pillbtn.us-req.sent { background: rgba(34,197,94,0.14); color: #4ADE80; border-color: rgba(34,197,94,0.45); cursor: default; }
 
+  /* Study Buddy availability card */
+  .avail-card { padding: 16px; margin-bottom: 16px; }
+  .avail-card.on { border-color: rgba(34,197,94,0.4); box-shadow: 0 0 0 1px rgba(34,197,94,0.25) inset; }
+  .avail-top { display: flex; align-items: flex-start; gap: 12px; }
+  .avail-txt { flex: 1; min-width: 0; }
+  .avail-title { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 15px; }
+  .avail-sub { font-family: 'Momo', sans-serif; font-size: 12px; margin-top: 3px; line-height: 1.4; }
+  .avail-toggle { flex: 0 0 auto; }
+  .avail-card.on .avail-toggle { background: rgba(255,88,88,0.14); color: var(--g4); border: 1px solid rgba(255,88,88,0.45); }
+  .avail-card:not(.on) .avail-toggle { background: linear-gradient(135deg,#22C55E,#15803D); color: #fff; border: 0; }
+  #availSubs { width: 100%; margin-top: 12px; height: 42px; border-radius: 12px; background: var(--glass-2);
+    border: 1.5px solid var(--hair); padding: 0 14px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 13px; outline: none; }
+  #availSubs:focus { border-color: var(--g2); }
+
+  /* Digital Library / materials list */
+  .lib-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 13px; border: 1px solid var(--hair);
+    background: var(--glass); margin-bottom: 9px; text-decoration: none; color: inherit; }
+  a.lib-item:hover, .lib-item .lib-open:hover { background: var(--glass-2); }
+  .lib-open { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-decoration: none; color: inherit; }
+  .lib-ic { font-size: 22px; flex: 0 0 auto; }
+  .lib-meta { display: flex; flex-direction: column; min-width: 0; }
+  .lib-title { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lib-sub { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .lib-dl { flex: 0 0 auto; color: var(--faint); } .lib-dl svg { width: 18px; height: 18px; }
+  .lib-del { flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 10px; background: none; color: var(--faint); cursor: pointer; display: grid; place-items: center; }
+  .lib-del:hover { color: var(--g4); background: rgba(255,88,88,0.12); } .lib-del svg { width: 17px; height: 17px; }
+
+  /* Study-with-Dale chat modal */
+  .sdale-body { height: 300px; max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px; }
+  .sdale-hint, .sdale-body .sdale-hint { text-align: center; font-family: 'Momo', sans-serif; font-size: 12.5px; padding: 30px 12px; line-height: 1.5; }
+  .sdale-body .mav.dale-mini { border-radius: 50%; overflow: hidden; background: linear-gradient(135deg,#A9BC95,#6E8159); }
+  .sdale-body .mav.dale-mini dotlottie-wc { width: 28px; height: 28px; display: block; }
+  .sdale-body .typing { opacity: .7; font-style: italic; }
+  .sdale-input { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  .sdale-input input { flex: 1; min-width: 0; height: 46px; border-radius: 14px; background: var(--glass-2);
+    border: 1.5px solid var(--hair); padding: 0 15px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .sdale-input input:focus { border-color: var(--g2); }
+  .sdale-input .send { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; border: 0; cursor: pointer;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; }
+  .sdale-input .send svg { width: 20px; height: 20px; fill: #fff; }
+
   /* Ask-Dale sheet (modal) */
   .dale-sheet .dale-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .dale-orb { width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
@@ -538,7 +579,7 @@
       '<div id="feedBody"></div>';
 
     document.getElementById('suggBtn').addEventListener('click', openSuggestionBox);
-    document.getElementById('daleBtn').addEventListener('click', function () { window.snack('Dale AI is coming to the web soon', 'info'); });
+    document.getElementById('daleBtn').addEventListener('click', openStudyDale);
     document.getElementById('addPostBtn').addEventListener('click', openCreatePost);
     document.getElementById('refreshBtn').addEventListener('click', function () { this.classList.add('spinning'); loadFeedTab(); });
     document.getElementById('feedSearch').addEventListener('input', function () { filterFeed(this.value); });
@@ -778,8 +819,8 @@
         '<button class="feed-tab' + (SH.tab === 'buddies' ? ' active' : '') + '" data-sh="buddies">Study Buddies</button>' +
       '</div>' +
       '<div id="shBody"></div>';
-    document.getElementById('shDale').addEventListener('click', function () { window.snack('Dale is coming to the web soon', 'info'); });
-    document.getElementById('shLib').addEventListener('click', function () { window.snack('Digital Library is coming to the web soon', 'info'); });
+    document.getElementById('shDale').addEventListener('click', openStudyDale);
+    document.getElementById('shLib').addEventListener('click', openLibrary);
     document.getElementById('shTabs').addEventListener('click', function (e) {
       var b = e.target.closest('[data-sh]'); if (!b) return;
       SH.tab = b.getAttribute('data-sh');
@@ -796,7 +837,7 @@
     var emoji = g.display_emoji || g.theme_icon || '📚';
     var members = num(g.members_count);
     var subject = g.display_subject || g.subject || g.category || '';
-    var joined = g.is_member;
+    var joined = g.is_joined || g.is_member;
     var live = num(g.active_now);
     return '<div class="group-card card glass">' +
       '<div class="gc-banner" style="background:' + GRADS4[(i || 0) % 4] + '">' +
@@ -807,7 +848,7 @@
         '<div class="gc-name">' + esc(g.name || 'Group') + '</div>' +
         (subject ? '<div class="gc-sub">' + esc(subject) + '</div>' : '') +
         '<div class="gc-foot"><span class="gc-members">' + PEOPLE_SVG + members + '</span>' +
-          '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" data-group="' + esc(g.id) + '">' + (joined ? 'Open' : 'Join') + '</button></div>' +
+          '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" data-group="' + esc(g.id) + '" data-joined="' + (joined ? '1' : '') + '">' + (joined ? 'Open' : 'Join') + '</button></div>' +
       '</div></div>';
   }
   function buddyCard(b) {
@@ -817,7 +858,7 @@
       '<div class="buddy-av-wrap">' + avatar(b.avatar_url, b.name) + '<span class="buddy-online"></span></div>' +
       '<div class="buddy-name">' + esc(b.name || 'Student') + '</div>' +
       '<div class="buddy-subs">' + esc(subsStr) + '</div>' +
-      '<button class="pillbtn" data-buddy="' + esc(b.user_id || '') + '">' + CHAT_SVG + ' Message</button></div>';
+      '<button class="pillbtn" data-buddy="' + esc(b.user_id || '') + '" data-subject="' + esc(subs[0] || b.display_subject || '') + '">' + CHAT_SVG + ' Message</button></div>';
   }
 
   function renderGroups() {
@@ -862,19 +903,130 @@
       wireGroupBtns(me); wireGroupBtns(su);
     });
   }
-  function wireGroupBtns(root) { root.querySelectorAll('[data-group]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Group pages are coming to the web soon', 'info'); }); }); }
+  function wireGroupBtns(root) {
+    root.querySelectorAll('[data-group]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-group');
+        if (b.getAttribute('data-joined')) { openGroup(id); }
+        else { joinGroup(id, b); }
+      });
+    });
+  }
+  function joinGroup(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
+    fetch(API + '/groups/' + id + '/join/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }).catch(function () { return { ok: r.ok, d: {} }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t join the group.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Join'; } return; }
+        window.snack((res.d && res.d.pending) ? 'Request sent — awaiting approval' : 'Joined the group!', 'ok');
+        if (SH.tab === 'groups') renderSHBody();
+        if (res.d && res.d.id && !(res.d.pending)) openGroup(id);
+      }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Join'; } });
+  }
+  function matIcon(t) {
+    t = (t || '').toLowerCase();
+    if (/pdf/.test(t)) return '📕'; if (/(png|jpe?g|gif|webp|image)/.test(t)) return '🖼️';
+    if (/(doc|word)/.test(t)) return '📘'; if (/(ppt|slide)/.test(t)) return '📙';
+    if (/(xls|sheet|csv)/.test(t)) return '📗'; if (/(zip|rar|7z)/.test(t)) return '🗜️';
+    if (/(mp4|mov|video)/.test(t)) return '🎬'; if (/(mp3|wav|audio)/.test(t)) return '🎧';
+    return '📄';
+  }
+  function materialRow(m) {
+    var url = m.file_url || '#';
+    return '<a class="lib-item" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+      '<span class="lib-ic">' + matIcon(m.file_type || m.file_name) + '</span>' +
+      '<span class="lib-meta"><span class="lib-title">' + esc(m.title || m.file_name || 'Material') + '</span>' +
+      '<span class="lib-sub">' + esc([m.subject || m.group_name || m.uploaded_by_name, m.file_type].filter(Boolean).join(' · ')) + '</span></span>' +
+      '<span class="lib-dl"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg></span></a>';
+  }
+  function openGroup(id) {
+    openModal('<div id="grpDetail"><div class="loading"><div class="spin"></div></div></div>');
+    var group = null, gtab = 'about';
+    function shell(inner) {
+      var emoji = (group && (group.display_emoji || group.theme_icon)) || '📚';
+      var name = (group && group.name) || 'Group';
+      var subject = group ? (group.display_subject || group.subject || '') : '';
+      var joined = group && (group.is_joined || group.is_member);
+      document.getElementById('grpDetail').innerHTML =
+        '<div class="modal-head"><div class="mi" style="background:' + GRADS4[0] + ';font-size:22px">' + esc(emoji) + '</div>' +
+        '<div style="flex:1;min-width:0"><h2 style="font-size:19px">' + esc(name) + '</h2>' + (subject ? '<div class="faint" style="font-family:Momo;font-size:12px;margin-top:2px">' + esc(subject) + '</div>' : '') + '</div>' +
+        '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+        '<div class="feed-tabs" id="gTabs" style="margin:6px 0 14px"><button class="feed-tab' + (gtab === 'about' ? ' active' : '') + '" data-gt="about">About</button><button class="feed-tab' + (gtab === 'members' ? ' active' : '') + '" data-gt="members">Members</button><button class="feed-tab' + (gtab === 'materials' ? ' active' : '') + '" data-gt="materials">Materials</button></div>' +
+        '<div id="gBody">' + inner + '</div>' +
+        (joined ? '<div class="dale-remove" style="margin-top:14px"><button id="gLeave"><svg viewBox="0 0 24 24"><path d="M10 9v6h4V9h-4zm7-4h-3.5l-1-1h-5l-1 1H5v2h12V5z" fill="currentColor"/></svg> Leave group</button></div>' : '');
+      document.getElementById('mClose').addEventListener('click', closeModal);
+      document.getElementById('gTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-gt]'); if (!b) return; gtab = b.getAttribute('data-gt'); paint(); });
+      var lv = document.getElementById('gLeave'); if (lv) lv.addEventListener('click', function () {
+        if (!confirm('Leave this group? You’ll stop receiving its posts and materials.')) return;
+        fetch(API + '/groups/' + id + '/leave/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } })
+          .then(function (r) { if (!r.ok) throw 0; closeModal(); window.snack('Left the group', 'ok'); if (SH.tab === 'groups') renderSHBody(); })
+          .catch(function () { window.snack('Couldn’t leave the group.', 'error'); });
+      });
+    }
+    function paint() {
+      shell('<div class="loading"><div class="spin"></div></div>');
+      var body = document.getElementById('gBody');
+      if (gtab === 'about') {
+        var desc = (group && group.description) ? esc(group.description) : 'No description yet.';
+        body.innerHTML = '<div class="card glass" style="font-family:Momo;font-size:13.5px;line-height:1.6;color:var(--sub)">' + desc + '</div>' +
+          '<div class="prof-stats" style="display:grid;margin-top:12px"><div class="s"><div class="n">' + num(group && group.members_count) + '</div><div class="l">Members</div></div>' +
+          '<div class="s"><div class="n">' + num(group && group.active_now) + '</div><div class="l">Active now</div></div></div>';
+      } else if (gtab === 'members') {
+        authFetch('/groups/' + id + '/members/').then(function (r) {
+          var el = document.getElementById('gBody'); if (!el) return;
+          if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load members.'); return; }
+          var ms = listOf(r.d);
+          el.innerHTML = ms.length ? ms.map(function (u) {
+            return '<div class="us-row" style="margin-bottom:8px"><div class="us-av">' + avatar(u.avatar_url, u.name) + '</div>' +
+              '<div class="us-meta"><div class="us-name">' + esc(u.name || 'Member') + '</div><div class="us-sub">' +
+              (u.is_admin ? '<span class="us-role" style="background:rgba(247,151,30,.18);color:#F7B34E">ADMIN</span>' : (u.is_mentor ? '<span class="us-role" style="background:rgba(109,213,250,.18);color:#6DD5FA">MENTOR</span>' : '')) +
+              '<span class="faint">' + esc(String(u.role || '').toUpperCase()) + '</span></div></div></div>';
+          }).join('') : empty('No members yet.');
+        }).catch(function () { var el = document.getElementById('gBody'); if (el) el.innerHTML = empty('Couldn’t load members.'); });
+      } else {
+        authFetch('/groups/' + id + '/materials/').then(function (r) {
+          var el = document.getElementById('gBody'); if (!el) return;
+          if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || (r.status === 403 ? 'Join the group to see its materials.' : 'Couldn’t load materials.')); return; }
+          var ms = listOf(r.d);
+          el.innerHTML = ms.length ? ms.map(materialRow).join('') : empty('No materials shared yet.');
+        }).catch(function () { var el = document.getElementById('gBody'); if (el) el.innerHTML = empty('Couldn’t load materials.'); });
+      }
+    }
+    authFetch('/groups/' + id + '/').then(function (r) { if (r.ok) group = r.d; paint(); }).catch(function () { paint(); });
+  }
 
   function renderBuddies() {
     var body = document.getElementById('shBody');
+    var me = cachedUser() || {};
+    var avail = !!me.is_available_study;
+    var subs = me.study_subjects || '';
     body.innerHTML =
+      '<div class="avail-card card glass ' + (avail ? 'on' : '') + '" id="availCard">' +
+        '<div class="avail-top"><div class="avail-txt"><div class="avail-title">' + (avail ? 'You’re available for study 🎉' : 'Become a Study Buddy') + '</div>' +
+          '<div class="avail-sub faint">' + (avail ? 'Classmates can find you and start a study chat.' : 'Go available so classmates can reach you for study sessions.') + '</div></div>' +
+          '<button class="pillbtn avail-toggle" id="availToggle">' + (avail ? 'Go Offline' : 'Go Available') + '</button></div>' +
+        '<input id="availSubs" placeholder="Subjects you can help with (e.g. Maths, Physics)" value="' + esc(subs) + '" />' +
+      '</div>' +
       '<div class="sh-actions"><div class="search-box" style="flex:1">' + SEARCH_SVG + '<input id="budSearch" placeholder="Search for study buddies" autocomplete="off" /></div></div>' +
       '<div class="sec-head"><div><span class="eyebrow">ONLINE</span><span class="sh-title">Available Now</span></div><span class="post-count" id="budCount"></span></div>' +
       '<div id="buddies"><div class="loading"><div class="spin"></div></div></div>';
+    document.getElementById('availToggle').addEventListener('click', function () {
+      var goOn = !avail; var subjects = document.getElementById('availSubs').value.trim();
+      var btn = this; btn.disabled = true; btn.textContent = goOn ? 'Going live…' : 'Updating…';
+      fetch(API + '/groups/buddies/me/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ available: goOn, subjects: subjects }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t update.', 'error'); btn.disabled = false; btn.textContent = goOn ? 'Go Available' : 'Go Offline'; return; }
+          try { var u = cachedUser() || {}; u.is_available_study = goOn; u.study_subjects = subjects; localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {}
+          window.snack(goOn ? 'You’re now available as a Study Buddy! 🎉' : 'You’re now offline from Study Buddy', 'ok');
+          renderBuddies();
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = goOn ? 'Go Available' : 'Go Offline'; });
+    });
     function draw(list) {
       var el = document.getElementById('buddies'), cnt = document.getElementById('budCount');
       if (cnt) cnt.textContent = list.length ? list.length + ' available' : '';
       el.innerHTML = list.length ? '<div class="grid2">' + list.map(buddyCard).join('') + '</div>' : empty('No study buddies available right now.');
-      el.querySelectorAll('[data-buddy]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Messaging buddies is coming to the web soon', 'info'); }); });
+      el.querySelectorAll('[data-buddy]').forEach(function (b) { b.addEventListener('click', function () { connectBuddy(b.getAttribute('data-buddy'), b.getAttribute('data-subject') || ''); }); });
     }
     authFetch('/groups/buddies/').then(function (r) {
       SH.buddies = r.ok ? listOf(r.d) : [];
@@ -885,6 +1037,22 @@
         draw(q ? SH.buddies.filter(function (b) { return JSON.stringify(b).toLowerCase().indexOf(q) >= 0; }) : SH.buddies);
       });
     }).catch(function () { document.getElementById('buddies').innerHTML = empty('Couldn’t load study buddies.'); });
+  }
+  function connectBuddy(userId, subject) {
+    if (!userId) return;
+    window.snack('Starting study chat…', 'info', 900);
+    fetch(API + '/chat/study-buddy/start/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ user_id: userId, subject: subject || '' }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t start the chat.', 'error'); return; }
+        var room = res.d; if (!room || !room.id) { window.snack('Couldn’t open the chat.', 'error'); return; }
+        setTab('messages');
+        authFetch('/chat/rooms/').then(function (rr) {
+          if (rr.ok) MSG.rooms = listOf(rr.d);
+          if (!MSG.rooms.some(function (m) { return m.id === room.id; })) MSG.rooms.unshift(room);
+          drawRows(); openConversation(room.id);
+        });
+      }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); });
   }
 
   function openCreateGroup() {
@@ -911,6 +1079,66 @@
         })
         .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create group'; });
     });
+  }
+
+  function openLibrary() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg></div><h2>Digital Library</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Materials you’ve saved from groups and chats.</p><div id="libBody"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    authFetch('/chat/saved/').then(function (r) {
+      var el = document.getElementById('libBody'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your library.'); return; }
+      var items = listOf(r.d);
+      if (!items.length) { el.innerHTML = empty('Nothing saved yet. Save materials from a group to see them here.'); return; }
+      el.innerHTML = items.map(function (m) {
+        return '<div class="lib-item" data-mat="' + esc(m.id) + '">' +
+          '<a class="lib-open" href="' + esc(m.file_url || '#') + '" target="_blank" rel="noopener"><span class="lib-ic">' + matIcon(m.file_type || m.file_name) + '</span>' +
+          '<span class="lib-meta"><span class="lib-title">' + esc(m.title || m.file_name || 'Material') + '</span>' +
+          '<span class="lib-sub">' + esc([m.subject, m.source_group_name || m.source_name, m.file_type].filter(Boolean).join(' · ')) + '</span></span></a>' +
+          '<button class="lib-del" data-del="' + esc(m.id) + '" title="Remove"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>';
+      }).join('');
+      el.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
+        var id = b.getAttribute('data-del'); var row = b.closest('.lib-item'); row.style.opacity = '.4';
+        fetch(API + '/chat/saved/' + id + '/delete/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } })
+          .then(function (rr) { if (!rr.ok) throw 0; row.remove(); window.snack('Removed from library', 'ok'); if (!el.querySelector('.lib-item')) el.innerHTML = empty('Nothing saved yet.'); })
+          .catch(function () { row.style.opacity = '1'; window.snack('Couldn’t remove.', 'error'); });
+      }); });
+    }).catch(function () { var el = document.getElementById('libBody'); if (el) el.innerHTML = empty('Couldn’t load your library.'); });
+  }
+
+  var STUDY_DALE = [];
+  function openStudyDale() {
+    openModal('<div class="dale-sheet"><div class="dale-head"><span class="dale-orb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' +
+      '<div style="flex:1;min-width:0"><h2 style="font-family:Alfa;font-size:17px">Study with Dale</h2><div class="faint" style="font-family:Momo;font-size:12px;margin-top:2px">Ask anything — explain a topic, make a plan, quiz you</div></div>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="sdale-body" id="sdaleBody"></div>' +
+      '<div class="sdale-input"><input id="sdaleQ" placeholder="Ask Dale a study question…" autocomplete="off" /><button class="send" id="sdaleSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var bodyEl = document.getElementById('sdaleBody');
+    function paint() {
+      if (!STUDY_DALE.length) { bodyEl.innerHTML = '<div class="sdale-hint faint">Try: “Explain photosynthesis simply” or “Make me a 5-day revision plan for Maths”.</div>'; return; }
+      bodyEl.innerHTML = STUDY_DALE.map(function (m) {
+        return '<div class="msg-row ' + (m.role === 'me' ? 'me' : 'them') + '">' + (m.role === 'me' ? '' : '<span class="av mav dale-mini"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>') +
+          '<div class="bubble ' + (m.role === 'me' ? 'me' : 'ai') + '">' + (m.pending ? '<span class="typing">Dale is thinking…</span>' : esc(m.text)) + '</div></div>';
+      }).join('');
+      bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+    paint();
+    var input = document.getElementById('sdaleQ'); input.focus();
+    function send() {
+      var t = input.value.trim(); if (!t) return; input.value = '';
+      STUDY_DALE.push({ role: 'me', text: t }); STUDY_DALE.push({ role: 'ai', pending: true }); paint();
+      fetch(API + '/ai/chat/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ message: t, stream: false }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          STUDY_DALE = STUDY_DALE.filter(function (m) { return !m.pending; });
+          if (!res.ok) { STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.error || res.d.detail)) || 'Dale couldn’t reply right now.' }); }
+          else { STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.response || res.d.reply || res.d.text)) || 'Hmm, I didn’t catch that — try again.' }); }
+          paint();
+        }).catch(function () { STUDY_DALE = STUDY_DALE.filter(function (m) { return !m.pending; }); STUDY_DALE.push({ role: 'ai', text: 'Couldn’t reach Dale right now.' }); paint(); });
+    }
+    document.getElementById('sdaleSend').addEventListener('click', send);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
   }
   // ── MESSAGES (master-detail) ─────────────────────────────────
   var MSG = { tab: 'inbox', rooms: [], me: '', active: null, activeRoom: null, lastCount: -1, poll: null, buddies: [], buddiesLoaded: false };
