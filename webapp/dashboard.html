@@ -479,7 +479,10 @@
   .prof-mini { background: var(--glass-2); border: 1px solid var(--hair); border-radius: 999px; padding: 5px 13px; cursor: pointer;
     color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; }
   .prof-mini:hover { color: var(--ink); }
-  .prof-abouttext, .prof-bio { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.65; color: var(--sub); }
+  .prof-sec-head b .about-ic { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: rgba(142,84,233,.14); color: #C6ADFA; vertical-align: -7px; margin-right: 6px; }
+  .about-ic svg { width: 14px; height: 14px; }
+  .about-btns { display: flex; gap: 8px; }
+  .prof-abouttext, .prof-bio { font-family: 'Momo', sans-serif; font-size: 14px; line-height: 1.65; color: var(--ink); }
   .prof-ints { display: flex; flex-wrap: wrap; gap: 8px; }
   .int-chip { background: var(--glass-2); color: var(--sub); border: 1px solid var(--hair); }
   .prof-tabs { margin: 20px 4px 14px; }
@@ -2307,17 +2310,21 @@
         statCell(u.level != null ? u.level : 1, 'Level') + statCell(u.tokens, 'Tokens') +
         statCell(u.followers_count, 'Followers', 'followers') + statCell(u.following_count, 'Following', 'following') +
       '</div>';
-    // Links
-    if (links.length) html += '<div class="prof-links">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div>';
-    // About Me
-    html += '<div class="card glass prof-about"><div class="prof-sec-head"><b>About</b>' +
-      '<button class="prof-mini" id="pfGenAbout">✨ ' + (aboutCached(u) ? 'Refresh' : 'Generate') + '</button></div>' +
-      '<div class="prof-abouttext" id="pfAboutText">' + (aboutCached(u) ? esc(aboutCached(u)) : (u.bio ? esc(u.bio) : '<span class="faint">Add a bio and interests, then tap ✨ to let Dale write your About Me.</span>')) + '</div></div>';
-    // Bio + Interests
-    html += '<div class="card glass"><div class="prof-sec-head"><b>Bio</b><button class="prof-mini" id="pfEditBio">' + (u.bio ? 'Edit' : 'Add') + '</button></div>' +
-      '<div class="prof-bio' + (u.bio ? '' : ' faint') + '">' + (u.bio ? esc(u.bio) : 'No bio yet.') + '</div></div>';
-    html += '<div class="card glass"><div class="prof-sec-head"><b>Interests</b><button class="prof-mini" id="pfEditInt">Edit</button></div>' +
-      '<div class="prof-ints">' + (interests.length ? interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') : '<span class="faint">No interests added yet.</span>') + '</div></div>';
+    // About Me — bio + interests woven together, with one Edit button
+    var aboutTxt = aboutCached(u) || u.bio || '';
+    html += '<div class="card glass prof-about">' +
+      '<div class="prof-sec-head"><b><span class="about-ic"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg></span> About Me</b>' +
+        '<div class="about-btns">' +
+          '<button class="prof-mini" id="pfGenAbout">✨ ' + (aboutCached(u) ? 'Refresh' : 'Generate') + '</button>' +
+          '<button class="prof-mini" id="pfEditAbout"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor;vertical-align:-2px"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg> Edit</button>' +
+        '</div></div>' +
+      '<div class="prof-abouttext" id="pfAboutText">' + (aboutTxt ? esc(aboutTxt) : '<span class="faint">Add a bio and a few interests — Dale will write your About Me for you.</span>') + '</div>' +
+      (interests.length ? '<div class="prof-ints" style="margin-top:14px">' + interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') + '</div>' : '') +
+      '</div>';
+    // Other Socials
+    html += '<div class="card glass"><div class="prof-sec-head"><b>Other Socials</b><button class="prof-mini" id="pfEditSocials">Edit</button></div>' +
+      (links.length ? '<div class="prof-links" style="margin:0">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div>'
+        : '<span class="faint" style="font-family:Momo;font-size:12.5px">No socials added yet. Tap Edit to add your links.</span>') + '</div>';
     // Tabs
     html += '<div class="feed-tabs prof-tabs" id="pfTabs">' +
       ['posts', 'highlights', 'fweets'].map(function (t) { return '<button class="feed-tab' + (PROFILE.tab === t ? ' active' : '') + '" data-pt="' + t + '">' + (t === 'posts' ? 'Posts' : t === 'highlights' ? 'Highlights' : 'Fweets') + '</button>'; }).join('') +
@@ -2330,8 +2337,8 @@
     document.getElementById('pfSettings').addEventListener('click', openSettings);
     document.getElementById('pfEdit').addEventListener('click', openEditProfile);
     document.getElementById('pfGenAbout').addEventListener('click', generateAbout);
-    document.getElementById('pfEditBio').addEventListener('click', openEditBio);
-    document.getElementById('pfEditInt').addEventListener('click', openEditInterests);
+    document.getElementById('pfEditAbout').addEventListener('click', openEditAbout);
+    document.getElementById('pfEditSocials').addEventListener('click', openEditSocials);
     document.querySelectorAll('#pfTabBody, .prof-statbar [data-follow]').forEach(function () {});
     document.querySelectorAll('.prof-statbar [data-follow]').forEach(function (c) { c.addEventListener('click', function () { openFollows(c.getAttribute('data-follow')); }); });
     document.getElementById('pfTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-pt]'); if (!b) return; PROFILE.tab = b.getAttribute('data-pt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); loadProfileTab(); });
@@ -2378,28 +2385,45 @@
         if (okMsg) window.snack(okMsg, 'ok'); if (after) after(); drawProfile();
       }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); });
   }
-  function openEditBio() {
-    openModal('<div class="modal-head"><h2>Edit bio</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-      '<textarea id="bioT" rows="4" maxlength="300" placeholder="Tell campus a little about you…">' + esc(PROFILE.me.bio || '') + '</textarea>' +
-      '<button class="btn" id="bioSave" style="margin-top:16px">Save bio</button>');
-    document.getElementById('mClose').addEventListener('click', closeModal);
-    document.getElementById('bioSave').addEventListener('click', function () { closeModal(); patchProfile({ bio: document.getElementById('bioT').value.trim() }, 'Bio updated'); });
-  }
-  function openEditInterests() {
+  function openEditAbout() {
     var cur = Array.isArray(PROFILE.me.interests) ? PROFILE.me.interests.slice() : [];
-    openModal('<div class="modal-head"><h2>Your interests</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-      '<p class="sub">Add topics you love. Tap a chip to remove it.</p>' +
-      '<div class="int-editor" id="intChips"></div>' +
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div><h2>Edit About Me</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Write a short bio and add your interests — Dale weaves them into your About Me.</p>' +
+      '<label>Bio</label><textarea id="bioT" rows="4" maxlength="300" placeholder="Tell campus a little about you…">' + esc(PROFILE.me.bio || '') + '</textarea>' +
+      '<label>Interests</label><div class="int-editor" id="intChips"></div>' +
       '<div class="int-add"><input id="intInput" placeholder="Add an interest and press Enter" maxlength="30"/><button class="pillbtn" id="intAdd">Add</button></div>' +
-      '<button class="btn" id="intSave" style="margin-top:16px">Save interests</button>');
+      '<button class="btn" id="aboutSave" style="margin-top:18px">Save</button>');
     document.getElementById('mClose').addEventListener('click', closeModal);
     function paint() { document.getElementById('intChips').innerHTML = cur.length ? cur.map(function (i, x) { return '<span class="chip int-chip rm" data-i="' + x + '">' + esc(i) + ' ✕</span>'; }).join('') : '<span class="faint" style="font-family:Momo;font-size:12.5px">No interests yet.</span>';
       document.querySelectorAll('#intChips [data-i]').forEach(function (c) { c.addEventListener('click', function () { cur.splice(parseInt(c.getAttribute('data-i'), 10), 1); paint(); }); }); }
     function add() { var v = document.getElementById('intInput').value.trim(); if (!v) return; if (cur.length >= 20) { window.snack('That’s plenty of interests!', 'info'); return; } if (cur.map(function (x) { return x.toLowerCase(); }).indexOf(v.toLowerCase()) < 0) cur.push(v); document.getElementById('intInput').value = ''; paint(); }
     document.getElementById('intAdd').addEventListener('click', add);
     document.getElementById('intInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-    document.getElementById('intSave').addEventListener('click', function () { closeModal(); patchProfile({ interests: cur }, 'Interests saved'); });
+    document.getElementById('aboutSave').addEventListener('click', function () {
+      var bio = document.getElementById('bioT').value.trim(); closeModal();
+      patchProfile({ bio: bio, interests: cur }, 'About Me updated', function () {
+        // bio/interests changed → invalidate the cached About so it can be regenerated
+        try { if (localStorage.getItem('tcs_about_sig') !== aboutSig(PROFILE.me)) { localStorage.removeItem('tcs_about'); localStorage.removeItem('tcs_about_sig'); } } catch (e) {}
+      });
+    });
     paint();
+  }
+  function openEditSocials() {
+    var u = PROFILE.me || {}; var s = (u.social_links && typeof u.social_links === 'object' && !Array.isArray(u.social_links)) ? u.social_links : {};
+    openModal('<div class="modal-head"><h2>Other Socials</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Website</label><input id="epWeb" value="' + esc(u.website || '') + '" placeholder="https://…"/>' +
+      '<label>Instagram</label><input id="epIg" value="' + esc(s.instagram || '') + '" placeholder="username"/>' +
+      '<label>X (Twitter)</label><input id="epX" value="' + esc(s.twitter || s.x || '') + '" placeholder="username"/>' +
+      '<label>TikTok</label><input id="epTk" value="' + esc(s.tiktok || '') + '" placeholder="username"/>' +
+      '<label>Snapchat</label><input id="epSc" value="' + esc(s.snapchat || '') + '" placeholder="username"/>' +
+      '<button class="btn" id="socSave" style="margin-top:18px">Save socials</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('socSave').addEventListener('click', function () {
+      var social = {}; var ig = document.getElementById('epIg').value.trim(), x = document.getElementById('epX').value.trim(), tk = document.getElementById('epTk').value.trim(), sc = document.getElementById('epSc').value.trim();
+      if (ig) social.instagram = ig; if (x) social.twitter = x; if (tk) social.tiktok = tk; if (sc) social.snapchat = sc;
+      closeModal();
+      patchProfile({ website: document.getElementById('epWeb').value.trim(), social_links: social }, 'Socials updated');
+    });
   }
   function openEditProfile() {
     var u = PROFILE.me || {}; var s = (u.social_links && typeof u.social_links === 'object' && !Array.isArray(u.social_links)) ? u.social_links : {};
