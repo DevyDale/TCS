@@ -293,6 +293,37 @@
     .conv-back { display: inline-flex; }
   }
 
+  /* Messages: taller search + header icon buttons */
+  .msg-list-head .search-box { height: 54px; }
+  .msg-head-btns { display: flex; gap: 8px; }
+  .msg-icon-btn { position: relative; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--hair);
+    background: var(--glass-2); color: var(--sub); display: grid; place-items: center; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+  .msg-icon-btn:hover { background: rgba(255,255,255,0.14); color: var(--ink); }
+  .msg-icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .msg-icon-btn .badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+    background: var(--g4); color: #fff; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 9px; display: none; align-items: center; justify-content: center; border: 2px solid #14121f; }
+  .msg-icon-btn .badge.show { display: flex; }
+
+  /* Conversation — mobile-style bubbles */
+  .msg-day { align-self: center; font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint);
+    background: var(--glass); padding: 4px 12px; border-radius: 999px; margin: 8px 0 4px; }
+  .msg-sys { align-self: center; font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint);
+    background: var(--glass); padding: 5px 13px; border-radius: 999px; margin: 4px 0; text-align: center; max-width: 80%; }
+  .msg-row { display: flex; gap: 8px; align-items: flex-end; max-width: 80%; }
+  .msg-row.me { align-self: flex-end; flex-direction: row-reverse; }
+  .msg-row.them { align-self: flex-start; }
+  .msg-row .mav { width: 28px; height: 28px; flex: 0 0 auto; font-size: 11px; }
+  .msg-row .mav.blank { visibility: hidden; }
+  .bubble .sender { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; color: #B79BF3; margin-bottom: 3px; }
+  .bubble.ai { background: rgba(142,84,233,0.18); border: 1px solid rgba(142,84,233,0.35); color: var(--ink); }
+  .bubble .bfoot { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; opacity: 0.7; margin-top: 4px; }
+  .bubble .ticks { display: inline-flex; }
+  .bubble .ticks svg { width: 15px; height: 15px; }
+  .bubble .bmedia img { display: block; max-width: 240px; max-height: 260px; border-radius: 10px; margin-bottom: 4px; }
+  .conv-input .attach { width: 42px; height: 46px; flex: 0 0 auto; border: 0; background: none; cursor: pointer; display: grid; place-items: center; color: var(--sub); }
+  .conv-input .attach:hover { color: var(--ink); }
+  .conv-input .attach svg { width: 22px; height: 22px; fill: currentColor; }
+
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -803,7 +834,7 @@
     });
   }
   // ── MESSAGES (master-detail) ─────────────────────────────────
-  var MSG = { tab: 'inbox', rooms: [], me: '', active: null, buddies: [], buddiesLoaded: false };
+  var MSG = { tab: 'inbox', rooms: [], me: '', active: null, activeRoom: null, lastCount: -1, poll: null, buddies: [], buddiesLoaded: false };
   function roomName(m) { var o = m.other_user || {}; return (m.room_type === 'group') ? (m.name || 'Group') : (o.name || o.display_name || m.name || 'Chat'); }
   function roomAvatar(m) { var o = m.other_user || {}; return m.avatar_url || o.avatar_url; }
 
@@ -815,7 +846,10 @@
         '<aside class="msg-list">' +
           '<div class="msg-list-head">' +
             '<div class="msg-title-row"><h1>Messages</h1>' +
-              '<button class="icon-btn addpost-btn" id="newChat" title="New chat" style="width:40px;height:40px"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button></div>' +
+              '<div class="msg-head-btns">' +
+                '<button class="msg-icon-btn" id="reqBtn" title="Chat requests"><svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span class="badge" id="reqBadge">0</span></button>' +
+                '<button class="msg-icon-btn" id="bubBtn" title="Chat bubbles"><svg viewBox="0 0 24 24"><path d="M17 12V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14l4-4h10a1 1 0 0 0 1-1zm4-6h-2v9H6v2a1 1 0 0 0 1 1h11l4 4V7a1 1 0 0 0-1-1z"/></svg></button>' +
+              '</div></div>' +
             '<div class="search-box">' + SEARCH_SVG + '<input id="msgSearch" placeholder="Search your chats" autocomplete="off" /></div>' +
             '<div class="feed-tabs msg-tabs" id="msgTabs">' +
               '<button class="feed-tab active" data-mt="inbox">Inbox</button>' +
@@ -829,7 +863,9 @@
           '<div class="conv-empty"><div><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><div>Select a conversation to start chatting</div></div></div>' +
         '</section>' +
       '</div>';
-    document.getElementById('newChat').addEventListener('click', function () { window.snack('Starting new chats is coming to the web soon', 'info'); });
+    document.getElementById('reqBtn').addEventListener('click', openRequests);
+    document.getElementById('bubBtn').addEventListener('click', openBubbles);
+    loadReqBadge();
     document.getElementById('msgTabs').addEventListener('click', function (e) {
       var b = e.target.closest('[data-mt]'); if (!b) return;
       MSG.tab = b.getAttribute('data-mt');
@@ -867,7 +903,7 @@
       }
       var bl = q ? MSG.buddies.filter(function (b) { return (b.name || b.display_name || '').toLowerCase().indexOf(q) >= 0; }) : MSG.buddies;
       rows.innerHTML = bl.length ? bl.map(buddyRow).join('') : empty('No buddies connected yet.');
-      rows.querySelectorAll('[data-buddy]').forEach(function (el) { el.addEventListener('click', function () { window.snack('Starting a chat is coming to the web soon', 'info'); }); });
+      rows.querySelectorAll('[data-buddy]').forEach(function (el) { el.addEventListener('click', function () { startDM(el.getAttribute('data-buddy')); }); });
       return;
     }
     var list = MSG.rooms.filter(function (m) { return MSG.tab === 'bubbles' ? (m.room_type === 'group') : (m.room_type !== 'group'); });
@@ -877,21 +913,69 @@
     rows.querySelectorAll('[data-room]').forEach(function (el) { el.addEventListener('click', function () { openConversation(el.getAttribute('data-room')); }); });
   }
 
+  var DBL_TICK = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3 8.9 15l-1.4-1.4L16.2 4.9zM22 6.3 13.3 15l-3-3-1.4 1.4 4.4 4.4L23.4 7.7zM1.6 13.6 6 18l1.4-1.4-4.4-4.4z"/></svg>';
+  var SGL_TICK = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.5 7.5l-1.4-1.4z"/></svg>';
+  function tickSvg(status) {
+    if (status === 'read') return '<span class="ticks" style="color:#6DD5FA">' + DBL_TICK + '</span>';
+    if (status === 'delivered') return '<span class="ticks" style="color:rgba(255,255,255,.7)">' + DBL_TICK + '</span>';
+    if (status === 'sent') return '<span class="ticks" style="color:rgba(255,255,255,.7)">' + SGL_TICK + '</span>';
+    return '';
+  }
+  function dayLabel(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var t = new Date(d.getFullYear(), d.getMonth(), d.getDate()), now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var diff = Math.round((today - t) / 86400000);
+    if (diff === 0) return 'Today'; if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  function timeHM(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
+  function renderThread(msgs, isGroup) {
+    var html = '', lastDay = '', prevSender = null;
+    msgs.forEach(function (m) {
+      var day = dayLabel(m.created_at);
+      if (day && day !== lastDay) { html += '<div class="msg-day">' + esc(day) + '</div>'; lastDay = day; prevSender = null; }
+      if (m.is_system) { html += '<div class="msg-sys">' + esc(m.text || '') + '</div>'; prevSender = null; return; }
+      var mine = m.sender_id && MSG.me && String(m.sender_id) === String(MSG.me);
+      var ai = m.is_ai;
+      var showHead = isGroup && !mine;
+      var same = prevSender === m.sender_id;
+      var media = m.media_url ? '<div class="bmedia"><img src="' + esc(m.media_url) + '" alt="" /></div>' : '';
+      var txt = m.text ? esc(m.text) : '';
+      var bub = '<div class="bubble ' + (mine ? 'me' : (ai ? 'ai' : 'them')) + '">' +
+        (showHead && !same ? '<div class="sender">' + esc(ai ? 'Dale' : (m.sender_name || 'Member')) + '</div>' : '') +
+        media + (txt ? '<span>' + txt + '</span>' : '') +
+        '<div class="bfoot">' + esc(timeHM(m.created_at)) + (mine ? tickSvg(m.status) : '') + '</div></div>';
+      if (mine) { html += '<div class="msg-row me">' + bub + '</div>'; }
+      else {
+        var av = showHead ? (same ? '<div class="av mav blank"></div>' : avatar(m.sender_avatar, m.sender_name, 'mav')) : '';
+        html += '<div class="msg-row them">' + av + bub + '</div>';
+      }
+      prevSender = m.sender_id;
+    });
+    return html;
+  }
+
+  function stopPoll() { if (MSG.poll) { clearInterval(MSG.poll); MSG.poll = null; } }
   function openConversation(roomId) {
+    stopPoll();
     var room = MSG.rooms.filter(function (m) { return m.id === roomId; })[0] || {};
-    MSG.active = roomId;
+    MSG.active = roomId; MSG.activeRoom = room; MSG.lastCount = -1;
     document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-room') === roomId); });
     document.getElementById('msgSplit').classList.add('show-detail');
     var name = roomName(room);
     document.getElementById('msgDetail').innerHTML =
       '<div class="conv-head"><button class="ghost conv-back" id="convBack"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>' +
         avatar(roomAvatar(room), name) +
-        '<div><div style="font-family:Arch;font-weight:700;font-size:15px">' + esc(name) + '</div>' +
-        '<div class="faint" style="font-size:11px;font-family:Momo">' + (room.room_type === 'group' ? 'Group chat' : 'Direct message') + '</div></div></div>' +
+        '<div style="flex:1;min-width:0"><div style="font-family:Arch;font-weight:700;font-size:15px">' + esc(name) + '</div>' +
+        '<div class="faint" style="font-size:11px;font-family:Momo">' + (room.room_type === 'group' ? 'Group bubble' : 'Direct message') + '</div></div></div>' +
       '<div class="conv-body" id="convBody"><div class="loading"><div class="spin"></div></div></div>' +
-      '<div class="conv-input"><input id="convText" placeholder="Message…" autocomplete="off" />' +
-        '<button class="send" id="convSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div>';
-    document.getElementById('convBack').addEventListener('click', function () { document.getElementById('msgSplit').classList.remove('show-detail'); MSG.active = null; document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.remove('active'); }); });
+      '<div class="conv-input">' +
+        '<button class="attach" id="convAttach" title="Send image"><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg></button>' +
+        '<input id="convText" placeholder="Message…" autocomplete="off" />' +
+        '<button class="send" id="convSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>' +
+        '<input type="file" id="convFile" accept="image/*" style="display:none" /></div>';
+    document.getElementById('convBack').addEventListener('click', function () { stopPoll(); document.getElementById('msgSplit').classList.remove('show-detail'); MSG.active = null; document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.remove('active'); }); });
     function send() {
       var t = document.getElementById('convText'); var text = t.value.trim(); if (!text) return; t.value = '';
       fetch(API + '/chat/rooms/' + roomId + '/messages/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ text: text }) })
@@ -901,22 +985,153 @@
     }
     document.getElementById('convSend').addEventListener('click', send);
     document.getElementById('convText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    document.getElementById('convAttach').addEventListener('click', function () { document.getElementById('convFile').click(); });
+    document.getElementById('convFile').addEventListener('change', function () { var f = this.files[0]; if (f) sendMedia(roomId, f); this.value = ''; });
+    fetch(API + '/chat/rooms/' + roomId + '/read/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() } }).catch(function () {});
+    room.unread_count = 0; drawRows();
     loadMessages(roomId);
+    MSG.poll = setInterval(function () { loadMessages(roomId, true); }, 4000);
+  }
+  function sendMedia(roomId, file) {
+    var fd = new FormData(); fd.append('room_id', roomId); fd.append('file', file);
+    window.snack('Uploading…', 'info', 1500);
+    fetch(API + '/chat/upload/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Upload failed.', 'error'); return; } loadMessages(roomId, true); })
+      .catch(function () { window.snack('Upload failed.', 'error'); });
   }
   function loadMessages(roomId, silent) {
-    var body = document.getElementById('convBody'); if (!body) return;
+    var body = document.getElementById('convBody');
+    if (!body || MSG.active !== roomId) { stopPoll(); return; }
     if (!silent) body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    var isGroup = MSG.activeRoom && MSG.activeRoom.room_type === 'group';
     authFetch('/chat/rooms/' + roomId + '/messages/').then(function (r) {
-      if (!r.ok) { body.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load messages.'); return; }
-      var msgs = Array.isArray(r.d) ? r.d : (r.d.messages || listOf(r.d));
-      if (!msgs.length) { body.innerHTML = '<div class="conv-empty">No messages yet — say hi! 👋</div>'; return; }
-      body.innerHTML = msgs.map(function (m) {
-        var mine = m.sender_id && MSG.me && String(m.sender_id) === String(MSG.me);
-        var txt = m.text ? esc(m.text) : (m.media_url ? '📎 Attachment' : '…');
-        return '<div class="bubble ' + (mine ? 'me' : 'them') + '">' + txt + '<div class="btime">' + esc(timeAgo(m.created_at)) + '</div></div>';
-      }).join('');
-      body.scrollTop = body.scrollHeight;
-    }).catch(function () { body.innerHTML = empty('Couldn’t load messages.'); });
+      var b = document.getElementById('convBody'); if (!b || MSG.active !== roomId) return;
+      if (!r.ok) { if (!silent) b.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load messages.'); return; }
+      var msgs = Array.isArray(r.d) ? r.d : (r.d.results || r.d.messages || []);
+      if (!msgs.length) { b.innerHTML = '<div class="conv-empty">No messages yet — say hi! 👋</div>'; MSG.lastCount = 0; return; }
+      var atBottom = b.scrollHeight - b.scrollTop - b.clientHeight < 80;
+      var grew = msgs.length !== MSG.lastCount;
+      if (grew) { b.innerHTML = renderThread(msgs, isGroup); if (!silent || atBottom) b.scrollTop = b.scrollHeight; }
+      MSG.lastCount = msgs.length;
+    }).catch(function () { if (!silent) { var b = document.getElementById('convBody'); if (b) b.innerHTML = empty('Couldn’t load messages.'); } });
+  }
+
+  function startDM(userId) {
+    if (!userId) return;
+    window.snack('Opening chat…', 'info', 900);
+    fetch(API + '/chat/dm/start/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t start chat.', 'error'); return; }
+        var room = res.d; if (!room || !room.id) return;
+        if (!MSG.rooms.some(function (m) { return m.id === room.id; })) MSG.rooms.unshift(room);
+        MSG.tab = 'inbox';
+        var tabs = document.getElementById('msgTabs'); if (tabs) tabs.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-mt') === 'inbox'); });
+        drawRows(); openConversation(room.id);
+      }).catch(function () { window.snack('Couldn’t start chat.', 'error'); });
+  }
+
+  function loadReqBadge() {
+    authFetch('/chat/requests/').then(function (r) {
+      if (!r.ok) return; var c = listOf(r.d).length; var b = document.getElementById('reqBadge'); if (!b) return;
+      if (c > 0) { b.textContent = c > 9 ? '9+' : c; b.classList.add('show'); } else { b.classList.remove('show'); }
+    }).catch(function () {});
+  }
+  function reqAction(path, okMsg, reload) {
+    fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Action failed.', 'error'); return; }
+        window.snack(okMsg, 'ok'); loadReqBadge();
+        authFetch('/chat/rooms/').then(function (rr) { if (rr.ok) { MSG.rooms = listOf(rr.d); drawRows(); } });
+        if (reload) reload();
+      }).catch(function () { window.snack('Action failed.', 'error'); });
+  }
+  function reqRow(rq, mode) {
+    var name = mode === 'in' ? (rq.sender_name || 'Someone') : (rq.receiver_name || 'Someone');
+    var av = mode === 'in' ? rq.sender_avatar : rq.receiver_avatar;
+    var actions = mode === 'in'
+      ? '<button class="pillbtn" data-acc="' + esc(rq.id) + '">Accept</button><button class="pillbtn ghost2" data-dec="' + esc(rq.id) + '">Decline</button>'
+      : '<button class="pillbtn ghost2" data-cancel="' + esc(rq.id) + '">Cancel</button>';
+    return '<div class="card glass" style="margin-bottom:10px;display:flex;align-items:center;gap:12px">' + avatar(av, name) +
+      '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14px">' + esc(name) + '</b>' +
+      (rq.message ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">' + esc(rq.message) + '</div>' : '') + '</div>' +
+      '<div style="display:flex;gap:6px">' + actions + '</div></div>';
+  }
+  function openRequests() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div><h2>Chat requests</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="feed-tabs" id="reqTabs" style="margin:6px 0 14px"><button class="feed-tab active" data-rq="in">Received</button><button class="feed-tab" data-rq="out">Sent</button></div>' +
+      '<div id="reqBody"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var mode = 'in';
+    function load() {
+      var el = document.getElementById('reqBody'); el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+      authFetch(mode === 'in' ? '/chat/requests/' : '/chat/requests/sent/').then(function (r) {
+        if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+        var reqs = listOf(r.d);
+        if (!reqs.length) { el.innerHTML = empty(mode === 'in' ? 'No incoming requests.' : 'No sent requests.'); return; }
+        el.innerHTML = reqs.map(function (rq) { return reqRow(rq, mode); }).join('');
+        el.querySelectorAll('[data-acc]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-acc') + '/accept/', 'Request accepted', load); }); });
+        el.querySelectorAll('[data-dec]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-dec') + '/decline/', 'Request declined', load); }); });
+        el.querySelectorAll('[data-cancel]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-cancel') + '/cancel/', 'Request cancelled', load); }); });
+      }).catch(function () { el.innerHTML = empty('Couldn’t load.'); });
+    }
+    document.getElementById('reqTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-rq]'); if (!b) return; mode = b.getAttribute('data-rq'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-rq') === mode); }); load(); });
+    load();
+  }
+  function openBubbles() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M17 12V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14l4-4h10a1 1 0 0 0 1-1zm4-6h-2v9H6v2a1 1 0 0 0 1 1h11l4 4V7a1 1 0 0 0-1-1z"/></svg></div><h2>Chat bubbles</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="feed-tabs" id="bubTabs" style="margin:6px 0 14px"><button class="feed-tab active" data-bt="create">Create</button><button class="feed-tab" data-bt="invites">Invites</button><button class="feed-tab" data-bt="discover">Discover</button></div>' +
+      '<div id="bubBody"></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var mode = 'create';
+    function render() {
+      var el = document.getElementById('bubBody');
+      if (mode === 'create') {
+        el.innerHTML = '<label>Bubble name</label><input id="bbName" placeholder="e.g. Physics Squad" maxlength="60" />' +
+          '<label>Description</label><textarea id="bbDesc" rows="3" placeholder="What’s this bubble about?"></textarea>' +
+          '<button class="btn" id="bbCreate" style="margin-top:16px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Create bubble</span></button>';
+        document.getElementById('bbCreate').addEventListener('click', function () {
+          var name = document.getElementById('bbName').value.trim(); if (!name) { window.snack('Name your bubble.', 'error'); return; }
+          var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Creating…';
+          fetch(API + '/chat/rooms/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ name: name, description: document.getElementById('bbDesc').value.trim(), is_public: true }) })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+              if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t create.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create bubble'; return; }
+              closeModal(); window.snack('Bubble created!', 'ok');
+              var room = res.d; if (room && room.id) { if (!MSG.rooms.some(function (m) { return m.id === room.id; })) MSG.rooms.unshift(room); MSG.tab = 'bubbles'; var tabs = document.getElementById('msgTabs'); if (tabs) tabs.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-mt') === 'bubbles'); }); drawRows(); openConversation(room.id); }
+            }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create bubble'; });
+        });
+      } else if (mode === 'invites') {
+        el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+        authFetch('/chat/invites/').then(function (r) {
+          if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+          var inv = listOf(r.d);
+          el.innerHTML = inv.length ? inv.map(function (iv) {
+            return '<div class="card glass" style="margin-bottom:10px;display:flex;align-items:center;gap:12px">' + avatar(iv.avatar_url || iv.inviter_avatar, iv.name || iv.room_name || 'Bubble') +
+              '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14px">' + esc(iv.name || iv.room_name || 'Bubble') + '</b><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">Invited by ' + esc(iv.inviter_name || 'someone') + '</div></div>' +
+              '<div style="display:flex;gap:6px"><button class="pillbtn" data-ia="' + esc(iv.id) + '">Join</button><button class="pillbtn ghost2" data-id="' + esc(iv.id) + '">Decline</button></div></div>';
+          }).join('') : empty('No bubble invites.');
+          el.querySelectorAll('[data-ia]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/invites/' + b.getAttribute('data-ia') + '/accept/', 'Joined the bubble', render); }); });
+          el.querySelectorAll('[data-id]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/invites/' + b.getAttribute('data-id') + '/decline/', 'Invite declined', render); }); });
+        }).catch(function () { el.innerHTML = empty('Couldn’t load.'); });
+      } else {
+        el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+        authFetch('/chat/bubbles/discover/').then(function (r) {
+          if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+          var bs = listOf(r.d);
+          el.innerHTML = bs.length ? bs.map(function (bb) {
+            return '<div class="card glass" style="margin-bottom:10px;display:flex;align-items:center;gap:12px">' + avatar(bb.avatar_url, bb.name) +
+              '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14px">' + esc(bb.name || 'Bubble') + '</b><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">' + num(bb.members_count || bb.member_count) + ' members</div></div>' +
+              '<button class="pillbtn" data-join="' + esc(bb.id) + '">Join</button></div>';
+          }).join('') : empty('No bubbles to discover.');
+          el.querySelectorAll('[data-join]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/bubbles/' + b.getAttribute('data-join') + '/join/', 'Joined!', render); }); });
+        }).catch(function () { el.innerHTML = empty('Couldn’t load.'); });
+      }
+    }
+    document.getElementById('bubTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-bt]'); if (!b) return; mode = b.getAttribute('data-bt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-bt') === mode); }); render(); });
+    render();
   }
   function renderClubs() {
     renderListTab({ eyebrow: 'COMMUNITY', title: 'Clubs', noun: 'clubs', searchPh: 'Search clubs', path: '/clubs/?page=1', grid: true, cardFn: clubCard, wireFn: wireClubActions });
