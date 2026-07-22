@@ -538,6 +538,40 @@
   .ev-card-when { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 5px; }
   .ev-card-foot { display: flex; align-items: center; gap: 8px; margin-top: 11px; } .ev-card-foot .pillbtn { flex: 1; }
 
+  /* ── Arcade ───────────────────────────────────────────────── */
+  .coin { margin-right: 3px; }
+  .arc-hero { padding: 20px; background: linear-gradient(135deg, rgba(142,84,233,.18), rgba(109,213,250,.10)); border: 1px solid var(--hair-2); }
+  .arc-hero-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .arc-av { position: relative; flex: 0 0 auto; } .arc-av .av { width: 68px; height: 68px; border-radius: 20px; font-size: 26px; }
+  .arc-lvl { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--g3), var(--g4)); color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; padding: 2px 9px; border-radius: 999px; border: 2px solid var(--bg1); white-space: nowrap; }
+  .arc-id { flex: 1; min-width: 160px; }
+  .arc-tag { font-family: 'Alfa', serif; font-size: 21px; display: flex; align-items: center; }
+  .arc-xp { font-family: 'Momo', sans-serif; font-size: 12px; margin-top: 6px; }
+  .arc-tokens { text-align: center; flex: 0 0 auto; }
+  .arc-tok-n { font-family: 'Alfa', serif; font-size: 26px; color: #FFD37A; }
+  .arc-tok-l { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); }
+  .arc-statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .arc-stat { text-align: center; padding: 18px 10px; border-radius: 16px; background: var(--glass); border: 1px solid var(--hair); }
+  .arc-stat-n { font-family: 'Alfa', serif; font-size: 24px; }
+  .arc-stat-l { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 5px; }
+  .arc-game-ic { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; background: var(--glass-2); display: grid; place-items: center; font-size: 20px; }
+  .rank-row { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--hair); background: var(--glass); margin-bottom: 8px; }
+  .rank-row.me { border-color: var(--g2); background: rgba(142,84,233,.12); }
+  .rank-n { width: 34px; flex: 0 0 auto; text-align: center; font-family: 'Alfa', serif; font-size: 15px; }
+  .rank-av { width: 40px; height: 40px; flex: 0 0 auto; font-size: 15px; }
+  .rank-meta { flex: 1; min-width: 0; }
+  .rank-name { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-sub { font-family: 'Momo', sans-serif; font-size: 11px; margin-top: 3px; }
+  .rank-score { font-family: 'Alfa', serif; font-size: 17px; flex: 0 0 auto; } .rank-score span { font-family: 'Momo', sans-serif; font-size: 10px; color: var(--faint); }
+  .wallet-card { text-align: center; padding: 24px; }
+  .wallet-bal { font-family: 'Alfa', serif; font-size: 40px; color: #FFD37A; }
+  .wallet-lbl { font-family: 'Momo', sans-serif; font-size: 12.5px; margin-top: 4px; }
+  .led-row { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 13px; border: 1px solid var(--hair); background: var(--glass); margin-bottom: 8px; }
+  .led-ic { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 16px; font-weight: 800; }
+  .led-ic.up { background: rgba(34,197,94,.15); color: #4ADE80; } .led-ic.down { background: rgba(255,88,88,.15); color: #FF7A7A; }
+  .led-amt { font-family: 'Alfa', serif; font-size: 16px; flex: 0 0 auto; }
+  .led-amt.up { color: #4ADE80; } .led-amt.down { color: #FF7A7A; }
+
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
     padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
@@ -2580,6 +2614,134 @@
   }
 
   // ── PROFILE ──────────────────────────────────────────────────
+  // ── ARCADE (tokens, ranks, stats, wallet — games live on mobile) ──
+  var ARC = { tab: 'ranks', stats: null };
+  function coin(n) { return '<span class="coin">🪙</span>' + num(n); }
+  function renderArcade() {
+    view.innerHTML =
+      '<div class="feed-label"><div><div class="eyebrow">PLAY · EARN · RANK</div><div class="feed-title">Arcade</div></div></div>' +
+      '<div class="arc-hero card glass" id="arcHero"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="feed-tabs prof-tabs" id="arcTabs">' +
+        [['ranks', 'Ranks'], ['stats', 'Stats'], ['wallet', 'Wallet']].map(function (t) { return '<button class="feed-tab' + (ARC.tab === t[0] ? ' active' : '') + '" data-at="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
+      '</div><div id="arcBody"></div>';
+    document.getElementById('arcTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-at]'); if (!b) return; ARC.tab = b.getAttribute('data-at'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-at') === ARC.tab); }); drawArcBody(); });
+    authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcHero(); drawArcBody(); }).catch(function () { ARC.stats = {}; drawArcHero(); drawArcBody(); });
+  }
+  function drawArcHero() {
+    var s = ARC.stats || {}; var u = cachedUser() || {};
+    var tag = s.gamer_tag || u.gamer_tag || '';
+    var av = u.arcade_avatar_url || u.avatar_url;
+    document.getElementById('arcHero').innerHTML =
+      '<div class="arc-hero-top">' +
+        '<div class="arc-av">' + avatar(av, tag || (u.name || 'P')) + '<span class="arc-lvl">Lv ' + num(s.level != null ? s.level : (u.level || 1)) + '</span></div>' +
+        '<div class="arc-id"><div class="arc-tag">' + (tag ? esc(tag) : '<span class="faint">No gamer tag yet</span>') + '<button class="prof-mini" id="arcEditTag" style="margin-left:8px">✎ ' + (tag ? 'Edit' : 'Set tag') + '</button></div>' +
+          '<div class="arc-xp faint">' + num(s.total_xp != null ? s.total_xp : u.xp) + ' XP · ' + num(s.total_games) + ' games · ' + num(s.win_rate) + '% win rate</div></div>' +
+        '<div class="arc-tokens"><div class="arc-tok-n">' + coin(s.tokens != null ? s.tokens : u.tokens) + '</div><div class="arc-tok-l">tokens</div>' +
+          '<button class="pillbtn" id="arcSend" style="margin-top:10px">Send</button></div>' +
+      '</div>';
+    document.getElementById('arcEditTag').addEventListener('click', openEditGamerTag);
+    document.getElementById('arcSend').addEventListener('click', openSendTokens);
+  }
+  function drawArcBody() {
+    var body = document.getElementById('arcBody'); if (!body) return;
+    body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    if (ARC.tab === 'ranks') {
+      authFetch('/arcade/leaderboard/?limit=25').then(function (r) {
+        var el = document.getElementById('arcBody'); if (!el) return;
+        if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the leaderboard.'); return; }
+        var rows = listOf(r.d); var meId = (cachedUser() || {}).user_id;
+        if (!rows.length) { el.innerHTML = empty('No rankings yet.'); return; }
+        el.innerHTML = rows.map(function (p) {
+          var me = p.user_id && meId && String(p.user_id) === String(meId);
+          var medal = p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : '#' + p.rank;
+          return '<div class="rank-row' + (me ? ' me' : '') + '"><div class="rank-n">' + medal + '</div>' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'rank-av') +
+            '<div class="rank-meta"><div class="rank-name">' + esc(p.gamer_tag || p.display_name || 'Player') + (me ? ' <span class="rolechip">YOU</span>' : '') + '</div>' +
+            '<div class="rank-sub faint">Lv ' + num(p.level) + ' · ' + coin(p.tokens) + '</div></div>' +
+            '<div class="rank-score">' + num(p.score) + '<span> XP</span></div></div>';
+        }).join('');
+      }).catch(function () { var el = document.getElementById('arcBody'); if (el) el.innerHTML = empty('Couldn’t load the leaderboard.'); });
+    } else if (ARC.tab === 'stats') {
+      var s = ARC.stats || {};
+      var html = '<div class="arc-statgrid">' +
+        arcStat(s.total_games, 'Games played') + arcStat(s.total_wins, 'Wins') + arcStat(s.total_losses, 'Losses') +
+        arcStat((s.win_rate != null ? s.win_rate : 0) + '%', 'Win rate') + arcStat(s.total_xp != null ? s.total_xp : 0, 'Total XP') + arcStat(s.level != null ? s.level : 1, 'Level') + '</div>';
+      html += '<div class="sec-head" style="margin-top:22px"><div><span class="eyebrow">HISTORY</span><span class="sh-title">Recent games</span></div></div>';
+      var recent = s.recent || [];
+      html += recent.length ? '<div>' + recent.map(function (g) {
+        return '<div class="us-row" style="margin-bottom:8px"><div class="arc-game-ic">🎮</div><div class="us-meta"><div class="us-name">' + esc(g.game || 'Game') + '</div><div class="us-sub faint">' + esc(timeAgo(g.played_at)) + '</div></div><div class="rank-score">' + num(g.score) + '<span> pts</span></div></div>';
+      }).join('') + '</div>' : empty('No games played yet — jump into the Arcade on the mobile app to start earning.');
+      body.innerHTML = html;
+    } else {
+      body.innerHTML =
+        '<div class="wallet-card card glass"><div class="wallet-bal">' + coin((ARC.stats || {}).tokens != null ? ARC.stats.tokens : (cachedUser() || {}).tokens) + '</div><div class="wallet-lbl faint">Your token balance</div>' +
+          '<button class="btn" id="wSend" style="max-width:220px;margin:14px auto 0">Send tokens</button></div>' +
+        '<div class="feed-tabs" id="wTabs" style="margin:16px 0 14px"><button class="feed-tab active" data-wt="ledger">Earnings</button><button class="feed-tab" data-wt="transfers">Transfers</button></div>' +
+        '<div id="wBody"><div class="loading"><div class="spin"></div></div></div>';
+      document.getElementById('wSend').addEventListener('click', openSendTokens);
+      var wmode = 'ledger';
+      function wload() {
+        var el = document.getElementById('wBody'); el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+        authFetch(wmode === 'ledger' ? '/arcade/tokens/history/' : '/arcade/tokens/transfers/').then(function (r) {
+          var e2 = document.getElementById('wBody'); if (!e2) return;
+          if (!r.ok) { e2.innerHTML = empty('Couldn’t load.'); return; }
+          var rows = listOf(r.d);
+          if (!rows.length) { e2.innerHTML = empty(wmode === 'ledger' ? 'No token activity yet.' : 'No transfers yet.'); return; }
+          if (wmode === 'ledger') e2.innerHTML = rows.map(function (t) {
+            var d = num(t.delta); var pos = d >= 0;
+            return '<div class="led-row"><div class="led-ic ' + (pos ? 'up' : 'down') + '">' + (pos ? '↑' : '↓') + '</div><div class="us-meta"><div class="us-name">' + esc(t.reason || (pos ? 'Earned' : 'Spent')) + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (pos ? 'up' : 'down') + '">' + (pos ? '+' : '') + d + '</div></div>';
+          }).join('');
+          else e2.innerHTML = rows.map(function (t) {
+            var meId = (cachedUser() || {}).user_id; var out = t.sender_id ? String(t.sender_id) === String(meId) : true;
+            return '<div class="led-row"><div class="led-ic ' + (out ? 'down' : 'up') + '">' + (out ? '↗' : '↙') + '</div><div class="us-meta"><div class="us-name">' + (out ? 'To ' : 'From ') + esc(t.recipient_name || t.sender_name || 'someone') + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (out ? 'down' : 'up') + '">' + (out ? '-' : '+') + num(t.amount) + '</div></div>';
+          }).join('');
+        }).catch(function () { var e2 = document.getElementById('wBody'); if (e2) e2.innerHTML = empty('Couldn’t load.'); });
+      }
+      document.getElementById('wTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-wt]'); if (!b) return; wmode = b.getAttribute('data-wt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-wt') === wmode); }); wload(); });
+      wload();
+    }
+  }
+  function arcStat(n, l) { return '<div class="arc-stat"><div class="arc-stat-n">' + (typeof n === 'string' ? n : num(n)) + '</div><div class="arc-stat-l">' + l + '</div></div>'; }
+  function openEditGamerTag() {
+    var cur = (ARC.stats || {}).gamer_tag || (cachedUser() || {}).gamer_tag || '';
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">🎮</div><h2>Gamer tag</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Your unique handle on the leaderboard. 3–20 characters.</p>' +
+      '<input id="gtInput" value="' + esc(cur) + '" placeholder="e.g. NightHawk" maxlength="20"/>' +
+      '<button class="btn" id="gtSave" style="margin-top:16px">Save gamer tag</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('gtSave').addEventListener('click', function () {
+      var tag = document.getElementById('gtInput').value.trim(); if (tag.length < 3) { window.snack('At least 3 characters.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+      fetch(API + '/arcade/gamer-tag/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ gamer_tag: tag }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t save.', 'error'); btn.disabled = false; btn.textContent = 'Save gamer tag'; return; }
+          if (ARC.stats) ARC.stats.gamer_tag = tag; try { var cu = cachedUser() || {}; cu.gamer_tag = tag; localStorage.setItem('tcs_user', JSON.stringify(cu)); } catch (e) {}
+          closeModal(); window.snack('Gamer tag saved', 'ok'); drawArcHero();
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Save gamer tag'; });
+    });
+  }
+  function openSendTokens() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">🪙</div><h2>Send tokens</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Balance: ' + coin((ARC.stats || {}).tokens != null ? ARC.stats.tokens : (cachedUser() || {}).tokens) + '</p>' +
+      '<label>Recipient (student ID)</label><input id="stRid" placeholder="e.g. 24010123"/>' +
+      '<label>Amount</label><input id="stAmt" type="number" min="1" placeholder="100"/>' +
+      '<label>Note (optional)</label><input id="stNote" placeholder="What’s it for?" maxlength="80"/>' +
+      '<button class="btn" id="stSend" style="margin-top:16px">Send tokens</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('stSend').addEventListener('click', function () {
+      var rid = document.getElementById('stRid').value.trim(); var amt = parseInt(document.getElementById('stAmt').value, 10);
+      if (!rid) { window.snack('Enter a recipient.', 'error'); return; } if (!amt || amt < 1) { window.snack('Enter a valid amount.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Sending…';
+      fetch(API + '/arcade/tokens/transfer/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ recipient_user_id: rid, amount: amt, note: document.getElementById('stNote').value.trim() }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t send tokens.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; return; }
+          closeModal(); window.snack('Sent ' + amt + ' tokens! 🪙', 'ok');
+          authFetch('/arcade/stats/').then(function (rr) { if (rr.ok) { ARC.stats = rr.d; drawArcHero(); if (ARC.tab === 'wallet') drawArcBody(); } });
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; });
+    });
+  }
+
   var PROFILE = { me: null, tab: 'posts' };
   var PROF_COVERS = ['linear-gradient(120deg,#6DD5FA,#8E54E9)', 'linear-gradient(120deg,#F7971E,#FF5858)', 'linear-gradient(120deg,#11998E,#38EF7D)', 'linear-gradient(120deg,#8E54E9,#EC4899)'];
   function socialLinks(u) {
@@ -2832,6 +2994,7 @@
   var TABS = { home: renderHome, studyhub: renderStudyhub, messages: renderMessages, clubs: renderClubs, profile: renderProfile };
   function setTab(name) {
     if (!TABS[name]) name = 'home';
+    var arc = document.getElementById('arcadeBtn'); if (arc) arc.classList.remove('active');
     document.querySelectorAll('.nav-item[data-tab]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
     try { localStorage.setItem('tcs_tab', name); } catch (e) {}
     TABS[name]();
@@ -2839,7 +3002,12 @@
   document.getElementById('nav').addEventListener('click', function (e) {
     var b = e.target.closest('.nav-item[data-tab]'); if (b) setTab(b.getAttribute('data-tab'));
   });
-  document.getElementById('arcadeBtn').addEventListener('click', function () { window.snack('Arcade lives in the mobile app for now', 'info'); });
+  document.getElementById('arcadeBtn').addEventListener('click', function () {
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function (b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    try { localStorage.setItem('tcs_tab', 'arcade'); } catch (e) {}
+    renderArcade();
+  });
   document.getElementById('logout').addEventListener('click', function () {
     var r = tok();
     if (r) { fetch(API + '/accounts/logout/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + r }, body: JSON.stringify({ refresh: localStorage.getItem('tcs_refresh') || '' }) }).catch(function () {}); }
@@ -2879,7 +3047,7 @@
 
   // Boot
   var start = 'home'; try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {}
-  setTab(start);
+  if (start === 'arcade') { document.getElementById('arcadeBtn').classList.add('active'); renderArcade(); } else setTab(start);
   loadNotifCount();
 </script>
 </body>
