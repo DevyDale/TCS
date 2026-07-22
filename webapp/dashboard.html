@@ -444,6 +444,60 @@
   .ev-body { padding: 18px 22px 4px; }
   .ev-when { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 10px; }
 
+  /* ── Profile (web layout) ─────────────────────────────────── */
+  .prof-wrap { max-width: 720px; }
+  .prof-cover { position: relative; height: 180px; border-radius: 22px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,.3); }
+  .prof-cover-edit { position: absolute; right: 14px; bottom: 14px; width: 38px; height: 38px; border: 0; border-radius: 11px; cursor: pointer;
+    background: rgba(0,0,0,0.4); color: #fff; display: grid; place-items: center; backdrop-filter: blur(6px); }
+  .prof-cover-edit svg { width: 19px; height: 19px; }
+  .prof-cover-btns { position: absolute; top: 14px; right: 14px; }
+  .prof-cover-btns .pillbtn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,.25); color: #fff; backdrop-filter: blur(6px); }
+  .prof-headrow { display: flex; align-items: flex-end; gap: 16px; padding: 0 8px; margin-top: -42px; position: relative; z-index: 2; }
+  .prof-avwrap { position: relative; flex: 0 0 auto; }
+  .prof-av { width: 104px; height: 104px; border-radius: 26px; overflow: hidden; border: 4px solid var(--bg1); background: var(--bg1); }
+  .prof-av .av { width: 100%; height: 100%; border-radius: 0; font-size: 40px; }
+  .prof-av-edit { position: absolute; right: -4px; bottom: -4px; width: 34px; height: 34px; border: 3px solid var(--bg1); border-radius: 50%; cursor: pointer;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; }
+  .prof-av-edit svg { width: 15px; height: 15px; }
+  .prof-id { flex: 1; min-width: 0; padding-bottom: 6px; }
+  .prof-name { font-family: 'Alfa', serif; font-size: 24px; line-height: 1.1; }
+  .prof-name .rolechip { font-size: 9px; vertical-align: middle; }
+  .prof-handle { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); margin-top: 5px; }
+  .prof-editbtn { flex: 0 0 auto; margin-bottom: 6px; }
+  .prof-statbar { display: flex; gap: 10px; margin: 18px 4px 0; }
+  .pstat { flex: 1; text-align: center; padding: 14px 8px; border-radius: 16px; background: var(--glass); border: 1px solid var(--hair); transition: background .12s; }
+  .pstat[data-follow]:hover { background: var(--glass-2); }
+  .pstat-n { font-family: 'Alfa', serif; font-size: 22px; }
+  .pstat-l { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 4px; }
+  .prof-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 4px 0; }
+  .prof-link { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 999px; text-decoration: none;
+    background: var(--glass); border: 1px solid var(--hair); color: var(--ink); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
+  .prof-link:hover { background: var(--glass-2); } .prof-link span { font-size: 14px; }
+  .prof-about, .prof-wrap .card { margin-top: 16px; }
+  .prof-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .prof-sec-head b { font-family: 'Arch', sans-serif; font-size: 13px; }
+  .prof-mini { background: var(--glass-2); border: 1px solid var(--hair); border-radius: 999px; padding: 5px 13px; cursor: pointer;
+    color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; }
+  .prof-mini:hover { color: var(--ink); }
+  .prof-abouttext, .prof-bio { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.65; color: var(--sub); }
+  .prof-ints { display: flex; flex-wrap: wrap; gap: 8px; }
+  .int-chip { background: var(--glass-2); color: var(--sub); border: 1px solid var(--hair); }
+  .prof-tabs { margin: 20px 4px 14px; }
+  .prof-tabs .feed-tab { flex: 1; text-align: center; }
+  .int-editor { display: flex; flex-wrap: wrap; gap: 8px; min-height: 20px; margin-bottom: 12px; }
+  .int-chip.rm { cursor: pointer; } .int-chip.rm:hover { border-color: var(--g4); color: var(--g4); }
+  .int-add { display: flex; gap: 10px; } .int-add input { flex: 1; }
+  .set-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; border-bottom: 1px solid var(--hair); font-family: 'Momo', sans-serif; font-size: 13px; }
+  .set-row span { color: var(--sub); } .set-row b { font-family: 'Arch', sans-serif; }
+  .myp { position: relative; }
+  .myp-del { position: absolute; top: 14px; right: 14px; z-index: 3; width: 34px; height: 34px; border: 0; border-radius: 10px; cursor: pointer;
+    background: rgba(0,0,0,0.45); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
+  .myp-del:hover { background: rgba(255,88,88,0.6); } .myp-del svg { width: 16px; height: 16px; }
+  .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .hl-cell { position: relative; aspect-ratio: 3/4; border: 0; border-radius: 16px; overflow: hidden; cursor: pointer; }
+  .hl-cell::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0,0,0,.65)); }
+  .hl-title { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12.5px; text-align: left; }
+
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
     padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
@@ -746,7 +800,11 @@
   }
   function openStoryViewer(groupIdx) {
     var groups = HOME.storyGroups || []; var group = groups[groupIdx]; if (!group) return;
-    // flatten every highlight's items for this owner into one story sequence
+    playStory(group.items.map(function (h) { return h.id; }), group.owner);
+  }
+  function playStory(ids, owner) {
+    if (!ids || !ids.length) { window.snack('No stories to show.', 'info'); return; }
+    var group = { owner: owner, items: ids.map(function (id) { return { id: id }; }) };
     var ov = document.createElement('div'); ov.className = 'story-viewer'; ov.id = 'storyViewer';
     ov.innerHTML = '<div class="sv-inner"><div class="sv-bars" id="svBars"></div>' +
       '<div class="sv-head"><span class="sv-owner">' + esc(group.owner || '') + '</span><button class="sv-close" id="svClose"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#fff"/></svg></button></div>' +
@@ -2202,31 +2260,232 @@
   }
 
   // ── PROFILE ──────────────────────────────────────────────────
+  var PROFILE = { me: null, tab: 'posts' };
+  var PROF_COVERS = ['linear-gradient(120deg,#6DD5FA,#8E54E9)', 'linear-gradient(120deg,#F7971E,#FF5858)', 'linear-gradient(120deg,#11998E,#38EF7D)', 'linear-gradient(120deg,#8E54E9,#EC4899)'];
+  function socialLinks(u) {
+    var s = u.social_links || {}; var out = [];
+    if (u.website) out.push({ k: 'website', label: 'Website', url: u.website, ic: '🌐' });
+    if (typeof s === 'object' && !Array.isArray(s)) {
+      if (s.instagram) out.push({ k: 'instagram', label: 'Instagram', url: normUrl(s.instagram, 'instagram.com/'), ic: '📸' });
+      if (s.twitter || s.x) out.push({ k: 'twitter', label: 'X', url: normUrl(s.twitter || s.x, 'x.com/'), ic: '𝕏' });
+      if (s.tiktok) out.push({ k: 'tiktok', label: 'TikTok', url: normUrl(s.tiktok, 'tiktok.com/@'), ic: '🎵' });
+      if (s.snapchat) out.push({ k: 'snapchat', label: 'Snapchat', url: normUrl(s.snapchat, 'snapchat.com/add/'), ic: '👻' });
+    }
+    return out;
+  }
+  function normUrl(v, base) { v = String(v).trim(); if (/^https?:\/\//.test(v)) return v; return 'https://' + base + v.replace(/^@/, ''); }
   function renderProfile() {
     loading();
     authFetch('/users/me/').then(function (r) {
-      if (!r.ok) { view.innerHTML = head('Profile', '') + empty((r.d && r.d.detail) || 'Couldn’t load your profile.'); return; }
-      var u = r.d || {};
-      var name = u.name || u.preferred_name || u.display_name || 'You';
-      var role = (u.role || '').replace(/_/g, ' ');
-      var interests = Array.isArray(u.interests) ? u.interests : [];
-      var html = '<div class="feed-label"><div><div class="eyebrow">YOU</div><div class="feed-title">Profile</div></div>' +
-        '<button class="icon-btn refresh-btn" id="pfRefresh" title="Refresh" style="width:44px;height:44px">' + REFRESH_SVG + '</button></div>';
-      html += '<div class="card glass prof-hero">' + avatar(u.avatar_url, name, 'big round') +
-        '<div><div style="font-family:Alfa;font-size:22px">' + esc(name) + '</div>' +
-        '<div class="faint" style="font-family:Momo;font-size:12.5px;margin-top:4px">@' + esc(u.user_id || u.email || 'me') + '</div>' +
-        (role ? '<span class="chip" style="background:rgba(142,84,233,.18);color:#C6B3F5;margin-top:10px;text-transform:capitalize">' + esc(role) + '</span>' : '') + '</div></div>';
-      html += '<div class="card glass prof-stats" style="display:grid">' +
-        '<div class="s"><div class="n">' + num(u.level != null ? u.level : 1) + '</div><div class="l">Level</div></div>' +
-        '<div class="s"><div class="n">' + num(u.tokens) + '</div><div class="l">Tokens</div></div>' +
-        '<div class="s"><div class="n">' + num(u.followers_count) + '</div><div class="l">Followers</div></div>' +
-        '<div class="s"><div class="n">' + num(u.following_count) + '</div><div class="l">Following</div></div></div>';
-      if (u.bio) html += '<div class="card glass"><b style="font-family:Arch;font-size:13px">About</b><div class="muted" style="font-family:Momo;font-size:13.5px;line-height:1.6;margin-top:8px">' + esc(u.bio) + '</div></div>';
-      if (interests.length) html += '<div class="card glass"><b style="font-family:Arch;font-size:13px">Interests</b><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
-        interests.map(function (i) { return '<span class="chip" style="background:var(--glass-2);color:var(--sub);border:1px solid var(--hair)">' + esc(i) + '</span>'; }).join('') + '</div></div>';
-      view.innerHTML = html;
-      var rf = document.getElementById('pfRefresh'); if (rf) rf.addEventListener('click', function () { this.classList.add('spinning'); renderProfile(); });
-    }).catch(function () { view.innerHTML = head('Profile', '') + empty('Couldn’t load your profile.'); window.snack('Couldn’t load profile', 'error'); });
+      if (!r.ok) { view.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your profile.'); return; }
+      PROFILE.me = r.d || {};
+      try { var cu = cachedUser() || {}; cu.interests = PROFILE.me.interests; cu.bio = PROFILE.me.bio; localStorage.setItem('tcs_user', JSON.stringify(cu)); } catch (e) {}
+      drawProfile();
+    }).catch(function () { view.innerHTML = empty('Couldn’t load your profile.'); window.snack('Couldn’t load profile', 'error'); });
+  }
+  function drawProfile() {
+    var u = PROFILE.me || {};
+    var name = u.name || u.preferred_name || u.display_name || 'You';
+    var role = (u.role || '').replace(/_/g, ' ');
+    var interests = Array.isArray(u.interests) ? u.interests : [];
+    var links = socialLinks(u);
+    var cover = u.cover_url ? 'url(' + esc(u.cover_url) + ') center/cover' : PROF_COVERS[0];
+    var html = '<div class="prof-wrap">' +
+      '<div class="prof-cover" style="background:' + cover + '">' +
+        '<button class="prof-cover-edit" id="pfCover" title="Change cover"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="currentColor"/></svg></button>' +
+        '<div class="prof-cover-btns"><button class="pillbtn" id="pfSettings">⚙︎ Settings</button></div>' +
+      '</div>' +
+      '<div class="prof-headrow">' +
+        '<div class="prof-avwrap"><div class="prof-av">' + avatar(u.avatar_url, name) + '</div>' +
+          '<button class="prof-av-edit" id="pfAvatar" title="Change photo"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9z" fill="#fff"/></svg></button>' +
+          '<input type="file" id="pfAvatarFile" accept="image/*" style="display:none"/><input type="file" id="pfCoverFile" accept="image/*" style="display:none"/></div>' +
+        '<div class="prof-id"><div class="prof-name">' + esc(name) + (role ? ' <span class="rolechip">' + esc(role.toUpperCase()) + '</span>' : '') + '</div>' +
+          '<div class="prof-handle">@' + esc(u.user_id || u.email || 'me') + (u.location ? ' · 📍 ' + esc(u.location) : '') + '</div></div>' +
+        '<button class="pillbtn prof-editbtn" id="pfEdit">✎ Edit profile</button>' +
+      '</div>' +
+      '<div class="prof-statbar">' +
+        statCell(u.level != null ? u.level : 1, 'Level') + statCell(u.tokens, 'Tokens') +
+        statCell(u.followers_count, 'Followers', 'followers') + statCell(u.following_count, 'Following', 'following') +
+      '</div>';
+    // Links
+    if (links.length) html += '<div class="prof-links">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div>';
+    // About Me
+    html += '<div class="card glass prof-about"><div class="prof-sec-head"><b>About</b>' +
+      '<button class="prof-mini" id="pfGenAbout">✨ ' + (aboutCached(u) ? 'Refresh' : 'Generate') + '</button></div>' +
+      '<div class="prof-abouttext" id="pfAboutText">' + (aboutCached(u) ? esc(aboutCached(u)) : (u.bio ? esc(u.bio) : '<span class="faint">Add a bio and interests, then tap ✨ to let Dale write your About Me.</span>')) + '</div></div>';
+    // Bio + Interests
+    html += '<div class="card glass"><div class="prof-sec-head"><b>Bio</b><button class="prof-mini" id="pfEditBio">' + (u.bio ? 'Edit' : 'Add') + '</button></div>' +
+      '<div class="prof-bio' + (u.bio ? '' : ' faint') + '">' + (u.bio ? esc(u.bio) : 'No bio yet.') + '</div></div>';
+    html += '<div class="card glass"><div class="prof-sec-head"><b>Interests</b><button class="prof-mini" id="pfEditInt">Edit</button></div>' +
+      '<div class="prof-ints">' + (interests.length ? interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') : '<span class="faint">No interests added yet.</span>') + '</div></div>';
+    // Tabs
+    html += '<div class="feed-tabs prof-tabs" id="pfTabs">' +
+      ['posts', 'highlights', 'fweets'].map(function (t) { return '<button class="feed-tab' + (PROFILE.tab === t ? ' active' : '') + '" data-pt="' + t + '">' + (t === 'posts' ? 'Posts' : t === 'highlights' ? 'Highlights' : 'Fweets') + '</button>'; }).join('') +
+      '</div><div id="pfTabBody"></div></div>';
+    view.innerHTML = html;
+    document.getElementById('pfAvatar').addEventListener('click', function () { document.getElementById('pfAvatarFile').click(); });
+    document.getElementById('pfAvatarFile').addEventListener('change', function () { if (this.files[0]) uploadProfileImg(this.files[0], 'avatar'); this.value = ''; });
+    document.getElementById('pfCover').addEventListener('click', function () { document.getElementById('pfCoverFile').click(); });
+    document.getElementById('pfCoverFile').addEventListener('change', function () { if (this.files[0]) uploadProfileImg(this.files[0], 'cover'); this.value = ''; });
+    document.getElementById('pfSettings').addEventListener('click', openSettings);
+    document.getElementById('pfEdit').addEventListener('click', openEditProfile);
+    document.getElementById('pfGenAbout').addEventListener('click', generateAbout);
+    document.getElementById('pfEditBio').addEventListener('click', openEditBio);
+    document.getElementById('pfEditInt').addEventListener('click', openEditInterests);
+    document.querySelectorAll('#pfTabBody, .prof-statbar [data-follow]').forEach(function () {});
+    document.querySelectorAll('.prof-statbar [data-follow]').forEach(function (c) { c.addEventListener('click', function () { openFollows(c.getAttribute('data-follow')); }); });
+    document.getElementById('pfTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-pt]'); if (!b) return; PROFILE.tab = b.getAttribute('data-pt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); loadProfileTab(); });
+    loadProfileTab();
+  }
+  function statCell(n, label, follow) {
+    return '<div class="pstat"' + (follow ? ' data-follow="' + follow + '" style="cursor:pointer"' : '') + '><div class="pstat-n">' + num(n) + '</div><div class="pstat-l">' + label + '</div></div>';
+  }
+  function aboutSig(u) { return (u.bio || '').trim() + '::' + (Array.isArray(u.interests) ? u.interests.slice().sort().join(',') : ''); }
+  function aboutCached(u) { try { if (localStorage.getItem('tcs_about_sig') === aboutSig(u)) return localStorage.getItem('tcs_about') || ''; } catch (e) {} return ''; }
+  function generateAbout() {
+    var u = PROFILE.me || {}; var btn = document.getElementById('pfGenAbout'); var out = document.getElementById('pfAboutText');
+    if (!(u.bio || (u.interests && u.interests.length))) { window.snack('Add a bio or interests first.', 'error'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = '✨ Writing…'; } if (out) out.innerHTML = '<span class="faint">Dale is composing your About Me…</span>';
+    fetch(API + '/ai/about-me/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ bio: u.bio || '', interests: u.interests || [], name: u.name || '' }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (btn) { btn.disabled = false; btn.textContent = '✨ Refresh'; }
+        if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t compose About Me.', 'error'); if (out) out.textContent = u.bio || ''; return; }
+        var about = (res.d && res.d.about) || '';
+        try { localStorage.setItem('tcs_about', about); localStorage.setItem('tcs_about_sig', aboutSig(u)); } catch (e) {}
+        if (out) out.textContent = about;
+      }).catch(function () { if (btn) { btn.disabled = false; btn.textContent = '✨ Generate'; } window.snack('Couldn’t reach Dale.', 'error'); });
+  }
+  function uploadProfileImg(file, kind) {
+    var fd = new FormData(); fd.append(kind, file);
+    window.snack('Uploading…', 'info', 1500);
+    fetch(API + '/users/me/' + kind + '/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Upload failed.', 'error'); return; }
+        window.snack((kind === 'avatar' ? 'Photo' : 'Cover') + ' updated', 'ok');
+        if (res.d) { if (res.d.avatar_url) PROFILE.me.avatar_url = res.d.avatar_url; if (res.d.cover_url) PROFILE.me.cover_url = res.d.cover_url; }
+        if (kind === 'avatar' && res.d && res.d.avatar_url) { try { var cu = cachedUser() || {}; cu.avatar_url = res.d.avatar_url; localStorage.setItem('tcs_user', JSON.stringify(cu)); } catch (e) {} }
+        drawProfile();
+      }).catch(function () { window.snack('Upload failed.', 'error'); });
+  }
+  function patchProfile(body, okMsg, after) {
+    fetch(API + '/users/me/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t save.', 'error'); return; }
+        Object.keys(body).forEach(function (k) { PROFILE.me[k] = body[k]; });
+        if (okMsg) window.snack(okMsg, 'ok'); if (after) after(); drawProfile();
+      }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); });
+  }
+  function openEditBio() {
+    openModal('<div class="modal-head"><h2>Edit bio</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<textarea id="bioT" rows="4" maxlength="300" placeholder="Tell campus a little about you…">' + esc(PROFILE.me.bio || '') + '</textarea>' +
+      '<button class="btn" id="bioSave" style="margin-top:16px">Save bio</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('bioSave').addEventListener('click', function () { closeModal(); patchProfile({ bio: document.getElementById('bioT').value.trim() }, 'Bio updated'); });
+  }
+  function openEditInterests() {
+    var cur = Array.isArray(PROFILE.me.interests) ? PROFILE.me.interests.slice() : [];
+    openModal('<div class="modal-head"><h2>Your interests</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Add topics you love. Tap a chip to remove it.</p>' +
+      '<div class="int-editor" id="intChips"></div>' +
+      '<div class="int-add"><input id="intInput" placeholder="Add an interest and press Enter" maxlength="30"/><button class="pillbtn" id="intAdd">Add</button></div>' +
+      '<button class="btn" id="intSave" style="margin-top:16px">Save interests</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    function paint() { document.getElementById('intChips').innerHTML = cur.length ? cur.map(function (i, x) { return '<span class="chip int-chip rm" data-i="' + x + '">' + esc(i) + ' ✕</span>'; }).join('') : '<span class="faint" style="font-family:Momo;font-size:12.5px">No interests yet.</span>';
+      document.querySelectorAll('#intChips [data-i]').forEach(function (c) { c.addEventListener('click', function () { cur.splice(parseInt(c.getAttribute('data-i'), 10), 1); paint(); }); }); }
+    function add() { var v = document.getElementById('intInput').value.trim(); if (!v) return; if (cur.length >= 20) { window.snack('That’s plenty of interests!', 'info'); return; } if (cur.map(function (x) { return x.toLowerCase(); }).indexOf(v.toLowerCase()) < 0) cur.push(v); document.getElementById('intInput').value = ''; paint(); }
+    document.getElementById('intAdd').addEventListener('click', add);
+    document.getElementById('intInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    document.getElementById('intSave').addEventListener('click', function () { closeModal(); patchProfile({ interests: cur }, 'Interests saved'); });
+    paint();
+  }
+  function openEditProfile() {
+    var u = PROFILE.me || {}; var s = (u.social_links && typeof u.social_links === 'object' && !Array.isArray(u.social_links)) ? u.social_links : {};
+    openModal('<div class="modal-head"><h2>Edit profile</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Display name</label><input id="epName" value="' + esc(u.preferred_name || u.name || '') + '" maxlength="60"/>' +
+      '<label>Location</label><input id="epLoc" value="' + esc(u.location || '') + '" placeholder="e.g. Sydney" maxlength="60"/>' +
+      '<label>Website</label><input id="epWeb" value="' + esc(u.website || '') + '" placeholder="https://…"/>' +
+      '<label>Instagram</label><input id="epIg" value="' + esc(s.instagram || '') + '" placeholder="username"/>' +
+      '<label>X (Twitter)</label><input id="epX" value="' + esc(s.twitter || s.x || '') + '" placeholder="username"/>' +
+      '<label>TikTok</label><input id="epTk" value="' + esc(s.tiktok || '') + '" placeholder="username"/>' +
+      '<button class="btn" id="epSave" style="margin-top:18px">Save changes</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('epSave').addEventListener('click', function () {
+      var social = {}; var ig = document.getElementById('epIg').value.trim(); var x = document.getElementById('epX').value.trim(); var tk = document.getElementById('epTk').value.trim();
+      if (ig) social.instagram = ig; if (x) social.twitter = x; if (tk) social.tiktok = tk;
+      closeModal();
+      patchProfile({ preferred_name: document.getElementById('epName').value.trim(), location: document.getElementById('epLoc').value.trim(), website: document.getElementById('epWeb').value.trim(), social_links: social }, 'Profile updated');
+    });
+  }
+  function openFollows(kind) {
+    var uid = (PROFILE.me || {}).user_id || 'me';
+    openModal('<div class="modal-head"><h2 style="text-transform:capitalize">' + kind + '</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div id="folBody"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    authFetch('/users/' + uid + '/' + kind + '/').then(function (r) {
+      var el = document.getElementById('folBody'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
+      var us = listOf(r.d);
+      if (!us.length) { el.innerHTML = empty(kind === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'); return; }
+      el.innerHTML = us.map(function (p) {
+        return '<div class="us-row" style="margin-bottom:8px"><div class="us-av">' + avatar(p.avatar_url, p.name || p.display_name) + '</div>' +
+          '<div class="us-meta"><div class="us-name">' + esc(p.name || p.display_name || 'User') + '</div><div class="us-sub"><span class="faint">@' + esc(p.user_id || '') + '</span></div></div></div>';
+      }).join('');
+    }).catch(function () { var el = document.getElementById('folBody'); if (el) el.innerHTML = empty('Couldn’t load.'); });
+  }
+  function openSettings() {
+    var u = PROFILE.me || {};
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.9 7.9 0 0 0 .06-.94 7.9 7.9 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.44.33.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.11.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></div><h2>Settings</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="set-row"><span>Signed in as</span><b>' + esc(u.name || 'You') + '</b></div>' +
+      '<div class="set-row"><span>Student ID</span><b>' + esc(u.user_id || '—') + '</b></div>' +
+      '<div class="set-row"><span>Role</span><b style="text-transform:capitalize">' + esc((u.role || '').replace(/_/g, ' ')) + '</b></div>' +
+      '<div class="set-row"><span>Level · Tokens</span><b>' + num(u.level != null ? u.level : 1) + ' · ' + num(u.tokens) + '</b></div>' +
+      '<button class="btn" id="setLogout" style="margin-top:18px;background:linear-gradient(135deg,#FF5858,#8E54E9)">Log out</button>' +
+      '<button class="prof-mini" id="setDelete" style="display:block;margin:14px auto 0;color:var(--g4)">Delete my account</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('setLogout').addEventListener('click', function () { closeModal(); document.getElementById('logout').click(); });
+    document.getElementById('setDelete').addEventListener('click', function () {
+      if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+      fetch(API + '/accounts/delete/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() } })
+        .then(function (r) { if (!r.ok) throw 0; clearSession(); location.replace('auth.html'); })
+        .catch(function () { window.snack('Couldn’t delete account. Contact support.', 'error'); });
+    });
+  }
+  function loadProfileTab() {
+    var body = document.getElementById('pfTabBody'); if (!body) return;
+    body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    var tab = PROFILE.tab;
+    if (tab === 'highlights') {
+      authFetch('/highlights/mine/').then(function (r) {
+        var el = document.getElementById('pfTabBody'); if (!el) return;
+        if (!r.ok) { el.innerHTML = empty('Couldn’t load highlights.'); return; }
+        var hs = listOf(r.d);
+        if (!hs.length) { el.innerHTML = empty('No highlights yet.'); return; }
+        el.innerHTML = '<div class="hl-grid">' + hs.map(function (h) {
+          return '<button class="hl-cell" data-hl="' + esc(h.id) + '" style="background:' + (h.cover_url ? 'url(' + esc(h.cover_url) + ') center/cover' : PROF_COVERS[0]) + '"><span class="hl-title">' + esc(h.title || 'Story') + '</span></button>';
+        }).join('') + '</div>';
+        el.querySelectorAll('[data-hl]').forEach(function (b) { b.addEventListener('click', function () { playStory([b.getAttribute('data-hl')], (PROFILE.me || {}).name); }); });
+      }).catch(function () { var el = document.getElementById('pfTabBody'); if (el) el.innerHTML = empty('Couldn’t load highlights.'); });
+      return;
+    }
+    var path = tab === 'fweets' ? '/posts/mine/?post_type=fweet&page=1' : '/posts/mine/?post_type=post&page=1';
+    authFetch(path).then(function (r) {
+      var el = document.getElementById('pfTabBody'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty('Couldn’t load your ' + tab + '.'); return; }
+      var ps = listOf(r.d);
+      if (!ps.length) { el.innerHTML = empty(tab === 'fweets' ? 'No fweets yet.' : 'You haven’t posted yet.'); return; }
+      el.innerHTML = ps.map(function (p) { return '<div class="myp">' + postCard(p) + '<button class="myp-del" data-delpost="' + esc(p.id) + '" title="Delete"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>'; }).join('');
+      wirePostActions(el);
+      el.querySelectorAll('[data-delpost]').forEach(function (b) { b.addEventListener('click', function () {
+        if (!confirm('Delete this post permanently?')) return;
+        var id = b.getAttribute('data-delpost'); var card = b.closest('.myp'); card.style.opacity = '.4';
+        fetch(API + '/posts/' + id + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } })
+          .then(function (rr) { if (!rr.ok) throw 0; card.remove(); window.snack('Post deleted', 'ok'); if (!el.querySelector('.myp')) el.innerHTML = empty('You haven’t posted yet.'); })
+          .catch(function () { card.style.opacity = '1'; window.snack('Couldn’t delete.', 'error'); });
+      }); });
+    }).catch(function () { var el = document.getElementById('pfTabBody'); if (el) el.innerHTML = empty('Couldn’t load your ' + tab + '.'); });
   }
 
   var TABS = { home: renderHome, studyhub: renderStudyhub, messages: renderMessages, clubs: renderClubs, profile: renderProfile };
