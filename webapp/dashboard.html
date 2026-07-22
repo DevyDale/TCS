@@ -277,6 +277,33 @@
     background: rgba(255,255,255,0.05); display: grid; place-items: center; color: var(--sub); transition: background .15s ease, color .15s ease; }
   .conv-close:hover { background: rgba(255,88,88,0.15); color: var(--g4); border-color: rgba(255,88,88,0.4); }
   .conv-close svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* Dale AI button in the chat-room header */
+  .conv-dale { position: relative; flex: 0 0 auto; width: 40px; height: 40px; border: 0; border-radius: 13px; cursor: pointer; padding: 0; overflow: hidden;
+    background: linear-gradient(135deg, #A9BC95, #6E8159); display: grid; place-items: center; opacity: 0.55; transition: opacity .2s ease, box-shadow .2s ease, transform .12s ease; }
+  .conv-dale:hover { transform: translateY(-1px); }
+  .conv-dale.on { opacity: 1; box-shadow: 0 6px 16px rgba(110,129,89,0.5); }
+  .conv-dale dotlottie-wc { width: 40px; height: 40px; display: block; }
+  .conv-dale.busy { pointer-events: none; }
+  .conv-dale.busy::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+  .conv-dale.busy::before { content: ''; position: absolute; width: 18px; height: 18px; z-index: 1; border-radius: 50%;
+    border: 2.4px solid rgba(255,255,255,.4); border-top-color: #fff; animation: rot .7s linear infinite; }
+
+  /* Ask-Dale sheet (modal) */
+  .dale-sheet .dale-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .dale-orb { width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: linear-gradient(135deg, #A9BC95, #6E8159); }
+  .dale-orb dotlottie-wc { width: 42px; height: 42px; display: block; }
+  #daleQ { width: 100%; resize: vertical; min-height: 52px; background: var(--glass-2); color: var(--ink);
+    border: 1.5px solid rgba(110,129,89,0.55); border-radius: 14px; padding: 12px 14px; font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  #daleQ:focus { border-color: #6E8159; }
+  .dale-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .dale-actions .pillbtn { flex: 1; justify-content: center; padding: 12px; font-size: 13px; }
+  .pillbtn.dale-ask { background: linear-gradient(90deg, #A9BC95, #6E8159); color: #fff; border: 0; box-shadow: 0 6px 14px rgba(110,129,89,0.35); }
+  .dale-remove { margin-top: 14px; border-top: 1px solid var(--hair); padding-top: 8px; }
+  .dale-remove button { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; cursor: pointer;
+    color: var(--g4); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; padding: 6px 0; }
+  .dale-remove svg { width: 17px; height: 17px; }
   .conv-body { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 7px; }
   .bubble { max-width: 74%; width: fit-content; padding: 9px 13px; border-radius: 16px; font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
   .bubble.them { background: var(--glass-2); border: 1px solid var(--hair); border-bottom-left-radius: 5px; }
@@ -1026,6 +1053,81 @@
     var detail = document.getElementById('msgDetail');
     if (detail) detail.innerHTML = '<div class="conv-empty"><div><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><div>Select a conversation to start chatting</div></div></div>';
   }
+
+  // ── Dale AI in the chat room ─────────────────────────────────
+  function paintDale() {
+    var b = document.getElementById('convDale'); if (!b) return;
+    b.classList.toggle('on', !!MSG.aiEnabled);
+    b.classList.toggle('busy', !!MSG.aiBusy);
+    b.title = MSG.aiBusy ? 'Dale is thinking…' : (MSG.aiEnabled ? 'Dale is in this chat — tap to ask' : 'Add Dale to this chat');
+    var sub = document.getElementById('convSub');
+    if (sub && MSG.aiEnabled && MSG.activeRoom && MSG.activeRoom.room_type !== 'group') sub.textContent = '✨ Dale is in this chat';
+  }
+  function handleDaleTap(roomId) {
+    if (MSG.aiBusy) return;
+    if (!MSG.aiEnabled) enableDale(roomId); else openAskDale(roomId);
+  }
+  function enableDale(roomId) {
+    MSG.aiBusy = true; paintDale();
+    fetch(API + '/chat/rooms/' + roomId + '/ai/enable/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        MSG.aiBusy = false;
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t add Dale.', 'error'); paintDale(); return; }
+        MSG.aiEnabled = res.d && res.d.ai_enabled != null ? !!res.d.ai_enabled : true;
+        if (MSG.activeRoom) MSG.activeRoom.ai_enabled = MSG.aiEnabled;
+        paintDale(); window.snack('Dale joined the chat ✨', 'ok'); loadMessages(roomId, true);
+      }).catch(function () { MSG.aiBusy = false; paintDale(); window.snack('Couldn’t add Dale.', 'error'); });
+  }
+  function askDale(roomId, message) {
+    MSG.aiBusy = true; paintDale();
+    return fetch(API + '/chat/rooms/' + roomId + '/ai/summon/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify(message ? { message: message } : {}) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        MSG.aiBusy = false; paintDale();
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Dale couldn’t reply right now.', 'error'); return; }
+        loadMessages(roomId, true);
+      }).catch(function () { MSG.aiBusy = false; paintDale(); window.snack('Dale couldn’t reply right now.', 'error'); });
+  }
+  function disableDale(roomId) {
+    MSG.aiBusy = true; paintDale();
+    fetch(API + '/chat/rooms/' + roomId + '/ai/disable/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }).catch(function () { return { ok: r.ok, d: {} }; }); })
+      .then(function (res) {
+        MSG.aiBusy = false;
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t remove Dale.', 'error'); paintDale(); return; }
+        MSG.aiEnabled = false; if (MSG.activeRoom) MSG.activeRoom.ai_enabled = false;
+        var sub = document.getElementById('convSub'); if (sub && MSG.activeRoom) sub.textContent = MSG.activeRoom.room_type === 'group' ? 'Group bubble' : 'Direct message';
+        paintDale(); window.snack('Dale left the chat', 'ok'); loadMessages(roomId, true);
+      }).catch(function () { MSG.aiBusy = false; paintDale(); window.snack('Couldn’t remove Dale.', 'error'); });
+  }
+  function openAskDale(roomId) {
+    openModal('<div class="dale-sheet">' +
+      '<div class="dale-head"><span class="dale-orb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' +
+        '<div style="flex:1;min-width:0"><h2 style="font-family:Alfa;font-size:17px">Dale is here</h2>' +
+        '<div class="faint" style="font-family:Momo;font-size:12px;margin-top:2px">Ask anything based on the chat</div></div>' +
+        '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<textarea id="daleQ" rows="3" placeholder="Ask Dale a question…"></textarea>' +
+      '<div class="dale-actions"><button class="pillbtn ghost2" id="daleCatch">Catch me up</button>' +
+        '<button class="pillbtn dale-ask" id="daleAsk">Ask Dale</button></div>' +
+      '<div class="dale-remove"><button id="daleRemove"><svg viewBox="0 0 24 24"><path d="M10 9v6h4V9h-4zm7-4h-3.5l-1-1h-5l-1 1H5v2h12V5z" fill="currentColor"/></svg> Remove Dale from chat</button></div>' +
+      '</div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var q = document.getElementById('daleQ'); if (q) q.focus();
+    var ask = document.getElementById('daleAsk');
+    function fire(msg) {
+      ask.disabled = true; ask.textContent = 'Asking…';
+      askDale(roomId, msg).then(function () { closeModal(); });
+    }
+    ask.addEventListener('click', function () { fire((q.value || '').trim()); });
+    document.getElementById('daleCatch').addEventListener('click', function () { fire(''); });
+    q.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fire((q.value || '').trim()); } });
+    document.getElementById('daleRemove').addEventListener('click', function () {
+      if (!confirm('Remove Dale from this chat? Dale will stop participating. You can add him back any time.')) return;
+      closeModal(); disableDale(roomId);
+    });
+  }
+
   function openConversation(roomId) {
     stopPoll(); abortRecording();
     var room = MSG.rooms.filter(function (m) { return m.id === roomId; })[0] || {};
@@ -1037,7 +1139,8 @@
       '<div class="conv-head"><button class="ghost conv-back" id="convBack"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>' +
         avatar(roomAvatar(room), name) +
         '<div style="flex:1;min-width:0"><div style="font-family:Arch;font-weight:700;font-size:15px">' + esc(name) + '</div>' +
-        '<div class="faint" style="font-size:11px;font-family:Momo">' + (room.room_type === 'group' ? 'Group bubble' : 'Direct message') + '</div></div>' +
+        '<div class="faint" style="font-size:11px;font-family:Momo" id="convSub">' + (room.room_type === 'group' ? 'Group bubble' : 'Direct message') + '</div></div>' +
+        '<button class="conv-dale" id="convDale" title="Dale AI"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></button>' +
         '<button class="conv-close" id="convClose" title="Close chat"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
       '<div class="conv-body" id="convBody"><div class="loading"><div class="spin"></div></div></div>' +
       '<div class="conv-input" id="convInput">' +
@@ -1048,6 +1151,12 @@
         '<input type="file" id="convFile" accept="image/*" style="display:none" /></div>';
     document.getElementById('convBack').addEventListener('click', closeConversation);
     document.getElementById('convClose').addEventListener('click', closeConversation);
+    MSG.aiEnabled = !!room.ai_enabled; MSG.aiBusy = false; paintDale();
+    document.getElementById('convDale').addEventListener('click', function () { handleDaleTap(roomId); });
+    // Refresh Dale state from the room detail (mobile does the same on open).
+    authFetch('/chat/rooms/' + roomId + '/').then(function (r) {
+      if (r.ok && r.d && MSG.active === roomId) { MSG.aiEnabled = !!r.d.ai_enabled; room.ai_enabled = MSG.aiEnabled; paintDale(); }
+    }).catch(function () {});
     function send() {
       if (REC.rec) { REC.saved = ''; try { REC.rec.stop(); } catch (e) {} return; }
       var t = document.getElementById('convText'); var text = t.value.trim(); if (!text) return; t.value = '';
