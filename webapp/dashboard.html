@@ -302,8 +302,21 @@
   .pillbtn.us-req { background: rgba(247,151,30,0.14); color: var(--g3); border: 1px solid rgba(247,151,30,0.45); flex: 0 0 auto; }
   .pillbtn.us-req.sent { background: rgba(34,197,94,0.14); color: #4ADE80; border-color: rgba(34,197,94,0.45); cursor: default; }
 
+  /* Study Buddy availability toggle pill (header, next to Dale) */
+  .avail-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 999px; cursor: pointer;
+    font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12.5px; transition: background .18s ease, color .18s ease, border-color .18s ease;
+    background: rgba(255,88,88,0.12); color: #FF7A7A; border: 1.5px solid rgba(255,88,88,0.5); }
+  .avail-pill .ap-dot { width: 10px; height: 10px; border-radius: 50%; background: #FF5858; box-shadow: 0 0 0 0 rgba(255,88,88,.5); flex: 0 0 auto; }
+  .avail-pill.on { background: rgba(34,197,94,0.14); color: #4ADE80; border-color: rgba(34,197,94,0.55); }
+  .avail-pill.on .ap-dot { background: #22C55E; animation: availpulse 1.6s ease-out infinite; }
+  @keyframes availpulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.5); } 70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+  .avail-pill.busy { opacity: .6; pointer-events: none; }
+
   /* Study Buddy availability card */
   .avail-card { padding: 16px; margin-bottom: 16px; }
+  .avail-subs-row { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  .avail-subs-row #availSubs { margin-top: 0; flex: 1; }
+  .avail-subs-row .pillbtn { flex: 0 0 auto; }
   .avail-card.on { border-color: rgba(34,197,94,0.4); box-shadow: 0 0 0 1px rgba(34,197,94,0.25) inset; }
   .avail-top { display: flex; align-items: flex-start; gap: 12px; }
   .avail-txt { flex: 1; min-width: 0; }
@@ -328,6 +341,19 @@
   .lib-dl { flex: 0 0 auto; color: var(--faint); } .lib-dl svg { width: 18px; height: 18px; }
   .lib-del { flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 10px; background: none; color: var(--faint); cursor: pointer; display: grid; place-items: center; }
   .lib-del:hover { color: var(--g4); background: rgba(255,88,88,0.12); } .lib-del svg { width: 17px; height: 17px; }
+
+  /* Group chat (inside group modal) */
+  .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
+    padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
+  .gchat-input { display: flex; gap: 9px; align-items: center; margin-top: 12px; }
+  .gchat-input input { flex: 1; min-width: 0; height: 44px; border-radius: 13px; background: var(--glass-2);
+    border: 1.5px solid var(--hair); padding: 0 14px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .gchat-input input:focus { border-color: var(--g2); }
+  .gchat-input .send { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 13px; border: 0; cursor: pointer;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; }
+  .gchat-input .send svg { width: 19px; height: 19px; fill: #fff; }
+  .conv-dale.gchat-dale { width: 44px; height: 44px; border-radius: 13px; }
+  .conv-dale.gchat-dale dotlottie-wc { width: 44px; height: 44px; }
 
   /* Study-with-Dale chat modal */
   .sdale-body { height: 300px; max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px; }
@@ -811,6 +837,7 @@
           '<span class="lockin-title">Let’s Lock In</span></div>' +
         '<div class="lockin-actions">' +
           '<button class="dale-btn" id="shDale"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc> Dale</button>' +
+          '<button class="avail-pill" id="shAvail" title="Study Buddy availability"><span class="ap-dot"></span><span class="ap-lbl"></span></button>' +
           '<button class="lib-btn" id="shLib"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg> Digital Library</button>' +
         '</div>' +
       '</div>' +
@@ -821,6 +848,8 @@
       '<div id="shBody"></div>';
     document.getElementById('shDale').addEventListener('click', openStudyDale);
     document.getElementById('shLib').addEventListener('click', openLibrary);
+    paintAvailPill();
+    document.getElementById('shAvail').addEventListener('click', toggleAvail);
     document.getElementById('shTabs').addEventListener('click', function (e) {
       var b = e.target.closest('[data-sh]'); if (!b) return;
       SH.tab = b.getAttribute('data-sh');
@@ -830,6 +859,29 @@
     renderSHBody();
   }
   function renderSHBody() { if (SH.tab === 'groups') renderGroups(); else renderBuddies(); }
+  function paintAvailPill() {
+    var b = document.getElementById('shAvail'); if (!b) return;
+    var on = !!(cachedUser() || {}).is_available_study;
+    b.classList.toggle('on', on);
+    var lbl = b.querySelector('.ap-lbl'); if (lbl) lbl.textContent = on ? 'Available' : 'Unavailable';
+    b.title = on ? 'Available for study — tap to go offline' : 'Not available — tap to go available';
+  }
+  function toggleAvail() {
+    var b = document.getElementById('shAvail'); if (!b || b.classList.contains('busy')) return;
+    var goOn = !(cachedUser() || {}).is_available_study;
+    var subjects = ((cachedUser() || {}).study_subjects) || '';
+    b.classList.add('busy');
+    fetch(API + '/groups/buddies/me/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ available: goOn, subjects: subjects }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        b.classList.remove('busy');
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t update.', 'error'); return; }
+        try { var u = cachedUser() || {}; u.is_available_study = goOn; localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {}
+        paintAvailPill();
+        window.snack(goOn ? 'You’re now available as a Study Buddy! 🎉' : 'You’re now offline from Study Buddy', 'ok');
+        if (SH.tab === 'buddies') renderBuddies();
+      }).catch(function () { b.classList.remove('busy'); window.snack('Couldn’t reach the server.', 'error'); });
+  }
 
   var PEOPLE_SVG = '<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
   var CHAT_SVG = '<svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>';
@@ -939,9 +991,52 @@
       '<span class="lib-sub">' + esc([m.subject || m.group_name || m.uploaded_by_name, m.file_type].filter(Boolean).join(' · ')) + '</span></span>' +
       '<span class="lib-dl"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg></span></a>';
   }
+  function groupMsgBubble(m, meId) {
+    var mine = m.author_id && meId && String(m.author_id) === String(meId);
+    var ai = m.is_ai || m.author_role === 'ai' || (m.author_name === 'Dale');
+    var media = (m.media && m.media.length && m.media[0].url) ? '<div class="bmedia"><img src="' + esc(m.media[0].url) + '" alt="" /></div>' : '';
+    var txt = m.content ? esc(m.content) : '';
+    var bub = '<div class="bubble ' + (mine ? 'me' : (ai ? 'ai' : 'them')) + '">' +
+      (!mine ? '<div class="sender">' + esc(ai ? 'Dale' : (m.author_name || 'Member')) + '</div>' : '') +
+      media + (txt ? '<span>' + txt + '</span>' : '') +
+      '<div class="bfoot">' + esc(timeHM(m.created_at)) + '</div></div>';
+    if (mine) return '<div class="msg-row me">' + bub + '</div>';
+    var av = ai ? '<span class="av mav dale-mini"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' : avatar(m.author_avatar, m.author_name, 'mav');
+    return '<div class="msg-row them">' + av + bub + '</div>';
+  }
+  function loadGroupChat(id) {
+    var feed = document.getElementById('gchatFeed'); if (!feed) return;
+    var meId = (cachedUser() || {}).user_id || '';
+    authFetch('/posts/?group_id=' + id).then(function (r) {
+      var f = document.getElementById('gchatFeed'); if (!f) return;
+      if (!r.ok) { f.innerHTML = empty((r.d && r.d.detail) || (r.status === 403 ? 'Join the group to see the chat.' : 'Couldn’t load the chat.')); return; }
+      var msgs = listOf(r.d).slice().reverse();
+      if (!msgs.length) { f.innerHTML = '<div class="conv-empty" style="min-height:200px">Say hi to your group 👋</div>'; return; }
+      f.innerHTML = msgs.map(function (m) { return groupMsgBubble(m, meId); }).join('');
+      f.scrollTop = f.scrollHeight;
+    }).catch(function () { var f = document.getElementById('gchatFeed'); if (f) f.innerHTML = empty('Couldn’t load the chat.'); });
+  }
+  function sendGroupMsg(id) {
+    var input = document.getElementById('gchatText'); if (!input) return;
+    var text = input.value.trim(); if (!text) return; input.value = '';
+    fetch(API + '/posts/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ content: text, post_type: 'post', visibility: 'public', group: id }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t send.', 'error'); return; } loadGroupChat(id); })
+      .catch(function () { window.snack('Couldn’t send.', 'error'); });
+  }
+  function summonGroupDale(id) {
+    var input = document.getElementById('gchatText'); var msg = input ? input.value.trim() : '';
+    if (input) input.value = '';
+    var dbtn = document.getElementById('gchatDale'); if (dbtn) dbtn.classList.add('busy');
+    window.snack('Summoning Dale…', 'info', 900);
+    fetch(API + '/groups/' + id + '/ai/summon/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify(msg ? { message: msg } : {}) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (dbtn) dbtn.classList.remove('busy'); if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Dale couldn’t reply.', 'error'); return; } loadGroupChat(id); })
+      .catch(function () { if (dbtn) dbtn.classList.remove('busy'); window.snack('Dale couldn’t reply.', 'error'); });
+  }
   function openGroup(id) {
     openModal('<div id="grpDetail"><div class="loading"><div class="spin"></div></div></div>');
-    var group = null, gtab = 'about';
+    var group = null, gtab = 'chat';
     function shell(inner) {
       var emoji = (group && (group.display_emoji || group.theme_icon)) || '📚';
       var name = (group && group.name) || 'Group';
@@ -951,9 +1046,9 @@
         '<div class="modal-head"><div class="mi" style="background:' + GRADS4[0] + ';font-size:22px">' + esc(emoji) + '</div>' +
         '<div style="flex:1;min-width:0"><h2 style="font-size:19px">' + esc(name) + '</h2>' + (subject ? '<div class="faint" style="font-family:Momo;font-size:12px;margin-top:2px">' + esc(subject) + '</div>' : '') + '</div>' +
         '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-        '<div class="feed-tabs" id="gTabs" style="margin:6px 0 14px"><button class="feed-tab' + (gtab === 'about' ? ' active' : '') + '" data-gt="about">About</button><button class="feed-tab' + (gtab === 'members' ? ' active' : '') + '" data-gt="members">Members</button><button class="feed-tab' + (gtab === 'materials' ? ' active' : '') + '" data-gt="materials">Materials</button></div>' +
+        '<div class="feed-tabs" id="gTabs" style="margin:6px 0 14px"><button class="feed-tab' + (gtab === 'chat' ? ' active' : '') + '" data-gt="chat">Chat</button><button class="feed-tab' + (gtab === 'about' ? ' active' : '') + '" data-gt="about">About</button><button class="feed-tab' + (gtab === 'members' ? ' active' : '') + '" data-gt="members">Members</button><button class="feed-tab' + (gtab === 'materials' ? ' active' : '') + '" data-gt="materials">Materials</button></div>' +
         '<div id="gBody">' + inner + '</div>' +
-        (joined ? '<div class="dale-remove" style="margin-top:14px"><button id="gLeave"><svg viewBox="0 0 24 24"><path d="M10 9v6h4V9h-4zm7-4h-3.5l-1-1h-5l-1 1H5v2h12V5z" fill="currentColor"/></svg> Leave group</button></div>' : '');
+        (joined && gtab !== 'chat' ? '<div class="dale-remove" style="margin-top:14px"><button id="gLeave"><svg viewBox="0 0 24 24"><path d="M10 9v6h4V9h-4zm7-4h-3.5l-1-1h-5l-1 1H5v2h12V5z" fill="currentColor"/></svg> Leave group</button></div>' : '');
       document.getElementById('mClose').addEventListener('click', closeModal);
       document.getElementById('gTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-gt]'); if (!b) return; gtab = b.getAttribute('data-gt'); paint(); });
       var lv = document.getElementById('gLeave'); if (lv) lv.addEventListener('click', function () {
@@ -966,7 +1061,17 @@
     function paint() {
       shell('<div class="loading"><div class="spin"></div></div>');
       var body = document.getElementById('gBody');
-      if (gtab === 'about') {
+      if (gtab === 'chat') {
+        body.innerHTML =
+          '<div class="gchat-feed" id="gchatFeed"><div class="loading"><div class="spin"></div></div></div>' +
+          '<div class="gchat-input"><button class="conv-dale on gchat-dale" id="gchatDale" title="Summon Dale"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></button>' +
+            '<input id="gchatText" placeholder="Message the group…" autocomplete="off" />' +
+            '<button class="send" id="gchatSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div>';
+        document.getElementById('gchatSend').addEventListener('click', function () { sendGroupMsg(id); });
+        document.getElementById('gchatText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendGroupMsg(id); } });
+        document.getElementById('gchatDale').addEventListener('click', function () { summonGroupDale(id); });
+        loadGroupChat(id);
+      } else if (gtab === 'about') {
         var desc = (group && group.description) ? esc(group.description) : 'No description yet.';
         body.innerHTML = '<div class="card glass" style="font-family:Momo;font-size:13.5px;line-height:1.6;color:var(--sub)">' + desc + '</div>' +
           '<div class="prof-stats" style="display:grid;margin-top:12px"><div class="s"><div class="n">' + num(group && group.members_count) + '</div><div class="l">Members</div></div>' +
@@ -1003,24 +1108,24 @@
     body.innerHTML =
       '<div class="avail-card card glass ' + (avail ? 'on' : '') + '" id="availCard">' +
         '<div class="avail-top"><div class="avail-txt"><div class="avail-title">' + (avail ? 'You’re available for study 🎉' : 'Become a Study Buddy') + '</div>' +
-          '<div class="avail-sub faint">' + (avail ? 'Classmates can find you and start a study chat.' : 'Go available so classmates can reach you for study sessions.') + '</div></div>' +
-          '<button class="pillbtn avail-toggle" id="availToggle">' + (avail ? 'Go Offline' : 'Go Available') + '</button></div>' +
-        '<input id="availSubs" placeholder="Subjects you can help with (e.g. Maths, Physics)" value="' + esc(subs) + '" />' +
+          '<div class="avail-sub faint">' + (avail ? 'Classmates can find you and start a study chat. Toggle availability from the button up top.' : 'Use the Available toggle up top so classmates can reach you for study sessions.') + '</div></div></div>' +
+        '<div class="avail-subs-row"><input id="availSubs" placeholder="Subjects you can help with (e.g. Maths, Physics)" value="' + esc(subs) + '" />' +
+          '<button class="pillbtn" id="availSave">Save</button></div>' +
       '</div>' +
       '<div class="sh-actions"><div class="search-box" style="flex:1">' + SEARCH_SVG + '<input id="budSearch" placeholder="Search for study buddies" autocomplete="off" /></div></div>' +
       '<div class="sec-head"><div><span class="eyebrow">ONLINE</span><span class="sh-title">Available Now</span></div><span class="post-count" id="budCount"></span></div>' +
       '<div id="buddies"><div class="loading"><div class="spin"></div></div></div>';
-    document.getElementById('availToggle').addEventListener('click', function () {
-      var goOn = !avail; var subjects = document.getElementById('availSubs').value.trim();
-      var btn = this; btn.disabled = true; btn.textContent = goOn ? 'Going live…' : 'Updating…';
-      fetch(API + '/groups/buddies/me/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ available: goOn, subjects: subjects }) })
+    document.getElementById('availSave').addEventListener('click', function () {
+      var subjects = document.getElementById('availSubs').value.trim();
+      var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+      fetch(API + '/groups/buddies/me/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ available: !!(cachedUser() || {}).is_available_study, subjects: subjects }) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
-          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t update.', 'error'); btn.disabled = false; btn.textContent = goOn ? 'Go Available' : 'Go Offline'; return; }
-          try { var u = cachedUser() || {}; u.is_available_study = goOn; u.study_subjects = subjects; localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {}
-          window.snack(goOn ? 'You’re now available as a Study Buddy! 🎉' : 'You’re now offline from Study Buddy', 'ok');
-          renderBuddies();
-        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = goOn ? 'Go Available' : 'Go Offline'; });
+          btn.disabled = false; btn.textContent = 'Save';
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t save.', 'error'); return; }
+          try { var u = cachedUser() || {}; u.study_subjects = subjects; localStorage.setItem('tcs_user', JSON.stringify(u)); } catch (e) {}
+          window.snack('Subjects saved', 'ok');
+        }).catch(function () { btn.disabled = false; btn.textContent = 'Save'; window.snack('Couldn’t reach the server.', 'error'); });
     });
     function draw(list) {
       var el = document.getElementById('buddies'), cnt = document.getElementById('budCount');
