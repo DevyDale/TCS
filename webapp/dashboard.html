@@ -289,6 +289,19 @@
   .conv-dale.busy::before { content: ''; position: absolute; width: 18px; height: 18px; z-index: 1; border-radius: 50%;
     border: 2.4px solid rgba(255,255,255,.4); border-top-color: #fff; animation: rot .7s linear infinite; }
 
+  /* Find-people (chat request search) rows */
+  .us-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--hair); background: var(--glass); margin-bottom: 10px; }
+  .us-av { position: relative; flex: 0 0 auto; }
+  .us-av .av { width: 46px; height: 46px; font-size: 17px; }
+  .us-dot { position: absolute; right: 0; bottom: 0; width: 13px; height: 13px; border-radius: 50%; background: #22C55E; border: 2px solid var(--bg2); }
+  .us-meta { flex: 1; min-width: 0; }
+  .us-name { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .us-sub { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-family: 'Momo', sans-serif; font-size: 11px; }
+  .us-role { padding: 1px 6px; border-radius: 5px; background: rgba(142,84,233,0.18); color: #C6ADFA; font-weight: 800; font-size: 9px; letter-spacing: .4px; }
+  .pillbtn.us-chat { background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; border: 0; box-shadow: 0 4px 12px rgba(142,84,233,0.3); flex: 0 0 auto; }
+  .pillbtn.us-req { background: rgba(247,151,30,0.14); color: var(--g3); border: 1px solid rgba(247,151,30,0.45); flex: 0 0 auto; }
+  .pillbtn.us-req.sent { background: rgba(34,197,94,0.14); color: #4ADE80; border-color: rgba(34,197,94,0.45); cursor: default; }
+
   /* Ask-Dale sheet (modal) */
   .dale-sheet .dale-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .dale-orb { width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
@@ -1303,26 +1316,84 @@
       (rq.message ? '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:3px">' + esc(rq.message) + '</div>' : '') + '</div>' +
       '<div style="display:flex;gap:6px">' + actions + '</div></div>';
   }
+  var REQSENT = {};
+  function userSearchRow(u) {
+    var uid = esc(u.user_id || ''); var name = u.name || 'Unknown';
+    var canChat = u.is_connected || u.room_id;
+    var sent = REQSENT[u.user_id];
+    var btn = canChat
+      ? '<button class="pillbtn us-chat" data-chat="' + uid + '" data-room="' + esc(u.room_id || '') + '">Chat</button>'
+      : '<button class="pillbtn us-req' + (sent ? ' sent' : '') + '" data-req="' + uid + '"' + (sent ? ' disabled' : '') + '>' + (sent ? 'Sent ✓' : 'Request') + '</button>';
+    return '<div class="us-row">' +
+      '<div class="us-av">' + avatar(u.avatar_url, name) + (u.is_online ? '<span class="us-dot"></span>' : '') + '</div>' +
+      '<div class="us-meta"><div class="us-name">' + esc(name) + '</div>' +
+        '<div class="us-sub">' + (u.role ? '<span class="us-role">' + esc(String(u.role).toUpperCase()) + '</span>' : '') +
+        (canChat ? '<span class="faint">In your network</span>' : '<span class="faint">Not in your network</span>') + '</div></div>' + btn + '</div>';
+  }
+  function wireUserRows(el) {
+    el.querySelectorAll('[data-chat]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var uid = b.getAttribute('data-chat'), room = b.getAttribute('data-room');
+        closeModal();
+        if (room) { if (!MSG.rooms.some(function (m) { return m.id === room; })) { authFetch('/chat/rooms/').then(function (rr) { if (rr.ok) { MSG.rooms = listOf(rr.d); drawRows(); } openConversation(room); }); } else { drawRows(); openConversation(room); } }
+        else startDM(uid);
+      });
+    });
+    el.querySelectorAll('[data-req]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var uid = b.getAttribute('data-req'); b.disabled = true; b.textContent = 'Sending…';
+        fetch(API + '/chat/requests/send/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ user_id: uid, message: 'Hi! I’d like to chat with you on TCS 👋' }) })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t send request.', 'error'); b.disabled = false; b.textContent = 'Request'; return; }
+            REQSENT[uid] = true; b.classList.add('sent'); b.textContent = 'Sent ✓'; window.snack('Chat request sent', 'ok'); loadReqBadge();
+          }).catch(function () { window.snack('Couldn’t send request.', 'error'); b.disabled = false; b.textContent = 'Request'; });
+      });
+    });
+  }
   function openRequests() {
     openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div><h2>Chat requests</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-      '<div class="feed-tabs" id="reqTabs" style="margin:6px 0 14px"><button class="feed-tab active" data-rq="in">Received</button><button class="feed-tab" data-rq="out">Sent</button></div>' +
-      '<div id="reqBody"><div class="loading"><div class="spin"></div></div></div>');
+      '<div class="feed-tabs" id="reqTabs" style="margin:6px 0 14px"><button class="feed-tab active" data-rq="find">Find people</button><button class="feed-tab" data-rq="in">Received</button><button class="feed-tab" data-rq="out">Sent</button></div>' +
+      '<div id="reqBody"></div>');
     document.getElementById('mClose').addEventListener('click', closeModal);
-    var mode = 'in';
-    function load() {
+    var mode = 'find', searchTimer = null;
+    function renderFind() {
+      var el = document.getElementById('reqBody');
+      el.innerHTML = '<div class="search-box" style="height:48px"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><input id="usSearch" placeholder="Search by name or student ID…" autocomplete="off" /></div>' +
+        '<div id="usResults" style="margin-top:12px"><div class="faint" style="text-align:center;padding:24px;font-family:Momo;font-size:13px">Type a name or student ID to find people and send a chat request.</div></div>';
+      var input = document.getElementById('usSearch'); input.focus();
+      input.addEventListener('input', function () {
+        var q = this.value.trim(); if (searchTimer) clearTimeout(searchTimer);
+        var res = document.getElementById('usResults');
+        if (q.length < 1) { res.innerHTML = '<div class="faint" style="text-align:center;padding:24px;font-family:Momo;font-size:13px">Type a name or student ID to find people.</div>'; return; }
+        res.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+        searchTimer = setTimeout(function () {
+          authFetch('/chat/dm/search/?q=' + encodeURIComponent(q)).then(function (r) {
+            var rr = document.getElementById('usResults'); if (!rr) return;
+            if (!r.ok) { rr.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t search.'); return; }
+            var users = listOf(r.d);
+            if (!users.length) { rr.innerHTML = empty('No one matches “' + esc(q) + '”.'); return; }
+            rr.innerHTML = users.map(userSearchRow).join('');
+            wireUserRows(rr);
+          }).catch(function () { var rr = document.getElementById('usResults'); if (rr) rr.innerHTML = empty('Couldn’t search.'); });
+        }, 280);
+      });
+    }
+    function loadReqs() {
       var el = document.getElementById('reqBody'); el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
       authFetch(mode === 'in' ? '/chat/requests/' : '/chat/requests/sent/').then(function (r) {
         if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load.'); return; }
         var reqs = listOf(r.d);
         if (!reqs.length) { el.innerHTML = empty(mode === 'in' ? 'No incoming requests.' : 'No sent requests.'); return; }
-        el.innerHTML = reqs.map(function (rq) { return reqRow(rq, mode); }).join('');
-        el.querySelectorAll('[data-acc]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-acc') + '/accept/', 'Request accepted', load); }); });
-        el.querySelectorAll('[data-dec]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-dec') + '/decline/', 'Request declined', load); }); });
-        el.querySelectorAll('[data-cancel]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-cancel') + '/cancel/', 'Request cancelled', load); }); });
+        el.innerHTML = reqs.map(function (rq) { return reqRow(rq, mode === 'in' ? 'in' : 'out'); }).join('');
+        el.querySelectorAll('[data-acc]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-acc') + '/accept/', 'Request accepted', function () { mode = 'in'; loadReqs(); }); }); });
+        el.querySelectorAll('[data-dec]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-dec') + '/decline/', 'Request declined', function () { mode = 'in'; loadReqs(); }); }); });
+        el.querySelectorAll('[data-cancel]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/chat/requests/' + b.getAttribute('data-cancel') + '/cancel/', 'Request cancelled', function () { mode = 'out'; loadReqs(); }); }); });
       }).catch(function () { el.innerHTML = empty('Couldn’t load.'); });
     }
-    document.getElementById('reqTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-rq]'); if (!b) return; mode = b.getAttribute('data-rq'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-rq') === mode); }); load(); });
-    load();
+    function render() { if (mode === 'find') renderFind(); else loadReqs(); }
+    document.getElementById('reqTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-rq]'); if (!b) return; mode = b.getAttribute('data-rq'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-rq') === mode); }); render(); });
+    render();
   }
   function openBubbles() {
     openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M17 12V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14l4-4h10a1 1 0 0 0 1-1zm4-6h-2v9H6v2a1 1 0 0 0 1 1h11l4 4V7a1 1 0 0 0-1-1z"/></svg></div><h2>Chat bubbles</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
