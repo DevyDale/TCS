@@ -387,6 +387,63 @@
   .qr-line b { color: var(--ink); }
   .qr-exp { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); margin-top: 7px; margin-left: 29px; line-height: 1.5; font-style: italic; }
 
+  /* ── Home feed: stories, rich posts, comments ─────────────── */
+  .stories { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 14px; margin-bottom: 4px; scrollbar-width: none; }
+  .stories::-webkit-scrollbar { display: none; }
+  .story { flex: 0 0 auto; background: none; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; }
+  .story-ring { width: 62px; height: 62px; border-radius: 50%; padding: 2.5px; background: conic-gradient(from 210deg, var(--g1), var(--g2), var(--g3), var(--g4), var(--g1)); display: grid; place-items: center; }
+  .story-ring .story-av { width: 100%; height: 100%; border: 2.5px solid var(--bg1); font-size: 20px; }
+  .story-name { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); max-width: 66px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .story-viewer { position: fixed; inset: 0; z-index: 300; background: rgba(4,3,10,0.92); display: grid; place-items: center; }
+  .sv-inner { position: relative; width: min(420px, 94vw); height: min(84vh, 760px); background: #000; border-radius: 18px; overflow: hidden; }
+  .sv-bars { position: absolute; top: 10px; left: 12px; right: 12px; z-index: 3; display: flex; gap: 4px; }
+  .sv-bar { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.3); overflow: hidden; }
+  .sv-bar i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; }
+  .sv-head { position: absolute; top: 22px; left: 14px; right: 12px; z-index: 3; display: flex; align-items: center; justify-content: space-between; }
+  .sv-owner { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 14px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+  .sv-close { background: rgba(0,0,0,0.35); border: 0; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: grid; place-items: center; }
+  .sv-close svg { width: 17px; height: 17px; }
+  .sv-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+  .sv-stage img, .sv-stage video { width: 100%; height: 100%; object-fit: contain; }
+  .sv-nav { position: absolute; top: 0; bottom: 0; width: 34%; background: none; border: 0; cursor: pointer; z-index: 2; }
+  .sv-nav.prev { left: 0; } .sv-nav.next { right: 0; }
+
+  .post .post-media video { display: block; width: 100%; max-height: 460px; border-radius: 14px; background: #000; }
+  .post-grid { display: grid; gap: 4px; border-radius: 14px; overflow: hidden; margin-top: 4px; }
+  .post-grid.g2 { grid-template-columns: 1fr 1fr; }
+  .post-grid.g3 { grid-template-columns: 1fr 1fr; } .post-grid.g3 .pg-cell:first-child { grid-column: 1 / -1; }
+  .post-grid.g4 { grid-template-columns: 1fr 1fr; }
+  .pg-cell { position: relative; aspect-ratio: 1; } .pg-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pg-cell .more { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; color: #fff; font-family: 'Alfa'; font-size: 22px; }
+  .rolechip { font-family: 'Arch', sans-serif; font-size: 8.5px; font-weight: 900; letter-spacing: .5px; color: #C6ADFA; background: rgba(142,84,233,.2); padding: 1px 5px; border-radius: 4px; vertical-align: middle; }
+  .post-text .tag { color: var(--g1); font-weight: 700; }
+  .post-text .pf, .ph .pf { color: var(--g3); }
+  .post-actions .pa { display: inline-flex; align-items: center; gap: 6px; }
+  .post-actions .pa .cnt { font-family: 'Momo', sans-serif; font-size: 12.5px; }
+  .post-actions .pa svg { transition: transform .12s ease, fill .12s ease; }
+  .post-actions .pa.like.active { color: #FF5975; } .post-actions .pa.like svg.on { fill: #FF5975; }
+  .post-actions .pa.like.active svg { transform: scale(1.12); }
+  .post-actions .pa.bookmark.active { color: var(--g1); } .post-actions .pa.bookmark svg.on { fill: var(--g1); }
+
+  .cmt-list { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 4px 2px; margin-bottom: 12px; }
+  .cmt-empty { text-align: center; padding: 28px; font-family: 'Momo', sans-serif; font-size: 13px; }
+  .cmt { display: flex; gap: 10px; }
+  .cmt .cmt-av { width: 36px; height: 36px; flex: 0 0 auto; font-size: 14px; }
+  .cmt-body { flex: 1; min-width: 0; background: var(--glass); border: 1px solid var(--hair); border-radius: 13px; padding: 9px 12px; }
+  .cmt-head { display: flex; align-items: baseline; gap: 8px; } .cmt-head b { font-family: 'Arch', sans-serif; font-size: 13px; } .cmt-head .faint { font-family: 'Momo', sans-serif; font-size: 10.5px; }
+  .cmt-text { font-family: 'Momo', sans-serif; font-size: 13px; line-height: 1.45; margin-top: 3px; word-break: break-word; }
+  .cmt-input { display: flex; gap: 10px; align-items: center; }
+  .cmt-input input { flex: 1; min-width: 0; height: 46px; border-radius: 14px; background: var(--glass-2); border: 1.5px solid var(--hair); padding: 0 15px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .cmt-input input:focus { border-color: var(--g2); }
+  .cmt-input .send { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; border: 0; cursor: pointer; background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; }
+  .cmt-input .send svg { width: 20px; height: 20px; fill: #fff; }
+
+  .ev-modal { position: relative; margin: -22px; }
+  .ev-poster { height: 220px; background-size: cover; background-position: center; border-radius: 20px 20px 0 0; }
+  .ev-body { padding: 18px 22px 4px; }
+  .ev-when { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 10px; }
+
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
     padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
@@ -637,6 +694,7 @@
           '<button class="dale-btn" id="daleBtn"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc> Dale</button>' +
         '</div>' +
       '</div>' +
+      '<div class="stories" id="stories"></div>' +
       '<div class="home-actions">' +
         '<button class="icon-btn addpost-btn" id="addPostBtn" title="New post"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>' +
         '<div class="search-box"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><input id="feedSearch" placeholder="Search the feed" autocomplete="off" /></div>' +
@@ -661,7 +719,70 @@
       var s = document.getElementById('feedSearch'); if (s) s.value = '';
       loadFeedTab();
     });
+    loadStories();
     loadFeedTab();
+  }
+
+  // ── Story highlights (grouped by owner) ──────────────────────
+  function loadStories() {
+    var row = document.getElementById('stories'); if (!row) return;
+    authFetch('/highlights/feed/').then(function (r) {
+      var el = document.getElementById('stories'); if (!el) return;
+      if (!r.ok) { el.style.display = 'none'; return; }
+      var hs = listOf(r.d);
+      // group by owner_id, preserving first-seen order
+      var order = [], map = {};
+      hs.forEach(function (h) { var k = h.owner_id || h.owner_name || h.id; if (!map[k]) { map[k] = { owner: h.owner_name, cover: h.cover_url, items: [] }; order.push(k); } map[k].items.push(h); });
+      if (!order.length) { el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+      el.innerHTML = order.map(function (k, i) {
+        var g = map[k];
+        return '<button class="story" data-story="' + i + '"><span class="story-ring">' + avatar(g.cover, g.owner, 'story-av') + '</span>' +
+          '<span class="story-name">' + esc((g.owner || 'You').split(' ')[0]) + '</span></button>';
+      }).join('');
+      HOME.storyGroups = order.map(function (k) { return map[k]; });
+      el.querySelectorAll('[data-story]').forEach(function (b) { b.addEventListener('click', function () { openStoryViewer(parseInt(b.getAttribute('data-story'), 10)); }); });
+    }).catch(function () { var el = document.getElementById('stories'); if (el) el.style.display = 'none'; });
+  }
+  function openStoryViewer(groupIdx) {
+    var groups = HOME.storyGroups || []; var group = groups[groupIdx]; if (!group) return;
+    // flatten every highlight's items for this owner into one story sequence
+    var ov = document.createElement('div'); ov.className = 'story-viewer'; ov.id = 'storyViewer';
+    ov.innerHTML = '<div class="sv-inner"><div class="sv-bars" id="svBars"></div>' +
+      '<div class="sv-head"><span class="sv-owner">' + esc(group.owner || '') + '</span><button class="sv-close" id="svClose"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#fff"/></svg></button></div>' +
+      '<div class="sv-stage" id="svStage"><div class="loading"><div class="spin"></div></div></div>' +
+      '<button class="sv-nav prev" id="svPrev"></button><button class="sv-nav next" id="svNext"></button></div>';
+    document.body.appendChild(ov);
+    var stories = [], idx = 0, timer = null;
+    function cleanup() { if (timer) { clearTimeout(timer); timer = null; } ov.remove(); }
+    document.getElementById('svClose').addEventListener('click', cleanup);
+    ov.addEventListener('click', function (e) { if (e.target === ov) cleanup(); });
+    function bars() {
+      document.getElementById('svBars').innerHTML = stories.map(function (s, i) {
+        return '<span class="sv-bar"><i style="width:' + (i < idx ? 100 : (i === idx ? 100 : 0)) + '%;transition:' + (i === idx ? 'width 4s linear' : 'none') + '"></i></span>';
+      }).join('');
+    }
+    function show() {
+      if (idx < 0) idx = 0; if (idx >= stories.length) { cleanup(); return; }
+      var s = stories[idx]; var stage = document.getElementById('svStage'); if (!stage) return;
+      stage.innerHTML = s.media_type === 'video'
+        ? '<video src="' + esc(s.url) + '" autoplay playsinline ' + (s.thumbnail_url ? 'poster="' + esc(s.thumbnail_url) + '"' : '') + '></video>'
+        : '<img src="' + esc(s.url || s.thumbnail_url) + '" alt="" />';
+      bars();
+      if (timer) clearTimeout(timer);
+      if (s.media_type !== 'video') timer = setTimeout(function () { idx++; show(); }, 4200);
+      else { var v = stage.querySelector('video'); if (v) v.addEventListener('ended', function () { idx++; show(); }); }
+    }
+    document.getElementById('svPrev').addEventListener('click', function () { idx--; if (idx < 0) idx = 0; show(); });
+    document.getElementById('svNext').addEventListener('click', function () { idx++; show(); });
+    // fetch items for each highlight in the group, in order
+    var ids = group.items.map(function (h) { return h.id; });
+    Promise.all(ids.map(function (id) { return authFetch('/highlights/' + id + '/').then(function (r) { return r.ok ? r.d : null; }).catch(function () { return null; }); }))
+      .then(function (results) {
+        results.forEach(function (d) { if (d && d.items) { d.items.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).forEach(function (it) { stories.push(it); }); } });
+        if (!stories.length) { cleanup(); window.snack('No stories to show.', 'info'); return; }
+        show();
+      });
   }
 
   function setPostCount(n) {
@@ -692,32 +813,128 @@
     setPostCount(items.length);
     if (!items.length) { body.innerHTML = empty('Nothing here yet.'); return; }
     if (HOME.kind === 'posts') { body.innerHTML = items.map(postCard).join(''); wirePostActions(body); }
-    else if (HOME.kind === 'events') { body.innerHTML = '<div class="photo-grid">' + items.map(eventPhoto).join('') + '</div>'; wirePhotos(body, 'The event page is coming to the web soon'); }
-    else { body.innerHTML = '<div class="photo-grid">' + items.map(clubPostPhoto).join('') + '</div>'; wirePhotos(body, 'Post view is coming to the web soon'); }
+    else if (HOME.kind === 'events') { body.innerHTML = '<div class="photo-grid">' + items.map(eventPhoto).join('') + '</div>'; body.querySelectorAll('[data-photo]').forEach(function (b, i) { b.addEventListener('click', function () { openEvent(items[i]); }); }); }
+    else { body.innerHTML = items.map(postCard).join(''); wirePostActions(body); }
+  }
+  function openEvent(e) {
+    if (!e) return;
+    var img = e.card_url || e.poster_url || e.image_url || e.cover_url;
+    var when = e.starts_at || e.start_time || e.date || e.event_date;
+    openModal('<div class="ev-modal">' +
+      (img ? '<div class="ev-poster" style="background-image:url(' + esc(img) + ')"></div>' : '') +
+      '<button class="ghost x" id="mClose" style="position:absolute;top:14px;right:14px;padding:8px 10px;z-index:2"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
+      '<div class="ev-body"><h2 style="font-family:Alfa;font-size:20px">' + esc(e.title || e.name || 'Event') + '</h2>' +
+      (e.club_name || e.host_name ? '<div class="faint" style="font-family:Momo;font-size:12px;margin-top:4px">by ' + esc(e.club_name || e.host_name) + '</div>' : '') +
+      (when ? '<div class="ev-when">🗓️ ' + esc(new Date(when).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</div>' : '') +
+      (e.location ? '<div class="ev-when">📍 ' + esc(e.location) + '</div>' : '') +
+      (e.description ? '<div class="post-text" style="margin-top:12px">' + linkify(e.description) + '</div>' : '') + '</div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
   }
   function filterFeed(q) {
     q = (q || '').toLowerCase().trim();
     if (!q) { renderFeedItems(HOME.items); return; }
     renderFeedItems(HOME.items.filter(function (it) { return JSON.stringify(it).toLowerCase().indexOf(q) >= 0; }));
   }
-  function postCard(p) {
+  function postAuthor(p) {
     var a = p.author || p.user || {};
-    var name = a.name || a.display_name || a.preferred_name || 'Someone';
-    var handle = a.user_id || a.username || 'user';
+    return { name: p.author_name || a.name || a.display_name || 'Someone', handle: p.author_id || a.user_id || a.username || 'user',
+      avatar: p.author_avatar || a.avatar_url, role: p.author_role || a.role };
+  }
+  function postMediaHtml(p) {
+    var media = p.media || p.media_files || [];
+    if (!media.length) { var one = p.image_url || p.media_url; return one ? '<div class="post-media"><img src="' + esc(one) + '" alt="" loading="lazy" /></div>' : ''; }
+    if (media.length === 1) {
+      var m = media[0];
+      if (m.media_type === 'video') return '<div class="post-media"><video controls preload="metadata" src="' + esc(m.url) + '"' + (m.thumbnail_url ? ' poster="' + esc(m.thumbnail_url) + '"' : '') + '></video></div>';
+      return '<div class="post-media"><img src="' + esc(m.url || m.thumbnail_url) + '" alt="" loading="lazy" /></div>';
+    }
+    return '<div class="post-grid g' + Math.min(media.length, 4) + '">' + media.slice(0, 4).map(function (m, i) {
+      var more = (media.length > 4 && i === 3) ? '<span class="more">+' + (media.length - 3) + '</span>' : '';
+      return '<div class="pg-cell"><img src="' + esc(m.thumbnail_url || m.url) + '" alt="" loading="lazy" />' + more + '</div>';
+    }).join('') + '</div>';
+  }
+  function LIKE_ON(f) { return '<svg viewBox="0 0 24 24"' + (f ? ' class="on"' : '') + '><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18z"/></svg>'; }
+  function BOOKMARK(f) { return '<svg viewBox="0 0 24 24"' + (f ? ' class="on"' : '') + '><path d="M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z"/></svg>'; }
+  function postCard(p) {
+    var au = postAuthor(p);
     var text = p.content || p.text || p.caption || '';
-    var img = p.image_url || p.media_url || (p.media && p.media[0] && (p.media[0].url || p.media[0].image_url));
-    return '<article class="post">' +
-      '<div class="post-top"><div class="post-av">' + avatar(a.avatar_url, name) + '</div>' +
-        '<div class="post-meta"><div class="pn">' + esc(name) + '</div><div class="ph">@' + esc(handle) + ' · ' + esc(timeAgo(p.created_at)) + '</div></div></div>' +
-      (text ? '<div class="post-text">' + esc(text) + '</div>' : '') +
-      (img ? '<div class="post-media"><img src="' + esc(img) + '" alt="" /></div>' : '') +
+    var liked = !!(p.is_liked || p.liked), booked = !!(p.is_bookmarked || p.bookmarked);
+    var feeling = p.feeling && (p.feeling.emoji || p.feeling.label) ? ' <span class="pf">' + esc((p.feeling.emoji || '') + ' ' + (p.feeling.label || '')) + '</span>' : '';
+    return '<article class="post" data-post="' + esc(p.id) + '">' +
+      '<div class="post-top"><div class="post-av">' + avatar(au.avatar, au.name) + '</div>' +
+        '<div class="post-meta"><div class="pn">' + esc(au.name) + (au.role && au.role !== 'student' ? ' <span class="rolechip">' + esc(String(au.role).toUpperCase()) + '</span>' : '') + '</div>' +
+        '<div class="ph">@' + esc(au.handle) + ' · ' + esc(timeAgo(p.created_at)) + feeling + '</div></div></div>' +
+      (text ? '<div class="post-text">' + linkify(text) + '</div>' : '') +
+      postMediaHtml(p) +
       '<div class="post-actions">' +
-        '<button class="pa like" data-act><svg viewBox="0 0 24 24"><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18z"/></svg>' + num(p.like_count || p.likes_count) + '</button>' +
-        '<button class="pa" data-act><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>' + num(p.comment_count || p.comments_count) + '</button>' +
-        '<button class="pa share" data-act><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 1 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"/></svg></button>' +
+        '<button class="pa like' + (liked ? ' active' : '') + '" data-like="' + esc(p.id) + '">' + LIKE_ON(liked) + '<span class="cnt">' + num(p.like_count != null ? p.like_count : p.likes_count) + '</span></button>' +
+        '<button class="pa" data-comment="' + esc(p.id) + '"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><span class="cnt">' + num(p.comment_count != null ? p.comment_count : p.comments_count) + '</span></button>' +
+        '<button class="pa share" data-share="' + esc(p.id) + '"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 1 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"/></svg></button>' +
+        '<button class="pa bookmark' + (booked ? ' active' : '') + '" data-bookmark="' + esc(p.id) + '" style="margin-left:auto">' + BOOKMARK(booked) + '</button>' +
       '</div></article>';
   }
-  function wirePostActions(root) { root.querySelectorAll('.pa[data-act]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Post actions are coming to the web soon', 'info'); }); }); }
+  function linkify(t) {
+    return esc(t).replace(/#(\w+)/g, '<span class="tag">#$1</span>').replace(/@(\w+)/g, '<span class="tag">@$1</span>');
+  }
+  function wirePostActions(root) {
+    root.querySelectorAll('[data-like]').forEach(function (b) { b.addEventListener('click', function () { likePost(b); }); });
+    root.querySelectorAll('[data-comment]').forEach(function (b) { b.addEventListener('click', function () { openComments(b.getAttribute('data-comment'), b); }); });
+    root.querySelectorAll('[data-share]').forEach(function (b) { b.addEventListener('click', function () { sharePost(b.getAttribute('data-share')); }); });
+    root.querySelectorAll('[data-bookmark]').forEach(function (b) { b.addEventListener('click', function () { bookmarkPost(b); }); });
+  }
+  function likePost(btn) {
+    var id = btn.getAttribute('data-like'); var on = btn.classList.toggle('active');
+    var cnt = btn.querySelector('.cnt'); var n = parseInt(cnt.textContent, 10) || 0; cnt.textContent = on ? n + 1 : Math.max(0, n - 1);
+    btn.querySelector('svg').classList.toggle('on', on);
+    fetch(API + '/posts/' + id + '/like/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json().catch(function () { return {}; }) : Promise.reject(); })
+      .then(function (d) { if (d && (d.like_count != null || d.likes_count != null)) cnt.textContent = num(d.like_count != null ? d.like_count : d.likes_count); if (d && d.liked != null) { btn.classList.toggle('active', !!d.liked); btn.querySelector('svg').classList.toggle('on', !!d.liked); } })
+      .catch(function () { btn.classList.toggle('active'); btn.querySelector('svg').classList.toggle('on'); cnt.textContent = n; window.snack('Couldn’t update like.', 'error'); });
+  }
+  function bookmarkPost(btn) {
+    var id = btn.getAttribute('data-bookmark'); var on = btn.classList.toggle('active'); btn.querySelector('svg').classList.toggle('on', on);
+    fetch(API + '/posts/' + id + '/bookmark/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (r) { if (!r.ok) throw 0; window.snack(on ? 'Saved to bookmarks' : 'Removed from bookmarks', 'ok', 1200); })
+      .catch(function () { btn.classList.toggle('active'); btn.querySelector('svg').classList.toggle('on'); window.snack('Couldn’t update bookmark.', 'error'); });
+  }
+  function sharePost(id) {
+    var url = location.origin + location.pathname + '#post-' + id;
+    var done = function () { window.snack('Link copied to clipboard 🔗', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(url).then(done).catch(function () { window.snack(url, 'info', 4000); }); }
+    else { window.snack(url, 'info', 4000); }
+    fetch(API + '/posts/' + id + '/share/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() }, body: '{}' }).catch(function () {});
+  }
+  function openComments(postId, btn) {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></div><h2>Comments</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="cmt-list" id="cmtList"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="cmt-input"><input id="cmtText" placeholder="Add a comment…" autocomplete="off" /><button class="send" id="cmtSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    function load() {
+      authFetch('/posts/' + postId + '/comments/').then(function (r) {
+        var el = document.getElementById('cmtList'); if (!el) return;
+        if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load comments.'); return; }
+        var cs = listOf(r.d);
+        if (!cs.length) { el.innerHTML = '<div class="cmt-empty faint">No comments yet — be the first!</div>'; return; }
+        el.innerHTML = cs.map(function (c) {
+          return '<div class="cmt">' + avatar(c.author_avatar, c.author_name, 'cmt-av') +
+            '<div class="cmt-body"><div class="cmt-head"><b>' + esc(c.author_name || 'User') + '</b><span class="faint">' + esc(timeAgo(c.created_at)) + '</span></div>' +
+            '<div class="cmt-text">' + linkify(c.text || c.content || '') + '</div></div></div>';
+        }).join('');
+        el.scrollTop = el.scrollHeight;
+      }).catch(function () { var el = document.getElementById('cmtList'); if (el) el.innerHTML = empty('Couldn’t load comments.'); });
+    }
+    function send() {
+      var inp = document.getElementById('cmtText'); var t = inp.value.trim(); if (!t) return; inp.value = '';
+      fetch(API + '/posts/' + postId + '/comments/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ text: t }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post comment.', 'error'); return; }
+          load(); if (btn) { var c = btn.querySelector('.cnt'); if (c) c.textContent = (parseInt(c.textContent, 10) || 0) + 1; } })
+        .catch(function () { window.snack('Couldn’t post comment.', 'error'); });
+    }
+    document.getElementById('cmtSend').addEventListener('click', send);
+    document.getElementById('cmtText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    load();
+  }
   function wireClubActions(root) { root.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); }); }
   // Google-Photos-style tiles for the Events (posters) and Clubs (posts) feeds
   var GRADS4 = ['linear-gradient(135deg,#4FC3F7,#0288D1)', 'linear-gradient(135deg,#F7971E,#FF5858)', 'linear-gradient(135deg,#11998E,#38EF7D)', 'linear-gradient(135deg,#8E54E9,#EC4899)'];
