@@ -501,6 +501,43 @@
   .hl-cell::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0,0,0,.65)); }
   .hl-title { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12.5px; text-align: left; }
 
+  /* ── Clubs ────────────────────────────────────────────────── */
+  .club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .club-card { position: relative; border-radius: 18px; overflow: hidden; background: var(--glass); border: 1px solid var(--hair); cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
+  .club-card:hover { transform: translateY(-2px); border-color: var(--hair-2); }
+  .cc-cover { height: 84px; position: relative; }
+  .cc-admin { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.45); color: #FFD37A; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; padding: 3px 8px; border-radius: 999px; backdrop-filter: blur(4px); }
+  .cc-logo { width: 54px; height: 54px; border-radius: 15px; overflow: hidden; margin: -27px 0 0 16px; border: 3px solid var(--bg1); background: var(--bg2); display: grid; place-items: center; position: relative; z-index: 1; }
+  .cc-logo img { width: 100%; height: 100%; object-fit: cover; } .cc-logo span { font-size: 26px; }
+  .cc-body { padding: 8px 16px 16px; }
+  .cc-name { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 15.5px; }
+  .cc-cat { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 4px; }
+  .cc-tag { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); margin-top: 6px; line-height: 1.4; max-height: 34px; overflow: hidden; }
+  .cc-foot { margin-top: 12px; } .cc-foot .pillbtn { width: 100%; }
+
+  .club-hero { position: relative; margin: -22px -22px 0; }
+  .club-cover2 { height: 150px; position: relative; }
+  .club-cover2 .prof-cover-edit { left: auto; }
+  .club-logo2 { width: 76px; height: 76px; border-radius: 20px; overflow: hidden; margin: -38px 0 0 22px; border: 4px solid var(--card, #141329); background: var(--bg2); display: grid; place-items: center; position: relative; z-index: 2; }
+  .club-logo2 img { width: 100%; height: 100%; object-fit: cover; } .club-logo2 span { font-size: 38px; }
+  .club-logo2 .prof-av-edit { border-color: var(--card, #141329); }
+  .club-headrow { display: flex; align-items: flex-end; gap: 12px; padding: 10px 22px 0; }
+  .club-id { flex: 1; min-width: 0; }
+  .club-name { font-family: 'Alfa', serif; font-size: 21px; }
+  .club-meta { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 4px; }
+  .club-tag { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--faint); margin-top: 6px; }
+  #clubDetail .prof-tabs { margin: 16px 22px 14px; }
+  #clubBody { padding: 0 22px 4px; }
+  .club-sec { margin-bottom: 16px; } .club-sec b { font-family: 'Arch', sans-serif; font-size: 13px; }
+  .club-sec p { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.6; color: var(--sub); margin-top: 7px; }
+  .ev-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 14px; scrollbar-width: none; }
+  .ev-row::-webkit-scrollbar { display: none; }
+  .ev-card { flex: 0 0 220px; border-radius: 15px; overflow: hidden; background: var(--glass); border: 1px solid var(--hair); }
+  .ev-card-img { height: 100px; } .ev-card-img.grad {}
+  .ev-card-body { padding: 11px 13px; } .ev-card-title { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 13.5px; }
+  .ev-card-when { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 5px; }
+  .ev-card-foot { display: flex; align-items: center; gap: 8px; margin-top: 11px; } .ev-card-foot .pillbtn { flex: 1; }
+
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
     padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
@@ -996,7 +1033,6 @@
     document.getElementById('cmtText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
     load();
   }
-  function wireClubActions(root) { root.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Joining clubs is coming to the web soon', 'info'); }); }); }
   // Google-Photos-style tiles for the Events (posters) and Clubs (posts) feeds
   var GRADS4 = ['linear-gradient(135deg,#4FC3F7,#0288D1)', 'linear-gradient(135deg,#F7971E,#FF5858)', 'linear-gradient(135deg,#11998E,#38EF7D)', 'linear-gradient(135deg,#8E54E9,#EC4899)'];
   function eventPhoto(e, i) {
@@ -1015,14 +1051,265 @@
     return '<button class="photo" data-photo style="background:' + GRADS4[i % 4] + '"><span class="txtbody">' + esc(text.slice(0, 140)) + '</span><span class="cap">' + esc(name) + '</span></button>';
   }
   function wirePhotos(root, msg) { root.querySelectorAll('[data-photo]').forEach(function (b) { b.addEventListener('click', function () { window.snack(msg, 'info'); }); }); }
-  function clubCard(c) {
-    var members = num(c.member_count || c.members_count || (c.members && c.members.length));
-    var cat = c.category || c.type || 'Club';
-    var joined = c.is_member || c.joined;
-    return '<div class="card glass" style="margin:0"><div class="row" style="align-items:center">' + avatar(c.avatar_url || c.cover_url || c.logo_url, c.name) +
-      '<div style="flex:1;min-width:0"><b style="font-family:Arch;font-size:14.5px">' + esc(c.name || 'Club') + '</b>' +
-      '<div class="faint" style="font-family:Momo;font-size:11px;margin-top:3px">' + esc(cat) + ' · ' + members + ' members</div></div></div>' +
-      '<button class="pillbtn ' + (joined ? 'ghost2' : '') + '" style="margin-top:12px;width:100%" data-club="' + esc(c.id) + '">' + (joined ? 'Joined' : 'Join') + '</button></div>';
+  function clubMembership(c) { return c.membership || { is_member: c.is_member, is_pending: c.is_pending, is_admin: c.is_admin, role: c.role }; }
+  function clubCard(c, i) {
+    var m = clubMembership(c); var members = num(c.members_count || c.member_count);
+    var cover = c.cover_url ? 'url(' + esc(c.cover_url) + ') center/cover' : GRADS4[(i || 0) % 4];
+    var btn = m.is_member ? '<button class="pillbtn ghost2" data-club="' + esc(c.id) + '">Open</button>'
+      : m.is_pending ? '<button class="pillbtn ghost2" disabled>Pending</button>'
+      : '<button class="pillbtn" data-joinclub="' + esc(c.id) + '">Join</button>';
+    return '<div class="club-card" data-club="' + esc(c.id) + '">' +
+      '<div class="cc-cover" style="background:' + cover + '">' + (m.is_admin ? '<span class="cc-admin">★ Admin</span>' : '') + '</div>' +
+      '<div class="cc-logo">' + (c.logo_url ? '<img src="' + esc(c.logo_url) + '" alt="" />' : '<span>' + catIcon(c.category) + '</span>') + '</div>' +
+      '<div class="cc-body"><div class="cc-name">' + esc(c.name || 'Club') + '</div>' +
+        '<div class="cc-cat">' + catIcon(c.category) + ' ' + esc(catLabel(c.category)) + ' · ' + members + ' member' + (members === 1 ? '' : 's') + '</div>' +
+        (c.tagline ? '<div class="cc-tag">' + esc(c.tagline) + '</div>' : '') +
+        '<div class="cc-foot">' + btn + '</div></div></div>';
+  }
+  function joinClub(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
+    fetch(API + '/clubs/' + id + '/join/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }).catch(function () { return { ok: r.ok, d: {} }; }); })
+      .then(function (res) {
+        if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t join.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Join'; } return; }
+        var pending = res.d && (res.d.status === 'pending' || res.d.is_pending);
+        window.snack(pending ? 'Request sent — awaiting approval' : 'Joined the club!', 'ok');
+        var c = CLUBS.all.filter(function (x) { return x.id === id; })[0];
+        if (c) { c.membership = { is_member: !pending, is_pending: !!pending, is_admin: false, role: res.d && res.d.role }; if (!pending) c.members_count = num(c.members_count) + 1; }
+        drawClubs(); if (!pending) openClub(id);
+      }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Join'; } });
+  }
+  function openCreateClub() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><h2>Create a club</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Club name</label><input id="ncName" placeholder="e.g. Robotics Society" maxlength="80" />' +
+      '<label>Tagline</label><input id="ncTag" placeholder="A short catchy line" maxlength="120" />' +
+      '<label>Category</label><select id="ncCat">' + CLUB_CATS.slice(1).map(function (c) { return '<option value="' + c[0] + '">' + c[2] + ' ' + c[1] + '</option>'; }).join('') + '</select>' +
+      '<label>Description</label><textarea id="ncDesc" rows="3" placeholder="What is your club about?"></textarea>' +
+      '<label class="qchk" style="margin-top:12px"><input type="checkbox" id="ncApprove" /> Require approval to join</label>' +
+      '<button class="btn" id="ncSubmit" style="margin-top:16px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Create club</span></button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('ncSubmit').addEventListener('click', function () {
+      var name = document.getElementById('ncName').value.trim(); if (!name) { window.snack('Give your club a name.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Creating…';
+      fetch(API + '/clubs/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ name: name, tagline: document.getElementById('ncTag').value.trim(), description: document.getElementById('ncDesc').value.trim(), category: document.getElementById('ncCat').value, is_public: true, requires_approval: document.getElementById('ncApprove').checked }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t create the club.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create club'; return; }
+          closeModal(); window.snack('Club created! 🎉', 'ok'); renderClubs(); if (res.d && res.d.id) openClub(res.d.id);
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create club'; });
+    });
+  }
+  function openClubInvites() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">✉︎</div><h2>Club invites</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div id="ciBody"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    function load() {
+      authFetch('/clubs/invites/').then(function (r) {
+        var el = document.getElementById('ciBody'); if (!el) return;
+        if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'No pending club invites.'); return; }
+        var inv = listOf(r.d);
+        if (!inv.length) { el.innerHTML = empty('No pending club invites.'); return; }
+        el.innerHTML = inv.map(function (iv) {
+          return '<div class="us-row" style="margin-bottom:10px"><div class="us-av">' + avatar(iv.club_logo || iv.logo_url, iv.club_name || iv.name) + '</div>' +
+            '<div class="us-meta"><div class="us-name">' + esc(iv.club_name || iv.name || 'Club') + '</div><div class="us-sub"><span class="faint">Invited by ' + esc(iv.inviter_name || 'someone') + '</span></div></div>' +
+            '<div style="display:flex;gap:6px"><button class="pillbtn" data-cia="' + esc(iv.id) + '">Join</button><button class="pillbtn ghost2" data-cid="' + esc(iv.id) + '">Decline</button></div></div>';
+        }).join('');
+        el.querySelectorAll('[data-cia]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/clubs/invites/' + b.getAttribute('data-cia') + '/accept/', 'Joined the club', load); }); });
+        el.querySelectorAll('[data-cid]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/clubs/invites/' + b.getAttribute('data-cid') + '/decline/', 'Invite declined', load); }); });
+      }).catch(function () { var el = document.getElementById('ciBody'); if (el) el.innerHTML = empty('No pending club invites.'); });
+    }
+    load();
+  }
+
+  // ── Club detail (About / Feed / Events / Members / Chat) ─────
+  function clubEventCard(e, admin, clubId) {
+    var img = e.card_url || e.poster_url || e.image_url;
+    var when = e.start_time || e.starts_at || e.date;
+    var going = e.is_rsvped || e.rsvp_status === 'going' || e.is_going;
+    return '<div class="ev-card">' + (img ? '<div class="ev-card-img" style="background:url(' + esc(img) + ') center/cover"></div>' : '<div class="ev-card-img grad" style="background:' + GRADS4[1] + '"></div>') +
+      '<div class="ev-card-body"><div class="ev-card-title">' + esc(e.title || 'Event') + '</div>' +
+        (when ? '<div class="ev-card-when">🗓️ ' + esc(new Date(when).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</div>' : '') +
+        (e.location ? '<div class="ev-card-when">📍 ' + esc(e.location) + '</div>' : '') +
+        '<div class="ev-card-foot"><button class="pillbtn' + (going ? ' ghost2' : '') + '" data-rsvp="' + esc(e.id) + '">' + (going ? '✓ Going' : 'RSVP') + '</button>' +
+        (admin ? '<button class="lib-del" data-delev="' + esc(e.id) + '" title="Delete event"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button>' : '') +
+        '</div></div></div>';
+  }
+  function openClub(id) {
+    openModal('<div id="clubDetail"><div class="loading"><div class="spin"></div></div></div>');
+    var club = null, ctab = 'about';
+    function admin() { var m = club ? clubMembership(club) : {}; return !!m.is_admin; }
+    function member() { var m = club ? clubMembership(club) : {}; return !!m.is_member; }
+    function shell(inner) {
+      var m = club ? clubMembership(club) : {};
+      var cover = (club && club.cover_url) ? 'url(' + esc(club.cover_url) + ') center/cover' : GRADS4[0];
+      var memBtn = m.is_member ? '<button class="pillbtn ghost2" id="clubLeave">Leave</button>'
+        : m.is_pending ? '<button class="pillbtn ghost2" disabled>Pending</button>'
+        : '<button class="pillbtn" id="clubJoin">Join club</button>';
+      document.getElementById('clubDetail').innerHTML =
+        '<div class="club-hero"><div class="club-cover2" style="background:' + cover + '">' +
+          (admin() ? '<button class="prof-cover-edit" id="clubCoverBtn" title="Change cover"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9z" fill="currentColor"/></svg></button>' : '') +
+          '<button class="ghost x" id="mClose" style="position:absolute;top:12px;right:12px;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+          '<div class="club-logo2">' + ((club && club.logo_url) ? '<img src="' + esc(club.logo_url) + '" alt="" />' : '<span>' + catIcon(club && club.category) + '</span>') +
+            (admin() ? '<button class="prof-av-edit" id="clubLogoBtn"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4z" fill="#fff"/></svg></button>' : '') + '</div>' +
+          '<input type="file" id="clubCoverFile" accept="image/*" style="display:none"/><input type="file" id="clubLogoFile" accept="image/*" style="display:none"/>' +
+        '</div>' +
+        '<div class="club-headrow"><div class="club-id"><div class="club-name">' + esc((club && club.name) || 'Club') + (m.is_admin ? ' <span class="rolechip">' + esc((m.role || 'admin').toUpperCase()) + '</span>' : '') + '</div>' +
+          '<div class="club-meta">' + catIcon(club && club.category) + ' ' + esc(catLabel(club && club.category)) + ' · ' + num(club && club.members_count) + ' members</div>' +
+          ((club && club.tagline) ? '<div class="club-tag">' + esc(club.tagline) + '</div>' : '') + '</div>' +
+          '<div style="display:flex;gap:8px;align-items:center">' + (admin() ? '<button class="prof-mini" id="clubSettings">⚙︎ Manage</button>' : '') + memBtn + '</div></div>' +
+        '<div class="feed-tabs prof-tabs" id="clubTabs">' + ['about', 'feed', 'events', 'members', 'chat'].map(function (t) { return '<button class="feed-tab' + (ctab === t ? ' active' : '') + '" data-ct="' + t + '">' + (t.charAt(0).toUpperCase() + t.slice(1)) + '</button>'; }).join('') + '</div>' +
+        '<div id="clubBody">' + inner + '</div>';
+      document.getElementById('mClose').addEventListener('click', closeModal);
+      document.getElementById('clubTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-ct]'); if (!b) return; ctab = b.getAttribute('data-ct'); paint(); });
+      var jb = document.getElementById('clubJoin'); if (jb) jb.addEventListener('click', function () { jb.disabled = true; jb.textContent = 'Joining…'; fetch(API + '/clubs/' + id + '/join/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }).then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t join.', 'error'); jb.disabled = false; jb.textContent = 'Join club'; return; } var pending = res.d && (res.d.status === 'pending' || res.d.is_pending); club.membership = { is_member: !pending, is_pending: !!pending, is_admin: false, role: res.d && res.d.role }; if (!pending) club.members_count = num(club.members_count) + 1; window.snack(pending ? 'Request sent' : 'Joined!', 'ok'); paint(); }).catch(function () { jb.disabled = false; jb.textContent = 'Join club'; }); });
+      var lb = document.getElementById('clubLeave'); if (lb) lb.addEventListener('click', function () { if (!confirm('Leave this club?')) return; fetch(API + '/clubs/' + id + '/leave/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function (r) { if (!r.ok) throw 0; club.membership = { is_member: false, is_pending: false, is_admin: false, role: null }; club.members_count = Math.max(0, num(club.members_count) - 1); window.snack('Left the club', 'ok'); paint(); }).catch(function () { window.snack('Couldn’t leave.', 'error'); }); });
+      var st = document.getElementById('clubSettings'); if (st) st.addEventListener('click', function () { openClubManage(club, function (updated) { club = updated; paint(); }); });
+      var cb = document.getElementById('clubCoverBtn'); if (cb) cb.addEventListener('click', function () { document.getElementById('clubCoverFile').click(); });
+      var lg = document.getElementById('clubLogoBtn'); if (lg) lg.addEventListener('click', function () { document.getElementById('clubLogoFile').click(); });
+      var cf = document.getElementById('clubCoverFile'); if (cf) cf.addEventListener('change', function () { if (this.files[0]) uploadClubImg(id, this.files[0], 'cover', function (u) { club.cover_url = u; paint(); }); this.value = ''; });
+      var lf = document.getElementById('clubLogoFile'); if (lf) lf.addEventListener('change', function () { if (this.files[0]) uploadClubImg(id, this.files[0], 'logo', function (u) { club.logo_url = u; paint(); }); this.value = ''; });
+    }
+    function paint() {
+      shell('<div class="loading"><div class="spin"></div></div>');
+      var body = document.getElementById('clubBody');
+      if (ctab === 'about') {
+        var html = '';
+        if (club.description) html += '<div class="club-sec"><b>About</b><p>' + linkify(club.description) + '</p></div>';
+        if (club.mission) html += '<div class="club-sec"><b>Mission</b><p>' + linkify(club.mission) + '</p></div>';
+        if (club.rules) html += '<div class="club-sec"><b>Rules</b><p>' + linkify(club.rules) + '</p></div>';
+        body.innerHTML = html || empty('This club hasn’t added details yet.');
+      } else if (ctab === 'feed') {
+        authFetch('/clubs/' + id + '/feed/').then(function (r) {
+          var el = document.getElementById('clubBody'); if (!el) return;
+          if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
+          var posts = (r.d && r.d.posts) || []; var events = (r.d && r.d.events) || [];
+          if (!posts.length && !events.length) { el.innerHTML = empty('No posts or events yet.'); return; }
+          var html = '';
+          if (events.length) html += '<div class="ev-row">' + events.slice(0, 6).map(function (e) { return clubEventCard(e, admin(), id); }).join('') + '</div>';
+          html += posts.map(postCard).join('');
+          el.innerHTML = html; wirePostActions(el); wireClubEvents(el, id);
+        }).catch(function () { var el = document.getElementById('clubBody'); if (el) el.innerHTML = empty('Couldn’t load the feed.'); });
+      } else if (ctab === 'events') {
+        var head = admin() ? '<button class="btn" id="clubNewEvent" style="margin-bottom:14px">＋ Create event</button>' : '';
+        body.innerHTML = head + '<div id="evList"><div class="loading"><div class="spin"></div></div></div>';
+        if (admin()) document.getElementById('clubNewEvent').addEventListener('click', function () { openCreateEvent(id, paint); });
+        authFetch('/clubs/' + id + '/feed/').then(function (r) {
+          var el = document.getElementById('evList'); if (!el) return;
+          var events = (r.ok && r.d && r.d.events) || [];
+          el.innerHTML = events.length ? '<div class="ev-row">' + events.map(function (e) { return clubEventCard(e, admin(), id); }).join('') + '</div>' : empty('No events scheduled.');
+          wireClubEvents(el, id);
+        }).catch(function () { var el = document.getElementById('evList'); if (el) el.innerHTML = empty('Couldn’t load events.'); });
+      } else if (ctab === 'members') {
+        body.innerHTML = '<div id="memActive"><div class="loading"><div class="spin"></div></div></div>' + (admin() ? '<div id="memPending"></div>' : '');
+        authFetch('/clubs/' + id + '/members/?status=active').then(function (r) {
+          var el = document.getElementById('memActive'); if (!el) return;
+          var ms = r.ok ? listOf(r.d) : [];
+          el.innerHTML = ms.length ? ms.map(function (u) { return memberRow(u, id, admin()); }).join('') : empty('No members yet.');
+          wireMembers(el, id, paint);
+        });
+        if (admin()) authFetch('/clubs/' + id + '/members/?status=pending').then(function (r) {
+          var el = document.getElementById('memPending'); if (!el) return; var ps = r.ok ? listOf(r.d) : [];
+          if (!ps.length) { el.innerHTML = ''; return; }
+          el.innerHTML = '<div class="club-sec" style="margin-top:18px"><b>Pending approvals</b></div>' + ps.map(function (u) {
+            return '<div class="us-row" style="margin-bottom:8px"><div class="us-av">' + avatar(u.avatar_url, u.name) + '</div><div class="us-meta"><div class="us-name">' + esc(u.name) + '</div><div class="us-sub faint">@' + esc(u.user_id) + '</div></div>' +
+              '<div style="display:flex;gap:6px"><button class="pillbtn" data-approve="' + esc(u.user_id) + '">Approve</button><button class="pillbtn ghost2" data-declinem="' + esc(u.user_id) + '">Decline</button></div></div>';
+          }).join('');
+          el.querySelectorAll('[data-approve]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/clubs/' + id + '/members/' + b.getAttribute('data-approve') + '/approve/', 'Member approved', paint); }); });
+          el.querySelectorAll('[data-declinem]').forEach(function (b) { b.addEventListener('click', function () { reqAction('/clubs/' + id + '/members/' + b.getAttribute('data-declinem') + '/decline/', 'Request declined', paint); }); });
+        });
+      } else {
+        if (!member()) { body.innerHTML = empty('Join the club to access the group chat.'); return; }
+        body.innerHTML = '<div style="text-align:center;padding:20px"><p class="faint" style="font-family:Momo;font-size:13.5px;margin-bottom:16px">Chat with everyone in ' + esc(club.name) + '.</p><button class="btn" id="clubChatBtn" style="max-width:280px;margin:0 auto">Open club chat</button></div>';
+        document.getElementById('clubChatBtn').addEventListener('click', function () {
+          this.disabled = true; this.textContent = 'Opening…';
+          fetch(API + '/clubs/' + id + '/chat/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) { if (!res.ok || !res.d || !res.d.id) { window.snack('Couldn’t open club chat.', 'error'); return; } closeModal(); setTab('messages'); authFetch('/chat/rooms/').then(function (rr) { if (rr.ok) MSG.rooms = listOf(rr.d); if (!MSG.rooms.some(function (x) { return x.id === res.d.id; })) MSG.rooms.unshift(res.d); drawRows(); openConversation(res.d.id); }); })
+            .catch(function () { window.snack('Couldn’t open club chat.', 'error'); });
+        });
+      }
+    }
+    authFetch('/clubs/' + id + '/').then(function (r) { if (r.ok) club = r.d; else { document.getElementById('clubDetail').innerHTML = empty('Couldn’t load this club.'); return; } paint(); }).catch(function () { document.getElementById('clubDetail').innerHTML = empty('Couldn’t load this club.'); });
+  }
+  function wireClubEvents(el, clubId) {
+    el.querySelectorAll('[data-rsvp]').forEach(function (b) { b.addEventListener('click', function () {
+      var going = b.textContent.indexOf('Going') >= 0;
+      b.disabled = true;
+      fetch(API + '/events/' + b.getAttribute('data-rsvp') + '/rsvp/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() }, body: JSON.stringify({ status: going ? 'clear' : 'going' }) })
+        .then(function (r) { if (!r.ok) throw 0; b.disabled = false; b.classList.toggle('ghost2', !going); b.textContent = going ? 'RSVP' : '✓ Going'; window.snack(going ? 'RSVP removed' : 'You’re going! 🎉', 'ok', 1200); })
+        .catch(function () { b.disabled = false; window.snack('Couldn’t RSVP.', 'error'); });
+    }); });
+    el.querySelectorAll('[data-delev]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('Delete this event?')) return; var card = b.closest('.ev-card'); card.style.opacity = '.4';
+      fetch(API + '/events/' + b.getAttribute('data-delev') + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function (r) { if (!r.ok) throw 0; card.remove(); window.snack('Event deleted', 'ok'); }).catch(function () { card.style.opacity = '1'; window.snack('Couldn’t delete.', 'error'); });
+    }); });
+  }
+  function memberRow(u, clubId, isAdmin) {
+    var role = (u.role || 'member');
+    return '<div class="us-row" style="margin-bottom:8px" data-uid="' + esc(u.user_id) + '"><div class="us-av">' + avatar(u.avatar_url, u.name) + '</div>' +
+      '<div class="us-meta"><div class="us-name">' + esc(u.name) + (u.is_admin ? ' <span class="rolechip" style="background:rgba(247,151,30,.18);color:#F7B34E">' + esc(role.toUpperCase()) + '</span>' : '') + '</div>' +
+      '<div class="us-sub faint">@' + esc(u.user_id) + '</div></div>' +
+      (isAdmin && !u.is_admin ? '<div style="display:flex;gap:6px"><button class="prof-mini" data-promote="' + esc(u.user_id) + '">Make exec</button><button class="lib-del" data-removem="' + esc(u.user_id) + '"><svg viewBox="0 0 24 24"><path d="M14 8l-4 4 4 4M6 12h12" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></div>' : '') + '</div>';
+  }
+  function wireMembers(el, clubId, reload) {
+    el.querySelectorAll('[data-promote]').forEach(function (b) { b.addEventListener('click', function () {
+      fetch(API + '/clubs/' + clubId + '/members/' + b.getAttribute('data-promote') + '/role/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() }, body: JSON.stringify({ role: 'executive' }) })
+        .then(function (r) { if (!r.ok) throw 0; window.snack('Promoted to executive', 'ok'); reload(); }).catch(function () { window.snack('Couldn’t change role.', 'error'); });
+    }); });
+    el.querySelectorAll('[data-removem]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('Remove this member?')) return;
+      fetch(API + '/clubs/' + clubId + '/members/' + b.getAttribute('data-removem') + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } })
+        .then(function (r) { if (!r.ok) throw 0; window.snack('Member removed', 'ok'); reload(); }).catch(function () { window.snack('Couldn’t remove.', 'error'); });
+    }); });
+  }
+  function uploadClubImg(id, file, kind, after) {
+    var fd = new FormData(); fd.append(kind, file); window.snack('Uploading…', 'info', 1500);
+    fetch(API + '/clubs/' + id + '/' + kind + '/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (!res.ok) { window.snack('Upload failed.', 'error'); return; } window.snack((kind === 'cover' ? 'Cover' : 'Logo') + ' updated', 'ok'); if (after) after((res.d && (res.d[kind + '_url'] || res.d.url)) || ''); })
+      .catch(function () { window.snack('Upload failed.', 'error'); });
+  }
+  function openCreateEvent(clubId, after) {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">🗓️</div><h2>Create event</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Title</label><input id="evTitle" placeholder="Event title" maxlength="120"/>' +
+      '<label>Date & time</label><input id="evStart" type="datetime-local"/>' +
+      '<label>Location</label><input id="evLoc" placeholder="Where is it?" maxlength="120"/>' +
+      '<label>Description</label><textarea id="evDesc" rows="3" placeholder="Details…"></textarea>' +
+      '<button class="btn" id="evSave" style="margin-top:16px">Create event</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('evSave').addEventListener('click', function () {
+      var title = document.getElementById('evTitle').value.trim(); var start = document.getElementById('evStart').value;
+      if (!title) { window.snack('Give the event a title.', 'error'); return; } if (!start) { window.snack('Pick a date & time.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Creating…';
+      fetch(API + '/clubs/' + clubId + '/events/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ title: title, start_time: new Date(start).toISOString(), location: document.getElementById('evLoc').value.trim(), description: document.getElementById('evDesc').value.trim() }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t create event.', 'error'); btn.disabled = false; btn.textContent = 'Create event'; return; } closeModal(); window.snack('Event created! 🎉', 'ok'); if (after) after(); })
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Create event'; });
+    });
+  }
+  function openClubManage(club, onSaved) {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.62.06-.94s-.02-.64-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.3-.06.62-.06.94s.02.64.06.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.44.33.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.11.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></div><h2>Manage club</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Club name</label><input id="mcName" value="' + esc(club.name || '') + '" maxlength="80"/>' +
+      '<label>Tagline</label><input id="mcTag" value="' + esc(club.tagline || '') + '" maxlength="120"/>' +
+      '<label>Category</label><select id="mcCat">' + CLUB_CATS.slice(1).map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === club.category ? ' selected' : '') + '>' + c[2] + ' ' + c[1] + '</option>'; }).join('') + '</select>' +
+      '<label>Description</label><textarea id="mcDesc" rows="3">' + esc(club.description || '') + '</textarea>' +
+      '<label>Mission</label><textarea id="mcMission" rows="2">' + esc(club.mission || '') + '</textarea>' +
+      '<label>Rules</label><textarea id="mcRules" rows="2">' + esc(club.rules || '') + '</textarea>' +
+      '<button class="btn" id="mcSave" style="margin-top:16px">Save changes</button>' +
+      '<div class="dale-remove" style="margin-top:16px"><button id="mcDissolve"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg> Dissolve club</button></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('mcSave').addEventListener('click', function () {
+      var body = { name: document.getElementById('mcName').value.trim(), tagline: document.getElementById('mcTag').value.trim(), category: document.getElementById('mcCat').value, description: document.getElementById('mcDesc').value.trim(), mission: document.getElementById('mcMission').value.trim(), rules: document.getElementById('mcRules').value.trim() };
+      fetch(API + '/clubs/' + club.id + '/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t save.', 'error'); return; } closeModal(); window.snack('Club updated', 'ok'); if (onSaved) onSaved(res.d); })
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); });
+    });
+    document.getElementById('mcDissolve').addEventListener('click', function () {
+      if (!confirm('Dissolve this club permanently? All members will be removed. This cannot be undone.')) return;
+      fetch(API + '/clubs/' + club.id + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } })
+        .then(function (r) { if (!r.ok) throw 0; closeModal(); window.snack('Club dissolved', 'ok'); renderClubs(); }).catch(function () { window.snack('Couldn’t dissolve the club.', 'error'); });
+    });
   }
 
   // ── Modal + Suggestion Box ───────────────────────────────────
@@ -1138,7 +1425,6 @@
       '<div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:6px">' + count + ' questions' + (diff ? ' · ' + esc(diff) : '') + '</div>' +
       '<button class="pillbtn" style="margin-top:12px" data-quiz="' + esc(q.id) + '">Attempt</button></div>';
   }
-  function wireQuiz(root) { root.querySelectorAll('[data-quiz]').forEach(function (b) { b.addEventListener('click', function () { window.snack('Quiz-taking is coming to the web soon', 'info'); }); }); }
   function chatCard(m) {
     var other = m.other_user || {};
     var name = m.room_type === 'group' ? (m.name || 'Group') : (other.name || other.display_name || m.name || 'Chat');
@@ -2258,8 +2544,39 @@
     document.getElementById('bubTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-bt]'); if (!b) return; mode = b.getAttribute('data-bt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-bt') === mode); }); render(); });
     render();
   }
+  var CLUB_CATS = [ ['all', 'All', '🎯'], ['academic', 'Academic', '📚'], ['sports', 'Sports', '⚽'], ['arts', 'Arts', '🎨'], ['cultural', 'Cultural', '🌍'], ['technology', 'Technology', '💻'], ['social_service', 'Social Service', '🤝'], ['business', 'Business', '💼'], ['gaming', 'Gaming', '🎮'], ['other', 'Other', '🌟'] ];
+  var CLUBS = { cat: 'all', q: '', all: [] };
+  function catIcon(c) { for (var i = 0; i < CLUB_CATS.length; i++) if (CLUB_CATS[i][0] === c) return CLUB_CATS[i][2]; return '🎯'; }
+  function catLabel(c) { for (var i = 0; i < CLUB_CATS.length; i++) if (CLUB_CATS[i][0] === c) return CLUB_CATS[i][1]; return c || 'Club'; }
   function renderClubs() {
-    renderListTab({ eyebrow: 'COMMUNITY', title: 'Clubs', noun: 'clubs', searchPh: 'Search clubs', path: '/clubs/?page=1', grid: true, cardFn: clubCard, wireFn: wireClubActions });
+    view.innerHTML =
+      '<div class="feed-label"><div><div class="eyebrow">COMMUNITY</div><div class="feed-title">Clubs</div></div>' +
+        '<div style="display:flex;gap:8px"><button class="pillbtn" id="clubInvites">✉︎ Invites</button><button class="icon-btn addpost-btn" id="clubCreate" title="Create club"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button></div></div>' +
+      '<div class="home-actions"><div class="search-box" style="flex:1">' + SEARCH_SVG + '<input id="clubSearch" placeholder="Search clubs" autocomplete="off" /></div></div>' +
+      '<div class="lib-chips" id="clubCats">' + CLUB_CATS.map(function (c) { return '<button class="lib-chip' + (c[0] === CLUBS.cat ? ' active' : '') + '" data-cc="' + c[0] + '">' + c[2] + ' ' + c[1] + '</button>'; }).join('') + '</div>' +
+      '<div id="clubList"><div class="loading"><div class="spin"></div></div></div>';
+    document.getElementById('clubCreate').addEventListener('click', openCreateClub);
+    document.getElementById('clubInvites').addEventListener('click', openClubInvites);
+    document.getElementById('clubSearch').addEventListener('input', function () { CLUBS.q = this.value; drawClubs(); });
+    document.getElementById('clubCats').addEventListener('click', function (e) { var b = e.target.closest('[data-cc]'); if (!b) return; CLUBS.cat = b.getAttribute('data-cc'); this.querySelectorAll('.lib-chip').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-cc') === CLUBS.cat); }); drawClubs(); });
+    authFetch('/clubs/?page=1').then(function (r) {
+      if (!document.getElementById('clubList')) return;
+      if (!r.ok) { document.getElementById('clubList').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load clubs.'); return; }
+      CLUBS.all = listOf(r.d); drawClubs();
+    }).catch(function () { var el = document.getElementById('clubList'); if (el) el.innerHTML = empty('Couldn’t load clubs.'); });
+  }
+  function drawClubs() {
+    var el = document.getElementById('clubList'); if (!el) return;
+    var q = CLUBS.q.toLowerCase().trim();
+    var list = CLUBS.all.filter(function (c) {
+      var catOk = CLUBS.cat === 'all' || c.category === CLUBS.cat;
+      var hay = [c.name, c.tagline, c.description, catLabel(c.category)].join(' ').toLowerCase();
+      return catOk && (!q || hay.indexOf(q) >= 0);
+    });
+    if (!list.length) { el.innerHTML = empty(CLUBS.all.length ? 'No clubs match your search.' : 'No clubs yet — be the first to create one!'); return; }
+    el.innerHTML = '<div class="club-grid">' + list.map(clubCard).join('') + '</div>';
+    el.querySelectorAll('[data-club]').forEach(function (b) { b.addEventListener('click', function () { openClub(b.getAttribute('data-club')); }); });
+    el.querySelectorAll('[data-joinclub]').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); joinClub(b.getAttribute('data-joinclub'), b); }); });
   }
 
   // ── PROFILE ──────────────────────────────────────────────────
