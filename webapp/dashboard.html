@@ -360,6 +360,7 @@
 <script>
   var API = 'https://tcs-nsw.duckdns.org/api';
   function tok() { try { return localStorage.getItem('tcs_access'); } catch (e) { return null; } }
+  function cachedUser() { try { return JSON.parse(localStorage.getItem('tcs_user') || 'null'); } catch (e) { return null; } }
   function clearSession() { ['tcs_access','tcs_refresh','tcs_user'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); }
   if (!tok()) { location.replace('auth.html'); }
 
