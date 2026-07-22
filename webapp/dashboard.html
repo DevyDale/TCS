@@ -249,8 +249,12 @@
   .buddy-card .pillbtn svg { width: 14px; height: 14px; fill: #fff; }
 
   /* ── Messages tab (master-detail) ─────────────────────────────── */
-  .msg-split { display: flex; height: calc(100dvh - 96px); min-height: 460px; border: 1px solid var(--hair);
-    border-radius: 20px; overflow: hidden; background: rgba(255,255,255,0.03); }
+  .msg-split { position: relative; display: flex; height: calc(100dvh - 96px); min-height: 460px;
+    border-radius: 22px; overflow: hidden; background: rgba(255,255,255,0.03); }
+  .msg-split::before { content: ''; position: absolute; inset: 0; border-radius: 22px; padding: 3px; pointer-events: none; z-index: 6;
+    background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; }
   .msg-list { width: 322px; flex: 0 0 auto; display: flex; flex-direction: column; border-right: 1px solid var(--hair); }
   .msg-list-head { padding: 16px 14px 12px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--hair); }
   .msg-title-row { display: flex; align-items: center; justify-content: space-between; }
@@ -294,9 +298,31 @@
   }
 
   /* Messages: taller search + header icon buttons */
-  .msg-list-head .search-box { height: 64px; border-radius: 18px; padding: 0 18px; }
-  .msg-list-head .search-box input { font-size: 15px; }
-  .msg-list-head .search-box svg { width: 21px; height: 21px; }
+  .msg-list-head .search-box { height: 92px; border-radius: 24px; padding: 0 24px; gap: 15px; }
+  .msg-list-head .search-box input { font-size: 18px; }
+  .msg-list-head .search-box input::placeholder { font-size: 17px; }
+  .msg-list-head .search-box svg { width: 26px; height: 26px; }
+
+  /* Voice recorder + rich media bubbles */
+  .conv-input .mic { width: 46px; height: 46px; flex: 0 0 auto; border: 0; border-radius: 14px; cursor: pointer;
+    background: rgba(255,255,255,0.06); display: grid; place-items: center; color: var(--sub); transition: background .15s ease, color .15s ease; }
+  .conv-input .mic:hover { color: var(--ink); background: rgba(255,255,255,0.12); }
+  .conv-input .mic svg { width: 21px; height: 21px; fill: currentColor; }
+  .rec-bar { flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+    border-radius: 14px; background: rgba(255,88,88,0.12); border: 1.5px solid rgba(255,88,88,0.45); }
+  .rec-bar .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--g4); flex: 0 0 auto; animation: recpulse 1s ease-in-out infinite; }
+  @keyframes recpulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+  .rec-bar .rt { font-family: 'Momo', sans-serif; font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .rec-bar .lbl { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); flex: 1; }
+  .rec-cancel { width: 46px; height: 46px; flex: 0 0 auto; border: 0; border-radius: 14px; cursor: pointer;
+    background: rgba(255,255,255,0.06); display: grid; place-items: center; color: var(--sub); }
+  .rec-cancel:hover { color: var(--g4); }
+  .rec-cancel svg { width: 20px; height: 20px; fill: currentColor; }
+  .bmedia audio { width: 210px; max-width: 60vw; height: 40px; display: block; }
+  .bmedia video { max-width: 260px; width: 100%; border-radius: 10px; display: block; }
+  .bfile { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; padding: 4px 2px; }
+  .bfile svg { width: 26px; height: 26px; fill: currentColor; flex: 0 0 auto; opacity: .85; }
+  .bfile .fn { font-family: 'Momo', sans-serif; font-size: 12.5px; word-break: break-all; text-decoration: underline; }
   .msg-head-btns { display: flex; gap: 8px; }
   .msg-icon-btn { position: relative; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--hair);
     background: var(--glass-2); color: var(--sub); display: grid; place-items: center; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
@@ -939,6 +965,14 @@
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
   function timeHM(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
+  var FILE_SVG = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>';
+  function mediaHtml(m) {
+    var url = esc(m.media_url), t = m.message_type;
+    if (t === 'audio' || t === 'voice') return '<div class="bmedia"><audio controls preload="none" src="' + url + '"></audio></div>';
+    if (t === 'video') return '<div class="bmedia"><video controls preload="metadata" src="' + url + '"></video></div>';
+    if (t === 'file') return '<div class="bmedia"><a class="bfile" href="' + url + '" target="_blank" rel="noopener">' + FILE_SVG + '<span class="fn">' + esc(m.file_name || 'Download file') + '</span></a></div>';
+    return '<div class="bmedia"><img src="' + url + '" alt="" /></div>';
+  }
   function renderThread(msgs, isGroup) {
     var html = '', lastDay = '', prevSender = null;
     msgs.forEach(function (m) {
@@ -949,7 +983,7 @@
       var ai = m.is_ai;
       var showHead = isGroup && !mine;
       var same = prevSender === m.sender_id;
-      var media = m.media_url ? '<div class="bmedia"><img src="' + esc(m.media_url) + '" alt="" /></div>' : '';
+      var media = m.media_url ? mediaHtml(m) : '';
       var txt = m.text ? esc(m.text) : '';
       var bub = '<div class="bubble ' + (mine ? 'me' : (ai ? 'ai' : 'them')) + '">' +
         (showHead && !same ? '<div class="sender">' + esc(ai ? 'Dale' : (m.sender_name || 'Member')) + '</div>' : '') +
@@ -966,8 +1000,9 @@
   }
 
   function stopPoll() { if (MSG.poll) { clearInterval(MSG.poll); MSG.poll = null; } }
+  function abortRecording() { if (REC.rec) { REC.saved = 'cancel'; try { REC.rec.stop(); } catch (e) { teardownRec(); } } }
   function openConversation(roomId) {
-    stopPoll();
+    stopPoll(); abortRecording();
     var room = MSG.rooms.filter(function (m) { return m.id === roomId; })[0] || {};
     MSG.active = roomId; MSG.activeRoom = room; MSG.lastCount = -1;
     document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-room') === roomId); });
@@ -979,13 +1014,15 @@
         '<div style="flex:1;min-width:0"><div style="font-family:Arch;font-weight:700;font-size:15px">' + esc(name) + '</div>' +
         '<div class="faint" style="font-size:11px;font-family:Momo">' + (room.room_type === 'group' ? 'Group bubble' : 'Direct message') + '</div></div></div>' +
       '<div class="conv-body" id="convBody"><div class="loading"><div class="spin"></div></div></div>' +
-      '<div class="conv-input">' +
+      '<div class="conv-input" id="convInput">' +
         '<button class="attach" id="convAttach" title="Send image"><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg></button>' +
         '<input id="convText" placeholder="Message…" autocomplete="off" />' +
+        '<button class="mic" id="convMic" title="Record voice message"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>' +
         '<button class="send" id="convSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>' +
         '<input type="file" id="convFile" accept="image/*" style="display:none" /></div>';
-    document.getElementById('convBack').addEventListener('click', function () { stopPoll(); document.getElementById('msgSplit').classList.remove('show-detail'); MSG.active = null; document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.remove('active'); }); });
+    document.getElementById('convBack').addEventListener('click', function () { stopPoll(); abortRecording(); document.getElementById('msgSplit').classList.remove('show-detail'); MSG.active = null; document.querySelectorAll('.chat-row').forEach(function (el) { el.classList.remove('active'); }); });
     function send() {
+      if (REC.rec) { REC.saved = ''; try { REC.rec.stop(); } catch (e) {} return; }
       var t = document.getElementById('convText'); var text = t.value.trim(); if (!text) return; t.value = '';
       fetch(API + '/chat/rooms/' + roomId + '/messages/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ text: text }) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -996,6 +1033,7 @@
     document.getElementById('convText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
     document.getElementById('convAttach').addEventListener('click', function () { document.getElementById('convFile').click(); });
     document.getElementById('convFile').addEventListener('change', function () { var f = this.files[0]; if (f) sendMedia(roomId, f); this.value = ''; });
+    document.getElementById('convMic').addEventListener('click', function () { startRecording(roomId); });
     fetch(API + '/chat/rooms/' + roomId + '/read/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() } }).catch(function () {});
     room.unread_count = 0; drawRows();
     loadMessages(roomId);
@@ -1009,6 +1047,67 @@
       .then(function (res) { if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Upload failed.', 'error'); return; } loadMessages(roomId, true); })
       .catch(function () { window.snack('Upload failed.', 'error'); });
   }
+
+  // ── Voice recording ──────────────────────────────────────────
+  var REC = { rec: null, stream: null, chunks: [], timer: null, secs: 0, saved: '', mime: 'audio/webm', ext: 'webm' };
+  function pickAudioMime() {
+    var MR = window.MediaRecorder;
+    if (MR && MR.isTypeSupported) {
+      if (MR.isTypeSupported('audio/webm;codecs=opus')) return { m: 'audio/webm;codecs=opus', up: 'audio/webm', ext: 'webm' };
+      if (MR.isTypeSupported('audio/webm')) return { m: 'audio/webm', up: 'audio/webm', ext: 'webm' };
+      if (MR.isTypeSupported('audio/ogg;codecs=opus')) return { m: 'audio/ogg;codecs=opus', up: 'audio/ogg', ext: 'ogg' };
+      if (MR.isTypeSupported('audio/mp4')) return { m: 'audio/mp4', up: 'audio/mp4', ext: 'm4a' };
+    }
+    return { m: '', up: 'audio/webm', ext: 'webm' };
+  }
+  function fmtSecs(s) { var m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+  function teardownRec() {
+    if (REC.timer) { clearInterval(REC.timer); REC.timer = null; }
+    if (REC.stream) { REC.stream.getTracks().forEach(function (t) { t.stop(); }); REC.stream = null; }
+    REC.rec = null; REC.chunks = [];
+  }
+  function restoreInputRow() {
+    var mic = document.getElementById('convMic'), text = document.getElementById('convText'), att = document.getElementById('convAttach'), send = document.getElementById('convSend');
+    var bar = document.getElementById('recBar'), cancel = document.getElementById('recCancel');
+    if (bar) bar.remove(); if (cancel) cancel.remove();
+    if (att) att.style.display = ''; if (text) text.style.display = ''; if (mic) mic.style.display = '';
+    if (send) send.title = '';
+  }
+  function startRecording(roomId) {
+    if (REC.rec) return;
+    if (!navigator.mediaDevices || !window.MediaRecorder) { window.snack('Voice recording isn’t supported on this browser.', 'error'); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      var pick = pickAudioMime(); REC.mime = pick.up; REC.ext = pick.ext;
+      var rec = pick.m ? new MediaRecorder(stream, { mimeType: pick.m }) : new MediaRecorder(stream);
+      REC.rec = rec; REC.stream = stream; REC.chunks = []; REC.secs = 0;
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) REC.chunks.push(e.data); };
+      rec.onstop = function () {
+        var blob = new Blob(REC.chunks, { type: REC.mime });
+        teardownRec(); restoreInputRow();
+        if (REC.saved === 'cancel' || !blob.size) return;
+        var file = new File([blob], 'voice_message.' + REC.ext, { type: REC.mime });
+        sendMedia(roomId, file);
+      };
+      rec.start();
+      // Swap the input row into recording mode.
+      var mic = document.getElementById('convMic'), text = document.getElementById('convText'), att = document.getElementById('convAttach'), send = document.getElementById('convSend');
+      if (att) att.style.display = 'none'; if (text) text.style.display = 'none'; if (mic) mic.style.display = 'none';
+      var bar = document.createElement('div'); bar.className = 'rec-bar'; bar.id = 'recBar';
+      bar.innerHTML = '<span class="dot"></span><span class="rt" id="recTime">0:00</span><span class="lbl">Recording…</span>';
+      var cancel = document.createElement('button'); cancel.className = 'rec-cancel'; cancel.id = 'recCancel'; cancel.title = 'Cancel';
+      cancel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+      var input = document.getElementById('convInput');
+      input.insertBefore(cancel, send); input.insertBefore(bar, cancel);
+      if (send) send.title = 'Send voice message';
+      cancel.addEventListener('click', function () { REC.saved = 'cancel'; try { rec.stop(); } catch (e) { teardownRec(); restoreInputRow(); } });
+      REC.saved = '';
+      REC.timer = setInterval(function () {
+        REC.secs++; var t = document.getElementById('recTime'); if (t) t.textContent = fmtSecs(REC.secs);
+        if (REC.secs >= 300) { REC.saved = ''; try { rec.stop(); } catch (e) {} } // 5-min cap
+      }, 1000);
+    }).catch(function () { window.snack('Microphone permission denied.', 'error'); });
+  }
+
   function loadMessages(roomId, silent) {
     var body = document.getElementById('convBody');
     if (!body || MSG.active !== roomId) { stopPoll(); return; }
