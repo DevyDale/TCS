@@ -341,6 +341,51 @@
   .lib-dl { flex: 0 0 auto; color: var(--faint); } .lib-dl svg { width: 18px; height: 18px; }
   .lib-del { flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 10px; background: none; color: var(--faint); cursor: pointer; display: grid; place-items: center; }
   .lib-del:hover { color: var(--g4); background: rgba(255,88,88,0.12); } .lib-del svg { width: 17px; height: 17px; }
+  .lib-quiz { flex: 0 0 auto; width: 36px; height: 36px; border: 0; border-radius: 11px; padding: 0; cursor: pointer; overflow: hidden;
+    background: linear-gradient(135deg,#A9BC95,#6E8159); display: grid; place-items: center; }
+  .lib-quiz dotlottie-wc { width: 36px; height: 36px; display: block; }
+  .lib-chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0 14px; }
+  .lib-chip { padding: 6px 13px; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass); color: var(--sub);
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; cursor: pointer; }
+  .lib-chip.active { background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; border: 0; }
+
+  /* Quiz setup selects */
+  #qNum, #qDiff { width: 100%; height: 44px; border-radius: 12px; background: var(--glass-2); border: 1.5px solid var(--hair);
+    color: var(--ink); padding: 0 12px; font-family: 'Momo', sans-serif; font-size: 14px; outline: none; margin-bottom: 4px; }
+  .qtypes { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .qtypes .qchk { display: flex; align-items: center; gap: 9px; font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); cursor: pointer; margin: 0; }
+  .qchk input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--g2); flex: 0 0 auto; padding: 0; border: 0; background: none; border-radius: 0; }
+
+  /* Quiz play + results */
+  .quiz-body { max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 4px 2px 8px; }
+  .quiz-q { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-qn { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 11px; color: var(--g1); letter-spacing: .5px; }
+  .quiz-qtext { font-family: 'Momo', sans-serif; font-size: 14.5px; line-height: 1.5; }
+  .quiz-opts { display: flex; flex-direction: column; gap: 8px; } .quiz-opts.row { flex-direction: row; }
+  .quiz-opts .quiz-opt { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border: 1.5px solid var(--hair); border-radius: 12px;
+    background: var(--glass); cursor: pointer; font-family: 'Momo', sans-serif; font-size: 13.5px; transition: border-color .12s, background .12s; margin: 0; }
+  .quiz-opts.row .quiz-opt { justify-content: center; flex: 1; }
+  .quiz-opt:hover { border-color: var(--hair-2); }
+  .quiz-opt input[type="radio"] { accent-color: var(--g2); width: 16px; height: 16px; flex: 0 0 auto; padding: 0; border: 0; background: none; border-radius: 0; }
+  .quiz-opt:has(input:checked) { border-color: var(--g2); background: rgba(142,84,233,0.14); }
+  .qo-letter { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 6px; background: var(--glass-2); display: grid; place-items: center; font-family: 'Arch'; font-weight: 800; font-size: 11px; }
+  .quiz-short { width: 100%; height: 44px; border-radius: 12px; background: var(--glass-2); border: 1.5px solid var(--hair);
+    color: var(--ink); padding: 0 14px; font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .quiz-short:focus { border-color: var(--g2); }
+  .quiz-score { text-align: center; padding: 18px; border-radius: 16px; margin-bottom: 16px; }
+  .quiz-score.good { background: rgba(34,197,94,0.14); } .quiz-score.ok { background: rgba(247,151,30,0.14); } .quiz-score.low { background: rgba(255,88,88,0.14); }
+  .qs-pct { font-family: 'Alfa', serif; font-size: 40px; line-height: 1; }
+  .quiz-score.good .qs-pct { color: #4ADE80; } .quiz-score.ok .qs-pct { color: #F7B34E; } .quiz-score.low .qs-pct { color: #FF7A7A; }
+  .qs-sub { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 6px; }
+  .quiz-res { border: 1px solid var(--hair); border-left-width: 3px; border-radius: 12px; padding: 12px; }
+  .quiz-res.ok { border-left-color: #22C55E; } .quiz-res.bad { border-left-color: #FF5858; }
+  .qr-top { display: flex; gap: 9px; align-items: flex-start; }
+  .qr-badge { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; }
+  .quiz-res.ok .qr-badge { background: #22C55E; } .quiz-res.bad .qr-badge { background: #FF5858; }
+  .qr-q { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.45; }
+  .qr-line { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); margin-top: 7px; margin-left: 29px; }
+  .qr-line b { color: var(--ink); }
+  .qr-exp { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); margin-top: 7px; margin-left: 29px; line-height: 1.5; font-style: italic; }
 
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
@@ -1186,29 +1231,183 @@
     });
   }
 
+  var LIB = { all: [], type: 'All', q: '' };
+  var LIB_TYPES = ['All', 'PDF', 'Doc', 'Audio', 'Image', 'Video', 'Other'];
+  function libBucket(t) {
+    t = (t || '').toLowerCase();
+    if (/pdf/.test(t)) return 'PDF';
+    if (/(png|jpe?g|gif|webp|image|heic)/.test(t)) return 'Image';
+    if (/(mp4|mov|mkv|webm|video)/.test(t)) return 'Video';
+    if (/(mp3|wav|m4a|aac|ogg|audio)/.test(t)) return 'Audio';
+    if (/(doc|word|txt|ppt|slide|xls|sheet|csv|rtf|pages|key)/.test(t)) return 'Doc';
+    return 'Other';
+  }
+  function libItemHtml(m) {
+    return '<div class="lib-item" data-mat="' + esc(m.id) + '">' +
+      '<a class="lib-open" href="' + esc(m.file_url || '#') + '" target="_blank" rel="noopener"><span class="lib-ic">' + matIcon(m.file_type || m.file_name) + '</span>' +
+      '<span class="lib-meta"><span class="lib-title">' + esc(m.title || m.file_name || 'Material') + '</span>' +
+      '<span class="lib-sub">' + esc([m.subject, m.source_group_name || m.source_name, m.file_type].filter(Boolean).join(' · ')) + '</span></span></a>' +
+      '<button class="lib-quiz" data-quiz="' + esc(m.id) + '" title="Quiz me on this"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></button>' +
+      '<button class="lib-del" data-del="' + esc(m.id) + '" title="Remove"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>';
+  }
+  function libApplyFilter() {
+    var el = document.getElementById('libList'); if (!el) return;
+    var q = LIB.q.toLowerCase().trim();
+    var list = LIB.all.filter(function (m) {
+      var typeOk = LIB.type === 'All' || libBucket(m.file_type || m.file_name) === LIB.type;
+      var hay = [m.title, m.file_name, m.subject, m.source_group_name, m.source_name].join(' ').toLowerCase();
+      return typeOk && (!q || hay.indexOf(q) >= 0);
+    });
+    if (!list.length) { el.innerHTML = empty(LIB.all.length ? 'No materials match your search or filter.' : 'Nothing saved yet. Save materials from a group or chat to see them here.'); return; }
+    el.innerHTML = list.map(libItemHtml).join('');
+    el.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
+      var id = b.getAttribute('data-del'); var row = b.closest('.lib-item'); row.style.opacity = '.4';
+      fetch(API + '/chat/saved/' + id + '/delete/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } })
+        .then(function (rr) { if (!rr.ok) throw 0; LIB.all = LIB.all.filter(function (x) { return x.id !== id; }); libApplyFilter(); window.snack('Removed from library', 'ok'); })
+        .catch(function () { row.style.opacity = '1'; window.snack('Couldn’t remove.', 'error'); });
+    }); });
+    el.querySelectorAll('[data-quiz]').forEach(function (b) { b.addEventListener('click', function () {
+      var id = b.getAttribute('data-quiz'); var mat = LIB.all.filter(function (x) { return x.id === id; })[0];
+      openQuizSetup(mat);
+    }); });
+  }
   function openLibrary() {
-    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg></div><h2>Digital Library</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-      '<p class="sub">Materials you’ve saved from groups and chats.</p><div id="libBody"><div class="loading"><div class="spin"></div></div></div>');
+    LIB.type = 'All'; LIB.q = '';
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg></div>' +
+      '<div style="flex:1;min-width:0"><h2>Digital Library</h2><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:2px">AI-quizzable study materials</div></div>' +
+      '<button class="pillbtn" id="myQuizzes" style="margin-right:8px">🧠 My quizzes</button>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="search-box" style="height:46px;margin-top:6px">' + SEARCH_SVG + '<input id="libSearch" placeholder="Search title, subject, group…" autocomplete="off" /></div>' +
+      '<div class="lib-chips" id="libChips">' + LIB_TYPES.map(function (t) { return '<button class="lib-chip' + (t === 'All' ? ' active' : '') + '" data-lt="' + t + '">' + t + '</button>'; }).join('') + '</div>' +
+      '<div id="libList"><div class="loading"><div class="spin"></div></div></div>');
     document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('myQuizzes').addEventListener('click', openMyQuizzes);
+    document.getElementById('libSearch').addEventListener('input', function () { LIB.q = this.value; libApplyFilter(); });
+    document.getElementById('libChips').addEventListener('click', function (e) { var b = e.target.closest('[data-lt]'); if (!b) return; LIB.type = b.getAttribute('data-lt'); this.querySelectorAll('.lib-chip').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-lt') === LIB.type); }); libApplyFilter(); });
     authFetch('/chat/saved/').then(function (r) {
-      var el = document.getElementById('libBody'); if (!el) return;
-      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your library.'); return; }
-      var items = listOf(r.d);
-      if (!items.length) { el.innerHTML = empty('Nothing saved yet. Save materials from a group to see them here.'); return; }
-      el.innerHTML = items.map(function (m) {
-        return '<div class="lib-item" data-mat="' + esc(m.id) + '">' +
-          '<a class="lib-open" href="' + esc(m.file_url || '#') + '" target="_blank" rel="noopener"><span class="lib-ic">' + matIcon(m.file_type || m.file_name) + '</span>' +
-          '<span class="lib-meta"><span class="lib-title">' + esc(m.title || m.file_name || 'Material') + '</span>' +
-          '<span class="lib-sub">' + esc([m.subject, m.source_group_name || m.source_name, m.file_type].filter(Boolean).join(' · ')) + '</span></span></a>' +
-          '<button class="lib-del" data-del="' + esc(m.id) + '" title="Remove"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>';
+      if (!document.getElementById('libList')) return;
+      if (!r.ok) { document.getElementById('libList').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your library.'); return; }
+      LIB.all = listOf(r.d); libApplyFilter();
+    }).catch(function () { var el = document.getElementById('libList'); if (el) el.innerHTML = empty('Couldn’t load your library.'); });
+  }
+
+  // ── Quizzes (generate from a material, list, and play) ───────
+  function openQuizSetup(mat) {
+    if (!mat) return;
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">🧠</div>' +
+      '<div style="flex:1;min-width:0"><h2>Quiz me</h2><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:2px">' + esc(mat.title || mat.file_name || 'Material') + '</div></div>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Number of questions</label><select id="qNum">' + [5, 10, 15, 20].map(function (n) { return '<option value="' + n + '"' + (n === 10 ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' +
+      '<label>Difficulty</label><select id="qDiff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>' +
+      '<label>Question types</label><div class="qtypes"><label class="qchk"><input type="checkbox" value="mcq" checked/> Multiple choice</label><label class="qchk"><input type="checkbox" value="true_false" checked/> True / False</label><label class="qchk"><input type="checkbox" value="short" checked/> Short answer</label></div>' +
+      '<button class="btn" id="qGen" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Generate quiz</span></button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('qGen').addEventListener('click', function () {
+      var types = []; document.querySelectorAll('.qtypes input:checked').forEach(function (c) { types.push(c.value); });
+      if (!types.length) { window.snack('Pick at least one question type.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Generating… (a few seconds)';
+      fetch(API + '/quiz/generate/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
+        body: JSON.stringify({ material_id: mat.id, subject: mat.subject || '', num_questions: parseInt(document.getElementById('qNum').value, 10), difficulty: document.getElementById('qDiff').value, question_types: types }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t generate the quiz.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Generate quiz'; return; }
+          var qid = res.d && (res.d.id || res.d.quiz_id || (res.d.quiz && res.d.quiz.id));
+          if (!qid) { window.snack('Quiz created but couldn’t open it.', 'error'); return; }
+          openQuizPlay(qid);
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Generate quiz'; });
+    });
+  }
+  function openMyQuizzes() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))">🧠</div><h2>My quizzes</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div id="qzList"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    authFetch('/quiz/').then(function (r) {
+      var el = document.getElementById('qzList'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your quizzes.'); return; }
+      var qs = listOf(r.d);
+      if (!qs.length) { el.innerHTML = empty('No quizzes yet. Tap the 🤖 on a material to generate one.'); return; }
+      el.innerHTML = qs.map(function (q) {
+        return '<div class="lib-item" data-play="' + esc(q.id) + '"><span class="lib-ic">🧠</span>' +
+          '<span class="lib-meta"><span class="lib-title">' + esc(q.title || 'Quiz') + '</span>' +
+          '<span class="lib-sub">' + esc([q.subject, (q.num_questions || (q.questions && q.questions.length) || '') + ' questions', q.difficulty].filter(Boolean).join(' · ')) + '</span></span>' +
+          '<button class="pillbtn" data-play="' + esc(q.id) + '">Play</button></div>';
       }).join('');
-      el.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
-        var id = b.getAttribute('data-del'); var row = b.closest('.lib-item'); row.style.opacity = '.4';
-        fetch(API + '/chat/saved/' + id + '/delete/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } })
-          .then(function (rr) { if (!rr.ok) throw 0; row.remove(); window.snack('Removed from library', 'ok'); if (!el.querySelector('.lib-item')) el.innerHTML = empty('Nothing saved yet.'); })
-          .catch(function () { row.style.opacity = '1'; window.snack('Couldn’t remove.', 'error'); });
-      }); });
-    }).catch(function () { var el = document.getElementById('libBody'); if (el) el.innerHTML = empty('Couldn’t load your library.'); });
+      el.querySelectorAll('[data-play]').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); openQuizPlay(b.getAttribute('data-play')); }); });
+    }).catch(function () { var el = document.getElementById('qzList'); if (el) el.innerHTML = empty('Couldn’t load your quizzes.'); });
+  }
+  function openQuizPlay(quizId) {
+    openModal('<div id="quizWrap"><div class="loading"><div class="spin"></div></div></div>');
+    authFetch('/quiz/' + quizId + '/play/').then(function (r) {
+      var wrap = document.getElementById('quizWrap'); if (!wrap) return;
+      if (!r.ok) { wrap.innerHTML = '<div class="modal-head"><h2>Quiz</h2><button class="ghost x" id="mClose" style="padding:8px 10px;margin-left:auto"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' + empty((r.d && (r.d.error || r.d.detail)) || 'Couldn’t load the quiz.'); var c = document.getElementById('mClose'); if (c) c.addEventListener('click', closeModal); return; }
+      renderQuiz(r.d);
+    }).catch(function () { var wrap = document.getElementById('quizWrap'); if (wrap) wrap.innerHTML = empty('Couldn’t load the quiz.'); });
+  }
+  function renderQuiz(quiz) {
+    var qs = quiz.questions || [];
+    var answers = {};
+    var head = '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g3),var(--g4))">🧠</div>' +
+      '<div style="flex:1;min-width:0"><h2 style="font-size:18px">' + esc(quiz.title || 'Quiz') + '</h2><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:2px">' + esc([quiz.subject, qs.length + ' questions', quiz.difficulty].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>';
+    var body = '<div class="quiz-body">' + qs.map(function (q, i) {
+      var qid = q.id; var head2 = '<div class="quiz-q"><div class="quiz-qn">Q' + (i + 1) + '</div><div class="quiz-qtext">' + esc(q.question || '') + '</div>';
+      var input = '';
+      if (q.type === 'mcq') {
+        input = '<div class="quiz-opts">' + (q.options || []).map(function (opt, oi) {
+          var letter = String.fromCharCode(65 + oi);
+          return '<label class="quiz-opt"><input type="radio" name="' + esc(qid) + '" value="' + letter + '"/><span class="qo-letter">' + letter + '</span><span>' + esc(opt) + '</span></label>';
+        }).join('') + '</div>';
+      } else if (q.type === 'true_false') {
+        input = '<div class="quiz-opts row"><label class="quiz-opt"><input type="radio" name="' + esc(qid) + '" value="true"/><span>True</span></label>' +
+          '<label class="quiz-opt"><input type="radio" name="' + esc(qid) + '" value="false"/><span>False</span></label></div>';
+      } else {
+        input = '<input class="quiz-short" name="' + esc(qid) + '" placeholder="Your answer…" autocomplete="off"/>';
+      }
+      return head2 + input + '</div>';
+    }).join('') + '</div>' +
+      '<button class="btn" id="quizSubmit" style="margin-top:8px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Submit answers</span></button>';
+    document.getElementById('quizWrap').innerHTML = head + body;
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var started = Date.now();
+    document.getElementById('quizSubmit').addEventListener('click', function () {
+      var ans = {};
+      qs.forEach(function (q) {
+        var nodes = document.getElementsByName(q.id);
+        if (q.type === 'short') { ans[q.id] = nodes.length ? (nodes[0].value || '').trim() : ''; }
+        else { var checked = null; for (var i = 0; i < nodes.length; i++) { if (nodes[i].checked) { checked = nodes[i]; break; } } if (checked) ans[q.id] = q.type === 'true_false' ? (checked.value === 'true') : checked.value; }
+      });
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Grading…';
+      fetch(API + '/quiz/' + quiz.id + '/submit/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ answers: ans, duration_seconds: Math.round((Date.now() - started) / 1000) }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t grade the quiz.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Submit answers'; return; }
+          renderQuizResult(res.d, quiz);
+        }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Submit answers'; });
+    });
+  }
+  function renderQuizResult(res, quiz) {
+    var pct = res.percentage != null ? res.percentage : (res.total ? Math.round((res.score / res.total) * 100) : 0);
+    var breakdown = res.breakdown || res.results || [];
+    var full = res.questions || quiz.questions || [];
+    var head = '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))">🎯</div>' +
+      '<div style="flex:1;min-width:0"><h2 style="font-size:18px">Results</h2><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:2px">' + esc(quiz.title || 'Quiz') + '</div></div>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>';
+    var scoreCls = pct >= 70 ? 'good' : (pct >= 40 ? 'ok' : 'low');
+    var score = '<div class="quiz-score ' + scoreCls + '"><div class="qs-pct">' + pct + '%</div><div class="qs-sub">' + num(res.score) + ' / ' + num(res.total) + ' correct</div></div>';
+    var byId = {}; breakdown.forEach(function (b) { byId[b.question_id || b.id] = b; });
+    var list = full.map(function (q, i) {
+      var b = byId[q.id] || {};
+      var ok = b.is_correct;
+      var ua = b.user_answer, ca = b.correct_answer != null ? b.correct_answer : q.correct_answer;
+      return '<div class="quiz-res ' + (ok ? 'ok' : 'bad') + '"><div class="qr-top"><span class="qr-badge">' + (ok ? '✓' : '✕') + '</span><span class="qr-q">Q' + (i + 1) + '. ' + esc(q.question || '') + '</span></div>' +
+        '<div class="qr-line">Your answer: <b>' + esc(ua == null || ua === '' ? '—' : String(ua)) + '</b></div>' +
+        (ok ? '' : '<div class="qr-line">Correct: <b>' + esc(String(ca == null ? '' : ca)) + '</b></div>') +
+        ((q.explanation || b.explanation) ? '<div class="qr-exp">' + esc(q.explanation || b.explanation) + '</div>' : '') + '</div>';
+    }).join('');
+    document.getElementById('quizWrap').innerHTML = head + score + '<div class="quiz-body">' + list + '</div>' +
+      '<button class="btn" id="quizDone" style="margin-top:6px"><span>Done</span></button>';
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('quizDone').addEventListener('click', closeModal);
   }
 
   var STUDY_DALE = [];
