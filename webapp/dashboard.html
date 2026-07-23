@@ -592,6 +592,80 @@
   .led-amt { font-family: 'Alfa', serif; font-size: 16px; flex: 0 0 auto; }
   .led-amt.up { color: #4ADE80; } .led-amt.down { color: #FF7A7A; }
 
+  /* ── Arcade: NEON skin ────────────────────────────────────── */
+  .arc-neon { --n-cyan:#00E5FF; --n-magenta:#FF3DCB; --n-purple:#B14BFF; --n-lime:#7CFF6B; --n-gold:#FFD23F;
+    position: relative; min-height: 80vh; margin: -6px -4px 0; padding: 6px 4px; }
+  .arc-neon-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: 22px;
+    background:
+      radial-gradient(120% 80% at 50% -12%, rgba(177,75,255,.22), transparent 58%),
+      radial-gradient(70% 55% at 92% 8%, rgba(0,229,255,.16), transparent 60%),
+      radial-gradient(70% 55% at 6% 26%, rgba(255,61,203,.14), transparent 60%),
+      #08060f; }
+  .arc-neon-bg::before { content: ''; position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(0,229,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,.09) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(130% 100% at 50% 0%, #000 28%, transparent 78%);
+    mask-image: radial-gradient(130% 100% at 50% 0%, #000 28%, transparent 78%); }
+  .arc-neon-in { position: relative; z-index: 1; padding: 6px 14px 24px; }
+
+  .arc-title { text-align: center; padding: 20px 0 24px; }
+  .arc-title-word { display: block; font-family: 'Alfa', serif; font-size: clamp(34px, 6vw, 54px); letter-spacing: 7px;
+    color: #fff; text-shadow: 0 0 5px #fff, 0 0 16px var(--n-cyan), 0 0 36px var(--n-cyan), 0 0 72px rgba(0,229,255,.6); }
+  .arc-title-sub { display: block; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 6px;
+    color: var(--n-magenta); margin-top: 12px; text-shadow: 0 0 10px rgba(255,61,203,.7); }
+
+  .arc-neon .arc-bar { background: rgba(13,9,26,.72); border: 1px solid rgba(0,229,255,.35); border-radius: 16px;
+    box-shadow: 0 0 22px rgba(0,229,255,.16), inset 0 0 24px rgba(177,75,255,.08); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .arc-neon .arc-bar-av { border-radius: 14px; box-shadow: 0 0 0 2px rgba(0,229,255,.55), 0 0 16px rgba(0,229,255,.55); }
+  .arc-neon .arc-bar-tag { color: #fff; text-shadow: 0 0 12px rgba(0,229,255,.45); }
+  .arc-neon .arc-bar-tok { color: var(--n-gold); text-shadow: 0 0 10px rgba(255,210,63,.75), 0 0 26px rgba(255,210,63,.4); }
+  .arc-neon .prof-mini { border-color: rgba(0,229,255,.35); color: var(--n-cyan); background: rgba(0,229,255,.07); }
+  .arc-neon .pillbtn { background: linear-gradient(135deg, var(--n-magenta), var(--n-purple)); border: 0; box-shadow: 0 0 18px rgba(255,61,203,.5); text-transform: uppercase; letter-spacing: .5px; }
+  .arc-neon .coin { filter: drop-shadow(0 0 4px rgba(255,210,63,.55)); }
+
+  .arc-neon .arc-tabs { justify-content: center; margin: 22px 0 6px; }
+  .arc-neon .feed-tab { background: rgba(255,255,255,.03); border: 1px solid rgba(0,229,255,.28); color: #A9C7D6;
+    text-transform: uppercase; letter-spacing: 1.5px; font-size: 11px; padding: 9px 20px; }
+  .arc-neon .feed-tab.active { background: linear-gradient(135deg, rgba(0,229,255,.28), rgba(177,75,255,.28)); border-color: var(--n-cyan);
+    color: #fff; box-shadow: 0 0 18px rgba(0,229,255,.45), inset 0 0 12px rgba(0,229,255,.2); text-shadow: 0 0 8px var(--n-cyan); }
+
+  .arc-neon .pod-medal { filter: drop-shadow(0 0 8px rgba(255,255,255,.4)); }
+  .arc-neon .pod-avwrap { background: none; padding: 3px; border-radius: 50%; box-shadow: 0 0 0 2px currentColor, 0 0 22px currentColor; }
+  .arc-neon .pod1 .pod-avwrap { color: var(--n-gold); } .arc-neon .pod2 .pod-avwrap { color: var(--n-cyan); } .arc-neon .pod3 .pod-avwrap { color: var(--n-magenta); }
+  .arc-neon .pod-av { box-shadow: none; }
+  .arc-neon .pod-name { color: #fff; } .arc-neon .pod-xp { color: #9fb4c9; }
+  .arc-neon .pod-riser { border: 1px solid; border-bottom: 0; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+  .arc-neon .pod-riser span { opacity: 1; }
+  .arc-neon .pod1 .pod-riser { border-color: var(--n-gold); background: linear-gradient(180deg, rgba(255,210,63,.3), rgba(255,210,63,.03)); box-shadow: 0 0 26px rgba(255,210,63,.35), inset 0 0 22px rgba(255,210,63,.12); }
+  .arc-neon .pod1 .pod-riser span { color: var(--n-gold); text-shadow: 0 0 16px rgba(255,210,63,.75); }
+  .arc-neon .pod2 .pod-riser { border-color: var(--n-cyan); background: linear-gradient(180deg, rgba(0,229,255,.24), rgba(0,229,255,.03)); box-shadow: 0 0 22px rgba(0,229,255,.3); }
+  .arc-neon .pod2 .pod-riser span { color: var(--n-cyan); text-shadow: 0 0 14px rgba(0,229,255,.65); }
+  .arc-neon .pod3 .pod-riser { border-color: var(--n-magenta); background: linear-gradient(180deg, rgba(255,61,203,.24), rgba(255,61,203,.03)); box-shadow: 0 0 22px rgba(255,61,203,.3); }
+  .arc-neon .pod3 .pod-riser span { color: var(--n-magenta); text-shadow: 0 0 14px rgba(255,61,203,.65); }
+  .arc-neon .pod.me .pod-name { color: var(--n-lime); text-shadow: 0 0 10px rgba(124,255,107,.6); }
+
+  .arc-neon .rank-row, .arc-neon .arc-stat, .arc-neon .us-row, .arc-neon .led-row { background: rgba(13,9,26,.6); border: 1px solid rgba(0,229,255,.14); }
+  .arc-neon .rank-row:hover { border-color: rgba(0,229,255,.4); box-shadow: 0 0 16px rgba(0,229,255,.14); }
+  .arc-neon .rank-row.me { border-color: var(--n-lime); background: rgba(124,255,107,.06); box-shadow: 0 0 18px rgba(124,255,107,.22); }
+  .arc-neon .rank-n { color: var(--n-cyan); text-shadow: 0 0 10px rgba(0,229,255,.5); }
+  .arc-neon .rank-name, .arc-neon .arc-stat-n { color: #fff; }
+  .arc-neon .rank-row.me .rank-name { color: var(--n-lime); }
+  .arc-neon .rank-score { color: var(--n-gold); text-shadow: 0 0 10px rgba(255,210,63,.4); }
+  .arc-neon .arc-stat-n { text-shadow: 0 0 12px rgba(0,229,255,.4); }
+  .arc-neon .arc-game-ic { background: rgba(0,229,255,.1); box-shadow: 0 0 12px rgba(0,229,255,.15); }
+  .arc-neon .us-row, .arc-neon .led-row, .arc-neon .rank-row { border-radius: 13px; }
+  .arc-neon .us-row { padding: 10px 12px; }
+
+  .arc-neon .wallet-card { background: rgba(13,9,26,.72); border: 1px solid rgba(255,210,63,.4); box-shadow: 0 0 30px rgba(255,210,63,.14), inset 0 0 30px rgba(255,61,203,.06); }
+  .arc-neon .wallet-bal { color: var(--n-gold); text-shadow: 0 0 14px rgba(255,210,63,.65), 0 0 34px rgba(255,210,63,.3); }
+  .arc-neon .btn { background: linear-gradient(135deg, var(--n-cyan), var(--n-purple)); box-shadow: 0 0 22px rgba(0,229,255,.4); text-transform: uppercase; letter-spacing: 1px; }
+  .arc-neon .led-ic.up { background: rgba(124,255,107,.14); color: var(--n-lime); box-shadow: 0 0 12px rgba(124,255,107,.25); }
+  .arc-neon .led-ic.down { background: rgba(255,61,203,.14); color: var(--n-magenta); box-shadow: 0 0 12px rgba(255,61,203,.25); }
+  .arc-neon .led-amt.up { color: var(--n-lime); } .arc-neon .led-amt.down { color: var(--n-magenta); }
+  .arc-neon .eyebrow, .arc-neon .sh-title { color: #cfe6ff; }
+  @media (prefers-reduced-motion: no-preference) { .arc-title-word { animation: neonflicker 5s ease-in-out infinite; } }
+  @keyframes neonflicker { 0%,100% { opacity: 1; } 92% { opacity: 1; } 94% { opacity: .78; } 96% { opacity: 1; } 97% { opacity: .85; } }
+
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
     padding: 10px; border: 1px solid var(--hair); border-radius: 14px; background: rgba(0,0,0,0.15); }
@@ -2639,11 +2713,13 @@
   function coin(n) { return '<span class="coin">🪙</span>' + num(n); }
   function renderArcade() {
     view.innerHTML =
-      '<div class="feed-label"><div><div class="eyebrow">PLAY · EARN · RANK</div><div class="feed-title">Arcade</div></div></div>' +
-      '<div class="arc-bar card glass" id="arcBar"><div class="loading"><div class="spin"></div></div></div>' +
-      '<div class="feed-tabs prof-tabs" id="arcTabs">' +
+      '<div class="arc-neon"><div class="arc-neon-bg"></div><div class="arc-neon-in">' +
+      '<div class="arc-title"><span class="arc-title-word">ARCADE</span><span class="arc-title-sub">PLAY · EARN · RANK</span></div>' +
+      '<div class="arc-bar" id="arcBar"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="feed-tabs arc-tabs" id="arcTabs">' +
         [['ranks', 'Ranks'], ['stats', 'Stats'], ['wallet', 'Wallet']].map(function (t) { return '<button class="feed-tab' + (ARC.tab === t[0] ? ' active' : '') + '" data-at="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
-      '</div><div id="arcBody"></div>';
+      '</div><div id="arcBody"></div>' +
+      '</div></div>';
     document.getElementById('arcTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-at]'); if (!b) return; ARC.tab = b.getAttribute('data-at'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-at') === ARC.tab); }); drawArcBody(); });
     authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcBar(); drawArcBody(); }).catch(function () { ARC.stats = {}; drawArcBar(); drawArcBody(); });
   }
