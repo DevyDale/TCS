@@ -3584,7 +3584,7 @@
         var id = b.getAttribute('data-nav');
         if (id === 'terms' || id === 'privacy') { window.open('terms.html', '_blank', 'noopener'); }
         else if (id === 'about-app') { window.snack('TCS StudentHub · web v1.0 — Taylors College Sydney', 'info', 3500); }
-        else if (id === 'about-dev') { window.snack('Built by LUMORA — Taylors College Social & Arcade', 'info', 3500); }
+        else if (id === 'about-dev') { location.href = 'lumora.html'; }
       });
     });
     document.getElementById('setLogout').addEventListener('click', function () { closeModal(); document.getElementById('logout').click(); });

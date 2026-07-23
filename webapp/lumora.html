@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>LUMORA</title>
+<meta name="theme-color" content="#05050f" />
+<style>
+  @font-face { font-family: 'Alfa'; src: url('assets/fonts/alfa.ttf') format('truetype'); font-display: swap; }
+  @font-face { font-family: 'Arch'; src: url('assets/fonts/arch.ttf') format('truetype'); font-display: swap; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #05050f; }
+
+  /* Deep-space gradient behind the stars */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(60% 45% at 50% 38%, rgba(60,80,160,0.18), transparent 70%),
+      radial-gradient(80% 60% at 80% 90%, rgba(120,60,160,0.14), transparent 70%),
+      #05050f;
+  }
+
+  #sky { position: fixed; inset: 0; z-index: 1; display: block; }
+
+  .stage {
+    position: fixed; inset: 0; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+  }
+  .lumora {
+    font-family: 'Alfa', serif; color: #fff;
+    font-size: clamp(46px, 13vw, 126px);
+    letter-spacing: clamp(6px, 2.6vw, 24px);
+    line-height: 1;
+    text-shadow: 0 0 18px rgba(255,255,255,0.55), 0 0 60px rgba(150,180,255,0.35), 0 0 130px rgba(120,150,255,0.28);
+    opacity: 0; transform: translateY(16px) scale(0.98);
+    animation: rise 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
+  }
+  .tag {
+    font-family: 'Arch', sans-serif; color: rgba(255,255,255,0.42);
+    letter-spacing: 4px; font-size: clamp(9px, 2.6vw, 12px); text-transform: uppercase;
+    margin-top: 24px; opacity: 0; animation: fade 1.5s ease 1s forwards;
+  }
+
+  .back {
+    position: fixed; top: 18px; left: 18px; z-index: 3;
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.82); border-radius: 999px; padding: 9px 15px 9px 11px;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .back:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .back svg { width: 16px; height: 16px; fill: currentColor; }
+
+  @keyframes rise { to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .lumora, .tag { animation-duration: 0.01ms !important; opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="sky"></canvas>
+  <button class="back" type="button" onclick="if(history.length>1){history.back()}else{location.href='dashboard.html'}">
+    <svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Back
+  </button>
+  <main class="stage">
+    <h1 class="lumora">LUMORA</h1>
+    <div class="tag">Taylors College &nbsp;·&nbsp; Social &amp; Arcade</div>
+  </main>
+
+<script>
+  (function () {
+    var cv = document.getElementById('sky'), g = cv.getContext('2d');
+    var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var stars = [], shooters = [], last = performance.now(), nextShoot = 900;
+
+    function resize() {
+      W = window.innerWidth; H = window.innerHeight;
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      cv.width = W * dpr; cv.height = H * dpr;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      build();
+    }
+    function build() {
+      stars = [];
+      var n = Math.min(280, Math.round(W * H / 5200));
+      for (var i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 1.3 + 0.3,
+          a: Math.random() * 0.55 + 0.25,
+          tw: Math.random() * 1.8 + 0.4,
+          ph: Math.random() * 6.283
+        });
+      }
+    }
+    // A shooting star: starts off/near the top, streaks diagonally down across the sky.
+    function spawn() {
+      var dir = Math.random() < 0.5 ? 1 : -1;                 // travel right or left
+      var ang = (Math.PI / 4) * (0.55 + Math.random() * 0.6); // ~25–52° downward
+      var sp = 620 + Math.random() * 440;
+      var sx = dir > 0 ? (-90 + Math.random() * W * 0.45) : (W * 0.55 + Math.random() * W * 0.6);
+      var sy = -70 + Math.random() * H * 0.35;
+      shooters.push({ x: sx, y: sy, vx: Math.cos(ang) * sp * dir, vy: Math.sin(ang) * sp, len: 150 + Math.random() * 190, life: 1 });
+    }
+    function frame(now) {
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; var t = now / 1000;
+      g.clearRect(0, 0, W, H);
+
+      // twinkling stars
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var a = s.a * (0.45 + 0.55 * Math.sin(t * s.tw + s.ph));
+        if (a <= 0) continue;
+        g.globalAlpha = a; g.fillStyle = '#fff';
+        g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill();
+      }
+      g.globalAlpha = 1;
+
+      // occasional shooting stars
+      nextShoot -= dt * 1000;
+      if (nextShoot <= 0) { spawn(); nextShoot = 2600 + Math.random() * 4600; }
+      for (var k = shooters.length - 1; k >= 0; k--) {
+        var sh = shooters[k];
+        sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.life -= dt * 0.32;
+        var head = Math.max(0, Math.min(1, sh.life));
+        var mag = Math.hypot(sh.vx, sh.vy);
+        var tx = sh.x - sh.vx / mag * sh.len, ty = sh.y - sh.vy / mag * sh.len;
+        var grad = g.createLinearGradient(sh.x, sh.y, tx, ty);
+        grad.addColorStop(0, 'rgba(255,255,255,' + head + ')');
+        grad.addColorStop(0.4, 'rgba(185,205,255,' + (head * 0.45) + ')');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        g.strokeStyle = grad; g.lineWidth = 2; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(sh.x, sh.y); g.lineTo(tx, ty); g.stroke();
+        g.globalAlpha = head; g.fillStyle = '#fff';
+        g.beginPath(); g.arc(sh.x, sh.y, 1.9, 0, 6.283); g.fill(); g.globalAlpha = 1;
+        if (sh.life <= 0 || sh.x < -220 || sh.x > W + 220 || sh.y > H + 220) shooters.splice(k, 1);
+      }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame(frame);
+  })();
+</script>
+</body>
+</html>
