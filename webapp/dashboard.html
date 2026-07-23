@@ -482,6 +482,34 @@
   .pstat[data-follow]:hover { background: var(--glass-2); }
   .pstat-n { font-family: 'Alfa', serif; font-size: 22px; }
   .pstat-l { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 4px; }
+
+  /* ── Profile: spotlight redesign ──────────────────────────── */
+  .prof2 { max-width: 640px; }
+  .prof2-cover { position: relative; height: 168px; border-radius: 24px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,.32); }
+  .prof2-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(8,6,20,.75)); }
+  .prof2-icon { position: absolute; top: 14px; width: 38px; height: 38px; border: 0; border-radius: 12px; cursor: pointer; z-index: 2;
+    background: rgba(0,0,0,0.42); color: #fff; display: grid; place-items: center; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .prof2-icon svg { width: 18px; height: 18px; }
+  #pfCover { right: 60px; } #pfSettings { right: 14px; }
+  .prof2-hero { position: relative; z-index: 3; text-align: center; margin-top: -66px; padding: 0 16px; }
+  .prof2-avwrap { width: 124px; height: 124px; margin: 0 auto; position: relative; border-radius: 50%; padding: 4px;
+    background: conic-gradient(from 210deg, var(--g1), var(--g2), var(--g3), var(--g4), var(--g1)); box-shadow: 0 10px 30px rgba(142,84,233,.35); }
+  .prof2-av { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 4px solid var(--bg1); background: var(--bg2); }
+  .prof2-av .av { width: 100%; height: 100%; border-radius: 0; font-size: 44px; }
+  .prof2-avwrap .prof-av-edit { position: absolute; right: 6px; bottom: 6px; width: 34px; height: 34px; border: 3px solid var(--bg1); border-radius: 50%;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); display: grid; place-items: center; cursor: pointer; }
+  .prof2-avwrap .prof-av-edit svg { width: 15px; height: 15px; }
+  .prof2-lvl { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); background: linear-gradient(135deg, var(--g3), var(--g4));
+    color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; letter-spacing: .5px; padding: 3px 11px; border-radius: 999px; border: 2px solid var(--bg1); white-space: nowrap; box-shadow: 0 4px 12px rgba(255,88,88,.4); }
+  .prof2-name { font-family: 'Alfa', serif; font-size: 25px; margin-top: 18px; line-height: 1.15; }
+  .prof2-name .rolechip { font-size: 9px; vertical-align: middle; }
+  .prof2-handle { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); margin-top: 7px; }
+  .prof2-edit { margin-top: 16px; }
+  .prof2-rail { display: flex; padding: 4px; margin: 22px 0 0; }
+  .prof2-rail .pstat { flex: 1; background: none; border: 0; border-radius: 0; padding: 14px 6px; position: relative; }
+  .prof2-rail .pstat + .pstat::before { content: ''; position: absolute; left: 0; top: 22%; bottom: 22%; width: 1px; background: var(--hair); }
+  .prof2-rail .pstat[data-follow]:hover { background: var(--glass); border-radius: 14px; }
+  .prof2 .card, .prof2 .prof-tabs { margin-left: 0; margin-right: 0; }
   .prof-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 4px 0; }
   .prof-link { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 999px; text-decoration: none;
     background: var(--glass); border: 1px solid var(--hair); color: var(--ink); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
@@ -3320,22 +3348,24 @@
     var interests = Array.isArray(u.interests) ? u.interests : [];
     var links = socialLinks(u);
     var cover = u.cover_url ? 'url(' + esc(u.cover_url) + ') center/cover' : PROF_COVERS[0];
-    var html = '<div class="prof-wrap">' +
-      '<div class="prof-cover" style="background:' + cover + '">' +
-        '<button class="prof-cover-edit" id="pfCover" title="Change cover"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="currentColor"/></svg></button>' +
-        '<div class="prof-cover-btns"><button class="pillbtn" id="pfSettings">⚙︎ Settings</button></div>' +
+    var level = num(u.level != null ? u.level : 1);
+    var html = '<div class="prof-wrap prof2">' +
+      '<div class="prof2-cover" style="background:' + cover + '">' +
+        '<button class="prof2-icon" id="pfCover" title="Change cover"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="currentColor"/></svg></button>' +
+        '<button class="prof2-icon" id="pfSettings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.62.06-.94s-.02-.64-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.3-.06.62-.06.94s.02.64.06.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.44.33.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.11.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" fill="currentColor"/></svg></button>' +
       '</div>' +
-      '<div class="prof-headrow">' +
-        '<div class="prof-avwrap"><div class="prof-av">' + avatar(u.avatar_url, name) + '</div>' +
+      '<div class="prof2-hero">' +
+        '<div class="prof2-avwrap"><div class="prof2-av">' + avatar(u.avatar_url, name) + '</div>' +
           '<button class="prof-av-edit" id="pfAvatar" title="Change photo"><svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9z" fill="#fff"/></svg></button>' +
+          '<span class="prof2-lvl">LV ' + level + '</span>' +
           '<input type="file" id="pfAvatarFile" accept="image/*" style="display:none"/><input type="file" id="pfCoverFile" accept="image/*" style="display:none"/></div>' +
-        '<div class="prof-id"><div class="prof-name">' + esc(name) + (role ? ' <span class="rolechip">' + esc(role.toUpperCase()) + '</span>' : '') + '</div>' +
-          '<div class="prof-handle">@' + esc(u.user_id || u.email || 'me') + (u.location ? ' · 📍 ' + esc(u.location) : '') + '</div></div>' +
-        '<button class="pillbtn prof-editbtn" id="pfEdit">✎ Edit profile</button>' +
+        '<div class="prof2-name">' + esc(name) + (role ? ' <span class="rolechip">' + esc(role.toUpperCase()) + '</span>' : '') + '</div>' +
+        '<div class="prof2-handle">@' + esc(u.user_id || u.email || 'me') + (u.location ? ' &nbsp;·&nbsp; 📍 ' + esc(u.location) : '') + '</div>' +
+        '<button class="pillbtn prof2-edit" id="pfEdit">✎ Edit profile</button>' +
       '</div>' +
-      '<div class="prof-statbar">' +
-        statCell(u.level != null ? u.level : 1, 'Level') + statCell(u.tokens, 'Tokens') +
+      '<div class="prof2-rail card glass">' +
         statCell(u.followers_count, 'Followers', 'followers') + statCell(u.following_count, 'Following', 'following') +
+        statCell(u.tokens, 'Tokens') + statCell(u.xp != null ? u.xp : 0, 'XP') +
       '</div>';
     // About Me — bio + interests woven together, with one Edit button
     var aboutTxt = aboutCached(u) || u.bio || '';
@@ -3366,8 +3396,7 @@
     document.getElementById('pfGenAbout').addEventListener('click', generateAbout);
     document.getElementById('pfEditAbout').addEventListener('click', openEditAbout);
     document.getElementById('pfEditSocials').addEventListener('click', openEditSocials);
-    document.querySelectorAll('#pfTabBody, .prof-statbar [data-follow]').forEach(function () {});
-    document.querySelectorAll('.prof-statbar [data-follow]').forEach(function (c) { c.addEventListener('click', function () { openFollows(c.getAttribute('data-follow')); }); });
+    document.querySelectorAll('.prof2-rail [data-follow]').forEach(function (c) { c.addEventListener('click', function () { openFollows(c.getAttribute('data-follow')); }); });
     document.getElementById('pfTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-pt]'); if (!b) return; PROFILE.tab = b.getAttribute('data-pt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); loadProfileTab(); });
     loadProfileTab();
   }
