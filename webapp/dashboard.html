@@ -623,6 +623,17 @@
   .arc-neon .pillbtn { background: linear-gradient(135deg, var(--n-magenta), var(--n-purple)); border: 0; box-shadow: 0 0 18px rgba(255,61,203,.5); text-transform: uppercase; letter-spacing: .5px; }
   .arc-neon .coin { filter: drop-shadow(0 0 4px rgba(255,210,63,.55)); }
 
+  /* Hub section headers */
+  .arc-neon .arc-sec { display: flex; align-items: center; gap: 10px; margin: 30px 0 16px; }
+  .arc-neon .arc-sec-ic { font-size: 18px; filter: drop-shadow(0 0 8px rgba(0,229,255,.5)); }
+  .arc-neon .arc-sec-lbl { font-family: 'Alfa', serif; font-size: 15px; letter-spacing: 2px; text-transform: uppercase; color: #fff; text-shadow: 0 0 12px rgba(0,229,255,.45); white-space: nowrap; }
+  .arc-neon .arc-sec-rule { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,229,255,.5), rgba(177,75,255,.3), transparent); box-shadow: 0 0 8px rgba(0,229,255,.3); }
+  .arc-neon #arcGames { margin-bottom: 6px; }
+  .arc-neon .wallet-recent-head { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 12px; font-family: 'Momo', sans-serif; font-size: 12px; }
+  .arc-neon .wallet-toggle { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(0,229,255,.06); border: 1px solid rgba(0,229,255,.2); }
+  .arc-neon .wt-btn { border: 0; background: none; cursor: pointer; padding: 5px 13px; border-radius: 999px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; color: #9fb4c9; }
+  .arc-neon .wt-btn.active { background: linear-gradient(135deg, var(--n-cyan), var(--n-purple)); color: #fff; box-shadow: 0 0 12px rgba(0,229,255,.4); }
+  .arc-neon .arc-recent { margin-top: 14px; }
   .arc-neon .arc-tabs { justify-content: center; margin: 22px 0 6px; }
   .arc-neon .feed-tab { background: rgba(255,255,255,.03); border: 1px solid rgba(0,229,255,.28); color: #A9C7D6;
     text-transform: uppercase; letter-spacing: 1.5px; font-size: 11px; padding: 9px 20px; }
@@ -2778,23 +2789,26 @@
   // ── ARCADE (tokens, ranks, stats, wallet — games live on mobile) ──
   var ARC = { tab: 'games', stats: null };
   function coin(n) { return '<span class="coin">🪙</span>' + num(n); }
+  function arcSec(ic, label, extra) { return '<div class="arc-sec"><span class="arc-sec-ic">' + ic + '</span><span class="arc-sec-lbl">' + label + '</span>' + (extra || '') + '<span class="arc-sec-rule"></span></div>'; }
   function renderArcade() {
     view.innerHTML =
       '<div class="arc-neon"><div class="arc-neon-bg"></div><div class="arc-neon-in">' +
       '<div class="arc-title"><span class="arc-title-word">ARCADE</span><span class="arc-title-sub">PLAY · EARN · RANK</span></div>' +
       '<div class="arc-bar" id="arcBar"><div class="loading"><div class="spin"></div></div></div>' +
-      '<div class="feed-tabs arc-tabs" id="arcTabs">' +
-        [['games', 'Games'], ['ranks', 'Ranks'], ['stats', 'Stats'], ['wallet', 'Wallet']].map(function (t) { return '<button class="feed-tab' + (ARC.tab === t[0] ? ' active' : '') + '" data-at="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
-      '</div><div id="arcBody"></div>' +
+      arcSec('🎮', 'Games') + '<div id="arcGames"><div class="loading"><div class="spin"></div></div></div>' +
+      arcSec('🏆', 'Leaderboard') + '<div id="arcRanks"><div class="loading"><div class="spin"></div></div></div>' +
+      arcSec('🪙', 'Wallet') + '<div id="arcWallet"><div class="loading"><div class="spin"></div></div></div>' +
+      arcSec('📊', 'Your Stats') + '<div id="arcStats"><div class="loading"><div class="spin"></div></div></div>' +
       '</div></div>';
-    document.getElementById('arcTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-at]'); if (!b) return; ARC.tab = b.getAttribute('data-at'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-at') === ARC.tab); }); drawArcBody(); });
-    authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcBar(); drawArcBody(); }).catch(function () { ARC.stats = {}; drawArcBar(); drawArcBody(); });
+    renderGamesInto(document.getElementById('arcGames'));
+    fillRanks();
+    authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcBar(); fillStats(); fillWallet(); }).catch(function () { ARC.stats = {}; drawArcBar(); fillStats(); fillWallet(); });
   }
   function drawArcBar() {
     var s = ARC.stats || {}; var u = cachedUser() || {};
     var tag = s.gamer_tag || u.gamer_tag || '';
-    var av = u.arcade_avatar_url || u.avatar_url;
-    document.getElementById('arcBar').innerHTML =
+    var av = u.arcade_avatar_url || u.avatar_url; var bar = document.getElementById('arcBar'); if (!bar) return;
+    bar.innerHTML =
       '<div class="arc-bar-id">' + avatar(av, tag || (u.name || 'P'), 'arc-bar-av') +
         '<div style="min-width:0"><div class="arc-bar-tag">' + (tag ? esc(tag) : '<span class="faint">Set gamer tag</span>') + '<button class="prof-mini" id="arcEditTag" style="margin-left:8px">✎</button></div>' +
           '<div class="arc-bar-sub faint">Lv ' + num(s.level != null ? s.level : (u.level || 1)) + ' · ' + num(s.total_games) + ' games · ' + num(s.win_rate) + '% win</div></div></div>' +
@@ -2803,76 +2817,73 @@
     document.getElementById('arcEditTag').addEventListener('click', openEditGamerTag);
     document.getElementById('arcSend').addEventListener('click', openSendTokens);
   }
-  function drawArcBody() {
-    var body = document.getElementById('arcBody'); if (!body) return;
-    body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
-    if (ARC.tab === 'games') { renderGamesTab(); return; }
-    if (ARC.tab === 'ranks') {
-      authFetch('/arcade/leaderboard/?limit=30').then(function (r) {
-        var el = document.getElementById('arcBody'); if (!el) return;
-        if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the leaderboard.'); return; }
-        var rows = listOf(r.d); var meId = (cachedUser() || {}).user_id;
-        if (!rows.length) { el.innerHTML = empty('No rankings yet.'); return; }
-        function isMe(p) { return p && p.user_id && meId && String(p.user_id) === String(meId); }
-        function podCol(p, place) {
-          if (!p) return '<div class="pod pod' + place + ' empty"></div>';
-          var medal = place === 1 ? '🥇' : place === 2 ? '🥈' : '🥉';
-          return '<div class="pod pod' + place + (isMe(p) ? ' me' : '') + '">' +
-            '<div class="pod-medal">' + medal + '</div>' +
-            '<div class="pod-avwrap">' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'pod-av') + '</div>' +
-            '<div class="pod-name">' + esc((p.gamer_tag || p.display_name || 'Player')) + '</div>' +
-            '<div class="pod-xp">' + num(p.score) + ' XP</div>' +
-            '<div class="pod-riser"><span>' + place + '</span></div></div>';
-        }
-        var podium = '<div class="podium">' + podCol(rows[1], 2) + podCol(rows[0], 1) + podCol(rows[2], 3) + '</div>';
-        var rest = rows.slice(3);
-        var list = rest.length ? '<div class="rank-list">' + rest.map(function (p) {
-          return '<div class="rank-row' + (isMe(p) ? ' me' : '') + '"><div class="rank-n">#' + num(p.rank) + '</div>' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'rank-av') +
-            '<div class="rank-meta"><div class="rank-name">' + esc(p.gamer_tag || p.display_name || 'Player') + (isMe(p) ? ' <span class="rolechip">YOU</span>' : '') + '</div>' +
-            '<div class="rank-sub faint">Lv ' + num(p.level) + ' · ' + coin(p.tokens) + '</div></div>' +
-            '<div class="rank-score">' + num(p.score) + '<span> XP</span></div></div>';
-        }).join('') + '</div>' : '';
-        el.innerHTML = podium + list;
-      }).catch(function () { var el = document.getElementById('arcBody'); if (el) el.innerHTML = empty('Couldn’t load the leaderboard.'); });
-    } else if (ARC.tab === 'stats') {
-      var s = ARC.stats || {};
-      var html = '<div class="arc-statgrid">' +
-        arcStat(s.total_games, 'Games played') + arcStat(s.total_wins, 'Wins') + arcStat(s.total_losses, 'Losses') +
-        arcStat((s.win_rate != null ? s.win_rate : 0) + '%', 'Win rate') + arcStat(s.total_xp != null ? s.total_xp : 0, 'Total XP') + arcStat(s.level != null ? s.level : 1, 'Level') + '</div>';
-      html += '<div class="sec-head" style="margin-top:22px"><div><span class="eyebrow">HISTORY</span><span class="sh-title">Recent games</span></div></div>';
-      var recent = s.recent || [];
-      html += recent.length ? '<div>' + recent.map(function (g) {
-        return '<div class="us-row" style="margin-bottom:8px"><div class="arc-game-ic">🎮</div><div class="us-meta"><div class="us-name">' + esc(g.game || 'Game') + '</div><div class="us-sub faint">' + esc(timeAgo(g.played_at)) + '</div></div><div class="rank-score">' + num(g.score) + '<span> pts</span></div></div>';
-      }).join('') + '</div>' : empty('No games played yet — jump into the Arcade on the mobile app to start earning.');
-      body.innerHTML = html;
-    } else {
-      body.innerHTML =
-        '<div class="wallet-card card glass"><div class="wallet-bal">' + coin((ARC.stats || {}).tokens != null ? ARC.stats.tokens : (cachedUser() || {}).tokens) + '</div><div class="wallet-lbl faint">Your token balance</div>' +
-          '<button class="btn" id="wSend" style="max-width:220px;margin:14px auto 0">Send tokens</button></div>' +
-        '<div class="feed-tabs" id="wTabs" style="margin:16px 0 14px"><button class="feed-tab active" data-wt="ledger">Earnings</button><button class="feed-tab" data-wt="transfers">Transfers</button></div>' +
-        '<div id="wBody"><div class="loading"><div class="spin"></div></div></div>';
-      document.getElementById('wSend').addEventListener('click', openSendTokens);
-      var wmode = 'ledger';
-      function wload() {
-        var el = document.getElementById('wBody'); el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
-        authFetch(wmode === 'ledger' ? '/arcade/tokens/history/' : '/arcade/tokens/transfers/').then(function (r) {
-          var e2 = document.getElementById('wBody'); if (!e2) return;
-          if (!r.ok) { e2.innerHTML = empty('Couldn’t load.'); return; }
-          var rows = listOf(r.d);
-          if (!rows.length) { e2.innerHTML = empty(wmode === 'ledger' ? 'No token activity yet.' : 'No transfers yet.'); return; }
-          if (wmode === 'ledger') e2.innerHTML = rows.map(function (t) {
-            var d = num(t.delta); var pos = d >= 0;
-            return '<div class="led-row"><div class="led-ic ' + (pos ? 'up' : 'down') + '">' + (pos ? '↑' : '↓') + '</div><div class="us-meta"><div class="us-name">' + esc(t.reason || (pos ? 'Earned' : 'Spent')) + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (pos ? 'up' : 'down') + '">' + (pos ? '+' : '') + d + '</div></div>';
-          }).join('');
-          else e2.innerHTML = rows.map(function (t) {
-            var meId = (cachedUser() || {}).user_id; var out = t.sender_id ? String(t.sender_id) === String(meId) : true;
-            return '<div class="led-row"><div class="led-ic ' + (out ? 'down' : 'up') + '">' + (out ? '↗' : '↙') + '</div><div class="us-meta"><div class="us-name">' + (out ? 'To ' : 'From ') + esc(t.recipient_name || t.sender_name || 'someone') + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (out ? 'down' : 'up') + '">' + (out ? '-' : '+') + num(t.amount) + '</div></div>';
-          }).join('');
-        }).catch(function () { var e2 = document.getElementById('wBody'); if (e2) e2.innerHTML = empty('Couldn’t load.'); });
+  function fillRanks() {
+    var el = document.getElementById('arcRanks'); if (!el) return;
+    authFetch('/arcade/leaderboard/?limit=8').then(function (r) {
+      var el2 = document.getElementById('arcRanks'); if (!el2) return;
+      if (!r.ok) { el2.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the leaderboard.'); return; }
+      var rows = listOf(r.d); var meId = (cachedUser() || {}).user_id;
+      if (!rows.length) { el2.innerHTML = empty('No rankings yet — play a game to get on the board!'); return; }
+      function isMe(p) { return p && p.user_id && meId && String(p.user_id) === String(meId); }
+      function podCol(p, place) {
+        if (!p) return '<div class="pod pod' + place + ' empty"></div>';
+        var medal = place === 1 ? '🥇' : place === 2 ? '🥈' : '🥉';
+        return '<div class="pod pod' + place + (isMe(p) ? ' me' : '') + '"><div class="pod-medal">' + medal + '</div>' +
+          '<div class="pod-avwrap">' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'pod-av') + '</div>' +
+          '<div class="pod-name">' + esc(p.gamer_tag || p.display_name || 'Player') + '</div><div class="pod-xp">' + num(p.score) + ' XP</div>' +
+          '<div class="pod-riser"><span>' + place + '</span></div></div>';
       }
-      document.getElementById('wTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-wt]'); if (!b) return; wmode = b.getAttribute('data-wt'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-wt') === wmode); }); wload(); });
-      wload();
+      var podium = '<div class="podium">' + podCol(rows[1], 2) + podCol(rows[0], 1) + podCol(rows[2], 3) + '</div>';
+      var rest = rows.slice(3);
+      var list = rest.length ? '<div class="rank-list">' + rest.map(function (p) {
+        return '<div class="rank-row' + (isMe(p) ? ' me' : '') + '"><div class="rank-n">#' + num(p.rank) + '</div>' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'rank-av') +
+          '<div class="rank-meta"><div class="rank-name">' + esc(p.gamer_tag || p.display_name || 'Player') + (isMe(p) ? ' <span class="rolechip">YOU</span>' : '') + '</div>' +
+          '<div class="rank-sub faint">Lv ' + num(p.level) + ' · ' + coin(p.tokens) + '</div></div><div class="rank-score">' + num(p.score) + '<span> XP</span></div></div>';
+      }).join('') + '</div>' : '';
+      el2.innerHTML = podium + list;
+    }).catch(function () { var el2 = document.getElementById('arcRanks'); if (el2) el2.innerHTML = empty('Couldn’t load the leaderboard.'); });
+  }
+  function fillStats() {
+    var el = document.getElementById('arcStats'); if (!el) return;
+    var s = ARC.stats || {};
+    var html = '<div class="arc-statgrid">' +
+      arcStat(s.total_games, 'Games played') + arcStat(s.total_wins, 'Wins') + arcStat(s.total_losses, 'Losses') +
+      arcStat((s.win_rate != null ? s.win_rate : 0) + '%', 'Win rate') + arcStat(s.total_xp != null ? s.total_xp : 0, 'Total XP') + arcStat(s.level != null ? s.level : 1, 'Level') + '</div>';
+    var recent = s.recent || [];
+    if (recent.length) html += '<div class="arc-recent">' + recent.slice(0, 5).map(function (g) {
+      return '<div class="us-row" style="margin-bottom:8px"><div class="arc-game-ic">🎮</div><div class="us-meta"><div class="us-name">' + esc(g.game || 'Game') + '</div><div class="us-sub faint">' + esc(timeAgo(g.played_at)) + '</div></div><div class="rank-score">' + num(g.score) + '<span> pts</span></div></div>';
+    }).join('') + '</div>';
+    el.innerHTML = html;
+  }
+  function fillWallet() {
+    var el = document.getElementById('arcWallet'); if (!el) return;
+    var bal = (ARC.stats || {}).tokens != null ? ARC.stats.tokens : (cachedUser() || {}).tokens;
+    el.innerHTML =
+      '<div class="wallet-card card glass"><div class="wallet-bal">' + coin(bal) + '</div><div class="wallet-lbl faint">Your token balance</div>' +
+        '<button class="btn" id="wSend" style="max-width:220px;margin:14px auto 0">Send tokens</button></div>' +
+      '<div class="wallet-recent-head"><span class="faint">Recent activity</span><div class="wallet-toggle" id="wTog"><button class="wt-btn active" data-wt="ledger">Earnings</button><button class="wt-btn" data-wt="transfers">Transfers</button></div></div>' +
+      '<div id="wBody"><div class="loading"><div class="spin"></div></div></div>';
+    document.getElementById('wSend').addEventListener('click', openSendTokens);
+    var wmode = 'ledger';
+    function wload() {
+      var b = document.getElementById('wBody'); b.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+      authFetch(wmode === 'ledger' ? '/arcade/tokens/history/' : '/arcade/tokens/transfers/').then(function (r) {
+        var e2 = document.getElementById('wBody'); if (!e2) return;
+        if (!r.ok) { e2.innerHTML = empty('Couldn’t load.'); return; }
+        var rows = listOf(r.d).slice(0, 6);
+        if (!rows.length) { e2.innerHTML = empty(wmode === 'ledger' ? 'No token activity yet.' : 'No transfers yet.'); return; }
+        if (wmode === 'ledger') e2.innerHTML = rows.map(function (t) {
+          var d = num(t.delta); var pos = d >= 0;
+          return '<div class="led-row"><div class="led-ic ' + (pos ? 'up' : 'down') + '">' + (pos ? '↑' : '↓') + '</div><div class="us-meta"><div class="us-name">' + esc(t.reason || (pos ? 'Earned' : 'Spent')) + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (pos ? 'up' : 'down') + '">' + (pos ? '+' : '') + d + '</div></div>';
+        }).join('');
+        else e2.innerHTML = rows.map(function (t) {
+          var meId = (cachedUser() || {}).user_id; var out = t.sender_id ? String(t.sender_id) === String(meId) : true;
+          return '<div class="led-row"><div class="led-ic ' + (out ? 'down' : 'up') + '">' + (out ? '↗' : '↙') + '</div><div class="us-meta"><div class="us-name">' + (out ? 'To ' : 'From ') + esc(t.recipient_name || t.sender_name || 'someone') + '</div><div class="us-sub faint">' + esc(timeAgo(t.created_at)) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div><div class="led-amt ' + (out ? 'down' : 'up') + '">' + (out ? '-' : '+') + num(t.amount) + '</div></div>';
+        }).join('');
+      }).catch(function () { var e2 = document.getElementById('wBody'); if (e2) e2.innerHTML = empty('Couldn’t load.'); });
     }
+    document.getElementById('wTog').addEventListener('click', function (e) { var b = e.target.closest('[data-wt]'); if (!b) return; wmode = b.getAttribute('data-wt'); this.querySelectorAll('.wt-btn').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-wt') === wmode); }); wload(); });
+    wload();
   }
   function arcStat(n, l) { return '<div class="arc-stat"><div class="arc-stat-n">' + (typeof n === 'string' ? n : num(n)) + '</div><div class="arc-stat-l">' + l + '</div></div>'; }
   function openEditGamerTag() {
@@ -2911,7 +2922,7 @@
         .then(function (res) {
           if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t send tokens.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; return; }
           closeModal(); window.snack('Sent ' + amt + ' tokens! 🪙', 'ok');
-          authFetch('/arcade/stats/').then(function (rr) { if (rr.ok) { ARC.stats = rr.d; drawArcBar(); if (ARC.tab === 'wallet') drawArcBody(); } });
+          authFetch('/arcade/stats/').then(function (rr) { if (rr.ok) { ARC.stats = rr.d; drawArcBar(); if (document.getElementById('arcWallet')) fillWallet(); } });
         }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; });
     });
   }
@@ -2930,13 +2941,12 @@
     { slug: 'number-guesser', name: 'Number Guesser', icon: '🔢', tag: 'Guess in the fewest tries', build: gameGuesser }
   ];
   var GAME = { iv: null, raf: null, keys: null, cleanup: [] };
-  function renderGamesTab() {
-    var el = document.getElementById('arcBody'); if (!el) return;
+  function renderGamesInto(el) {
+    if (!el) return;
     el.innerHTML = '<div class="game-grid">' + WEB_GAMES.map(function (g) {
       return '<button class="game-card" data-game="' + g.slug + '"><span class="gc-ic">' + g.icon + '</span>' +
         '<span class="gc-name">' + esc(g.name) + '</span><span class="gc-tag faint">' + esc(g.tag) + '</span><span class="gc-play">PLAY ▸</span></button>';
-    }).join('') + '</div>' +
-    '<p class="game-note faint">Every score earns XP + tokens and ranks you on the podium. More games are playable in the mobile app.</p>';
+    }).join('') + '</div>';
     el.querySelectorAll('[data-game]').forEach(function (b) { b.addEventListener('click', function () { var g = WEB_GAMES.filter(function (x) { return x.slug === b.getAttribute('data-game'); })[0]; openGame(g); }); });
   }
   function clearGameLoops() {
