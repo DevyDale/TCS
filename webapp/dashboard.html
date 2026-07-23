@@ -540,16 +540,36 @@
 
   /* ── Arcade ───────────────────────────────────────────────── */
   .coin { margin-right: 3px; }
-  .arc-hero { padding: 20px; background: linear-gradient(135deg, rgba(142,84,233,.18), rgba(109,213,250,.10)); border: 1px solid var(--hair-2); }
-  .arc-hero-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .arc-av { position: relative; flex: 0 0 auto; } .arc-av .av { width: 68px; height: 68px; border-radius: 20px; font-size: 26px; }
-  .arc-lvl { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--g3), var(--g4)); color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; padding: 2px 9px; border-radius: 999px; border: 2px solid var(--bg1); white-space: nowrap; }
-  .arc-id { flex: 1; min-width: 160px; }
-  .arc-tag { font-family: 'Alfa', serif; font-size: 21px; display: flex; align-items: center; }
-  .arc-xp { font-family: 'Momo', sans-serif; font-size: 12px; margin-top: 6px; }
-  .arc-tokens { text-align: center; flex: 0 0 auto; }
-  .arc-tok-n { font-family: 'Alfa', serif; font-size: 26px; color: #FFD37A; }
-  .arc-tok-l { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); }
+  .arc-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; }
+  .arc-bar-id { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .arc-bar-av { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; font-size: 18px; }
+  .arc-bar-tag { font-family: 'Alfa', serif; font-size: 17px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .arc-bar-sub { font-family: 'Momo', sans-serif; font-size: 11.5px; margin-top: 3px; }
+  .arc-bar-spend { text-align: right; flex: 0 0 auto; }
+  .arc-bar-tok { font-family: 'Alfa', serif; font-size: 22px; color: #FFD37A; line-height: 1; }
+  .arc-bar-tok-l { font-family: 'Momo', sans-serif; font-size: 10.5px; margin-top: 2px; }
+  .arc-bar .pillbtn { flex: 0 0 auto; }
+
+  /* Podium */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; margin: 18px 0 22px; }
+  .pod { flex: 1 1 0; max-width: 158px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .pod.empty { visibility: hidden; }
+  .pod-medal { font-size: 22px; }
+  .pod-avwrap { padding: 3px; border-radius: 50%; margin-top: 4px; background: linear-gradient(135deg, var(--hair-2), var(--hair)); }
+  .pod-av { width: 54px; height: 54px; font-size: 20px; }
+  .pod1 .pod-avwrap { background: linear-gradient(135deg, #FFD86B, #F7971E); padding: 4px; }
+  .pod1 .pod-av { width: 66px; height: 66px; }
+  .pod2 .pod-avwrap { background: linear-gradient(135deg, #E6ECF5, #9DB0C7); }
+  .pod3 .pod-avwrap { background: linear-gradient(135deg, #F0B27A, #C77B3B); }
+  .pod-name { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 13px; margin-top: 8px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pod.me .pod-name { color: var(--g1); }
+  .pod-xp { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); margin-top: 2px; }
+  .pod-riser { width: 100%; border-radius: 14px 14px 0 0; margin-top: 12px; display: grid; place-items: center; border: 1px solid var(--hair); border-bottom: 0; }
+  .pod-riser span { font-family: 'Alfa', serif; font-size: 26px; opacity: .5; }
+  .pod1 .pod-riser { height: 96px; background: linear-gradient(180deg, rgba(247,151,30,.35), rgba(247,151,30,.06)); }
+  .pod2 .pod-riser { height: 70px; background: linear-gradient(180deg, rgba(157,176,199,.3), rgba(157,176,199,.05)); }
+  .pod3 .pod-riser { height: 54px; background: linear-gradient(180deg, rgba(199,123,59,.3), rgba(199,123,59,.05)); }
+  .rank-list { }
   .arc-statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
   .arc-stat { text-align: center; padding: 18px 10px; border-radius: 16px; background: var(--glass); border: 1px solid var(--hair); }
   .arc-stat-n { font-family: 'Alfa', serif; font-size: 24px; }
@@ -2620,25 +2640,23 @@
   function renderArcade() {
     view.innerHTML =
       '<div class="feed-label"><div><div class="eyebrow">PLAY · EARN · RANK</div><div class="feed-title">Arcade</div></div></div>' +
-      '<div class="arc-hero card glass" id="arcHero"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="arc-bar card glass" id="arcBar"><div class="loading"><div class="spin"></div></div></div>' +
       '<div class="feed-tabs prof-tabs" id="arcTabs">' +
         [['ranks', 'Ranks'], ['stats', 'Stats'], ['wallet', 'Wallet']].map(function (t) { return '<button class="feed-tab' + (ARC.tab === t[0] ? ' active' : '') + '" data-at="' + t[0] + '">' + t[1] + '</button>'; }).join('') +
       '</div><div id="arcBody"></div>';
     document.getElementById('arcTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-at]'); if (!b) return; ARC.tab = b.getAttribute('data-at'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-at') === ARC.tab); }); drawArcBody(); });
-    authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcHero(); drawArcBody(); }).catch(function () { ARC.stats = {}; drawArcHero(); drawArcBody(); });
+    authFetch('/arcade/stats/').then(function (r) { ARC.stats = r.ok ? r.d : {}; drawArcBar(); drawArcBody(); }).catch(function () { ARC.stats = {}; drawArcBar(); drawArcBody(); });
   }
-  function drawArcHero() {
+  function drawArcBar() {
     var s = ARC.stats || {}; var u = cachedUser() || {};
     var tag = s.gamer_tag || u.gamer_tag || '';
     var av = u.arcade_avatar_url || u.avatar_url;
-    document.getElementById('arcHero').innerHTML =
-      '<div class="arc-hero-top">' +
-        '<div class="arc-av">' + avatar(av, tag || (u.name || 'P')) + '<span class="arc-lvl">Lv ' + num(s.level != null ? s.level : (u.level || 1)) + '</span></div>' +
-        '<div class="arc-id"><div class="arc-tag">' + (tag ? esc(tag) : '<span class="faint">No gamer tag yet</span>') + '<button class="prof-mini" id="arcEditTag" style="margin-left:8px">✎ ' + (tag ? 'Edit' : 'Set tag') + '</button></div>' +
-          '<div class="arc-xp faint">' + num(s.total_xp != null ? s.total_xp : u.xp) + ' XP · ' + num(s.total_games) + ' games · ' + num(s.win_rate) + '% win rate</div></div>' +
-        '<div class="arc-tokens"><div class="arc-tok-n">' + coin(s.tokens != null ? s.tokens : u.tokens) + '</div><div class="arc-tok-l">tokens</div>' +
-          '<button class="pillbtn" id="arcSend" style="margin-top:10px">Send</button></div>' +
-      '</div>';
+    document.getElementById('arcBar').innerHTML =
+      '<div class="arc-bar-id">' + avatar(av, tag || (u.name || 'P'), 'arc-bar-av') +
+        '<div style="min-width:0"><div class="arc-bar-tag">' + (tag ? esc(tag) : '<span class="faint">Set gamer tag</span>') + '<button class="prof-mini" id="arcEditTag" style="margin-left:8px">✎</button></div>' +
+          '<div class="arc-bar-sub faint">Lv ' + num(s.level != null ? s.level : (u.level || 1)) + ' · ' + num(s.total_games) + ' games · ' + num(s.win_rate) + '% win</div></div></div>' +
+      '<div class="arc-bar-spend"><div class="arc-bar-tok">' + coin(s.tokens != null ? s.tokens : u.tokens) + '</div><div class="arc-bar-tok-l faint">tokens</div></div>' +
+      '<button class="pillbtn" id="arcSend">Send</button>';
     document.getElementById('arcEditTag').addEventListener('click', openEditGamerTag);
     document.getElementById('arcSend').addEventListener('click', openSendTokens);
   }
@@ -2646,19 +2664,31 @@
     var body = document.getElementById('arcBody'); if (!body) return;
     body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
     if (ARC.tab === 'ranks') {
-      authFetch('/arcade/leaderboard/?limit=25').then(function (r) {
+      authFetch('/arcade/leaderboard/?limit=30').then(function (r) {
         var el = document.getElementById('arcBody'); if (!el) return;
         if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the leaderboard.'); return; }
         var rows = listOf(r.d); var meId = (cachedUser() || {}).user_id;
         if (!rows.length) { el.innerHTML = empty('No rankings yet.'); return; }
-        el.innerHTML = rows.map(function (p) {
-          var me = p.user_id && meId && String(p.user_id) === String(meId);
-          var medal = p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : '#' + p.rank;
-          return '<div class="rank-row' + (me ? ' me' : '') + '"><div class="rank-n">' + medal + '</div>' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'rank-av') +
-            '<div class="rank-meta"><div class="rank-name">' + esc(p.gamer_tag || p.display_name || 'Player') + (me ? ' <span class="rolechip">YOU</span>' : '') + '</div>' +
+        function isMe(p) { return p && p.user_id && meId && String(p.user_id) === String(meId); }
+        function podCol(p, place) {
+          if (!p) return '<div class="pod pod' + place + ' empty"></div>';
+          var medal = place === 1 ? '🥇' : place === 2 ? '🥈' : '🥉';
+          return '<div class="pod pod' + place + (isMe(p) ? ' me' : '') + '">' +
+            '<div class="pod-medal">' + medal + '</div>' +
+            '<div class="pod-avwrap">' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'pod-av') + '</div>' +
+            '<div class="pod-name">' + esc((p.gamer_tag || p.display_name || 'Player')) + '</div>' +
+            '<div class="pod-xp">' + num(p.score) + ' XP</div>' +
+            '<div class="pod-riser"><span>' + place + '</span></div></div>';
+        }
+        var podium = '<div class="podium">' + podCol(rows[1], 2) + podCol(rows[0], 1) + podCol(rows[2], 3) + '</div>';
+        var rest = rows.slice(3);
+        var list = rest.length ? '<div class="rank-list">' + rest.map(function (p) {
+          return '<div class="rank-row' + (isMe(p) ? ' me' : '') + '"><div class="rank-n">#' + num(p.rank) + '</div>' + avatar(p.avatar_url, p.gamer_tag || p.display_name, 'rank-av') +
+            '<div class="rank-meta"><div class="rank-name">' + esc(p.gamer_tag || p.display_name || 'Player') + (isMe(p) ? ' <span class="rolechip">YOU</span>' : '') + '</div>' +
             '<div class="rank-sub faint">Lv ' + num(p.level) + ' · ' + coin(p.tokens) + '</div></div>' +
             '<div class="rank-score">' + num(p.score) + '<span> XP</span></div></div>';
-        }).join('');
+        }).join('') + '</div>' : '';
+        el.innerHTML = podium + list;
       }).catch(function () { var el = document.getElementById('arcBody'); if (el) el.innerHTML = empty('Couldn’t load the leaderboard.'); });
     } else if (ARC.tab === 'stats') {
       var s = ARC.stats || {};
@@ -2716,7 +2746,7 @@
         .then(function (res) {
           if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t save.', 'error'); btn.disabled = false; btn.textContent = 'Save gamer tag'; return; }
           if (ARC.stats) ARC.stats.gamer_tag = tag; try { var cu = cachedUser() || {}; cu.gamer_tag = tag; localStorage.setItem('tcs_user', JSON.stringify(cu)); } catch (e) {}
-          closeModal(); window.snack('Gamer tag saved', 'ok'); drawArcHero();
+          closeModal(); window.snack('Gamer tag saved', 'ok'); drawArcBar();
         }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Save gamer tag'; });
     });
   }
@@ -2737,7 +2767,7 @@
         .then(function (res) {
           if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t send tokens.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; return; }
           closeModal(); window.snack('Sent ' + amt + ' tokens! 🪙', 'ok');
-          authFetch('/arcade/stats/').then(function (rr) { if (rr.ok) { ARC.stats = rr.d; drawArcHero(); if (ARC.tab === 'wallet') drawArcBody(); } });
+          authFetch('/arcade/stats/').then(function (rr) { if (rr.ok) { ARC.stats = rr.d; drawArcBar(); if (ARC.tab === 'wallet') drawArcBody(); } });
         }).catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.textContent = 'Send tokens'; });
     });
   }
