@@ -533,6 +533,19 @@
   .int-add { display: flex; gap: 10px; } .int-add input { flex: 1; }
   .set-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; border-bottom: 1px solid var(--hair); font-family: 'Momo', sans-serif; font-size: 13px; }
   .set-row span { color: var(--sub); } .set-row b { font-family: 'Arch', sans-serif; }
+  /* Settings: sections, toggles, nav rows */
+  .set-sec { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--g1); margin: 22px 2px 6px; }
+  .set-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 2px; border: 0; border-bottom: 1px solid var(--hair); background: none; text-align: left; color: var(--ink); }
+  .set-item-txt { flex: 1; min-width: 0; }
+  .set-t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13.5px; color: var(--ink); }
+  .set-s { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 3px; line-height: 1.4; }
+  .set-nav { cursor: pointer; } .set-nav:hover .set-t { color: var(--g1); }
+  .set-chev { color: var(--faint); font-size: 20px; flex: 0 0 auto; }
+  .set-select { flex: 0 0 auto; background: var(--glass-2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 8px 10px; font-family: 'Momo', sans-serif; font-size: 13px; outline: none; cursor: pointer; }
+  .tgl { flex: 0 0 auto; width: 46px; height: 27px; border-radius: 999px; border: 0; cursor: pointer; background: var(--glass-2); position: relative; transition: background .18s ease; }
+  .tgl.on { background: linear-gradient(135deg, var(--g2), var(--g1)); }
+  .tgl-k { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); transition: left .18s ease; }
+  .tgl.on .tgl-k { left: 22px; }
   .myp { position: relative; }
   .myp-del { position: absolute; top: 14px; right: 14px; z-index: 3; width: 34px; height: 34px; border: 0; border-radius: 10px; cursor: pointer;
     background: rgba(0,0,0,0.45); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
@@ -3515,16 +3528,65 @@
       }).join('');
     }).catch(function () { var el = document.getElementById('folBody'); if (el) el.innerHTML = empty('Couldn’t load.'); });
   }
+  function getSettings() { try { return JSON.parse(localStorage.getItem('tcs_settings') || '{}'); } catch (e) { return {}; } }
+  function setSetting(k, v) { var s = getSettings(); s[k] = v; try { localStorage.setItem('tcs_settings', JSON.stringify(s)); } catch (e) {} }
   function openSettings() {
-    var u = PROFILE.me || {};
-    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.9 7.9 0 0 0 .06-.94 7.9 7.9 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.44.33.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.11.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></div><h2>Settings</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+    var u = PROFILE.me || {}; var s = getSettings();
+    var g = function (k, def) { return s[k] != null ? s[k] : def; };
+    var tgl = function (id, on) { return '<button class="tgl' + (on ? ' on' : '') + '" data-tgl="' + id + '"><span class="tgl-k"></span></button>'; };
+    var row = function (id, t, sub, on) { return '<div class="set-item"><div class="set-item-txt"><div class="set-t">' + t + '</div><div class="set-s">' + sub + '</div></div>' + tgl(id, on) + '</div>'; };
+    var nav = function (id, t, sub, chev) { return '<button class="set-item set-nav" data-nav="' + id + '"><div class="set-item-txt"><div class="set-t">' + t + '</div>' + (sub ? '<div class="set-s">' + sub + '</div>' : '') + '</div>' + (chev !== '' ? '<span class="set-chev">›</span>' : '') + '</button>'; };
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.62.06-.94s-.02-.64-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.3-.06.62-.06.94s.02.64.06.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.44.33.68.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.11.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></div><h2>Settings</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="set-sec">Account</div>' +
       '<div class="set-row"><span>Signed in as</span><b>' + esc(u.name || 'You') + '</b></div>' +
       '<div class="set-row"><span>Student ID</span><b>' + esc(u.user_id || '—') + '</b></div>' +
       '<div class="set-row"><span>Role</span><b style="text-transform:capitalize">' + esc((u.role || '').replace(/_/g, ' ')) + '</b></div>' +
       '<div class="set-row"><span>Level · Tokens</span><b>' + num(u.level != null ? u.level : 1) + ' · ' + num(u.tokens) + '</b></div>' +
-      '<button class="btn" id="setLogout" style="margin-top:18px;background:linear-gradient(135deg,#FF5858,#8E54E9)">Log out</button>' +
-      '<button class="prof-mini" id="setDelete" style="display:block;margin:14px auto 0;color:var(--g4)">Delete my account</button>');
+
+      '<div class="set-sec">Notifications</div>' +
+      row('push', 'Push notifications', 'Alerts in this browser', g('push', false)) +
+      row('announcements', 'Campus announcements', 'Important updates from TCS', g('announcements', true)) +
+      row('group_activity', 'Group &amp; club activity', 'Posts, events and messages', g('group_activity', true)) +
+
+      '<div class="set-sec">Privacy</div>' +
+      row('online_status', 'Show online status', 'Let others see when you’re active', g('online_status', true)) +
+      row('discoverable', 'Discoverable', 'Appear in search &amp; suggestions', g('discoverable', true)) +
+
+      '<div class="set-sec">Language</div>' +
+      '<div class="set-item"><div class="set-item-txt"><div class="set-t">App language</div><div class="set-s">More languages coming soon</div></div>' +
+        '<select id="setLang" class="set-select"><option value="en"' + (g('language', 'en') === 'en' ? ' selected' : '') + '>🇬🇧 English</option><option value="ms"' + (g('language', 'en') === 'ms' ? ' selected' : '') + '>🇲🇾 Bahasa Malaysia</option></select></div>' +
+
+      '<div class="set-sec">About</div>' +
+      nav('terms', 'Terms &amp; Conditions', '', '›') +
+      nav('privacy', 'Privacy Policy', '', '›') +
+      nav('about-app', 'About TCS', 'StudentHub · v1.0', '') +
+      nav('about-dev', 'About the developer', 'Powered by LUMORA', '') +
+
+      '<button class="btn" id="setLogout" style="margin-top:22px;background:linear-gradient(135deg,#FF5858,#8E54E9)">Log out</button>' +
+      '<button class="prof-mini" id="setDelete" style="display:block;margin:14px auto 2px;color:var(--g4)">Delete my account</button>');
     document.getElementById('mClose').addEventListener('click', closeModal);
+    document.querySelectorAll('[data-tgl]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-tgl'); var on = !b.classList.contains('on');
+        if (id === 'push' && on) {
+          if (!('Notification' in window)) { window.snack('This browser doesn’t support notifications.', 'error'); return; }
+          Notification.requestPermission().then(function (p) { if (p === 'granted') { b.classList.add('on'); setSetting('push', true); window.snack('Push notifications on', 'ok'); } else { window.snack('Allow notifications in your browser to enable this.', 'info'); } });
+          return;
+        }
+        b.classList.toggle('on', on); setSetting(id, on);
+        if (id === 'discoverable') { patchProfile({ interests_visibility: on ? 'public' : 'private' }); }
+      });
+    });
+    document.getElementById('setLang').addEventListener('click', function (e) { e.stopPropagation(); });
+    document.getElementById('setLang').addEventListener('change', function () { setSetting('language', this.value); window.snack('Language preference saved', 'ok', 1200); });
+    document.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-nav');
+        if (id === 'terms' || id === 'privacy') { window.open('terms.html', '_blank', 'noopener'); }
+        else if (id === 'about-app') { window.snack('TCS StudentHub · web v1.0 — Taylors College Sydney', 'info', 3500); }
+        else if (id === 'about-dev') { window.snack('Built by LUMORA — Taylors College Social & Arcade', 'info', 3500); }
+      });
+    });
     document.getElementById('setLogout').addEventListener('click', function () { closeModal(); document.getElementById('logout').click(); });
     document.getElementById('setDelete').addEventListener('click', function () {
       if (!confirm('Delete your account permanently? This cannot be undone.')) return;
