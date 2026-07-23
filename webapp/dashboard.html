@@ -593,6 +593,17 @@
   .hl-prev { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .hl-chip { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); background: var(--glass-2); border: 1px solid var(--hair); border-radius: 8px; padding: 4px 9px; }
 
+  /* Other-user profile modal */
+  .oup-cover { position: relative; height: 120px; border-radius: 18px; margin: -6px -6px 0; }
+  .oup-cover .ghost.x { background: rgba(0,0,0,0.4); border: 0; color: #fff; border-radius: 10px; }
+  .oup-hero { text-align: center; margin-top: -44px; position: relative; z-index: 1; }
+  .oup-av { width: 92px; height: 92px; margin: 0 auto; border-radius: 50%; overflow: hidden; border: 4px solid var(--card); background: var(--bg2); padding: 0; }
+  .oup-av .av { width: 100%; height: 100%; border-radius: 0; font-size: 34px; }
+  .oup-name { font-family: 'Alfa', serif; font-size: 20px; margin-top: 12px; }
+  .oup-name .rolechip { font-size: 8.5px; vertical-align: middle; }
+  .oup-handle { font-family: 'Momo', sans-serif; font-size: 12px; margin-top: 6px; }
+  .oup-hero .pillbtn { margin-top: 14px; }
+
   /* ── Clubs ────────────────────────────────────────────────── */
   .club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   .club-card { position: relative; border-radius: 18px; overflow: hidden; background: var(--glass); border: 1px solid var(--hair); cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
@@ -3568,10 +3579,43 @@
       var us = listOf(r.d);
       if (!us.length) { el.innerHTML = empty(kind === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'); return; }
       el.innerHTML = us.map(function (p) {
-        return '<div class="us-row" style="margin-bottom:8px"><div class="us-av">' + avatar(p.avatar_url, p.name || p.display_name) + '</div>' +
+        return '<div class="us-row" data-uid="' + esc(p.user_id || '') + '" style="margin-bottom:8px;cursor:pointer"><div class="us-av">' + avatar(p.avatar_url, p.name || p.display_name) + '</div>' +
           '<div class="us-meta"><div class="us-name">' + esc(p.name || p.display_name || 'User') + '</div><div class="us-sub"><span class="faint">@' + esc(p.user_id || '') + '</span></div></div></div>';
       }).join('');
+      el.querySelectorAll('[data-uid]').forEach(function (b) { b.addEventListener('click', function () { openUserProfile(b.getAttribute('data-uid')); }); });
     }).catch(function () { var el = document.getElementById('folBody'); if (el) el.innerHTML = empty('Couldn’t load.'); });
+  }
+  function openUserProfile(uid) {
+    if (!uid) return;
+    if (String(uid) === String((cachedUser() || {}).user_id)) { closeModal(); setTab('profile'); return; }
+    openModal('<div id="oup"><div class="loading"><div class="spin"></div></div></div>');
+    authFetch('/users/' + uid + '/').then(function (r) {
+      var el = document.getElementById('oup'); if (!el) return;
+      var X = '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>';
+      if (!r.ok) { el.innerHTML = '<div class="modal-head"><h2>Profile</h2><span style="margin-left:auto"></span>' + X + '</div>' + empty('Couldn’t load this profile.'); document.getElementById('mClose').addEventListener('click', closeModal); return; }
+      var u = r.d || {}; var name = u.name || u.display_name || 'User'; var role = (u.role || '').replace(/_/g, ' ');
+      var following = !!u.is_following; var links = socialLinks(u); var interests = Array.isArray(u.interests) ? u.interests : [];
+      var cover = u.cover_url ? 'url(' + esc(u.cover_url) + ') center/cover' : PF_GRADS[0];
+      el.innerHTML =
+        '<div class="oup-cover" style="background:' + cover + '"><span style="position:absolute;top:12px;right:12px">' + X + '</span></div>' +
+        '<div class="oup-hero"><div class="oup-av">' + avatar(u.avatar_url, name) + '</div>' +
+          '<div class="oup-name">' + esc(name) + (role ? ' <span class="rolechip">' + esc(role.toUpperCase()) + '</span>' : '') + '</div>' +
+          '<div class="oup-handle faint">@' + esc(u.user_id || '') + (u.location ? ' &nbsp;·&nbsp; 📍 ' + esc(u.location) : '') + '</div>' +
+          '<button class="pillbtn' + (following ? ' ghost2' : '') + '" id="oupFollow">' + (following ? 'Following' : 'Follow') + '</button></div>' +
+        '<div class="prof2-rail card glass" style="margin-top:16px">' + statCell(u.followers_count, 'Followers') + statCell(u.following_count, 'Following') + statCell(u.tokens, 'Tokens') + statCell(u.level != null ? u.level : 1, 'Level') + '</div>' +
+        ((u.bio || interests.length) ? '<div class="card glass" style="margin-top:14px"><div class="prof-sec-head"><b>About</b></div>' + (u.bio ? '<div class="prof-abouttext">' + esc(u.bio) + '</div>' : '') + (interests.length ? '<div class="prof-ints" style="margin-top:10px">' + interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') + '</div>' : '') + '</div>' : '') +
+        (links.length ? '<div class="prof-links" style="margin-top:14px">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div>' : '');
+      document.getElementById('mClose').addEventListener('click', closeModal);
+      var fb = document.getElementById('oupFollow');
+      fb.addEventListener('click', function () {
+        var on = !fb.classList.contains('ghost2');
+        fetch(API + '/users/' + uid + '/follow/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' } })
+          .then(function (rr) { return rr.json().then(function (d) { return { ok: rr.ok, d: d }; }).catch(function () { return { ok: rr.ok, d: {} }; }); })
+          .then(function (res) { if (!res.ok) { window.snack('Couldn’t update.', 'error'); return; }
+            var nf = res.d && res.d.following != null ? res.d.following : !on; fb.classList.toggle('ghost2', nf); fb.textContent = nf ? 'Following' : 'Follow'; })
+          .catch(function () { window.snack('Couldn’t reach the server.', 'error'); });
+      });
+    }).catch(function () { var el = document.getElementById('oup'); if (el) el.innerHTML = empty('Couldn’t load this profile.'); });
   }
   function getSettings() { try { return JSON.parse(localStorage.getItem('tcs_settings') || '{}'); } catch (e) { return {}; } }
   function setSetting(k, v) { var s = getSettings(); s[k] = v; try { localStorage.setItem('tcs_settings', JSON.stringify(s)); } catch (e) {} }
