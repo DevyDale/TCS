@@ -3934,7 +3934,14 @@
     applyTheme(cur === 'light' ? 'dark' : 'light');
   });
 
-  var start = 'home'; try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {}
+  // Fresh app open → Home. Only a page refresh keeps the current tab.
+  var isReload = false;
+  try {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]);
+    isReload = nav ? nav.type === 'reload' : (performance.navigation && performance.navigation.type === 1);
+  } catch (e) {}
+  var start = 'home';
+  if (isReload) { try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {} }
   if (start === 'arcade') { document.getElementById('arcadeBtn').classList.add('active'); renderArcade(); } else setTab(start);
   loadNotifCount();
 </script>
