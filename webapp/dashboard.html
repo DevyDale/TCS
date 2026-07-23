@@ -77,16 +77,30 @@
     border-radius: 50%; margin: 0 auto 12px; animation: rot 0.8s linear infinite; }
   @keyframes rot { to { transform: rotate(360deg); } }
 
-  /* Notifications dropdown */
-  .notif-panel { position: fixed; top: 66px; left: 16px; width: 300px; max-height: 60vh; overflow-y: auto;
-    z-index: 40; padding: 8px; display: none; }
-  .notif-panel.open { display: block; }
-  .notif-panel h3 { font-family: 'Arch', sans-serif; font-size: 13px; padding: 8px 10px; color: var(--ink); }
-  .notif-item { padding: 10px; border-radius: 12px; }
-  .notif-item + .notif-item { margin-top: 2px; }
+  /* Notifications dropdown (mobile-style: Today / Yesterday / Earlier) */
+  .notif-panel { position: fixed; top: 66px; left: 16px; width: 372px; max-width: calc(100vw - 32px); max-height: 74vh;
+    z-index: 40; padding: 0; display: none; flex-direction: column; overflow: hidden; }
+  .notif-panel.open { display: flex; }
+  .notif-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 10px; }
+  .notif-head h3 { font-family: 'Alfa', serif; font-size: 18px; color: var(--ink); }
+  .notif-clear { background: none; border: 0; cursor: pointer; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; color: var(--g4); padding: 4px 6px; }
+  .notif-clear:hover { text-decoration: underline; }
+  .notif-tabs { display: flex; gap: 6px; padding: 0 14px 12px; border-bottom: 1px solid var(--hair); }
+  .notif-tab { flex: 1; padding: 7px 0; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass); cursor: pointer;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; color: var(--sub); }
+  .notif-tab.active { background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; border: 0; }
+  #notifList { flex: 1; overflow-y: auto; padding: 8px; }
+  .notif-item { display: flex; align-items: flex-start; gap: 11px; padding: 11px 10px; border-radius: 13px; cursor: pointer; }
   .notif-item:hover { background: var(--glass); }
-  .notif-item .t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink); }
-  .notif-item .b { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 3px; line-height: 1.4; }
+  .notif-item.unread { background: rgba(142,84,233,0.10); }
+  .notif-ic { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; font-size: 19px; }
+  .notif-item .notif-avc { width: 40px; height: 40px; flex: 0 0 auto; font-size: 15px; }
+  .notif-body { flex: 1; min-width: 0; }
+  .notif-item .t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; color: var(--ink); line-height: 1.35; }
+  .notif-item .b { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 3px; line-height: 1.45; }
+  .notif-time { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint); margin-top: 5px; }
+  .notif-udot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; margin-top: 6px; background: linear-gradient(135deg, var(--g2), var(--g1)); box-shadow: 0 0 8px rgba(142,84,233,.6); }
+  .notif-empty { text-align: center; padding: 40px 20px; font-family: 'Momo', sans-serif; font-size: 13px; color: var(--faint); }
 
   .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 
@@ -193,7 +207,6 @@
     transition: background 0.15s ease, color 0.15s ease; }
   .pa:hover { background: rgba(255,255,255,0.12); color: var(--ink); }
   .pa.like:hover { color: #FF6B7A; } .pa svg { width: 16px; height: 16px; fill: currentColor; }
-  .pa.share { margin-left: auto; }
 
   /* ── Study Hub tab ────────────────────────────────────────────── */
   .lockin-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
@@ -914,7 +927,7 @@
     <main class="content"><div class="inner" id="view"></div></main>
   </div>
 
-  <div class="notif-panel glass" id="notifPanel"><h3>Notifications</h3><div id="notifList"></div></div>
+  <div class="notif-panel glass" id="notifPanel"></div>
   <div class="modal-overlay" id="modalOverlay"><div class="modal glass" id="modalBox"></div></div>
 
 <script src="assets/snackbar.js"></script>
@@ -3560,18 +3573,57 @@
     if (open) loadNotifs();
   });
   document.addEventListener('click', function (e) { if (!notifPanel.contains(e.target)) notifPanel.classList.remove('open'); });
+  var NOTIF = { items: [], seg: 'today' };
+  var NOTIF_GLYPH = {
+    game_request: ['🎮', '#F7971E'], game_request_accepted: ['🎮', '#F7971E'],
+    chat_message: ['💬', '#6DD5FA'], chat_request: ['💬', '#6DD5FA'], request_accepted: ['💬', '#6DD5FA'], request_declined: ['💬', '#6DD5FA'],
+    group_message: ['👥', '#10B981'], group_add: ['👥', '#10B981'], study_group_invite: ['👥', '#10B981'],
+    group_material: ['📚', '#6366F1'], study_buddy_request: ['🤝', '#10B981'],
+    follow: ['➕', '#EC4899'], follow_request: ['➕', '#EC4899'],
+    like: ['❤️', '#FF5858'], comment: ['💬', '#6366F1'], mention: ['📌', '#8E54E9'],
+    announcement: ['📢', '#8E54E9'], quiz_published: ['❓', '#F59E0B'], emergency: ['🚨', '#FF5858'],
+    suggestion: ['💡', '#4F46E5'], wellbeing: ['💗', '#0EA5A4'],
+    event_reminder: ['📅', '#F59E0B'], club_event: ['📅', '#F59E0B'],
+    highlight: ['✨', '#8E54E9'], birthday: ['🎂', '#EC4899']
+  };
+  function notifGlyph(t) { return NOTIF_GLYPH[t] || ['🔔', '#6DD5FA']; }
+  function notifBucket(iso) {
+    var d = new Date(iso); if (isNaN(d)) return 'earlier';
+    var now = new Date(), t = new Date(d.getFullYear(), d.getMonth(), d.getDate()), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var diff = Math.round((today - t) / 86400000);
+    return diff <= 0 ? 'today' : (diff === 1 ? 'yesterday' : 'earlier');
+  }
   function loadNotifs() {
-    var list = document.getElementById('notifList');
-    list.innerHTML = '<div class="loading" style="padding:20px"><div class="spin"></div></div>';
+    var panel = document.getElementById('notifPanel');
+    panel.innerHTML =
+      '<div class="notif-head"><h3>Notifications</h3><button class="notif-clear" id="notifClear">Clear all</button></div>' +
+      '<div class="notif-tabs" id="notifTabs">' + [['today', 'Today'], ['yesterday', 'Yesterday'], ['earlier', 'Earlier']].map(function (s) { return '<button class="notif-tab' + (NOTIF.seg === s[0] ? ' active' : '') + '" data-ns="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+      '<div id="notifList"><div class="loading" style="padding:24px"><div class="spin"></div></div></div>';
+    document.getElementById('notifTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-ns]'); if (!b) return; NOTIF.seg = b.getAttribute('data-ns'); this.querySelectorAll('.notif-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-ns') === NOTIF.seg); }); drawNotifs(); });
+    document.getElementById('notifClear').addEventListener('click', function () { fetch(API + '/notifications/clear/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function () { NOTIF.items = []; drawNotifs(); loadNotifCount(); window.snack('Notifications cleared', 'ok', 1200); }).catch(function () {}); });
     authFetch('/notifications/?page=1').then(function (r) {
-      if (!r.ok) { list.innerHTML = '<div class="empty" style="padding:24px">' + esc((r.d && r.d.detail) || 'Couldn’t load notifications.') + '</div>'; return; }
-      var n = listOf(r.d);
-      if (!n.length) { list.innerHTML = '<div class="empty" style="padding:24px">You’re all caught up.</div>'; return; }
-      list.innerHTML = n.slice(0, 15).map(function (x) {
-        return '<div class="notif-item"><div class="t">' + esc(x.title || x.verb || 'Notification') + '</div>' +
-          '<div class="b">' + esc(x.body || x.message || x.text || '') + '</div></div>';
-      }).join('');
-    }).catch(function () { list.innerHTML = '<div class="empty" style="padding:24px">Couldn’t load notifications.</div>'; });
+      if (!r.ok) { var l = document.getElementById('notifList'); if (l) l.innerHTML = '<div class="notif-empty">' + esc((r.d && r.d.detail) || 'Couldn’t load notifications.') + '</div>'; return; }
+      NOTIF.items = listOf(r.d);
+      var buckets = { today: 0, yesterday: 0, earlier: 0 };
+      NOTIF.items.forEach(function (x) { buckets[notifBucket(x.created_at)]++; });
+      if (!buckets[NOTIF.seg]) { NOTIF.seg = buckets.today ? 'today' : (buckets.yesterday ? 'yesterday' : 'earlier'); document.querySelectorAll('#notifTabs .notif-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-ns') === NOTIF.seg); }); }
+      drawNotifs();
+      fetch(API + '/notifications/mark-all-read/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function () { var dot = document.getElementById('notifDot'); if (dot) dot.classList.remove('show'); }).catch(function () {});
+    }).catch(function () { var l = document.getElementById('notifList'); if (l) l.innerHTML = '<div class="notif-empty">Couldn’t load notifications.</div>'; });
+  }
+  function drawNotifs() {
+    var list = document.getElementById('notifList'); if (!list) return;
+    var items = NOTIF.items.filter(function (x) { return notifBucket(x.created_at) === NOTIF.seg; });
+    if (!items.length) { list.innerHTML = '<div class="notif-empty">' + (NOTIF.seg === 'today' ? 'You’re all caught up 🎉' : NOTIF.seg === 'yesterday' ? 'Nothing from yesterday' : 'Nothing earlier') + '</div>'; return; }
+    list.innerHTML = items.map(function (x) {
+      var gl = notifGlyph(x.notif_type); var unread = !x.is_read;
+      var icon = x.actor_avatar ? avatar(x.actor_avatar, x.actor_name || '', 'notif-avc') : '<span class="notif-ic" style="background:' + gl[1] + '22;color:' + gl[1] + '">' + gl[0] + '</span>';
+      return '<div class="notif-item' + (unread ? ' unread' : '') + '">' + icon +
+        '<div class="notif-body"><div class="t">' + esc(x.title || 'Notification') + '</div>' +
+        (x.body ? '<div class="b">' + esc(x.body) + '</div>' : '') +
+        '<div class="notif-time">' + esc(timeAgo(x.created_at)) + '</div></div>' +
+        (unread ? '<span class="notif-udot"></span>' : '') + '</div>';
+    }).join('');
   }
   function loadNotifCount() {
     authFetch('/notifications/unread-count/').then(function (r) {
