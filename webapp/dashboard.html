@@ -8,13 +8,28 @@
 <link rel="stylesheet" href="assets/onboarding.css" />
 <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
 <style>
+  /* ── Theme tokens (gradients --g1..g4 stay identical in both) ── */
+  :root { --card: #14121F; --side: rgba(16,15,28,0.72); --modal-scrim: rgba(6,5,14,0.62); }
+  :root[data-theme="light"] {
+    --bg1: #EDEFF6; --bg2: #E7E3F5; --bg3: #F3E9EF;
+    --ink: #1C1830;
+    --sub: rgba(28,24,54,0.66); --faint: rgba(28,24,54,0.44);
+    --glass: rgba(28,24,54,0.045); --glass-2: rgba(28,24,54,0.07);
+    --hair: rgba(28,24,54,0.12); --hair-2: rgba(28,24,54,0.18);
+    --card: #FFFFFF; --side: rgba(255,255,255,0.78); --modal-scrim: rgba(40,30,80,0.32);
+  }
+  /* Softer card shadow + solid cards in light mode */
+  :root[data-theme="light"] .glass, :root[data-theme="light"] .card.glass { box-shadow: 0 10px 30px rgba(60,40,110,0.10); }
+  /* The neon arcade is a self-contained dark screen — pin its tokens dark in any theme */
+  .arc-neon { --ink: #F4F3FF; --sub: #AFC0D6; --faint: #7C8BA6; --glass: rgba(255,255,255,.05); --glass-2: rgba(255,255,255,.08); --hair: rgba(0,229,255,.14); --hair-2: rgba(0,229,255,.22); --card: #0d0919; }
+
   body { overflow: hidden; }
   .app { position: fixed; inset: 0; z-index: 3; display: flex; }
 
   /* ── Sidebar ─────────────────────────────────────────────────── */
   .side {
     width: 264px; flex: 0 0 auto; height: 100%;
-    background: rgba(16,15,28,0.72); border-right: 1px solid var(--hair);
+    background: var(--side); border-right: 1px solid var(--hair);
     -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
     display: flex; flex-direction: column;
     padding: 20px 16px max(env(safe-area-inset-bottom), 16px);
@@ -27,7 +42,8 @@
   .notif-btn { position: relative; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 13px; cursor: pointer;
     background: var(--glass-2); border: 1px solid var(--hair); color: var(--ink);
     display: grid; place-items: center; transition: background 0.15s ease, border-color 0.15s ease; }
-  .notif-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--hair-2); }
+  .notif-btn:hover { background: var(--glass-2); border-color: var(--hair-2); }
+  .head-btns { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
   .notif-btn svg { width: 20px; height: 20px; fill: currentColor; }
   .notif-btn .dot { position: absolute; top: 7px; right: 8px; min-width: 16px; height: 16px; padding: 0 4px;
     border-radius: 8px; background: var(--g4); color: #fff; font-family: 'Arch', sans-serif; font-weight: 700;
@@ -909,9 +925,10 @@
   .conv-input .attach svg { width: 22px; height: 22px; fill: currentColor; }
 
   /* Modal */
-  .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,14,0.6);
+  .modal-overlay { position: fixed; inset: 0; z-index: 200; background: var(--modal-scrim);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--card); }
   .modal-overlay.open { display: flex; }
   .modal { width: 100%; max-width: 460px; max-height: 86vh; overflow-y: auto; padding: 22px; }
   .modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
@@ -943,10 +960,13 @@
           <div class="brand-title">TCS</div>
           <div class="brand-sub">StudentHub</div>
         </div>
-        <button class="notif-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
-          <svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-5-6.7V4a2 2 0 0 0-4 0v.3A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
-          <span class="dot" id="notifDot">0</span>
-        </button>
+        <div class="head-btns">
+          <button class="notif-btn" id="themeBtn" title="Switch theme" aria-label="Switch light / dark theme"><span id="themeIc"></span></button>
+          <button class="notif-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
+            <svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-5-6.7V4a2 2 0 0 0-4 0v.3A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
+            <span class="dot" id="notifDot">0</span>
+          </button>
+        </div>
       </div>
 
       <div class="grad-divider"></div>
@@ -3724,6 +3744,21 @@
   }
 
   // Boot
+  // ── Theme (light / dark) ─────────────────────────────────────
+  var SUN_IC = '<svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1V20a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l1 1A1 1 0 0 1 5.2 6.64l-1-1a1 1 0 0 1 0-1.42zm13.16 13.16a1 1 0 0 1 1.42 0l1 1a1 1 0 0 1-1.42 1.42l-1-1a1 1 0 0 1 0-1.42zM2 12a1 1 0 0 1 1-1h1.5a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1zm17.5 0a1 1 0 0 1 1-1H22a1 1 0 1 1 0 2h-1.5a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.42l1-1a1 1 0 1 1 1.42 1.42l-1 1a1 1 0 0 1-1.42 0zM17.38 6.64a1 1 0 0 1 0-1.42l1-1a1 1 0 1 1 1.42 1.42l-1 1a1 1 0 0 1-1.42 0z"/></svg>';
+  var MOON_IC = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    try { localStorage.setItem('tcs_theme', t); } catch (e) {}
+    var ic = document.getElementById('themeIc'); if (ic) ic.innerHTML = (t === 'light' ? MOON_IC : SUN_IC);
+    var mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.setAttribute('content', t === 'light' ? '#EDEFF6' : '#0D0D1A');
+  }
+  (function () { var th = 'dark'; try { th = localStorage.getItem('tcs_theme') || 'dark'; } catch (e) {} applyTheme(th); })();
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    applyTheme(cur === 'light' ? 'dark' : 'light');
+  });
+
   var start = 'home'; try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {}
   if (start === 'arcade') { document.getElementById('arcadeBtn').classList.add('active'); renderArcade(); } else setTab(start);
   loadNotifCount();
