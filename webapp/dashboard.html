@@ -377,6 +377,7 @@
   .lib-chip { padding: 6px 13px; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass); color: var(--sub);
     font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11.5px; cursor: pointer; }
   .lib-chip.active { background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; border: 0; }
+  .res-verified { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #22C55E; color: #fff; font-size: 9px; font-weight: 900; vertical-align: 1px; }
 
   /* Quiz setup selects */
   #qNum, #qDiff { width: 100%; height: 44px; border-radius: 12px; background: var(--glass-2); border: 1.5px solid var(--hair);
@@ -1761,6 +1762,7 @@
         '<div class="lockin-actions">' +
           '<button class="dale-btn" id="shDale"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc> Dale</button>' +
           '<button class="avail-pill" id="shAvail" title="Study Buddy availability"><span class="ap-dot"></span><span class="ap-lbl"></span></button>' +
+          '<button class="lib-btn" id="shResources"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/></svg> Resources</button>' +
           '<button class="lib-btn" id="shLib"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg> Digital Library</button>' +
         '</div>' +
       '</div>' +
@@ -1770,6 +1772,7 @@
       '</div>' +
       '<div id="shBody"></div>';
     document.getElementById('shDale').addEventListener('click', openStudyDale);
+    document.getElementById('shResources').addEventListener('click', openResourceLibrary);
     document.getElementById('shLib').addEventListener('click', openLibrary);
     paintAvailPill();
     document.getElementById('shAvail').addEventListener('click', toggleAvail);
@@ -2165,6 +2168,38 @@
       if (!r.ok) { document.getElementById('libList').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load your library.'); return; }
       LIB.all = listOf(r.d); libApplyFilter();
     }).catch(function () { var el = document.getElementById('libList'); if (el) el.innerHTML = empty('Couldn’t load your library.'); });
+  }
+
+  var RESLIB = { all: [], q: '' };
+  function resKindIcon(k) { k = (k || '').toLowerCase(); if (/note/.test(k)) return '📝'; if (/(video|clip)/.test(k)) return '🎬'; if (/(link|url|web)/.test(k)) return '🔗'; if (/(paper|exam|past)/.test(k)) return '📄'; if (/(book|guide)/.test(k)) return '📘'; if (/(slide|ppt)/.test(k)) return '📙'; return '📚'; }
+  function openResourceLibrary() {
+    RESLIB.q = '';
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/></svg></div>' +
+      '<div style="flex:1;min-width:0"><h2>Resource Library</h2><div class="faint" style="font-family:Momo;font-size:11.5px;margin-top:2px">Teacher-shared notes, guides &amp; past papers</div></div>' +
+      '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="search-box" style="height:46px;margin-top:6px">' + SEARCH_SVG + '<input id="resSearch" placeholder="Search by title or subject…" autocomplete="off" /></div>' +
+      '<div id="resList" style="margin-top:12px"><div class="loading"><div class="spin"></div></div></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('resSearch').addEventListener('input', function () { RESLIB.q = this.value; resApply(); });
+    authFetch('/studyhub/resources/').then(function (r) {
+      if (!document.getElementById('resList')) return;
+      if (!r.ok) { document.getElementById('resList').innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load resources.'); return; }
+      RESLIB.all = listOf(r.d); resApply();
+    }).catch(function () { var el = document.getElementById('resList'); if (el) el.innerHTML = empty('Couldn’t load resources.'); });
+  }
+  function resApply() {
+    var el = document.getElementById('resList'); if (!el) return;
+    var q = RESLIB.q.toLowerCase().trim();
+    var list = q ? RESLIB.all.filter(function (r) { return [r.title, r.subject, r.kind, r.owner].join(' ').toLowerCase().indexOf(q) >= 0; }) : RESLIB.all;
+    if (!list.length) { el.innerHTML = empty(RESLIB.all.length ? 'No resources match your search.' : 'No resources shared yet.'); return; }
+    el.innerHTML = list.map(function (r) {
+      return '<a class="lib-item" href="' + esc(r.url || '#') + '" target="_blank" rel="noopener" data-res="' + esc(r.id) + '">' +
+        '<span class="lib-ic">' + resKindIcon(r.kind) + '</span>' +
+        '<span class="lib-meta"><span class="lib-title">' + esc(r.title || 'Resource') + (r.verified ? ' <span class="res-verified">✓</span>' : '') + '</span>' +
+        '<span class="lib-sub">' + esc([r.subject, r.owner, (r.is_link ? 'link' : r.kind), (num(r.downloads) + ' downloads')].filter(Boolean).join(' · ')) + '</span></span>' +
+        '<span class="lib-dl"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg></span></a>';
+    }).join('');
+    el.querySelectorAll('[data-res]').forEach(function (a) { a.addEventListener('click', function () { fetch(API + '/studyhub/resources/' + a.getAttribute('data-res') + '/download/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).catch(function () {}); }); });
   }
 
   // ── Quizzes (generate from a material, list, and play) ───────
