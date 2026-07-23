@@ -571,6 +571,28 @@
   .hl-cell::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0,0,0,.65)); }
   .hl-title { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12.5px; text-align: left; }
 
+  /* Profile tabs: Instagram-style square grid (Posts / Fweets / Highlights) */
+  .pf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (min-width: 1100px) { .pf-grid { grid-template-columns: repeat(4, 1fr); } }
+  .pf-cell { position: relative; aspect-ratio: 1; border: 0; border-radius: 16px; overflow: hidden; cursor: pointer; background: var(--glass); }
+  .pf-cell > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pf-cell.pf-txt { display: grid; place-items: center; padding: 14px; }
+  .pf-cell .pf-text { font-family: 'Momo', sans-serif; font-size: 13px; line-height: 1.4; color: #fff; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+  .pf-cell .pf-cell-title { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1; color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12.5px; text-align: left; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+  .pf-cell[data-hl]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 45%, rgba(0,0,0,.6)); }
+  .pf-badge { position: absolute; top: 8px; right: 9px; z-index: 2; color: #fff; font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+  .pf-del { position: absolute; top: 8px; left: 8px; z-index: 3; width: 30px; height: 30px; border: 0; border-radius: 9px; cursor: pointer; opacity: 0;
+    background: rgba(0,0,0,0.5); color: #fff; display: grid; place-items: center; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); transition: opacity .12s; }
+  .pf-cell:hover .pf-del { opacity: 1; } .pf-del:hover { background: rgba(255,88,88,.7); } .pf-del svg { width: 15px; height: 15px; }
+  .pf-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: none;
+    border: 2px dashed var(--hair-2); color: var(--g1); }
+  .pf-add:hover { border-color: var(--g2); background: var(--glass); }
+  .pf-add-plus { font-family: 'Alfa', serif; font-size: 34px; line-height: 1; }
+  .pf-add-lbl { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 12px; }
+  .pd-post .post { margin-bottom: 12px; }
+  .hl-prev { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .hl-chip { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--sub); background: var(--glass-2); border: 1px solid var(--hair); border-radius: 8px; padding: 4px 9px; }
+
   /* ── Clubs ────────────────────────────────────────────────── */
   .club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   .club-card { position: relative; border-radius: 18px; overflow: hidden; background: var(--glass); border: 1px solid var(--hair); cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
@@ -1596,28 +1618,31 @@
   function closeModal() { overlay.classList.remove('open'); modalBox.innerHTML = ''; }
   overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
 
-  function openCreatePost() {
+  function openCreateFweet() { openCreatePost('fweet'); }
+  function openCreatePost(kind) {
+    var fweet = kind === 'fweet';
     openModal(
       '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></div>' +
-      '<h2>New post</h2><button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
-      '<p class="sub">Share something with campus.</p>' +
-      '<textarea id="cpText" rows="5" placeholder="What’s on your mind?"></textarea>' +
-      '<button class="btn" id="cpSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Post</span></button>'
+      '<h2>New ' + (fweet ? 'fweet' : 'post') + '</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">' + (fweet ? 'Drop a quick fweet — short and sweet.' : 'Share something with campus.') + '</p>' +
+      '<textarea id="cpText" rows="' + (fweet ? 3 : 5) + '" placeholder="' + (fweet ? 'Say it in a fweet…' : 'What’s on your mind?') + '"' + (fweet ? ' maxlength="280"' : '') + '></textarea>' +
+      '<button class="btn" id="cpSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>' + (fweet ? 'Fweet' : 'Post') + '</span></button>'
     );
     document.getElementById('mClose').addEventListener('click', closeModal);
     document.getElementById('cpSubmit').addEventListener('click', function () {
       var text = document.getElementById('cpText').value.trim();
       if (!text) { window.snack('Write something first.', 'error'); return; }
-      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Posting…';
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweeting…' : 'Posting…';
       fetch(API + '/posts/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
-        body: JSON.stringify({ post_type: 'post', content: text, visibility: 'public' }) })
+        body: JSON.stringify({ post_type: fweet ? 'fweet' : 'post', content: text, visibility: 'public' }) })
         .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
         .then(function (res) {
-          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post — please try again.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Post'; return; }
-          closeModal(); window.snack('Posted!', 'ok');
-          if ((HOME.tab === 'all' || HOME.tab === 'following')) { var s = document.getElementById('feedSearch'); if (s) s.value = ''; loadFeedTab(); }
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post — please try again.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweet' : 'Post'; return; }
+          closeModal(); window.snack(fweet ? 'Fweeted!' : 'Posted!', 'ok');
+          if (document.getElementById('pfTabBody')) { PROFILE.tab = fweet ? 'fweets' : 'posts'; loadProfileTab(); var tb = document.getElementById('pfTabs'); if (tb) tb.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); }
+          else if (HOME.tab === 'all' || HOME.tab === 'following') { var s = document.getElementById('feedSearch'); if (s) s.value = ''; loadFeedTab(); }
         })
-        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Post'; });
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweet' : 'Post'; });
     });
   }
 
@@ -3615,6 +3640,23 @@
         .catch(function () { window.snack('Couldn’t delete account. Contact support.', 'error'); });
     });
   }
+  var PF_GRADS = ['linear-gradient(135deg,#8E54E9,#6DD5FA)', 'linear-gradient(135deg,#F7971E,#FF5858)', 'linear-gradient(135deg,#11998E,#38EF7D)', 'linear-gradient(135deg,#EC4899,#8E54E9)'];
+  function pfAddTile(kind, label) {
+    return '<button class="pf-cell pf-add" data-add="' + kind + '"><span class="pf-add-plus">+</span><span class="pf-add-lbl">Add ' + label + '</span></button>';
+  }
+  function pfPostThumb(p, i) {
+    var media = p.media || p.media_files || [];
+    var m = media[0]; var img = m && (m.thumbnail_url || m.url); var isVid = m && m.media_type === 'video';
+    var inner;
+    if (img) { inner = '<img src="' + esc(img) + '" alt="" loading="lazy" />' + (isVid ? '<span class="pf-badge">▶</span>' : (media.length > 1 ? '<span class="pf-badge">▦</span>' : '')); }
+    else { inner = '<span class="pf-text">' + esc((p.content || p.text || '').slice(0, 110)) + '</span>'; }
+    return '<div class="pf-cell' + (img ? '' : ' pf-txt') + '" data-post="' + esc(p.id) + '"' + (img ? '' : ' style="background:' + PF_GRADS[i % 4] + '"') + '>' + inner +
+      '<button class="pf-del" data-delcell="' + esc(p.id) + '" title="Delete"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>';
+  }
+  function wirePfAdd(el) {
+    var ab = el.querySelector('[data-add]'); if (!ab) return;
+    ab.addEventListener('click', function () { var k = ab.getAttribute('data-add'); if (k === 'highlight') openCreateHighlight(); else openCreatePost(k); });
+  }
   function loadProfileTab() {
     var body = document.getElementById('pfTabBody'); if (!body) return;
     body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
@@ -3622,32 +3664,86 @@
     if (tab === 'highlights') {
       authFetch('/highlights/mine/').then(function (r) {
         var el = document.getElementById('pfTabBody'); if (!el) return;
-        if (!r.ok) { el.innerHTML = empty('Couldn’t load highlights.'); return; }
-        var hs = listOf(r.d).filter(isFreshHighlight);
-        if (!hs.length) { el.innerHTML = empty('No highlights yet.'); return; }
-        el.innerHTML = '<div class="hl-grid">' + hs.map(function (h) {
-          return '<button class="hl-cell" data-hl="' + esc(h.id) + '" style="background:' + (h.cover_url ? 'url(' + esc(h.cover_url) + ') center/cover' : PROF_COVERS[0]) + '"><span class="hl-title">' + esc(h.title || 'Story') + '</span></button>';
+        var hs = r.ok ? listOf(r.d).filter(isFreshHighlight) : [];
+        el.innerHTML = '<div class="pf-grid">' + pfAddTile('highlight', 'Highlight') + hs.map(function (h) {
+          return '<button class="pf-cell" data-hl="' + esc(h.id) + '" style="background:' + (h.cover_url ? 'url(' + esc(h.cover_url) + ') center/cover' : PF_GRADS[0]) + '"><span class="pf-cell-title">' + esc(h.title || 'Story') + '</span></button>';
         }).join('') + '</div>';
+        wirePfAdd(el);
         el.querySelectorAll('[data-hl]').forEach(function (b) { b.addEventListener('click', function () { playStory([b.getAttribute('data-hl')], (PROFILE.me || {}).name); }); });
       }).catch(function () { var el = document.getElementById('pfTabBody'); if (el) el.innerHTML = empty('Couldn’t load highlights.'); });
       return;
     }
-    var path = tab === 'fweets' ? '/posts/mine/?post_type=fweet&page=1' : '/posts/mine/?post_type=post&page=1';
-    authFetch(path).then(function (r) {
+    var fweet = tab === 'fweets';
+    authFetch('/posts/mine/?post_type=' + (fweet ? 'fweet' : 'post') + '&page=1').then(function (r) {
       var el = document.getElementById('pfTabBody'); if (!el) return;
       if (!r.ok) { el.innerHTML = empty('Couldn’t load your ' + tab + '.'); return; }
       var ps = listOf(r.d);
-      if (!ps.length) { el.innerHTML = empty(tab === 'fweets' ? 'No fweets yet.' : 'You haven’t posted yet.'); return; }
-      el.innerHTML = ps.map(function (p) { return '<div class="myp">' + postCard(p) + '<button class="myp-del" data-delpost="' + esc(p.id) + '" title="Delete"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button></div>'; }).join('');
-      wirePostActions(el);
-      el.querySelectorAll('[data-delpost]').forEach(function (b) { b.addEventListener('click', function () {
-        if (!confirm('Delete this post permanently?')) return;
-        var id = b.getAttribute('data-delpost'); var card = b.closest('.myp'); card.style.opacity = '.4';
+      el.innerHTML = '<div class="pf-grid">' + pfAddTile(fweet ? 'fweet' : 'post', fweet ? 'Fweet' : 'Post') + ps.map(function (p, i) { return pfPostThumb(p, i); }).join('') + '</div>';
+      wirePfAdd(el);
+      el.querySelectorAll('[data-post]').forEach(function (b) { b.addEventListener('click', function () { var id = b.getAttribute('data-post'); openPostDetail(ps.filter(function (x) { return String(x.id) === id; })[0]); }); });
+      el.querySelectorAll('[data-delcell]').forEach(function (b) { b.addEventListener('click', function (e) {
+        e.stopPropagation(); if (!confirm('Delete this ' + (fweet ? 'fweet' : 'post') + '?')) return;
+        var id = b.getAttribute('data-delcell'); var cell = b.closest('.pf-cell'); cell.style.opacity = '.4';
         fetch(API + '/posts/' + id + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } })
-          .then(function (rr) { if (!rr.ok) throw 0; card.remove(); window.snack('Post deleted', 'ok'); if (!el.querySelector('.myp')) el.innerHTML = empty('You haven’t posted yet.'); })
-          .catch(function () { card.style.opacity = '1'; window.snack('Couldn’t delete.', 'error'); });
+          .then(function (rr) { if (!rr.ok) throw 0; cell.remove(); window.snack('Deleted', 'ok'); }).catch(function () { cell.style.opacity = '1'; window.snack('Couldn’t delete.', 'error'); });
       }); });
     }).catch(function () { var el = document.getElementById('pfTabBody'); if (el) el.innerHTML = empty('Couldn’t load your ' + tab + '.'); });
+  }
+  function openPostDetail(p) {
+    if (!p) return;
+    openModal('<div class="modal-head"><h2>Post</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="pd-post">' + postCard(p) + '</div>' +
+      '<div class="cmt-list" id="pdList" style="max-height:34vh"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="cmt-input"><input id="pdText" placeholder="Add a comment…" autocomplete="off" /><button class="send" id="pdSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    wirePostActions(document.querySelector('.pd-post'));
+    function load() {
+      authFetch('/posts/' + p.id + '/comments/').then(function (r) {
+        var el = document.getElementById('pdList'); if (!el) return;
+        var cs = r.ok ? listOf(r.d) : [];
+        if (!cs.length) { el.innerHTML = '<div class="cmt-empty faint">No comments yet.</div>'; return; }
+        el.innerHTML = cs.map(function (c) { return '<div class="cmt">' + avatar(c.author_avatar, c.author_name, 'cmt-av') + '<div class="cmt-body"><div class="cmt-head"><b>' + esc(c.author_name || 'User') + '</b><span class="faint">' + esc(timeAgo(c.created_at)) + '</span></div><div class="cmt-text">' + linkify(c.text || c.content || '') + '</div></div></div>'; }).join('');
+      }).catch(function () {});
+    }
+    function send() { var inp = document.getElementById('pdText'); var t = inp.value.trim(); if (!t) return; inp.value = '';
+      fetch(API + '/posts/' + p.id + '/comments/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ text: t }) })
+        .then(function (r) { if (!r.ok) throw 0; load(); }).catch(function () { window.snack('Couldn’t post comment.', 'error'); }); }
+    document.getElementById('pdSend').addEventListener('click', send);
+    document.getElementById('pdText').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    load();
+  }
+  function openCreateHighlight() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g1),var(--g2))">✨</div><h2>New highlight</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Highlights are stories that vanish after 24 hours.</p>' +
+      '<label>Title</label><input id="hlTitle" placeholder="e.g. Sports Day" maxlength="60" />' +
+      '<label>Photos / videos</label><input type="file" id="hlFiles" accept="image/*,video/*" multiple />' +
+      '<div class="hl-prev" id="hlPrev"></div>' +
+      '<button class="btn" id="hlSave" style="margin-top:16px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>Create highlight</span></button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var files = [];
+    document.getElementById('hlFiles').addEventListener('change', function () {
+      files = Array.prototype.slice.call(this.files);
+      document.getElementById('hlPrev').innerHTML = files.map(function (f) { return '<span class="hl-chip">' + (f.type.indexOf('video') === 0 ? '🎥 ' : '🖼️ ') + esc(f.name.slice(0, 18)) + '</span>'; }).join('');
+    });
+    document.getElementById('hlSave').addEventListener('click', function () {
+      var title = document.getElementById('hlTitle').value.trim();
+      if (!title) { window.snack('Give your highlight a title.', 'error'); return; }
+      if (!files.length) { window.snack('Add at least one photo or video.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = 'Uploading…';
+      fetch(API + '/highlights/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ title: title }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.d || !res.d.id) throw 0;
+          var hid = res.d.id, idx = 0;
+          function upNext() {
+            if (idx >= files.length) { closeModal(); window.snack('Highlight posted! ✨', 'ok'); PROFILE.tab = 'highlights'; loadProfileTab(); var tb = document.getElementById('pfTabs'); if (tb) tb.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === 'highlights'); }); return; }
+            var f = files[idx]; var fd = new FormData(); fd.append('highlight_id', hid); fd.append('file', f); fd.append('media_type', f.type.indexOf('video') === 0 ? 'video' : 'image'); if (idx === 0) fd.append('is_cover', 'true');
+            fetch(API + '/highlights/upload/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+              .then(function (rr) { if (!rr.ok) throw 0; idx++; upNext(); }).catch(function () { window.snack('Some media failed to upload.', 'error'); closeModal(); PROFILE.tab = 'highlights'; loadProfileTab(); });
+          }
+          upNext();
+        }).catch(function () { window.snack('Couldn’t create the highlight.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = 'Create highlight'; });
+    });
   }
 
   var TABS = { home: renderHome, studyhub: renderStudyhub, messages: renderMessages, clubs: renderClubs, profile: renderProfile };
