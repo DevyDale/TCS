@@ -2921,6 +2921,7 @@
   function closeGame() { clearGameLoops(); var ov = document.getElementById('gameOv'); if (ov) ov.remove(); }
   function openGame(g) {
     clearGameLoops();
+    var existing = document.getElementById('gameOv'); if (existing) existing.remove();
     var ov = document.createElement('div'); ov.className = 'game-ov arc-neon'; ov.id = 'gameOv';
     ov.innerHTML = '<div class="game-panel"><div class="arc-neon-bg"></div><div class="game-panel-in">' +
       '<div class="game-head"><span class="game-h-ic">' + g.icon + '</span><span class="game-h-name">' + esc(g.name) + '</span>' +
