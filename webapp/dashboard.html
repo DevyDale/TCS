@@ -1726,11 +1726,9 @@
       '</div>' +
       '<div class="sec-head"><div><span class="eyebrow">MINE</span><span class="sh-title">My Groups</span></div><span class="post-count" id="myCount"></span></div>' +
       '<div id="myGroups"><div class="loading"><div class="spin"></div></div></div>' +
-      '<div class="sec-head" style="margin-top:26px"><div><span class="eyebrow">DISCOVER</span><span class="sh-title">Suggested Groups</span></div>' +
-        '<button class="pillbtn" id="grpCreate2">＋ Create Group</button></div>' +
+      '<div class="sec-head" style="margin-top:26px"><div><span class="eyebrow">DISCOVER</span><span class="sh-title">Suggested Groups</span></div></div>' +
       '<div id="suggGroups"><div class="loading"><div class="spin"></div></div></div>';
     document.getElementById('grpCreate').addEventListener('click', openCreateGroup);
-    document.getElementById('grpCreate2').addEventListener('click', openCreateGroup);
 
     authFetch('/groups/?filter=mine').then(function (r) {
       SH.mine = r.ok ? listOf(r.d) : [];
