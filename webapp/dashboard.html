@@ -711,6 +711,27 @@
   .guess-input { width: 160px; height: 52px; text-align: center; font-family: 'Alfa', serif; font-size: 22px; color: #fff; background: rgba(13,9,26,.7); border: 1px solid rgba(0,229,255,.4); border-radius: 14px; outline: none; }
   .guess-input:focus { box-shadow: 0 0 18px rgba(0,229,255,.3); }
   .guess-tries { font-family: 'Momo', sans-serif; font-size: 12px; margin-top: 14px; }
+  .quiz-game { width: 100%; }
+  .qg-timer { height: 6px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; margin-bottom: 16px; }
+  .qg-timer i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--n-lime), var(--n-gold), var(--n-magenta)); }
+  .qg-q { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 16px; color: #fff; text-align: center; margin-bottom: 16px; line-height: 1.4; }
+  .qg-opts { display: grid; gap: 8px; }
+  .qg-opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+    background: rgba(13,9,26,.6); border: 1px solid rgba(0,229,255,.28); color: #eaf6ff; font-family: 'Momo', sans-serif; font-size: 13.5px; }
+  .qg-opt b { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 6px; background: rgba(0,229,255,.14); color: var(--n-cyan); display: grid; place-items: center; font-family: 'Arch'; font-size: 11px; }
+  .qg-opt:hover:not(:disabled) { border-color: var(--n-cyan); }
+  .qg-opt.right { border-color: var(--n-lime); background: rgba(124,255,107,.14); } .qg-opt.right b { background: rgba(124,255,107,.2); color: var(--n-lime); }
+  .qg-opt.wrong { border-color: var(--n-magenta); background: rgba(255,61,203,.14); }
+  .sushi { text-align: center; width: 100%; }
+  .sushi-order { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 16px; color: #eaf6ff; margin-bottom: 16px; }
+  .sushi-order span { font-size: 34px; vertical-align: -6px; filter: drop-shadow(0 0 8px rgba(0,229,255,.4)); }
+  .sushi-grid { display: grid; grid-template-columns: repeat(3, 74px); gap: 10px; justify-content: center; }
+  .sushi-btn { height: 74px; border-radius: 14px; cursor: pointer; font-size: 36px; border: 1px solid rgba(0,229,255,.3);
+    background: rgba(13,9,26,.6); transition: transform .08s; }
+  .sushi-btn:hover { border-color: var(--n-cyan); } .sushi-btn:active { transform: scale(.92); }
+  .sushi-combo { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 13px; color: var(--n-gold); margin-top: 14px; min-height: 18px; }
+  .sushi-time { height: 6px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; margin-bottom: 8px; }
+  .sushi-time i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--n-magenta), var(--n-gold), var(--n-lime)); }
 
   /* Group chat (inside group modal) */
   .gchat-feed { height: 320px; max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
@@ -2899,6 +2920,12 @@
   var WEB_GAMES = [
     { slug: 'snake', name: 'Snake', icon: '🐍', tag: 'Eat, grow, don’t crash', build: gameSnake },
     { slug: 'tic-tac-toe', name: 'Tic-Tac-Toe', icon: '⭕', tag: 'Beat the AI', build: gameTTT },
+    { slug: 'quiz-battle', name: 'Quiz Battle', icon: '❓', tag: 'Beat the clock, 8 questions', build: gameQuiz },
+    { slug: 'spirit-racers', name: 'Spirit Racers', icon: '🏎️', tag: 'Dodge traffic, go far', build: gameRacers },
+    { slug: 'ninja-tag', name: 'Ninja Tag', icon: '🥷', tag: 'Dodge the shurikens', build: gameNinja },
+    { slug: 'sushi-rush', name: 'Sushi Rush', icon: '🍣', tag: 'Serve the right order', build: gameSushi },
+    { slug: 'battle-bots', name: 'Battle Bots', icon: '🤖', tag: 'Shoot the invaders', build: gameBots },
+    { slug: 'campus-craft', name: 'Campus Craft', icon: '🏗️', tag: 'Stack the tower high', build: gameStack },
     { slug: 'memory-match', name: 'Memory Match', icon: '🧠', tag: 'Find every pair', build: gameMemory },
     { slug: 'number-guesser', name: 'Number Guesser', icon: '🔢', tag: 'Guess in the fewest tries', build: gameGuesser }
   ];
@@ -2962,15 +2989,19 @@
     ctx.stage.innerHTML = '<canvas id="snk" width="' + W + '" height="' + W + '" class="game-canvas"></canvas>';
     ctx.foot.innerHTML = '<span class="game-hint">Arrow keys or WASD to move</span>';
     var cv = document.getElementById('snk'), g = cv.getContext('2d');
-    var snake = [{ x: 8, y: 8 }], dir = { x: 1, y: 0 }, nextDir = { x: 1, y: 0 }, food = rndFood(), score = 0, speed = 130;
+    var snake = [{ x: 8, y: 8 }], dir = { x: 1, y: 0 }, queue = [], food = rndFood(), score = 0, speed = 110;
     function rndFood() { var f; do { f = { x: (Math.random() * N) | 0, y: (Math.random() * N) | 0 }; } while (snake.some(function (s) { return s.x === f.x && s.y === f.y; })); return f; }
     GAME.keys = function (e) {
-      var k = e.key.toLowerCase();
-      if ((k === 'arrowup' || k === 'w') && dir.y === 0) nextDir = { x: 0, y: -1 };
-      else if ((k === 'arrowdown' || k === 's') && dir.y === 0) nextDir = { x: 0, y: 1 };
-      else if ((k === 'arrowleft' || k === 'a') && dir.x === 0) nextDir = { x: -1, y: 0 };
-      else if ((k === 'arrowright' || k === 'd') && dir.x === 0) nextDir = { x: 1, y: 0 };
-      else return; e.preventDefault();
+      var k = e.key.toLowerCase(), nd = null;
+      if (k === 'arrowup' || k === 'w') nd = { x: 0, y: -1 };
+      else if (k === 'arrowdown' || k === 's') nd = { x: 0, y: 1 };
+      else if (k === 'arrowleft' || k === 'a') nd = { x: -1, y: 0 };
+      else if (k === 'arrowright' || k === 'd') nd = { x: 1, y: 0 };
+      else return;
+      e.preventDefault();
+      var last = queue.length ? queue[queue.length - 1] : dir;
+      if ((nd.x === -last.x && nd.y === -last.y) || (nd.x === last.x && nd.y === last.y)) return; // no reverse / duplicate
+      if (queue.length < 2) queue.push(nd);
     };
     document.addEventListener('keydown', GAME.keys);
     function draw() {
@@ -2981,7 +3012,7 @@
       g.shadowBlur = 0;
     }
     function step() {
-      dir = nextDir; var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      if (queue.length) dir = queue.shift(); var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
       if (head.x < 0 || head.y < 0 || head.x >= N || head.y >= N || snake.some(function (s) { return s.x === head.x && s.y === head.y; })) { ctx.over(score); return; }
       snake.unshift(head);
       if (head.x === food.x && head.y === food.y) { score += 10; ctx.setScore(score); food = rndFood(); if (speed > 70) { speed -= 4; clearInterval(GAME.iv); GAME.iv = setInterval(step, speed); } }
@@ -3061,6 +3092,182 @@
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
     }
     render();
+  }
+
+  // Held-key input for real-time games (smooth, responsive movement).
+  function heldKeys(map) {
+    var keys = {};
+    var kd = function (e) { var k = e.key.toLowerCase(); keys[k] = true; if (map[k]) e.preventDefault(); };
+    var ku = function (e) { keys[e.key.toLowerCase()] = false; };
+    document.addEventListener('keydown', kd); document.addEventListener('keyup', ku);
+    GAME.cleanup.push(function () { document.removeEventListener('keydown', kd); document.removeEventListener('keyup', ku); });
+    return keys;
+  }
+  function gcanvas(ctx, w, h) { ctx.stage.innerHTML = '<canvas id="gcv" width="' + w + '" height="' + h + '" class="game-canvas"></canvas>'; return document.getElementById('gcv').getContext('2d'); }
+
+  // ── Game: Quiz Battle (solo trivia) ──────────────────────────
+  function gameQuiz(ctx) {
+    var BANK = [
+      { q: 'Capital of Australia?', o: ['Sydney', 'Canberra', 'Melbourne', 'Perth'], a: 1 },
+      { q: 'H₂O is more commonly known as?', o: ['Salt', 'Water', 'Oxygen', 'Hydrogen'], a: 1 },
+      { q: 'How many continents are there?', o: ['5', '6', '7', '8'], a: 2 },
+      { q: 'Which planet is the Red Planet?', o: ['Venus', 'Jupiter', 'Mars', 'Saturn'], a: 2 },
+      { q: '12 × 8 = ?', o: ['84', '96', '108', '88'], a: 1 },
+      { q: 'Who wrote Romeo and Juliet?', o: ['Dickens', 'Shakespeare', 'Austen', 'Twain'], a: 1 },
+      { q: 'Largest ocean on Earth?', o: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], a: 3 },
+      { q: 'Chemical symbol for gold?', o: ['Go', 'Gd', 'Au', 'Ag'], a: 2 },
+      { q: 'Fastest land animal?', o: ['Lion', 'Cheetah', 'Horse', 'Gazelle'], a: 1 },
+      { q: 'How many sides does a hexagon have?', o: ['5', '6', '7', '8'], a: 1 },
+      { q: 'Square root of 144?', o: ['11', '12', '13', '14'], a: 1 },
+      { q: 'Which is a programming language?', o: ['Python', 'Cobra', 'Viper', 'Adder'], a: 0 }
+    ];
+    for (var i = BANK.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = BANK[i]; BANK[i] = BANK[j]; BANK[j] = t; }
+    var quiz = BANK.slice(0, 8), idx = 0, score = 0, curAnswer = null;
+    GAME.keys = function (e) { var n = parseInt(e.key, 10); if (n >= 1 && n <= 4 && curAnswer) { e.preventDefault(); curAnswer(n - 1); } };
+    document.addEventListener('keydown', GAME.keys);
+    function ask() {
+      if (idx >= quiz.length) { ctx.over(score); return; }
+      var q = quiz[idx], TLIM = 10, start = performance.now(), answered = false;
+      ctx.stage.innerHTML = '<div class="quiz-game"><div class="qg-timer"><i id="qgBar"></i></div>' +
+        '<div class="qg-q">' + esc(q.q) + '</div><div class="qg-opts">' +
+        q.o.map(function (op, i2) { return '<button class="qg-opt" data-o="' + i2 + '"><b>' + (i2 + 1) + '</b>' + esc(op) + '</button>'; }).join('') + '</div></div>';
+      ctx.foot.innerHTML = '<span class="game-hint">Question ' + (idx + 1) + ' / ' + quiz.length + ' · keys 1–4</span>';
+      var bar = document.getElementById('qgBar');
+      curAnswer = function (i2) {
+        if (answered) return; answered = true; curAnswer = null; if (GAME.raf) { cancelAnimationFrame(GAME.raf); GAME.raf = null; }
+        var correct = i2 === q.a;
+        ctx.stage.querySelectorAll('[data-o]').forEach(function (b) { var bi = +b.getAttribute('data-o'); if (bi === q.a) b.classList.add('right'); else if (bi === i2) b.classList.add('wrong'); b.disabled = true; });
+        if (correct) { var bonus = Math.max(0, Math.round((1 - (performance.now() - start) / 1000 / TLIM) * 40)); score += 60 + bonus; ctx.setScore(score); }
+        setTimeout(function () { idx++; ask(); }, 850);
+      };
+      ctx.stage.querySelectorAll('[data-o]').forEach(function (b) { b.addEventListener('click', function () { curAnswer && curAnswer(+b.getAttribute('data-o')); }); });
+      function tick(now) { var el = (now - start) / 1000, frac = Math.max(0, 1 - el / TLIM); if (bar) bar.style.width = (frac * 100) + '%'; if (el >= TLIM) { curAnswer && curAnswer(-1); return; } GAME.raf = requestAnimationFrame(tick); }
+      GAME.raf = requestAnimationFrame(tick);
+    }
+    ask();
+  }
+
+  // ── Game: Spirit Racers (lane dodge) ─────────────────────────
+  function gameRacers(ctx) {
+    var W = 300, H = 420, g = gcanvas(ctx, W, H);
+    ctx.foot.innerHTML = '<span class="game-hint">← → or A / D to switch lanes</span>';
+    var lanes = [W * 0.22, W * 0.5, W * 0.78], lane = 1, obst = [], speed = 170, score = 0, spawn = 0, cd = 0, dash = 0, last = performance.now();
+    var keys = heldKeys({ arrowleft: 1, arrowright: 1, a: 1, d: 1 });
+    function loop(now) {
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; cd -= dt; dash += speed * dt;
+      if ((keys.arrowleft || keys.a) && lane > 0 && cd <= 0) { lane--; cd = 0.16; }
+      if ((keys.arrowright || keys.d) && lane < 2 && cd <= 0) { lane++; cd = 0.16; }
+      speed += dt * 7; score += dt * 12; ctx.setScore(Math.floor(score));
+      spawn -= dt; if (spawn <= 0) { obst.push({ lane: (Math.random() * 3) | 0, y: -30 }); spawn = Math.max(0.42, 0.9 - speed / 700); }
+      var py = H - 54;
+      for (var i = obst.length - 1; i >= 0; i--) { obst[i].y += speed * dt; if (obst[i].y > H + 40) obst.splice(i, 1); else if (obst[i].lane === lane && Math.abs(obst[i].y - py) < 34) { ctx.over(Math.floor(score)); return; } }
+      g.fillStyle = '#08060f'; g.fillRect(0, 0, W, H);
+      g.strokeStyle = 'rgba(0,229,255,.18)'; g.setLineDash([14, 16]); g.lineDashOffset = -(dash % 30);
+      [W / 3, 2 * W / 3].forEach(function (x) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }); g.setLineDash([]);
+      obst.forEach(function (o) { g.fillStyle = '#FF3DCB'; g.shadowColor = '#FF3DCB'; g.shadowBlur = 12; rr(g, lanes[o.lane] - 16, o.y - 16, 32, 32, 7); });
+      g.fillStyle = '#7CFF6B'; g.shadowColor = '#7CFF6B'; g.shadowBlur = 16; rr(g, lanes[lane] - 15, py - 20, 30, 42, 8); g.shadowBlur = 0;
+      GAME.raf = requestAnimationFrame(loop);
+    }
+    GAME.raf = requestAnimationFrame(loop);
+  }
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.fill(); }
+
+  // ── Game: Ninja Tag (free-move dodge) ────────────────────────
+  function gameNinja(ctx) {
+    var W = 330, H = 380, g = gcanvas(ctx, W, H);
+    ctx.foot.innerHTML = '<span class="game-hint">Move with arrows / WASD — dodge the shurikens</span>';
+    var p = { x: W / 2, y: H / 2, r: 11 }, foes = [], score = 0, spawn = 1.2, last = performance.now();
+    var keys = heldKeys({ arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1, w: 1, a: 1, s: 1, d: 1 });
+    function loop(now) {
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; var sp = 165 * dt;
+      if (keys.arrowup || keys.w) p.y -= sp; if (keys.arrowdown || keys.s) p.y += sp;
+      if (keys.arrowleft || keys.a) p.x -= sp; if (keys.arrowright || keys.d) p.x += sp;
+      p.x = Math.max(p.r, Math.min(W - p.r, p.x)); p.y = Math.max(p.r, Math.min(H - p.r, p.y));
+      score += dt * 10; ctx.setScore(Math.floor(score));
+      spawn -= dt; if (spawn <= 0) { var edge = (Math.random() * 4) | 0, s = { r: 9 }; if (edge === 0) { s.x = 0; s.y = Math.random() * H; } else if (edge === 1) { s.x = W; s.y = Math.random() * H; } else if (edge === 2) { s.x = Math.random() * W; s.y = 0; } else { s.x = Math.random() * W; s.y = H; } var ang = Math.atan2(p.y - s.y, p.x - s.x) + (Math.random() - 0.5) * 0.5; var v = 90 + Math.min(120, score); s.vx = Math.cos(ang) * v; s.vy = Math.sin(ang) * v; foes.push(s); spawn = Math.max(0.35, 1.2 - score / 120); }
+      for (var i = foes.length - 1; i >= 0; i--) { var f = foes[i]; f.x += f.vx * dt; f.y += f.vy * dt; if (f.x < -20 || f.x > W + 20 || f.y < -20 || f.y > H + 20) { foes.splice(i, 1); continue; } if (Math.hypot(f.x - p.x, f.y - p.y) < p.r + f.r) { ctx.over(Math.floor(score)); return; } }
+      g.fillStyle = '#08060f'; g.fillRect(0, 0, W, H);
+      foes.forEach(function (f) { g.fillStyle = '#FF3DCB'; g.shadowColor = '#FF3DCB'; g.shadowBlur = 10; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 7); g.fill(); });
+      g.fillStyle = '#7CFF6B'; g.shadowColor = '#7CFF6B'; g.shadowBlur = 16; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); g.shadowBlur = 0;
+      GAME.raf = requestAnimationFrame(loop);
+    }
+    GAME.raf = requestAnimationFrame(loop);
+  }
+
+  // ── Game: Sushi Rush (match the order) ───────────────────────
+  function gameSushi(ctx) {
+    var SUSHI = ['🍣', '🍤', '🍥', '🍙', '🍘', '🍡'];
+    var timeLeft = 30, score = 0, combo = 0, order = pick(), last = performance.now();
+    function pick() { return SUSHI[(Math.random() * SUSHI.length) | 0]; }
+    function render() {
+      ctx.stage.innerHTML = '<div class="sushi"><div class="sushi-order">Serve: <span id="suOrder">' + order + '</span></div>' +
+        '<div class="sushi-grid">' + SUSHI.map(function (s, i2) { return '<button class="sushi-btn" data-s="' + i2 + '">' + s + '</button>'; }).join('') + '</div>' +
+        '<div class="sushi-combo faint" id="suCombo"></div></div>';
+      ctx.stage.querySelectorAll('[data-s]').forEach(function (b) { b.addEventListener('click', function () { serve(SUSHI[+b.getAttribute('data-s')]); }); });
+    }
+    function serve(s) {
+      if (s === order) { combo++; score += 15 + Math.min(35, combo * 3); ctx.setScore(score); }
+      else { combo = 0; timeLeft = Math.max(0, timeLeft - 2); }
+      var cEl = document.getElementById('suCombo'); if (cEl) cEl.textContent = combo > 1 ? '🔥 Combo ×' + combo : '';
+      order = pick(); var oEl = document.getElementById('suOrder'); if (oEl) oEl.textContent = order;
+    }
+    GAME.keys = function (e) { var n = parseInt(e.key, 10); if (n >= 1 && n <= SUSHI.length) { e.preventDefault(); serve(SUSHI[n - 1]); } };
+    document.addEventListener('keydown', GAME.keys);
+    ctx.foot.innerHTML = '<div class="sushi-time"><i id="suBar"></i></div><span class="game-hint">Tap the sushi that matches the order — keys 1–6</span>';
+    render();
+    function tick(now) { timeLeft -= (now - last) / 1000; last = now; var bar = document.getElementById('suBar'); if (bar) bar.style.width = Math.max(0, timeLeft / 30 * 100) + '%'; if (timeLeft <= 0) { ctx.over(score); return; } GAME.raf = requestAnimationFrame(tick); }
+    GAME.raf = requestAnimationFrame(tick);
+  }
+
+  // ── Game: Battle Bots (shooter) ──────────────────────────────
+  function gameBots(ctx) {
+    var W = 320, H = 400, g = gcanvas(ctx, W, H);
+    ctx.foot.innerHTML = '<span class="game-hint">← → move · Space to shoot</span>';
+    var px = W / 2, bullets = [], bots = [], score = 0, spawn = 0, fire = 0, last = performance.now();
+    var keys = heldKeys({ arrowleft: 1, arrowright: 1, a: 1, d: 1, ' ': 1 });
+    function loop(now) {
+      var dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (keys.arrowleft || keys.a) px -= 220 * dt; if (keys.arrowright || keys.d) px += 220 * dt; px = Math.max(16, Math.min(W - 16, px));
+      fire -= dt; if (keys[' '] && fire <= 0) { bullets.push({ x: px, y: H - 40 }); fire = 0.28; }
+      spawn -= dt; if (spawn <= 0) { bots.push({ x: 20 + Math.random() * (W - 40), y: -16 }); spawn = Math.max(0.5, 1.3 - score / 400); }
+      for (var i = bullets.length - 1; i >= 0; i--) { bullets[i].y -= 340 * dt; if (bullets[i].y < -10) bullets.splice(i, 1); }
+      for (var b = bots.length - 1; b >= 0; b--) { bots[b].y += (60 + score / 20) * dt;
+        if (bots[b].y > H - 26) { ctx.over(score); return; }
+        for (var k = bullets.length - 1; k >= 0; k--) { if (Math.abs(bullets[k].x - bots[b].x) < 16 && Math.abs(bullets[k].y - bots[b].y) < 16) { bots.splice(b, 1); bullets.splice(k, 1); score += 25; ctx.setScore(score); break; } } }
+      g.fillStyle = '#08060f'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#FFD23F'; bullets.forEach(function (bl) { g.shadowColor = '#FFD23F'; g.shadowBlur = 10; g.fillRect(bl.x - 2, bl.y - 8, 4, 12); });
+      bots.forEach(function (bt) { g.fillStyle = '#FF3DCB'; g.shadowColor = '#FF3DCB'; g.shadowBlur = 10; rr(g, bt.x - 14, bt.y - 12, 28, 24, 6); });
+      g.fillStyle = '#00E5FF'; g.shadowColor = '#00E5FF'; g.shadowBlur = 14; rr(g, px - 16, H - 34, 32, 20, 5); g.shadowBlur = 0;
+      GAME.raf = requestAnimationFrame(loop);
+    }
+    GAME.raf = requestAnimationFrame(loop);
+  }
+
+  // ── Game: Campus Craft (tower stack) ─────────────────────────
+  function gameStack(ctx) {
+    var W = 300, H = 420, g = gcanvas(ctx, W, H);
+    ctx.foot.innerHTML = '<span class="game-hint">Space or click to drop the block</span>';
+    var BH = 26, base = { x: 90, w: 120 }, stack = [base], moving = { x: 0, w: 120, dir: 1 }, spd = 150, score = 0, last = performance.now();
+    function drop() {
+      var top = stack[stack.length - 1];
+      var left = Math.max(moving.x, top.x), right = Math.min(moving.x + moving.w, top.x + top.w), overlap = right - left;
+      if (overlap <= 0) { ctx.over(score); return; }
+      stack.push({ x: left, w: overlap }); score += 10; ctx.setScore(score);
+      spd += 8; moving = { x: 0, w: overlap, dir: 1 };
+    }
+    GAME.keys = function (e) { if (e.key === ' ') { e.preventDefault(); drop(); } };
+    document.addEventListener('keydown', GAME.keys);
+    document.getElementById('gcv').addEventListener('click', drop);
+    function loop(now) {
+      var dt = Math.min(0.05, (now - last) / 1000); last = now;
+      moving.x += moving.dir * spd * dt; if (moving.x + moving.w > W) { moving.x = W - moving.w; moving.dir = -1; } if (moving.x < 0) { moving.x = 0; moving.dir = 1; }
+      g.fillStyle = '#08060f'; g.fillRect(0, 0, W, H);
+      var view = Math.max(0, stack.length - 12);
+      stack.forEach(function (bk, i2) { if (i2 < view) return; var y = H - BH - (i2 - view) * BH; var hue = (i2 * 28) % 360; g.fillStyle = 'hsl(' + hue + ',85%,60%)'; g.shadowColor = g.fillStyle; g.shadowBlur = 8; rr(g, bk.x, y, bk.w, BH - 3, 5); });
+      var my = H - BH - (stack.length - view) * BH; g.fillStyle = '#00E5FF'; g.shadowColor = '#00E5FF'; g.shadowBlur = 14; rr(g, moving.x, my, moving.w, BH - 3, 5); g.shadowBlur = 0;
+      GAME.raf = requestAnimationFrame(loop);
+    }
+    GAME.raf = requestAnimationFrame(loop);
   }
 
   var PROFILE = { me: null, tab: 'posts' };
