@@ -1013,12 +1013,23 @@
   }
 
   // ── Story highlights (grouped by owner) ──────────────────────
+  // Highlights expire after 24h — keep only those whose newest timestamp
+  // (own created_at, or newest item) is under 24 hours old, matching the
+  // mobile feed's _isFresh filter.
+  function isFreshHighlight(h) {
+    var newest = null;
+    function consider(iso) { if (!iso) return; var t = new Date(iso).getTime(); if (!isNaN(t) && (newest === null || t > newest)) newest = t; }
+    consider(h.created_at);
+    (h.items || []).forEach(function (it) { consider(it && it.created_at); });
+    if (newest === null) return true;
+    return (Date.now() - newest) < 24 * 3600 * 1000;
+  }
   function loadStories() {
     var row = document.getElementById('stories'); if (!row) return;
     authFetch('/highlights/feed/').then(function (r) {
       var el = document.getElementById('stories'); if (!el) return;
       if (!r.ok) { el.style.display = 'none'; return; }
-      var hs = listOf(r.d);
+      var hs = listOf(r.d).filter(isFreshHighlight);
       // group by owner_id, preserving first-seen order
       var order = [], map = {};
       hs.forEach(function (h) { var k = h.owner_id || h.owner_name || h.id; if (!map[k]) { map[k] = { owner: h.owner_name, cover: h.cover_url, items: [] }; order.push(k); } map[k].items.push(h); });
@@ -3490,7 +3501,7 @@
       authFetch('/highlights/mine/').then(function (r) {
         var el = document.getElementById('pfTabBody'); if (!el) return;
         if (!r.ok) { el.innerHTML = empty('Couldn’t load highlights.'); return; }
-        var hs = listOf(r.d);
+        var hs = listOf(r.d).filter(isFreshHighlight);
         if (!hs.length) { el.innerHTML = empty('No highlights yet.'); return; }
         el.innerHTML = '<div class="hl-grid">' + hs.map(function (h) {
           return '<button class="hl-cell" data-hl="' + esc(h.id) + '" style="background:' + (h.cover_url ? 'url(' + esc(h.cover_url) + ') center/cover' : PROF_COVERS[0]) + '"><span class="hl-title">' + esc(h.title || 'Story') + '</span></button>';
