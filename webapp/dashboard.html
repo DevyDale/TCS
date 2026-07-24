@@ -885,31 +885,54 @@
   .dale-back { width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid var(--hair); background: var(--glass); color: var(--ink); border-radius: 10px; cursor: pointer; font-size: 17px; }
   .dale-back:hover { border-color: var(--hair-2); }
   .dale-mini-ic { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; display: grid; place-items: center; font-size: 16px; color: #fff; }
-  .dale-greet { margin: 2px 0 16px; }
-  .dale-greet h2 { font-family: 'Alfa', serif; font-size: 19px; color: var(--ink); }
-  .dale-greet p { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); margin-top: 4px; }
+  /* Gradient greeting banner */
+  .dale-banner { display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; color: #fff;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); border-radius: 20px; padding: 18px 16px 20px 18px; margin-bottom: 18px;
+    box-shadow: 0 14px 32px rgba(142,84,233,.30); }
+  .dale-banner::after { content: ''; position: absolute; top: -60%; right: -14%; width: 210px; height: 210px; border-radius: 50%; background: rgba(255,255,255,.14); pointer-events: none; }
+  .dale-banner-orb { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 17px; background: rgba(255,255,255,.2); display: grid; place-items: center; position: relative; z-index: 1; }
+  .dale-banner-orb dotlottie-wc { width: 40px; height: 40px; }
+  .db-eyebrow { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 9.5px; letter-spacing: 2px; color: rgba(255,255,255,.82); }
+  .db-title { font-family: 'Alfa', serif; font-size: 18px; color: #fff; margin-top: 3px; text-wrap: balance; }
+  .db-sub { font-family: 'Momo', sans-serif; font-size: 12px; color: rgba(255,255,255,.9); margin-top: 3px; }
+  .db-x { position: relative; z-index: 1; align-self: flex-start; color: #fff; background: rgba(255,255,255,.18); border-radius: 10px; padding: 7px 9px; margin-left: 0; }
+  .db-x:hover { background: rgba(255,255,255,.28); }
+  .dale-sec { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--faint); margin: 18px 2px 10px; }
+  /* AI Assistant hero (elevated) */
   .dale-hero { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
-    border: 1px solid var(--hair-2); background: var(--glass); border-radius: 18px; padding: 18px; margin-bottom: 12px; transition: border-color .12s; }
-  .dale-hero:hover { border-color: var(--g2); }
-  .dale-hero-ic { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; color: #fff; background: linear-gradient(135deg, var(--g2), var(--g1)); }
+    border: 1px solid var(--hair-2); border-radius: 18px; padding: 18px;
+    background: linear-gradient(135deg, rgba(142,84,233,.12), rgba(109,213,250,.07)); transition: transform .12s, box-shadow .12s, border-color .12s; }
+  .dale-hero:hover { transform: translateY(-2px); border-color: var(--g2); box-shadow: 0 12px 28px rgba(142,84,233,.22); }
+  .dale-hero-ic { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 15px; display: grid; place-items: center; font-size: 23px; color: #fff;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); box-shadow: 0 6px 16px rgba(142,84,233,.4); }
   .dale-hero-t { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 16px; color: var(--ink); }
-  .dale-hero-s { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .dale-hero-s { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 3px; }
   .dale-arrow { margin-left: auto; color: var(--faint); font-size: 20px; flex: 0 0 auto; }
+  /* Tool cards */
   .dale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .dale-tool { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; cursor: pointer;
-    border: 1px solid var(--hair); background: var(--glass); border-radius: 16px; padding: 16px; min-height: 132px; transition: border-color .12s, transform .12s; }
-  .dale-tool:hover { border-color: var(--hair-2); transform: translateY(-2px); }
-  .dale-tool-ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; color: #fff; margin-bottom: auto; }
+  .dale-tool { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; text-align: left; cursor: pointer;
+    border: 1px solid var(--hair); background: var(--glass); border-radius: 16px; padding: 15px 15px 16px; min-height: 138px; overflow: hidden;
+    transition: border-color .12s, transform .12s, box-shadow .12s; }
+  .dale-tool::before { content: ''; position: absolute; inset: 0; opacity: 0; background: radial-gradient(120% 80% at 100% 0, rgba(255,255,255,.06), transparent 60%); transition: opacity .15s; }
+  .dale-tool:hover { border-color: var(--hair-2); transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,.22); }
+  .dale-tool:hover::before { opacity: 1; }
+  .dale-tool-ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; color: #fff; margin-bottom: auto; box-shadow: 0 5px 14px rgba(0,0,0,.28); }
   .dale-tool-t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
   .dale-tool-s { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); line-height: 1.4; }
-  .dale-scam { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; border: 0;
-    border-radius: 16px; padding: 14px 16px; margin-top: 12px; color: #fff; background: linear-gradient(135deg, #0EA5A5, #2563EB); }
+  /* Scam banner */
+  .dale-scam { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer; border: 0;
+    border-radius: 16px; padding: 15px 16px; margin-top: 12px; color: #fff; background: linear-gradient(135deg, #0EA5A5, #2563EB); box-shadow: 0 10px 24px rgba(37,99,235,.28); transition: transform .12s; }
+  .dale-scam:hover { transform: translateY(-2px); }
+  .dale-scam-ic { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 11px; background: rgba(255,255,255,.2); display: grid; place-items: center; font-size: 19px; }
   .dale-scam-t { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 14px; }
-  .dale-scam-s { font-family: 'Momo', sans-serif; font-size: 11.5px; opacity: .92; }
-  .dale-usage { margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hair); background: var(--glass); }
-  .dale-usage-top { display: flex; justify-content: space-between; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .6px; }
-  .dale-usage-bar { height: 6px; border-radius: 3px; background: var(--glass-2); margin-top: 8px; overflow: hidden; }
-  .dale-usage-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--g2), var(--g1)); border-radius: 3px; transition: width .3s; }
+  .dale-scam-s { font-family: 'Momo', sans-serif; font-size: 11.5px; opacity: .92; margin-top: 2px; }
+  /* Usage */
+  .dale-usage { margin-top: 14px; padding: 13px 15px; border-radius: 14px; border: 1px solid var(--hair); background: var(--glass); }
+  .dale-usage-top { display: flex; justify-content: space-between; align-items: center; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .6px; }
+  .dale-usage-top span:last-child { font-family: 'Alfa', serif; font-size: 13px; color: var(--ink); letter-spacing: 0; }
+  .dale-usage-bar { height: 7px; border-radius: 4px; background: var(--glass-2); margin-top: 9px; overflow: hidden; }
+  .dale-usage-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--g2), var(--g1)); border-radius: 4px; transition: width .3s; }
+  .dale-usage-note { font-family: 'Momo', sans-serif; font-size: 10px; color: var(--faint); margin-top: 8px; }
   .dale-comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 52vh; overflow-y: auto; }
   .dale-comp { display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; border: 1px solid var(--hair); background: var(--glass); border-radius: 13px; padding: 11px; }
   .dale-comp:hover { border-color: var(--hair-2); }
@@ -2739,17 +2762,19 @@
         '<span class="dale-tool-t">' + name + '</span><span class="dale-tool-s">' + sub + '</span></button>';
     };
     wrap.innerHTML =
-      '<div class="dale-vhead"><span class="dale-orb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span><b>Dale</b>' + DALE_X + '</div>' +
-      '<div class="dale-greet"><h2>' + esc(daleGreet()) + ' 👋</h2><p>What can I help with today?</p></div>' +
-      '<button class="dale-hero" data-tool="assistant"><span class="dale-hero-ic">✨</span><span style="min-width:0"><span class="dale-hero-t" style="display:block">AI Assistant</span><span class="dale-hero-s" style="display:block">Ask anything about campus, study, life</span></span><span class="dale-arrow">→</span></button>' +
+      '<div class="dale-banner"><span class="dale-banner-orb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' +
+        '<div style="flex:1;min-width:0"><div class="db-eyebrow">DALE · AI HUB</div><div class="db-title">' + esc(daleGreet()) + ' 👋</div><div class="db-sub">What can I help with today?</div></div>' +
+        '<button class="ghost x db-x" id="mClose"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<button class="dale-hero" data-tool="assistant"><span class="dale-hero-ic">✨</span><span style="min-width:0;flex:1"><span class="dale-hero-t" style="display:block">AI Assistant</span><span class="dale-hero-s" style="display:block">Ask anything about campus, study, life</span></span><span class="dale-arrow">→</span></button>' +
+      '<div class="dale-sec">Explore</div>' +
       '<div class="dale-grid">' +
         tool('sage', '🧘', 'Sage', 'Your personal mentor — talk, reflect, get support', '#34D399', '#059669') +
         tool('code', '⌨️', 'Code Helper', 'Snippets, debugging, code reviews', '#6DD5FA', '#2563EB') +
         tool('companions', '👥', 'Companions', 'Chat with Einstein, Shakespeare &amp; more', '#8E54E9', '#6DD5FA') +
         tool('image', '🖼️', 'Image Generator', 'Turn text into images with FLUX', '#F7971E', '#FF5858') +
       '</div>' +
-      '<button class="dale-scam" data-tool="scam"><span style="font-size:20px">🛡️</span><span style="flex:1;min-width:0"><span class="dale-scam-t" style="display:block">Is this a scam?</span><span class="dale-scam-s" style="display:block">Paste a suspicious call, text, email or job offer to check it</span></span><span class="dale-arrow" style="color:#fff">→</span></button>' +
-      '<div class="dale-usage"><div class="dale-usage-top"><span>⚡ Hourly usage</span><span id="daleUsageN">— / 60</span></div><div class="dale-usage-bar"><i id="daleUsageBar" style="width:0%"></i></div></div>';
+      '<button class="dale-scam" data-tool="scam"><span class="dale-scam-ic">🛡️</span><span style="flex:1;min-width:0"><span class="dale-scam-t" style="display:block">Is this a scam?</span><span class="dale-scam-s" style="display:block">Paste a suspicious call, text, email or job offer to check it</span></span><span class="dale-arrow" style="color:#fff">→</span></button>' +
+      '<div class="dale-usage"><div class="dale-usage-top"><span>⚡ Hourly usage</span><span id="daleUsageN">— / 60</span></div><div class="dale-usage-bar"><i id="daleUsageBar" style="width:0%"></i></div><div class="dale-usage-note">Free for every TCS student · Powered by Gemini &amp; FLUX</div></div>';
     daleWireClose();
     wrap.querySelectorAll('[data-tool]').forEach(function (b) { b.addEventListener('click', function () { openDaleTool(b.getAttribute('data-tool')); }); });
     authFetch('/ai/status/').then(function (r) {
