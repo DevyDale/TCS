@@ -18,7 +18,7 @@ boto3==1.35.36
 python-magic==0.4.27
 django-filter==24.3
 drf-spectacular==0.27.2
-firebase-admin==6.5.0
+firebase-admin==7.4.0
 python-decouple==3.8
 shortuuid==1.0.13
 django-cleanup==8.1.0
