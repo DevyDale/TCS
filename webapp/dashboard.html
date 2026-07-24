@@ -58,6 +58,7 @@
     background: none; border-radius: 14px; color: var(--sub); text-align: left;
     font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; transition: background 0.15s ease, color 0.15s ease; }
   .nav-item svg { width: 21px; height: 21px; fill: currentColor; flex: 0 0 auto; }
+  .nav-item dotlottie-wc { width: 24px; height: 24px; flex: 0 0 auto; margin: -1px 0; }
   .nav-item:hover { background: var(--glass); color: var(--ink); }
   .nav-item.active { color: #fff; background: linear-gradient(90deg, rgba(142,84,233,0.28), rgba(109,213,250,0.12));
     box-shadow: inset 3px 0 0 var(--g1); }
@@ -981,6 +982,298 @@
   .cat { cursor: pointer; border-radius: 999px; padding: 8px 13px; border: 1px solid var(--hair); background: var(--glass);
     color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
   .cat.sel { background: linear-gradient(90deg, var(--g2), var(--g1)); color: #fff; border-color: transparent; }
+
+  /* ── Form controls (selects + in-page staff forms) ─────────────── */
+  .modal select, #view.inner select { width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair);
+    border-radius: 13px; padding: 13px 14px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 20px; padding-right: 38px; }
+  .modal select:focus, #view.inner select:focus { border-color: var(--g2); }
+  #view.inner .card label { display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; margin: 14px 0 7px; color: var(--sub); }
+  #view.inner .card input, #view.inner .card textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair);
+    border-radius: 13px; padding: 13px 14px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; resize: vertical; }
+  #view.inner .card input:focus, #view.inner .card textarea:focus { border-color: var(--g2); }
+  #view.inner .card select { margin-top: 0; }
+
+  /* ── Staff dashboard ───────────────────────────────────────────── */
+  .stf-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 4px 0 18px; }
+  @media (max-width: 720px) { .stf-stats { grid-template-columns: repeat(2, 1fr); } }
+  .stf-stat { background: var(--glass); border: 1px solid var(--hair); border-radius: 18px; padding: 16px 16px 14px; }
+  .stf-stat-ic { font-size: 20px; line-height: 1; }
+  .stf-stat-n { font-family: 'Alfa', serif; font-size: 26px; letter-spacing: .5px; margin-top: 8px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stf-stat-l { font-family: 'Arch', sans-serif; font-size: 11.5px; letter-spacing: .5px; color: var(--sub); margin-top: 2px; }
+  .stf-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 720px) { .stf-quick { grid-template-columns: 1fr; } }
+  .stf-qbtn { display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--hair); border-radius: 16px; padding: 13px 15px;
+    color: var(--ink); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13.5px; transition: transform .12s, border-color .12s; }
+  .stf-qbtn:hover { transform: translateY(-2px); border-color: var(--hair-2); }
+  .stf-qic { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 12px; font-size: 18px; }
+  .stf-need { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border-radius: 15px;
+    border: 1px solid var(--hair); background: var(--glass); margin-bottom: 9px; }
+  .stf-need.wb { border-color: rgba(255,88,88,.28); }
+  .stf-need-ic { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 12px; background: var(--glass-2); font-size: 18px; }
+  .stf-report { margin-bottom: 12px; }
+  .stf-rep-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .stf-rep-prev { font-family: 'Momo', sans-serif; font-size: 13px; line-height: 1.5; color: var(--ink);
+    background: var(--glass); border-radius: 12px; padding: 10px 12px; }
+  .stf-rep-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+  /* ── Staff redesign: overview chips, tab badges, filters, stats, dropzone, docs ── */
+  .stf-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 18px; }
+  @media (max-width: 720px) { .stf-overview { grid-template-columns: 1fr; } }
+  .stf-ov { display: flex; align-items: center; gap: 13px; padding: 14px 16px; border-radius: 16px;
+    border: 1px solid var(--hair); background: var(--glass); cursor: pointer; transition: border-color .12s, transform .12s; }
+  .stf-ov:hover { border-color: var(--hair-2); transform: translateY(-2px); }
+  .stf-ov-ic { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 12px; font-size: 19px; }
+  .stf-ov-n { font-family: 'Alfa', serif; font-size: 22px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stf-ov-l { font-family: 'Arch', sans-serif; font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .7px; margin-top: 4px; }
+  .tab-badge { display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; align-items: center; justify-content: center;
+    border-radius: 9px; background: linear-gradient(135deg, var(--g4), var(--g3)); color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; margin-left: 8px; vertical-align: middle; }
+  .tab-badge.zero { background: var(--glass-2); color: var(--faint); }
+  .stf-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .stf-fchip { cursor: pointer; border: 1px solid var(--hair); background: var(--glass); color: var(--sub);
+    border-radius: 999px; padding: 7px 15px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
+  .stf-fchip .n { opacity: .65; margin-left: 5px; font-variant-numeric: tabular-nums; }
+  .stf-fchip:hover { color: var(--ink); border-color: var(--hair-2); }
+  .stf-fchip.on { background: linear-gradient(90deg, var(--g2), var(--g1)); color: #fff; border-color: transparent; }
+  .stf-fchip.on .n { opacity: .85; }
+  .stu-row { display: flex; align-items: center; gap: 13px; padding: 11px 14px; border-radius: 14px;
+    border: 1px solid var(--hair); background: var(--glass); margin-bottom: 8px; cursor: pointer; transition: border-color .12s; }
+  .stu-row:hover { border-color: var(--hair-2); }
+  .stu-row .us-av { width: 44px; height: 44px; flex: 0 0 44px; position: relative; }
+  .stu-tags { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .stu-view { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 10.5px; color: var(--g1); text-transform: uppercase; letter-spacing: .8px; }
+  .stu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+  .stu-tile { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px 14px 16px;
+    border-radius: 18px; border: 1px solid var(--hair); background: var(--glass); cursor: pointer; transition: border-color .12s, transform .12s, box-shadow .12s; }
+  .stu-tile:hover { border-color: var(--hair-2); transform: translateY(-3px); box-shadow: 0 10px 26px rgba(0,0,0,0.22); }
+  .stu-tile .us-av { width: 66px; height: 66px; flex: 0 0 66px; font-size: 24px; margin-bottom: 12px; }
+  .stu-tile .us-dot { width: 15px; height: 15px; border-width: 2.5px; }
+  .stu-tile-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stu-tile-id { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stu-tile-status { margin-top: 11px; font-family: 'Momo', sans-serif; font-size: 11.5px; }
+  .stu-t-online { color: #34D399; font-weight: 600; }
+  .stu-t-off { color: var(--sub); }
+  .stu-tile-tags { margin-top: 11px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; min-height: 4px; }
+  .stu-tile-tags .chip { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 4px 9px; border-radius: 7px; }
+  .stf-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    padding: 30px; border: 1.5px dashed var(--hair-2); border-radius: 18px; background: var(--glass); cursor: pointer; text-align: center; margin-bottom: 18px; transition: border-color .14s, background .14s; }
+  .stf-drop:hover, .stf-drop.drag { border-color: var(--g2); background: var(--glass-2); }
+  .stf-drop-ic { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--g2), var(--g1)); }
+  .stf-drop-ic svg { width: 26px; height: 26px; fill: #fff; }
+  .stf-drop-t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); }
+  .stf-drop-s { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); }
+  .kb-doc { display: flex; align-items: center; gap: 13px; padding: 13px 15px; border-radius: 14px;
+    border: 1px solid var(--hair); background: var(--glass); margin-bottom: 9px; }
+  .kb-doc-ic { font-size: 22px; flex: 0 0 auto; }
+  .kb-doc-meta { flex: 1; min-width: 0; }
+  .kb-doc-title { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); }
+  .kb-doc-sub { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 2px; }
+  .kb-gap-hint { display: flex; gap: 11px; align-items: center; padding: 12px 15px; border-radius: 13px;
+    background: rgba(247,151,30,.1); border: 1px solid rgba(247,151,30,.28); margin-bottom: 16px; font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); line-height: 1.45; }
+  .sq-row { display: flex; align-items: center; gap: 13px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--hair); background: var(--glass); margin-bottom: 8px; }
+  .sq-rank { font-family: 'Alfa', serif; font-size: 15px; color: var(--faint); width: 24px; text-align: center; flex: 0 0 24px; }
+  .sq-q { flex: 1; font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+  .sq-count { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px; color: var(--g1); background: rgba(109,213,250,.12); padding: 4px 9px; border-radius: 7px; flex: 0 0 auto; }
+  .stf-rep-by { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 8px; }
+  .stf-rep-by b { color: var(--ink); font-weight: 400; }
+  .stf-status-pill { font-family: 'Arch', sans-serif; font-weight: 700; text-transform: capitalize; font-size: 11px;
+    padding: 5px 11px; border-radius: 8px; background: var(--glass-2); color: var(--sub); }
+
+  /* ── Dale: training console ── */
+  .kb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 4px 0 14px; }
+  @media (max-width: 900px) { .kb-stats { grid-template-columns: repeat(2, 1fr); } }
+  .kb-main { margin-bottom: 0; }
+  .kb-main .pr-head { align-items: flex-start; }
+  .kb-last-s { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); }
+  .kb-main #kbList { margin: 0 -4px; }
+  .kb-main .kb-doc { border: 0; border-top: 1px solid var(--hair); border-radius: 0; margin: 0; padding: 12px 4px; background: transparent; }
+  .kb-main .kb-doc:first-child { border-top: 0; }
+  .kb-main .kb-doc:hover { background: var(--glass); border-radius: 10px; }
+  .kb-usage { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint); margin-top: 4px; }
+  .kb-usage.on { color: #7CFF6B; }
+  .kb-lock { flex: 0 0 auto; font-size: 15px; opacity: .5; padding: 6px 8px; }
+  .kb-srctabs { margin: 4px 0 6px; }
+  .kb-hint { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 8px; line-height: 1.45; }
+  .kb-rec { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 1px solid var(--hair); background: var(--glass); margin-top: 6px; }
+  .kb-rec-btn { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%; border: 0; cursor: pointer; font-size: 24px; color: #fff; background: linear-gradient(135deg, var(--g2), var(--g1)); }
+  .kb-rec-btn.on { background: linear-gradient(135deg, #FF5858, #8E54E9); animation: kbpulse 1.4s ease-in-out infinite; }
+  .kb-rec-time { font-family: 'Alfa', serif; font-size: 20px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kb-rec-hint { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); margin-top: 2px; }
+  @keyframes kbpulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+  .pr-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; margin-top: 14px; }
+  @media (max-width: 820px) { .pr-grid2 { grid-template-columns: 1fr; } }
+
+  /* ── Home: command center ── */
+  .ha-dash { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch; margin-top: 4px; }
+  @media (max-width: 960px) { .ha-dash { grid-template-columns: 1fr; } }
+  .ha-acts { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── Protect: safety command dashboard ── */
+  .pr-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: stretch; margin-top: 22px; }
+  @media (max-width: 1100px) { .pr-grid3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 720px) { .pr-grid3 { grid-template-columns: 1fr; } }
+  .pr-panel { padding: 14px 16px 16px; display: flex; flex-direction: column; }
+  .pr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .pr-head b { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 14.5px; color: var(--ink); }
+  .pr-head .pillbtn { padding: 6px 13px; font-size: 12px; color: #fff; border: 0; }
+  .pr-count { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 11px; color: #FF9EC8; background: rgba(255,122,176,.14); padding: 3px 9px; border-radius: 8px; }
+  .pr-row { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-top: 1px solid var(--hair); }
+  .pr-row:first-child { border-top: 0; }
+  .pr-row-ic { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 10px; font-size: 16px; }
+  .pr-row .pillbtn { margin-left: auto; }
+  .pr-empty { font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); padding: 12px 2px; }
+  .pr-more { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); padding-top: 10px; }
+  .pr-audit { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--hair); }
+  .pr-audit:first-child { border-top: 0; }
+  .pr-audit-ic { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 9px; background: var(--glass-2); font-size: 14px; }
+  .pr-emg { border: 1px solid rgba(255,88,88,.4); border-radius: 12px; padding: 11px 13px; margin-bottom: 9px; }
+  .pr-emg-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pr-emg-top b { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; color: var(--ink); }
+
+  /* ── Connect hub (bento) ── */
+  .cn-bento { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 920px) { .cn-bento { grid-template-columns: 1fr; } }
+  .cn-msgs { padding: 6px 6px 8px; }
+  .cn-panel-head { display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px; }
+  .cn-panel-ic { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; color: #fff; background: linear-gradient(135deg, #60A5FA, #2563EB); }
+  .cn-panel-t { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 16px; color: var(--ink); }
+  .cn-panel-s { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 1px; }
+  .cn-panel-head .pillbtn { margin-left: auto; }
+  .cn-convs { display: flex; flex-direction: column; }
+  .cn-conv { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+    padding: 11px 12px; border-radius: 13px; border: 0; background: transparent; color: var(--ink); }
+  .cn-conv:hover { background: var(--glass-2); }
+  .cn-conv-av { width: 44px; height: 44px; flex: 0 0 44px; font-size: 15px; }
+  .cn-conv-tx { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .cn-conv-n { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cn-conv-p { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .cn-conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: 0 0 auto; }
+  .cn-conv-time { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--faint); }
+  .cn-unread { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: linear-gradient(135deg, var(--g4), var(--g3));
+    color: #fff; font-family: 'Arch', sans-serif; font-weight: 800; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
+  .cn-empty { font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); padding: 26px 16px; text-align: center; }
+  .cn-side { display: flex; flex-direction: column; gap: 14px; }
+  .cn-feature { display: flex; flex-direction: column; min-height: 158px; padding: 18px; border-radius: 18px; border: 0; cursor: pointer;
+    color: #fff; text-align: left; background: linear-gradient(140deg, #A78BFA, #7C3AED); transition: transform .12s, box-shadow .12s; }
+  .cn-feature:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(124,58,237,.32); }
+  .cn-feature-ic { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; background: rgba(255,255,255,.2); display: grid; place-items: center; font-size: 22px; }
+  .cn-feature > div { margin-top: auto; }
+  .cn-feature-t { font-family: 'Arch', sans-serif; font-weight: 800; font-size: 18px; }
+  .cn-feature-s { font-family: 'Momo', sans-serif; font-size: 12.5px; opacity: .9; margin-top: 4px; line-height: 1.4; }
+  .cn-mini { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+    padding: 13px 15px; border-radius: 15px; border: 1px solid var(--hair); background: var(--glass); color: var(--ink); transition: border-color .12s, transform .12s; }
+  .cn-mini:hover { border-color: var(--hair-2); transform: translateY(-2px); }
+  .cn-mini-ic { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-size: 18px; }
+  .cn-mini-t { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); }
+  .cn-mini-s { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--sub); margin-top: 1px; }
+  .cn-mini .cn-chev { margin-left: auto; color: var(--faint); font-size: 20px; }
+  .cn-online { padding: 14px 16px 16px; margin-bottom: 14px; }
+  .cn-online-head { display: flex; align-items: center; gap: 8px; font-family: 'Arch', sans-serif; font-weight: 700;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin-bottom: 14px; }
+  .cn-online-head b { color: var(--ink); }
+  .cn-online-dot { width: 8px; height: 8px; border-radius: 50%; background: #34D399; box-shadow: 0 0 0 3px rgba(52,211,153,.18); }
+  .cn-avatars { display: flex; flex-wrap: wrap; gap: 12px; }
+  .cn-avatar { position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 60px; }
+  .cn-avimg { width: 48px; height: 48px; font-size: 17px; }
+  .cn-avatar-dot { position: absolute; top: 36px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: #34D399; border: 2.5px solid var(--card); }
+  .cn-avatar-n { font-family: 'Momo', sans-serif; font-size: 10.5px; color: var(--sub); max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cn-more { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--glass-2); color: var(--sub); font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; }
+  .cn-dash { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+  @media (max-width: 920px) { .cn-dash { grid-template-columns: 1fr; } }
+  .cn-dash .cn-msgs { display: flex; flex-direction: column; }
+  .cn-community { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 920px) { .cn-community { grid-template-columns: 1fr; } }
+  .cn-panel-foot { padding: 8px 6px 2px; margin-top: auto; }
+  .cn-panel-foot .pillbtn { width: 100%; }
+  .cn-posts { display: flex; flex-direction: column; }
+  .cn-post { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; cursor: pointer; padding: 10px 12px; border-radius: 12px; border: 0; background: transparent; color: var(--ink); }
+  .cn-post:hover { background: var(--glass-2); }
+  .cn-post-av { width: 38px; height: 38px; flex: 0 0 38px; font-size: 14px; }
+  .cn-post-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .cn-post-a { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink); }
+  .cn-post-c { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .cn-post-l { font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint); flex: 0 0 auto; }
+  .stf-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px; background: var(--glass);
+    border: 1px solid var(--hair); color: var(--sub); border-radius: 999px; padding: 8px 14px 8px 11px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .stf-back:hover { color: var(--ink); border-color: var(--hair-2); }
+  .stf-back svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ═══════════════ VISITOR · CAMPUS SHOWCASE ═══════════════ */
+  .vis .side { display: none; }
+  .vis .inner { max-width: 820px; margin: 0 auto; padding: 0 24px 72px; }
+  .vs-top { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 14px;
+    padding: 16px 2px 14px; margin-bottom: 6px; background: linear-gradient(180deg, var(--bg1) 60%, transparent); }
+  .vs-brand { display: flex; align-items: baseline; gap: 10px; }
+  .vs-brand-mark { font-family: 'Alfa', serif; font-size: 22px;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3), var(--g4));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .vs-brand-sub { font-family: 'Arch', sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; font-size: 10px; color: var(--sub); }
+  .vs-top-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .vs-logout { cursor: pointer; border: 1px solid var(--hair); background: var(--glass); color: var(--sub);
+    border-radius: 999px; padding: 8px 15px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; }
+  .vs-logout:hover { color: var(--ink); border-color: var(--hair-2); }
+  .vs-hero { padding: 18px 2px 26px; }
+  .vs-hero-eyebrow { font-family: 'Arch', sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 3px; font-size: 11px; color: var(--g1); margin-bottom: 10px; }
+  .vs-hero-title { font-family: 'Alfa', serif; font-size: clamp(34px, 6vw, 52px); line-height: 1.02; text-wrap: balance;
+    background: linear-gradient(100deg, var(--g1), var(--g2) 55%, var(--g3));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .vs-hero-sub { font-family: 'Momo', sans-serif; font-size: 15px; line-height: 1.55; color: var(--sub);
+    margin-top: 14px; max-width: 60ch; }
+  .vs-feed { display: flex; flex-direction: column; gap: 16px; }
+  .vs-card { background: var(--glass); border: 1px solid var(--hair); border-radius: 20px; padding: 18px 18px 8px; overflow: hidden; }
+  .vs-card-head { display: flex; align-items: center; gap: 12px; }
+  .vs-club { width: 44px; height: 44px; flex: 0 0 44px; font-size: 16px; border-radius: 13px; }
+  .vs-club-meta { flex: 1; min-width: 0; }
+  .vs-club-name { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
+  .vs-club-time { font-family: 'Momo', sans-serif; font-size: 11.5px; color: var(--faint); margin-top: 1px; }
+  .vs-badge { font-family: 'Arch', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    font-size: 9.5px; color: var(--g2); background: rgba(142,84,233,0.14); padding: 4px 9px; border-radius: 7px; }
+  .vs-text { font-family: 'Momo', sans-serif; font-size: 14.5px; line-height: 1.55; color: var(--ink); margin: 14px 2px 0; white-space: pre-wrap; }
+  .vs-media { margin: 14px 0 0; border-radius: 14px; aspect-ratio: 16/9; background-size: cover; background-position: center; border: 1px solid var(--hair); }
+  .vs-react { display: flex; gap: 10px; padding: 12px 0 10px; margin-top: 6px; }
+  .vs-rbtn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 999px;
+    padding: 8px 15px; border: 1px solid var(--hair); background: transparent; color: var(--sub);
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 13px; transition: all .14s; }
+  .vs-rbtn svg { width: 17px; height: 17px; fill: currentColor; }
+  .vs-rbtn:hover { border-color: var(--hair-2); color: var(--ink); }
+  .vs-rbtn.like.on { color: #22C55E; border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.12); }
+  .vs-rbtn.dislike.on { color: #FF5858; border-color: rgba(255,88,88,0.5); background: rgba(255,88,88,0.12); }
+  .vs-empty { text-align: center; padding: 70px 20px; }
+  .vs-empty-ic { font-size: 46px; }
+  .vs-empty-t { font-family: 'Alfa', serif; font-size: 20px; color: var(--ink); margin-top: 14px; }
+  .vs-empty-s { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 8px; }
+  /* Ask Dale sheet */
+  .vs-dale-mi { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); }
+  .vs-dale-mi dotlottie-wc { width: 30px; height: 30px; }
+  .vs-dale-thread { margin-top: 4px; max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 6px 2px; }
+  .vs-dale-hint { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: 1.4px; }
+  .vs-dale-sugg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vs-sugg { cursor: pointer; border: 1px solid var(--hair); background: var(--glass); color: var(--ink);
+    border-radius: 999px; padding: 9px 14px; font-family: 'Momo', sans-serif; font-size: 12.5px; text-align: left; }
+  .vs-sugg:hover { border-color: var(--g2); color: #fff; }
+  .vs-msg { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.5; max-width: 82%; padding: 11px 14px; border-radius: 16px; }
+  .vs-msg.me { align-self: flex-end; background: linear-gradient(120deg, var(--g2), var(--g1)); color: #fff; border-bottom-right-radius: 5px; }
+  .vs-msg.dale { align-self: flex-start; display: flex; gap: 9px; background: var(--glass-2); border: 1px solid var(--hair); color: var(--ink); border-bottom-left-radius: 5px; }
+  .vs-msg-av { width: 26px; height: 26px; flex: 0 0 26px; display: grid; place-items: center; }
+  .vs-msg-av dotlottie-wc { width: 26px; height: 26px; }
+  .vs-dots { display: inline-flex; align-items: center; gap: 4px; }
+  .vs-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--sub); animation: vsdot 1.2s ease-in-out infinite; }
+  .vs-dots i:nth-child(2) { animation-delay: .2s; } .vs-dots i:nth-child(3) { animation-delay: .4s; }
+  @keyframes vsdot { 0%,60%,100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+  .vs-dale-input { display: flex; gap: 10px; margin-top: 14px; }
+  .vs-dale-input input { flex: 1; background: var(--glass); border: 1.5px solid var(--hair); border-radius: 13px;
+    padding: 13px 15px; color: var(--ink); font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
+  .vs-dale-input input:focus { border-color: var(--g2); }
+  .vs-dale-send { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px; cursor: pointer; border: 0;
+    background: linear-gradient(135deg, var(--g2), var(--g1)); color: #fff; display: grid; place-items: center; }
+  .vs-dale-send svg { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -3638,8 +3931,8 @@
           '<div class="oup-handle faint">@' + esc(u.user_id || '') + (u.location ? ' &nbsp;·&nbsp; 📍 ' + esc(u.location) : '') + '</div>' +
           '<button class="pillbtn' + (following ? ' ghost2' : '') + '" id="oupFollow">' + (following ? 'Following' : 'Follow') + '</button></div>' +
         '<div class="prof2-rail card glass" style="margin-top:16px">' + statCell(u.followers_count, 'Followers') + statCell(u.following_count, 'Following') + statCell(u.tokens, 'Tokens') + statCell(u.level != null ? u.level : 1, 'Level') + '</div>' +
-        ((u.bio || interests.length) ? '<div class="card glass" style="margin-top:14px"><div class="prof-sec-head"><b>About</b></div>' + (u.bio ? '<div class="prof-abouttext">' + esc(u.bio) + '</div>' : '') + (interests.length ? '<div class="prof-ints" style="margin-top:10px">' + interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') + '</div>' : '') + '</div>' : '') +
-        (links.length ? '<div class="prof-links" style="margin-top:14px">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div>' : '');
+        ((u.bio || interests.length) ? '<div class="card glass prof-about" style="margin-top:14px"><div class="prof-sec-head"><b><span class="about-ic"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg></span> About Me</b></div>' + '<div class="prof-abouttext">' + (u.bio ? esc(u.bio) : '<span class="faint">No bio yet.</span>') + '</div>' + (interests.length ? '<div class="prof-ints" style="margin-top:14px">' + interests.map(function (i) { return '<span class="chip int-chip">' + esc(i) + '</span>'; }).join('') + '</div>' : '') + '</div>' : '') +
+        (links.length ? '<div class="card glass" style="margin-top:14px"><div class="prof-sec-head"><b>Social Links</b></div><div class="prof-links" style="margin-top:12px">' + links.map(function (l) { return '<a class="prof-link" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' + l.ic + '</span>' + esc(l.label) + '</a>'; }).join('') + '</div></div>' : '');
       document.getElementById('mClose').addEventListener('click', closeModal);
       var fb = document.getElementById('oupFollow');
       fb.addEventListener('click', function () {
@@ -3825,13 +4118,764 @@
     });
   }
 
+  // ═══════════════════ STAFF DASHBOARD ═══════════════════
+  var IS_STAFF = false;
+  function isStaffRole(r) { r = String(r || '').toLowerCase().trim(); return r === 'staff' || r === 'teaching_staff' || r === 'non_teaching_staff' || r === 'admin'; }
+  var SV_HOME = '<svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>';
+  var SV_SHIELD = '<svg viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>';
+  var SV_FORUM = '<svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>';
+  var SV_GPS = '<svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A9 9 0 0 0 13 3.06V1h-2v2.06A9 9 0 0 0 3.06 11H1v2h2.06A9 9 0 0 0 11 20.94V23h2v-2.06A9 9 0 0 0 20.94 13H23v-2zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>';
+  var SV_BOT = '<svg viewBox="0 0 24 24"><path d="M20 9V7a2 2 0 0 0-2-2h-3V3h-2v2h-2V3H9v2H6a2 2 0 0 0-2 2v2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2zM9 15a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>';
+  var DALE_LOTTIE = '<dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc>';
+  var STAFF_NAV = [['home', 'Home', SV_HOME], ['protect', 'Protect', SV_SHIELD], ['connect', 'Connect', SV_FORUM], ['campus', 'Campus', SV_GPS], ['dale', 'Train Dale', DALE_LOTTIE]];
+  var STAFF = { protect: 'reports', campus: 'students', dale: 'knowledge', dchat: [], repStatus: 'pending', stuFilter: 'all', roster: [] };
+  function initStaff() {
+    IS_STAFF = true;
+    var nav = document.getElementById('nav');
+    nav.innerHTML = STAFF_NAV.map(function (t) { return '<button class="nav-item" data-tab="' + t[0] + '">' + t[2] + '<span>' + t[1] + '</span></button>'; }).join('');
+    var bs = document.querySelector('.brand-sub'); if (bs) bs.textContent = 'Staff Console';
+    var ab = document.getElementById('arcadeBtn'); if (ab) ab.style.display = 'none';
+  }
+  function staffHead(eyebrow, title, right) {
+    return '<div class="feed-label"><div><div class="eyebrow">' + eyebrow + '</div><div class="feed-title">' + esc(title) + '</div></div>' + (right || '') + '</div>';
+  }
+  function subTabs(id, tabs, active) {
+    return '<div class="feed-tabs" id="' + id + '" style="margin:16px 0 14px">' + tabs.map(function (t) { return '<button class="feed-tab' + (active === t[0] ? ' active' : '') + '" data-st="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+  }
+
+  // ── HOME: Cohort Command Center ──────────────────────────────
+  function renderStaffHome() {
+    var u = cachedUser() || {};
+    var haAct = function (key, ic, color, title, sub) {
+      return '<button class="cn-mini" data-act="' + key + '"><span class="cn-mini-ic" style="background:' + color + '">' + ic + '</span>' +
+        '<span><span class="cn-mini-t">' + title + '</span><span class="cn-mini-s" style="display:block">' + sub + '</span></span><span class="cn-chev">›</span></button>';
+    };
+    view.innerHTML = staffHead('COHORT COMMAND', 'Welcome, ' + (u.name || 'Staff').split(' ')[0]) +
+      '<p class="sub" style="margin:-2px 2px 14px">Here’s what needs you across the cohort today.</p>' +
+      '<div class="stf-stats" id="stfStats"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="ha-dash">' +
+        '<div class="card glass pr-panel">' +
+          '<div class="pr-head"><b>⚠️ Needs attention</b><span class="pr-count" id="needN" style="color:#FBB65A;background:rgba(247,151,30,.14)"></span></div>' +
+          '<div id="stfNeeds"><div class="loading"><div class="spin"></div></div></div>' +
+        '</div>' +
+        '<div class="card glass pr-panel">' +
+          '<div class="pr-head"><b>⚡ Quick actions</b></div>' +
+          '<div class="ha-acts">' +
+            haAct('broadcast', '🚨', 'linear-gradient(135deg,#FF5858,#8E54E9)', 'Broadcast alert', 'Send an emergency alert') +
+            haAct('announce', '📢', 'linear-gradient(135deg,#8E54E9,#6DD5FA)', 'New announcement', 'Post to campus') +
+            haAct('reports', '🚩', 'linear-gradient(135deg,#F7971E,#FF5858)', 'Review reports', 'Moderation queue') +
+            haAct('wellbeing', '💗', 'linear-gradient(135deg,#FF7AB0,#8E54E9)', 'Wellbeing', 'Check on quiet students') +
+            haAct('roster', '👥', 'linear-gradient(135deg,#6DD5FA,#2563EB)', 'Student roster', 'Search the cohort') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    view.querySelectorAll('[data-act]').forEach(function (b) { b.addEventListener('click', function () {
+      var k = b.getAttribute('data-act');
+      if (k === 'broadcast') openEmergencyCompose();
+      else if (k === 'announce') openAnnounce();
+      else if (k === 'reports') { STAFF.protect = 'reports'; setTab('protect'); }
+      else if (k === 'wellbeing') { STAFF.protect = 'wellbeing'; setTab('protect'); }
+      else if (k === 'roster') { STAFF.campus = 'students'; setTab('campus'); }
+    }); });
+    authFetch('/moderation/staff/overview/').then(function (r) {
+      var el = document.getElementById('stfStats'); if (!el) return; var d = r.ok ? r.d : {};
+      el.innerHTML =
+        stfStat('👥', num(d.active_today), 'Active today', '#6DD5FA') +
+        stfStat('🚩', num(d.flags_pending), 'Flags pending', '#FF5858') +
+        stfStat('🗓️', num(d.upcoming_events), 'Upcoming events', '#F7971E') +
+        stfStat('📈', (d.engagement_pct != null ? d.engagement_pct + '%' : '—'), 'Engagement', '#7CFF6B');
+    }).catch(function () { var el = document.getElementById('stfStats'); if (el) el.innerHTML = ''; });
+    authFetch('/moderation/staff/needs-attention/').then(function (r) {
+      var el = document.getElementById('stfNeeds'); if (!el) return;
+      var items = r.ok ? listOf(r.d) : [];
+      var c = document.getElementById('needN'); if (c) c.textContent = items.length ? items.length : '';
+      if (!items.length) { el.innerHTML = '<div class="pr-empty">All clear — nothing needs attention right now. 🎉</div>'; return; }
+      el.innerHTML = items.slice(0, 12).map(function (it) {
+        var pill = it.target === 'wellbeing' ? 'wb' : (it.target === 'moderation' ? 'mod' : '');
+        return '<div class="stf-need ' + pill + '"><div class="stf-need-ic">' + (it.target === 'wellbeing' ? '💗' : it.target === 'moderation' ? '🚩' : '⚠️') + '</div>' +
+          '<div class="us-meta"><div class="us-name">' + esc(it.title || 'Attention') + '</div><div class="us-sub faint">' + esc(it.subtitle || '') + '</div></div>' +
+          '<button class="pillbtn ghost2" data-goto="' + esc(it.target || '') + '">Open</button></div>';
+      }).join('');
+      el.querySelectorAll('[data-goto]').forEach(function (b) { b.addEventListener('click', function () { var t = b.getAttribute('data-goto'); if (t === 'wellbeing') { STAFF.protect = 'wellbeing'; setTab('protect'); } else { STAFF.protect = 'reports'; setTab('protect'); } }); });
+    }).catch(function () { var el = document.getElementById('stfNeeds'); if (el) el.innerHTML = '<div class="pr-empty">Couldn’t load the triage queue.</div>'; });
+  }
+  function stfStat(ic, n, label, color) { return '<div class="stf-stat"><div class="stf-stat-ic" style="color:' + color + '">' + ic + '</div><div class="stf-stat-n">' + n + '</div><div class="stf-stat-l">' + label + '</div></div>'; }
+
+  // ── PROTECT: safety desk ─────────────────────────────────────
+  function renderStaffProtect() {
+    var st = STAFF.repStatus || 'pending';
+    view.innerHTML = staffHead('SAFETY DESK', 'Protect') +
+      '<p class="sub" style="margin:-2px 2px 14px">Reports, wellbeing and emergencies — the whole safety desk in one view.</p>' +
+      '<div class="stf-overview" id="stfPOv">' +
+        stfOvChip('reports', '🚩', 'rgba(255,88,88,.16)', '#FF8A8A', 'Pending reports') +
+        stfOvChip('wellbeing', '💗', 'rgba(255,122,176,.16)', '#FF9EC8', 'Wellbeing signals') +
+        stfOvChip('emergency', '🚨', 'rgba(247,151,30,.16)', '#FBB65A', 'Active alerts') +
+      '</div>' +
+      '<div class="pr-head" style="padding:0 2px;margin-top:4px"><b>🚩 Reports to review</b></div>' +
+      '<div class="stf-filter" id="repFilter">' + ['pending', 'actioned', 'dismissed', 'all'].map(function (k) { return '<button class="stf-fchip' + (st === k ? ' on' : '') + '" data-f="' + k + '" style="text-transform:capitalize">' + k + '</button>'; }).join('') + '</div>' +
+      '<div id="repList"><div class="loading"><div class="spin"></div></div></div>' +
+      '<div class="pr-grid3">' +
+        '<div class="card glass pr-panel"><div class="pr-head"><b>💗 Wellbeing</b><span class="pr-count" id="wbCount"></span></div><div id="wbList"><div class="loading"><div class="spin"></div></div></div></div>' +
+        '<div class="card glass pr-panel"><div class="pr-head"><b>🚨 Emergency</b><button class="pillbtn" id="emCompose" style="background:linear-gradient(135deg,#FF5858,#8E54E9)">＋ Broadcast</button></div><div id="emActive"><div class="loading"><div class="spin"></div></div></div></div>' +
+        '<div class="card glass pr-panel"><div class="pr-head"><b>📋 Recent activity</b></div><div id="auditList"><div class="loading"><div class="spin"></div></div></div></div>' +
+      '</div>';
+    document.getElementById('stfPOv').addEventListener('click', function (e) { var c = e.target.closest('[data-ov]'); if (!c) return; var map = { reports: 'repList', wellbeing: 'wbList', emergency: 'emActive' }; var t = document.getElementById(map[c.getAttribute('data-ov')]); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    document.getElementById('repFilter').addEventListener('click', function (e) { var c = e.target.closest('[data-f]'); if (!c) return; STAFF.repStatus = c.getAttribute('data-f'); this.querySelectorAll('.stf-fchip').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-f') === STAFF.repStatus); }); loadReports(); });
+    document.getElementById('emCompose').addEventListener('click', openEmergencyCompose);
+    stfProtectCounts();
+    loadReports();
+    loadWellbeingPanel();
+    loadEmActive();
+    loadAuditPanel();
+  }
+  function stfOvChip(key, ic, bg, color, label) { return '<div class="stf-ov" data-ov="' + key + '"><div class="stf-ov-ic" style="background:' + bg + ';color:' + color + '">' + ic + '</div><div><div class="stf-ov-n" data-ovn="' + key + '">–</div><div class="stf-ov-l">' + label + '</div></div></div>'; }
+  function setPCount(key, n) { n = num(n); var ov = document.querySelector('[data-ovn="' + key + '"]'); if (ov) ov.textContent = n; var bd = document.querySelector('[data-badge="' + key + '"]'); if (bd) { bd.textContent = n; bd.classList.toggle('zero', n === 0); } }
+  function stfProtectCounts() {
+    authFetch('/moderation/staff/overview/').then(function (r) { setPCount('reports', r.ok ? r.d.flags_pending : 0); }).catch(function () {});
+    authFetch('/moderation/staff/wellbeing/').then(function (r) { setPCount('wellbeing', r.ok ? listOf(r.d).length : 0); }).catch(function () {});
+    authFetch('/safety/emergency/active/').then(function (r) { setPCount('emergency', r.ok ? listOf(r.d).length : 0); }).catch(function () {});
+  }
+  function reportCard(rp) {
+    var flags = num(rp.flag_count);
+    var pending = (rp.status || 'pending') === 'pending';
+    return '<div class="card glass stf-report" data-rid="' + esc(rp.id) + '"><div class="stf-rep-top">' +
+      '<span class="chip" style="background:rgba(255,88,88,.16);color:#FF7A7A">' + esc(rp.reason_label || rp.reason || 'Report') + '</span>' +
+      '<span class="faint" style="font-family:Momo;font-size:11px">' + esc(rp.content_type || 'content') + ' · ' + flags + ' flag' + (flags === 1 ? '' : 's') + '</span></div>' +
+      (rp.preview ? '<div class="stf-rep-prev">' + esc(String(rp.preview).slice(0, 240)) + (rp.content_hidden ? ' — hidden' : '') + '</div>' : '<div class="stf-rep-prev faint">' + (rp.content_exists ? 'No preview available.' : 'Content was removed.') + '</div>') +
+      '<div class="stf-rep-by">' + (rp.description ? '“' + esc(rp.description) + '” — ' : 'Reported by ') + '<b>' + esc(rp.reporter_name || 'a student') + '</b>' + (rp.owner_name ? ' · content by <b>' + esc(rp.owner_name) + '</b>' : '') + '</div>' +
+      (pending
+        ? '<div class="stf-rep-acts"><button class="pillbtn" data-ra="hide_content">Hide content</button><button class="pillbtn ghost2" data-ra="suspend_user">Suspend user</button><button class="pillbtn ghost2" data-ra="dismiss">Dismiss</button></div>'
+        : '<div class="stf-rep-acts"><span class="stf-status-pill">' + esc(rp.status || 'resolved') + '</span></div>') +
+      '</div>';
+  }
+  function loadReports() {
+    var el = document.getElementById('repList'); if (!el) return; el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    authFetch('/moderation/staff/reports/?status=' + (STAFF.repStatus || 'pending')).then(function (r) {
+      var el = document.getElementById('repList'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load reports.'); return; }
+      var reps = listOf(r.d).sort(function (a, b) { return num(b.flag_count) - num(a.flag_count); });
+      if (!reps.length) { el.innerHTML = empty(STAFF.repStatus === 'pending' ? 'No pending reports. 🎉' : 'Nothing in this filter.'); return; }
+      el.innerHTML = reps.map(reportCard).join('');
+      el.querySelectorAll('.stf-report').forEach(function (card) {
+        card.querySelectorAll('[data-ra]').forEach(function (b) { b.addEventListener('click', function () {
+          var id = card.getAttribute('data-rid'), action = b.getAttribute('data-ra');
+          if (action === 'suspend_user' && !confirm('Suspend this user? They will be signed out and blocked from posting.')) return;
+          b.disabled = true; card.style.opacity = '.5';
+          fetch(API + '/moderation/staff/reports/' + id + '/action/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok() }, body: JSON.stringify({ action: action }) })
+            .then(function (rr) { if (!rr.ok) throw 0; card.remove(); window.snack('Report handled', 'ok'); stfProtectCounts(); if (!el.querySelector('.stf-report')) el.innerHTML = empty('Nothing left here. 🎉'); })
+            .catch(function () { card.style.opacity = '1'; b.disabled = false; window.snack('Couldn’t apply action.', 'error'); });
+        }); });
+      });
+    }).catch(function () { var el = document.getElementById('repList'); if (el) el.innerHTML = empty('Couldn’t load reports.'); });
+  }
+  function loadWellbeingPanel() {
+    authFetch('/moderation/staff/wellbeing/').then(function (r) {
+      var el = document.getElementById('wbList'); if (!el) return; var ws = r.ok ? listOf(r.d) : [];
+      var c = document.getElementById('wbCount'); if (c) c.textContent = ws.length ? ws.length : '';
+      if (!ws.length) { el.innerHTML = '<div class="pr-empty">No signals — all good. 💚</div>'; return; }
+      el.innerHTML = ws.slice(0, 5).map(function (u) {
+        return '<div class="pr-row"><div class="pr-row-ic" style="background:rgba(255,122,176,.16)">💗</div>' +
+          '<div class="us-meta"><div class="us-name">' + esc(u.name || 'Student') + '</div><div class="us-sub faint">@' + esc(u.user_id || '') + (u.last_seen ? ' · seen ' + timeAgo(u.last_seen) : ' · never seen') + '</div></div>' +
+          '<button class="pillbtn ghost2" data-uid="' + esc(u.user_id || '') + '">View</button></div>';
+      }).join('') + (ws.length > 5 ? '<div class="pr-more">+ ' + (ws.length - 5) + ' more</div>' : '');
+      el.querySelectorAll('[data-uid]').forEach(function (b) { b.addEventListener('click', function () { openUserProfile(b.getAttribute('data-uid')); }); });
+    }).catch(function () { var el = document.getElementById('wbList'); if (el) el.innerHTML = '<div class="pr-empty">Couldn’t load wellbeing.</div>'; });
+  }
+  function loadAuditPanel() {
+    authFetch('/moderation/staff/audit/').then(function (r) {
+      var el = document.getElementById('auditList'); if (!el) return; var rows = r.ok ? listOf(r.d) : [];
+      if (!rows.length) { el.innerHTML = '<div class="pr-empty">No recent activity.</div>'; return; }
+      el.innerHTML = rows.slice(0, 6).map(function (e) {
+        return '<div class="pr-audit"><span class="pr-audit-ic">📋</span><div class="us-meta"><div class="us-name" style="font-size:12.5px">' + esc(e.action || 'Action') + '</div><div class="us-sub faint">' + esc(e.actor_name || 'System') + (e.target_name ? ' → ' + esc(e.target_name) : '') + ' · ' + timeAgo(e.created_at) + '</div></div></div>';
+      }).join('');
+    }).catch(function () { var el = document.getElementById('auditList'); if (el) el.innerHTML = '<div class="pr-empty">Couldn’t load activity.</div>'; });
+  }
+  function openEmergencyCompose() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,#FF5858,#8E54E9)">🚨</div><h2>Broadcast an alert</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">This notifies the chosen audience immediately. Use only for genuine safety situations.</p>' +
+      '<label>Type</label><select id="emType"><option value="general">General</option><option value="lockdown">Lockdown</option><option value="evacuation">Evacuation (fire wardens only)</option><option value="weather">Severe weather</option><option value="medical">Medical</option></select>' +
+      '<label>Audience</label><select id="emAud"><option value="everyone">Everyone</option><option value="students">Students</option><option value="staff">Staff</option></select>' +
+      '<label>Title</label><input id="emTitle" placeholder="Short headline" maxlength="120" />' +
+      '<label>Message</label><textarea id="emMsg" rows="3" placeholder="What’s happening and what to do…"></textarea>' +
+      '<button class="btn" id="emSend" style="margin-top:14px;background:linear-gradient(135deg,#FF5858,#8E54E9)">Send alert</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('emSend').addEventListener('click', function () {
+      var title = document.getElementById('emTitle').value.trim(), msg = document.getElementById('emMsg').value.trim();
+      if (!title || !msg) { window.snack('Add a title and message.', 'error'); return; }
+      if (!confirm('Send this alert to ' + document.getElementById('emAud').value + '? Everyone will be notified.')) return;
+      var btn = this; btn.disabled = true; btn.textContent = 'Sending…';
+      fetch(API + '/safety/emergency/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ type: document.getElementById('emType').value, audience: document.getElementById('emAud').value, title: title, message: msg }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { btn.disabled = false; btn.textContent = 'Send alert'; if (!res.ok) { window.snack((res.d && res.d.error) || 'Couldn’t send.', 'error'); return; } closeModal(); window.snack('Alert sent 🚨', 'ok'); loadEmActive(); stfProtectCounts(); })
+        .catch(function () { btn.disabled = false; btn.textContent = 'Send alert'; window.snack('Couldn’t reach the server.', 'error'); });
+    });
+  }
+  function loadEmActive() {
+    var el = document.getElementById('emActive'); if (!el) return;
+    authFetch('/safety/emergency/active/').then(function (r) {
+      var e2 = document.getElementById('emActive'); if (!e2) return; var al = r.ok ? listOf(r.d) : [];
+      if (!al.length) { e2.innerHTML = '<div class="pr-empty">No active alerts.</div>'; return; }
+      e2.innerHTML = al.map(function (a) {
+        return '<div class="pr-emg"><div class="pr-emg-top"><b>' + esc(a.title || a.type || 'Alert') + '</b><button class="pillbtn ghost2" data-resolve="' + esc(a.id) + '">Resolve</button></div>' +
+          '<div class="faint" style="font-family:Momo;font-size:12px;margin-top:5px">' + esc(a.message || '') + '</div>' +
+          '<div class="faint" style="font-family:Momo;font-size:10.5px;margin-top:5px">' + esc((a.type || '') + ' · ' + (a.audience || '') + ' · ' + timeAgo(a.created_at)) + '</div></div>';
+      }).join('');
+      e2.querySelectorAll('[data-resolve]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('Mark this alert resolved?')) return;
+        fetch(API + '/safety/emergency/' + b.getAttribute('data-resolve') + '/resolve/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function (r) { if (!r.ok) throw 0; window.snack('Alert resolved', 'ok'); loadEmActive(); stfProtectCounts(); }).catch(function () { window.snack('Couldn’t resolve.', 'error'); });
+      }); });
+    }).catch(function () { var e2 = document.getElementById('emActive'); if (e2) e2.innerHTML = '<div class="pr-empty">Couldn’t load alerts.</div>'; });
+  }
+
+  // ── CONNECT: recent conversations up top, then everywhere you can go ──
+  function renderStaffConnect() {
+    var mini = function (key, ic, title, sub, color) {
+      return '<button class="cn-mini" data-cn="' + key + '"><span class="cn-mini-ic" style="background:' + color + '">' + ic + '</span>' +
+        '<span><span class="cn-mini-t">' + title + '</span><span class="cn-mini-s" style="display:block">' + sub + '</span></span><span class="cn-chev">›</span></button>';
+    };
+    view.innerHTML = staffHead('CONNECT', 'Connect') +
+      '<p class="sub" style="margin:-2px 2px 14px">See who’s around, jump into conversations, and keep a pulse on campus.</p>' +
+      '<div class="card glass cn-online"><div class="cn-online-head"><span class="cn-online-dot"></span> Online now <b id="cnOnlineN"></b></div>' +
+        '<div class="cn-avatars" id="cnOnline"><div class="loading" style="padding:4px"><div class="spin"></div></div></div></div>' +
+      '<div class="cn-dash">' +
+        '<div class="cn-msgs card glass">' +
+          '<div class="cn-panel-head"><span class="cn-panel-ic">💬</span><div><div class="cn-panel-t">Messages</div><div class="cn-panel-s">Recent conversations</div></div></div>' +
+          '<div id="cnRecent"><div class="loading"><div class="spin"></div></div></div>' +
+          '<div class="cn-panel-foot"><button class="pillbtn ghost2" id="cnAllMsgs">Open Messages →</button></div>' +
+        '</div>' +
+        '<div class="cn-msgs card glass">' +
+          '<div class="cn-panel-head"><span class="cn-panel-ic" style="background:linear-gradient(135deg,#A78BFA,#7C3AED)">📰</span><div><div class="cn-panel-t">Student Feed</div><div class="cn-panel-s">Latest from students</div></div></div>' +
+          '<div id="cnPosts"><div class="loading"><div class="spin"></div></div></div>' +
+          '<div class="cn-panel-foot"><button class="pillbtn ghost2" data-cn="feed">Open feed →</button></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cn-community">' +
+        mini('groups', '👥', 'Study groups', 'Groups across the cohort', '#059669') +
+        mini('clubs', '🎟️', 'Clubs', 'Clubs &amp; societies on campus', '#EA580C') +
+        mini('arcade', '🎮', 'Arcade', 'Play games with students', '#2563EB') +
+      '</div>';
+    document.getElementById('cnAllMsgs').addEventListener('click', function () { openConnectFeature('messages'); });
+    view.querySelectorAll('[data-cn]').forEach(function (b) { b.addEventListener('click', function () { openConnectFeature(b.getAttribute('data-cn')); }); });
+
+    // Online now — presence strip.
+    var myId = (cachedUser() || {}).user_id;
+    authFetch('/chat/users/online/').then(function (r) {
+      var el = document.getElementById('cnOnline'); if (!el) return;
+      var us = (r.ok ? listOf(r.d) : []).filter(function (u) { return u.user_id !== myId; });
+      document.getElementById('cnOnlineN').textContent = us.length;
+      if (!us.length) { el.innerHTML = '<div class="cn-empty" style="padding:8px">No one else is online right now.</div>'; return; }
+      var shown = us.slice(0, 14);
+      el.innerHTML = shown.map(function (u) {
+        return '<button class="cn-avatar" data-uid="' + esc(u.user_id) + '" data-room="' + esc(u.room_id || '') + '">' +
+          avatar(u.avatar_url, u.name, 'cn-avimg') + '<span class="cn-avatar-dot"></span>' +
+          '<span class="cn-avatar-n">' + esc((u.name || '').split(' ')[0]) + '</span></button>';
+      }).join('') + (us.length > 14 ? '<div class="cn-avatar"><span class="cn-more">+' + (us.length - 14) + '</span></div>' : '');
+      el.querySelectorAll('[data-uid]').forEach(function (b) { b.addEventListener('click', function () {
+        var room = b.getAttribute('data-room'); if (room) openConnectChat(room); else openUserProfile(b.getAttribute('data-uid'));
+      }); });
+    }).catch(function () { var el = document.getElementById('cnOnline'); if (el) el.innerHTML = ''; var n = document.getElementById('cnOnlineN'); if (n) n.textContent = '0'; });
+
+    // Recent conversations.
+    authFetch('/chat/rooms/').then(function (r) {
+      var el = document.getElementById('cnRecent'); if (!el) return;
+      var rooms = r.ok ? listOf(r.d) : [];
+      if (!rooms.length) { el.innerHTML = '<div class="cn-empty">No conversations yet.</div>'; return; }
+      el.innerHTML = '<div class="cn-convs">' + rooms.slice(0, 6).map(function (m) {
+        var t = (m.last_message && m.last_message.created_at) || m.updated_at || m.last_activity;
+        var unread = num(m.unread_count || m.unread || 0);
+        return '<button class="cn-conv" data-room="' + esc(m.id) + '">' + avatar(roomAvatar(m), roomName(m), 'cn-conv-av') +
+          '<span class="cn-conv-tx"><span class="cn-conv-n">' + esc(roomName(m)) + '</span><span class="cn-conv-p">' + esc(lastPreview(m)) + '</span></span>' +
+          '<span class="cn-conv-meta">' + (t ? '<span class="cn-conv-time">' + esc(timeAgo(t)) + '</span>' : '') + (unread ? '<span class="cn-unread">' + unread + '</span>' : '') + '</span></button>';
+      }).join('') + '</div>';
+      el.querySelectorAll('[data-room]').forEach(function (b) { b.addEventListener('click', function () { openConnectChat(b.getAttribute('data-room')); }); });
+    }).catch(function () { var el = document.getElementById('cnRecent'); if (el) el.innerHTML = ''; });
+
+    // Latest from students.
+    authFetch('/posts/?page=1').then(function (r) {
+      var el = document.getElementById('cnPosts'); if (!el) return;
+      var posts = r.ok ? listOf(r.d) : [];
+      if (!posts.length) { el.innerHTML = '<div class="cn-empty">No posts yet.</div>'; return; }
+      el.innerHTML = '<div class="cn-posts">' + posts.slice(0, 4).map(function (p) {
+        var a = p.author || p.user || {}; var an = a.name || a.display_name || 'Student';
+        var c = (p.content || p.text || '').replace(/\s+/g, ' ').trim() || '(media post)';
+        return '<button class="cn-post" data-cn="feed">' + avatar(a.avatar_url, an, 'cn-post-av') +
+          '<span class="cn-post-tx"><span class="cn-post-a">' + esc(an) + '</span><span class="cn-post-c">' + esc(c) + '</span></span>' +
+          '<span class="cn-post-l">♥ ' + num(p.like_count != null ? p.like_count : p.likes_count) + '</span></button>';
+      }).join('') + '</div>';
+      el.querySelectorAll('[data-cn]').forEach(function (b) { b.addEventListener('click', function () { openConnectFeature('feed'); }); });
+    }).catch(function () { var el = document.getElementById('cnPosts'); if (el) el.innerHTML = ''; });
+  }
+  function openConnectFeature(key) {
+    var map = { messages: renderMessages, feed: renderStaffFeed, groups: renderStudyhub, clubs: renderClubs, arcade: renderArcade };
+    (map[key] || renderMessages)();
+    var bar = document.createElement('button'); bar.className = 'stf-back'; bar.type = 'button';
+    bar.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Connect';
+    bar.addEventListener('click', renderStaffConnect);
+    view.insertBefore(bar, view.firstChild);
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === 'connect'); });
+  }
+  function openConnectChat(roomId) {
+    openConnectFeature('messages');
+    authFetch('/chat/rooms/').then(function (rr) { if (rr.ok) MSG.rooms = listOf(rr.d); if (typeof drawRows === 'function') drawRows(); openConversation(roomId); }).catch(function () { openConversation(roomId); });
+  }
+  // Staff feed — the latest public posts (GET /posts/), like the mobile Staff Feed.
+  function renderStaffFeed() {
+    view.innerHTML = staffHead('COMMUNITY', 'Student Feed') +
+      '<p class="sub" style="margin:-2px 2px 12px">The latest public posts from across campus.</p>' +
+      '<div id="sfFeed"><div class="loading"><div class="spin"></div>Loading…</div></div>';
+    authFetch('/posts/?page=1').then(function (r) {
+      var el = document.getElementById('sfFeed'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && r.d.detail) || 'Couldn’t load the feed.'); return; }
+      var posts = listOf(r.d);
+      if (!posts.length) { el.innerHTML = empty('No posts yet.'); return; }
+      el.innerHTML = posts.map(postCard).join('');
+      wirePostActions(el);
+    }).catch(function () { var el = document.getElementById('sfFeed'); if (el) el.innerHTML = empty('Couldn’t load the feed.'); });
+  }
+
+  // ── CAMPUS: oversight, events, suggestions ───────────────────
+  function renderStaffCampus() {
+    view.innerHTML = staffHead('CAMPUS', 'Campus') +
+      subTabs('stfCTabs', [['students', 'Students'], ['events', 'Events'], ['suggestions', 'Suggestions']], STAFF.campus) +
+      '<div id="stfCBody"></div>';
+    document.getElementById('stfCTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-st]'); if (!b) return; STAFF.campus = b.getAttribute('data-st'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-st') === STAFF.campus); }); drawCampus(); });
+    drawCampus();
+  }
+  function drawCampus() {
+    var body = document.getElementById('stfCBody'); if (!body) return;
+    if (STAFF.campus === 'students') {
+      body.innerHTML =
+        '<div class="stf-overview" id="stuStats">' +
+          stfOvChip('all', '👥', 'rgba(109,213,250,.16)', '#6DD5FA', 'Students') +
+          stfOvChip('online', '🟢', 'rgba(52,211,153,.16)', '#34D399', 'Online now') +
+          stfOvChip('quiet', '🌙', 'rgba(142,84,233,.16)', '#B79CF0', 'Quiet · 7d+') +
+        '</div>' +
+        '<div class="home-actions"><div class="search-box" style="flex:1">' + SEARCH_SVG + '<input id="rosSearch" placeholder="Search students by name or ID" autocomplete="off" /></div></div>' +
+        '<div class="stf-filter" id="stuFilter">' + stuChips() + '</div>' +
+        '<div id="rosList"><div class="loading"><div class="spin"></div></div></div>';
+      document.getElementById('stuStats').addEventListener('click', function (e) { var c = e.target.closest('[data-ov]'); if (!c) return; STAFF.stuFilter = c.getAttribute('data-ov'); drawRoster(); });
+      document.getElementById('stuFilter').addEventListener('click', function (e) { var c = e.target.closest('[data-f]'); if (!c) return; STAFF.stuFilter = c.getAttribute('data-f'); drawRoster(); });
+      document.getElementById('rosSearch').addEventListener('input', function () { STAFF.rosQ = this.value.trim().toLowerCase(); drawRoster(); });
+      loadRosterAll();
+    } else if (STAFF.campus === 'events') {
+      body.innerHTML = '<div id="stfEvents"><div class="loading"><div class="spin"></div></div></div>';
+      authFetch('/clubs/events-feed/?page=1').then(function (r) {
+        var el = document.getElementById('stfEvents'); if (!el) return; var evs = r.ok ? listOf(r.d) : [];
+        if (!evs.length) { el.innerHTML = empty('No upcoming events.'); return; }
+        el.innerHTML = '<div class="photo-grid">' + evs.map(function (e, i) { return eventPhoto(e, i); }).join('') + '</div>';
+        el.querySelectorAll('[data-photo]').forEach(function (b, i) { b.addEventListener('click', function () { openEvent(evs[i]); }); });
+      }).catch(function () { var el = document.getElementById('stfEvents'); if (el) el.innerHTML = empty('Couldn’t load events.'); });
+    } else {
+      body.innerHTML = '<p class="sub">Suggestions students sent “To the School”.</p><div id="stfSug"><div class="loading"><div class="spin"></div></div></div>';
+      authFetch('/feedback/school/').then(function (r) {
+        var el = document.getElementById('stfSug'); if (!el) return; var sg = r.ok ? listOf(r.d) : [];
+        if (!sg.length) { el.innerHTML = empty('No suggestions yet.'); return; }
+        el.innerHTML = sg.map(function (s) {
+          return '<div class="card glass" style="margin-bottom:10px"><div class="prof-sec-head"><b>' + esc(s.title || 'Suggestion') + '</b><span class="chip" style="background:var(--glass-2);color:var(--sub);text-transform:capitalize">' + esc(s.status || 'new') + '</span></div>' +
+            '<div class="faint" style="font-family:Momo;font-size:13px;line-height:1.5">' + esc(s.message || s.body || '') + '</div>' +
+            '<div class="faint" style="font-family:Momo;font-size:11px;margin-top:8px">' + esc((s.category_name || s.category || '') + ' · ' + timeAgo(s.created_at)) + '</div>' +
+            '<button class="pillbtn ghost2" data-reply="' + esc(s.id) + '" style="margin-top:10px">Reply</button></div>';
+        }).join('');
+        el.querySelectorAll('[data-reply]').forEach(function (b) { b.addEventListener('click', function () { openSuggestReply(b.getAttribute('data-reply')); }); });
+      }).catch(function () { var el = document.getElementById('stfSug'); if (el) el.innerHTML = empty('Couldn’t load suggestions.'); });
+    }
+  }
+  function isQuiet(u) { if (u.is_online) return false; if (!u.last_seen) return true; var t = Date.parse(u.last_seen); if (isNaN(t)) return true; return (Date.now() - t) > 7 * 24 * 3600 * 1000; }
+  function computeStuCounts() { var r = STAFF.roster || [], online = 0, quiet = 0, susp = 0; r.forEach(function (u) { if (u.is_online) online++; if (isQuiet(u)) quiet++; if (u.suspended) susp++; }); STAFF.stuCounts = { all: r.length, online: online, quiet: quiet, suspended: susp }; }
+  function stuChips() { var c = STAFF.stuCounts || { all: 0, online: 0, quiet: 0, suspended: 0 }, cur = STAFF.stuFilter || 'all';
+    return [['all', 'All'], ['online', 'Online'], ['quiet', 'Quiet'], ['suspended', 'Suspended']].map(function (t) { return '<button class="stf-fchip' + (cur === t[0] ? ' on' : '') + '" data-f="' + t[0] + '">' + t[1] + '<span class="n">' + num(c[t[0]]) + '</span></button>'; }).join(''); }
+  function stuTile(u) {
+    var quiet = isQuiet(u);
+    var status = u.is_online
+      ? '<span class="stu-t-online">● Online</span>'
+      : '<span class="stu-t-off">Seen ' + (u.last_seen ? timeAgo(u.last_seen) : 'never') + '</span>';
+    var tags = u.suspended
+      ? '<span class="chip" style="background:rgba(255,88,88,.18);color:#FF7A7A">Suspended</span>'
+      : (quiet ? '<span class="chip" style="background:rgba(142,84,233,.14);color:#B79CF0">Quiet</span>' : '');
+    return '<div class="stu-tile" data-uid="' + esc(u.user_id || '') + '">' +
+      '<div class="us-av">' + avatar(u.avatar_url, u.name) + (u.is_online ? '<span class="us-dot"></span>' : '') + '</div>' +
+      '<div class="stu-tile-name">' + esc(u.name || 'Student') + '</div>' +
+      '<div class="stu-tile-id">@' + esc(u.user_id || '') + '</div>' +
+      '<div class="stu-tile-status">' + status + '</div>' +
+      '<div class="stu-tile-tags">' + tags + '</div></div>';
+  }
+  function drawRoster() {
+    var el = document.getElementById('rosList'); if (!el) return;
+    var f = STAFF.stuFilter || 'all', q = STAFF.rosQ || '';
+    var list = (STAFF.roster || []).filter(function (u) {
+      if (f === 'online' && !u.is_online) return false;
+      if (f === 'quiet' && !isQuiet(u)) return false;
+      if (f === 'suspended' && !u.suspended) return false;
+      if (q && (((u.name || '') + ' ' + (u.user_id || '')).toLowerCase().indexOf(q) < 0)) return false;
+      return true;
+    });
+    document.querySelectorAll('#stuFilter .stf-fchip').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-f') === f); });
+    if (!list.length) { el.innerHTML = empty(q ? 'No students match “' + esc(q) + '”.' : 'No students in this filter.'); return; }
+    el.innerHTML = '<div class="stu-grid">' + list.map(stuTile).join('') + '</div>';
+    el.querySelectorAll('[data-uid]').forEach(function (b) { b.addEventListener('click', function () { openUserProfile(b.getAttribute('data-uid')); }); });
+  }
+  function loadRosterAll() {
+    var el = document.getElementById('rosList'); if (el) el.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    authFetch('/moderation/staff/roster/').then(function (r) {
+      STAFF.roster = r.ok ? listOf(r.d) : [];
+      computeStuCounts();
+      var c = STAFF.stuCounts, s = document.getElementById('stuStats');
+      if (s) ['all', 'online', 'quiet'].forEach(function (k) { var n = s.querySelector('[data-ovn="' + k + '"]'); if (n) n.textContent = num(c[k]); });
+      var fl = document.getElementById('stuFilter'); if (fl) fl.innerHTML = stuChips();
+      drawRoster();
+    }).catch(function () { var el = document.getElementById('rosList'); if (el) el.innerHTML = empty('Couldn’t load the roster.'); });
+  }
+  function openSuggestReply(id) {
+    openModal('<div class="modal-head"><h2>Reply to suggestion</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<textarea id="srMsg" rows="4" placeholder="Write a reply to the student…"></textarea>' +
+      '<label>Status</label><select id="srStatus"><option value="reviewing">Reviewing</option><option value="planned">Planned</option><option value="done">Done</option><option value="declined">Declined</option></select>' +
+      '<button class="btn" id="srSend" style="margin-top:14px">Send reply</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('srSend').addEventListener('click', function () {
+      var msg = document.getElementById('srMsg').value.trim(); if (!msg) { window.snack('Write a reply.', 'error'); return; }
+      fetch(API + '/feedback/staff/' + id + '/reply/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ message: msg, status: document.getElementById('srStatus').value }) })
+        .then(function (r) { if (!r.ok) throw 0; closeModal(); window.snack('Reply sent', 'ok'); drawCampus(); }).catch(function () { window.snack('Couldn’t send reply.', 'error'); });
+    });
+  }
+  function openAnnounce() {
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))">📢</div><h2>New announcement</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<label>Title</label><input id="anTitle" placeholder="Announcement title" maxlength="140" />' +
+      '<label>Message</label><textarea id="anBody" rows="4" placeholder="Share with campus…"></textarea>' +
+      '<button class="prof-mini" id="anPolish" style="margin-top:8px">✨ Polish with Dale</button>' +
+      '<button class="btn" id="anSend" style="margin-top:14px">Post announcement</button>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('anPolish').addEventListener('click', function () {
+      var t = document.getElementById('anTitle').value.trim(), b = document.getElementById('anBody').value.trim(); if (!t && !b) { window.snack('Write a draft first.', 'error'); return; }
+      this.disabled = true; this.textContent = '✨ Polishing…'; var self = this;
+      fetch(API + '/ai/announce-assist/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ title: t, body: b, mode: 'improve' }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { self.disabled = false; self.textContent = '✨ Polish with Dale'; if (!res.ok) { window.snack('Couldn’t polish.', 'error'); return; } if (res.d.title) document.getElementById('anTitle').value = res.d.title; if (res.d.body) document.getElementById('anBody').value = res.d.body; })
+        .catch(function () { self.disabled = false; self.textContent = '✨ Polish with Dale'; window.snack('Couldn’t reach Dale.', 'error'); });
+    });
+    document.getElementById('anSend').addEventListener('click', function () {
+      var t = document.getElementById('anTitle').value.trim(), b = document.getElementById('anBody').value.trim(); if (!t || !b) { window.snack('Add a title and message.', 'error'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Posting…';
+      fetch(API + '/posts/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ post_type: 'announcement', content: t + '\n\n' + b, visibility: 'public' }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) { btn.disabled = false; btn.textContent = 'Post announcement'; if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post.', 'error'); return; } closeModal(); window.snack('Announcement posted 📢', 'ok'); })
+        .catch(function () { btn.disabled = false; btn.textContent = 'Post announcement'; window.snack('Couldn’t reach the server.', 'error'); });
+    });
+  }
+
+  // ── DALE: AI assistant + knowledge base ──────────────────────
+  function renderStaffDale() {
+    view.innerHTML = staffHead('AI ASSISTANT', 'Dale for staff', '<button class="dale-btn" id="stfAsk">' + DALE_LOTTIE + ' Ask Dale</button>') +
+      subTabs('stfDTabs', [['knowledge', 'Knowledge base'], ['questions', 'Student questions']], STAFF.dale) +
+      '<div id="stfDBody"></div>';
+    document.getElementById('stfAsk').addEventListener('click', openStudyDale);
+    document.getElementById('stfDTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-st]'); if (!b) return; STAFF.dale = b.getAttribute('data-st'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-st') === STAFF.dale); }); drawDale(); });
+    drawDale();
+  }
+  function drawDale() {
+    var body = document.getElementById('stfDBody'); if (!body) return;
+    if (STAFF.dale === 'knowledge') {
+      body.innerHTML =
+        '<div class="kb-stats" id="kbStats">' +
+          stfStatTile('docs', '📚', 'rgba(109,213,250,.16)', '#6DD5FA', 'Documents') +
+          stfStatTile('active', '✅', 'rgba(52,211,153,.16)', '#34D399', 'Active for Dale') +
+          stfStatTile('chunks', '🧩', 'rgba(142,84,233,.16)', '#B79CF0', 'Chunks indexed') +
+          stfStatTile('retrievals', '⚡', 'rgba(247,151,30,.16)', '#FBB65A', 'Dale used it') +
+        '</div>' +
+        '<div class="card glass pr-panel kb-main">' +
+          '<div class="pr-head"><div><b>📚 Training material</b><div class="kb-last-s" id="kbLast" style="display:none;margin-top:3px"></div></div>' +
+            '<button class="pillbtn" id="kbAdd" style="background:linear-gradient(135deg,var(--g2),var(--g1));color:#fff;border:0">＋ Add material</button></div>' +
+          '<div class="search-box" style="margin-bottom:10px">' + SEARCH_SVG + '<input id="kbSearch" placeholder="Search training material…" autocomplete="off" /></div>' +
+          '<div class="stf-filter" id="kbSubjects" style="margin-bottom:12px"></div>' +
+          '<div id="kbList"><div class="loading"><div class="spin"></div></div></div>' +
+        '</div>' +
+        '<div class="pr-grid2">' +
+          '<div class="card glass pr-panel"><div class="pr-head"><b>🔥 Most used by Dale</b></div><div id="kbUsed"><div class="loading"><div class="spin"></div></div></div></div>' +
+          '<div class="card glass pr-panel"><div class="pr-head"><b>📜 Training history</b></div><div id="kbHistory"><div class="loading"><div class="spin"></div></div></div></div>' +
+        '</div>';
+      document.getElementById('kbAdd').addEventListener('click', openKnowledgeUpload);
+      document.getElementById('kbSearch').addEventListener('input', function () { STAFF.kbQ = this.value.trim(); drawKbList(); });
+      document.getElementById('kbSubjects').addEventListener('click', function (e) { var c = e.target.closest('[data-subj]'); if (!c) return; STAFF.kbSubject = c.getAttribute('data-subj'); drawKbSubjects(); drawKbList(); });
+      loadKnowledgeConsole();
+    } else {
+      body.innerHTML = '<div class="kb-gap-hint">💡 The questions students ask Dale most. Frequent or repeated topics are a signal to upload material that covers them.</div><div id="sqList"><div class="loading"><div class="spin"></div></div></div>';
+      authFetch('/ai/knowledge/analytics/').then(function (r) {
+        var el = document.getElementById('sqList'); if (!el) return;
+        var qs = r.ok ? (r.d.top_questions || r.d.questions || listOf(r.d)) : [];
+        if (!qs || !qs.length) { el.innerHTML = empty('No student questions logged yet.'); return; }
+        el.innerHTML = qs.slice(0, 30).map(function (q, i) { var txt = typeof q === 'string' ? q : (q.question || q.text || q.q || ''); var c = q.count || q.times; return '<div class="sq-row"><span class="sq-rank">' + (i + 1) + '</span><span class="sq-q">' + esc(txt) + '</span>' + (c ? '<span class="sq-count">' + num(c) + '×</span>' : '') + '</div>'; }).join('');
+      }).catch(function () { var el = document.getElementById('sqList'); if (el) el.innerHTML = empty('Couldn’t load student questions.'); });
+    }
+  }
+  function stfStatTile(key, ic, bg, color, label) { return '<div class="stf-ov" style="cursor:default"><div class="stf-ov-ic" style="background:' + bg + ';color:' + color + '">' + ic + '</div><div><div class="stf-ov-n" data-kbnv="' + key + '">–</div><div class="stf-ov-l">' + label + '</div></div></div>'; }
+  function loadKnowledgeConsole() {
+    authFetch('/ai/knowledge/').then(function (r) {
+      STAFF.kbDocs = r.ok ? listOf(r.d) : [];
+      drawKbSubjects(); drawKbList();
+      var docs = STAFF.kbDocs.length, active = 0, chunks = 0;
+      STAFF.kbDocs.forEach(function (k) { if (k.is_active) active++; chunks += num(k.chunk_count); });
+      drawKbStats({ documents: docs, active: active, active_chunks: chunks });
+    }).catch(function () { var el = document.getElementById('kbList'); if (el) el.innerHTML = '<div class="pr-empty">Couldn’t load material.</div>'; });
+    authFetch('/ai/knowledge/analytics/').then(function (r) {
+      var a = r.ok ? r.d : {}; STAFF.kbAnalytics = a;
+      if (a.totals) drawKbStats(a.totals);
+      drawKbLast(a.last_trained); drawKbUsed(a.most_used); drawKbHistory(a.recent);
+    }).catch(function () {});
+  }
+  function drawKbStats(t) { t = t || {}; [['docs', t.documents], ['active', t.active], ['chunks', t.active_chunks], ['retrievals', t.retrievals]].forEach(function (p) { if (p[1] == null) return; var v = document.querySelector('[data-kbnv="' + p[0] + '"]'); if (v) v.textContent = num(p[1]); }); }
+  function drawKbLast(lt) {
+    var el = document.getElementById('kbLast'); if (!el) return;
+    if (!lt) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = '🕓 Last trained by <b style="color:var(--ink);font-weight:400">' + esc(lt.by || 'Staff') + '</b> — “' + esc(lt.title || 'material') + '”' + (lt.subject ? ' · ' + esc(lt.subject) : '') + ' · ' + timeAgo(lt.created_at);
+  }
+  function drawKbSubjects() {
+    var el = document.getElementById('kbSubjects'); if (!el) return;
+    var subs = []; (STAFF.kbDocs || []).forEach(function (k) { var s = (k.subject || '').trim(); if (s && subs.indexOf(s) < 0) subs.push(s); });
+    if (!subs.length) { el.style.display = 'none'; return; }
+    el.style.display = ''; var cur = STAFF.kbSubject || 'all';
+    el.innerHTML = '<button class="stf-fchip' + (cur === 'all' ? ' on' : '') + '" data-subj="all">All</button>' +
+      subs.map(function (s) { return '<button class="stf-fchip' + (cur === s ? ' on' : '') + '" data-subj="' + esc(s) + '">' + esc(s) + '</button>'; }).join('');
+  }
+  function drawKbList() {
+    var el = document.getElementById('kbList'); if (!el) return;
+    var docs = STAFF.kbDocs || [], q = (STAFF.kbQ || '').toLowerCase(), subj = STAFF.kbSubject || 'all';
+    var myName = ((cachedUser() || {}).name || (cachedUser() || {}).display_name || '').trim();
+    var list = docs.filter(function (k) {
+      if (subj !== 'all' && (k.subject || '') !== subj) return false;
+      if (q && (((k.title || '') + ' ' + (k.subject || '') + ' ' + (k.filename || '')).toLowerCase().indexOf(q) < 0)) return false;
+      return true;
+    });
+    if (!list.length) { el.innerHTML = '<div class="pr-empty">' + (docs.length ? 'No material matches your filter.' : 'No training material yet — add your first with ＋ Add material.') + '</div>'; return; }
+    el.innerHTML = list.map(function (k) {
+      var mine = myName && (k.uploaded_by || '').trim() === myName;
+      var used = num(k.retrieval_count);
+      var usage = used > 0 ? 'Dale used this ' + used + '×' + (k.last_retrieved_at ? ' · last ' + timeAgo(k.last_retrieved_at) : '') : 'Not used by Dale yet';
+      var meta = [k.subject || 'General', num(k.chunk_count) + ' chunks', k.uploaded_by ? 'by ' + k.uploaded_by : '', k.created_at ? timeAgo(k.created_at) : ''].filter(Boolean).join(' · ');
+      return '<div class="kb-doc" data-kb="' + esc(k.id) + '"><span class="kb-doc-ic">📚</span><div class="kb-doc-meta"><div class="kb-doc-title">' + esc(k.title || k.filename || 'Document') + '</div>' +
+        '<div class="kb-doc-sub">' + esc(meta) + '</div><div class="kb-usage' + (used > 0 ? ' on' : '') + '">' + esc(usage) + '</div></div>' +
+        '<button class="tgl' + (k.is_active ? ' on' : '') + '" data-kbtoggle="' + esc(k.id) + '" title="' + (k.is_active ? 'Active for Dale' : 'Off — Dale won’t use this') + '"><span class="tgl-k"></span></button>' +
+        (mine ? '<button class="lib-del" data-kbdel="' + esc(k.id) + '" title="Delete (you trained this)"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg></button>'
+          : '<span class="kb-lock" title="Only the staff member who trained this can delete it">🔒</span>') + '</div>';
+    }).join('');
+    el.querySelectorAll('[data-kbtoggle]').forEach(function (b) { b.addEventListener('click', function () { var on = !b.classList.contains('on'); b.classList.toggle('on', on); fetch(API + '/ai/knowledge/' + b.getAttribute('data-kbtoggle') + '/toggle/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function () { loadKnowledgeConsole(); }).catch(function () {}); }); });
+    el.querySelectorAll('[data-kbdel]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('Delete this material? Dale will forget it.')) return; var row = b.closest('.kb-doc'); row.style.opacity = '.4'; fetch(API + '/ai/knowledge/' + b.getAttribute('data-kbdel') + '/', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok() } }).then(function (r) { if (!r.ok) throw 0; window.snack('Deleted', 'ok'); loadKnowledgeConsole(); }).catch(function () { row.style.opacity = '1'; window.snack('Couldn’t delete.', 'error'); }); }); });
+  }
+  function drawKbUsed(mu) {
+    var el = document.getElementById('kbUsed'); if (!el) return;
+    mu = (mu || []).filter(function (d) { return num(d.retrieval_count) > 0; });
+    if (!mu.length) { el.innerHTML = '<div class="pr-empty">Dale hasn’t drawn on any material yet. Usage builds as students ask questions.</div>'; return; }
+    el.innerHTML = mu.slice(0, 6).map(function (d, i) {
+      return '<div class="sq-row"><span class="sq-rank">' + (i + 1) + '</span><span class="sq-q">' + esc(d.title || 'Document') + '<span class="faint" style="display:block;font-size:11px">by ' + esc(d.by || 'Staff') + '</span></span><span class="sq-count">' + num(d.retrieval_count) + '×</span></div>';
+    }).join('');
+  }
+  function drawKbHistory(rc) {
+    var el = document.getElementById('kbHistory'); if (!el) return;
+    rc = rc || [];
+    if (!rc.length) { el.innerHTML = '<div class="pr-empty">No training activity yet.</div>'; return; }
+    el.innerHTML = rc.slice(0, 8).map(function (d) {
+      return '<div class="pr-audit"><span class="pr-audit-ic">📚</span><div class="us-meta"><div class="us-name" style="font-size:12.5px"><b style="font-weight:400">' + esc(d.by || 'Staff') + '</b> added “' + esc(d.title || 'material') + '”</div><div class="us-sub faint">' + esc((d.subject || 'General') + ' · ' + num(d.chunk_count) + ' chunks · ' + timeAgo(d.created_at)) + '</div></div></div>';
+    }).join('');
+  }
+  function openKnowledgeUpload() {
+    var st = { src: 'file', file: null, blob: null, rec: null, chunks: [], stream: null, timer: null, secs: 0 };
+    openModal('<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))">📚</div><h2>Train Dale</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub">Train Dale from a document, a web link, or a recording. Add a clear title &amp; subject.</p>' +
+      '<div class="feed-tabs kb-srctabs" id="kuTabs"><button class="feed-tab active" data-src="file">📄 File</button><button class="feed-tab" data-src="link">🔗 Link</button><button class="feed-tab" data-src="record">🎙️ Record</button></div>' +
+      '<label>Title</label><input id="kuTitle" placeholder="e.g. Chemistry Unit 3 — Redox reactions" maxlength="200" />' +
+      '<label>Subject</label><input id="kuSubject" placeholder="e.g. Chemistry" maxlength="80" />' +
+      '<div id="kuBody"></div>' +
+      '<button class="btn" id="kuSend" style="margin-top:16px">Train Dale ✨</button>');
+    function stopStream() { if (st.timer) { clearInterval(st.timer); st.timer = null; } if (st.rec && st.rec.state !== 'inactive') { try { st.rec.stop(); } catch (e) {} } if (st.stream) { st.stream.getTracks().forEach(function (t) { t.stop(); }); st.stream = null; } }
+    document.getElementById('mClose').addEventListener('click', function () { stopStream(); closeModal(); });
+    var body = document.getElementById('kuBody');
+    function drawBody() {
+      if (st.src === 'file') {
+        body.innerHTML = '<label>File</label><div class="stf-drop" id="kuDrop" style="margin:6px 0 0;padding:22px"><div class="stf-drop-ic"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></div><div class="stf-drop-t" id="kuName">Choose a file</div><div class="stf-drop-s">Drag here or click · PDF, DOCX, or audio/video (mp3, m4a, wav, mp4)</div><input type="file" id="kuFile" accept=".pdf,.docx,.doc,audio/*,video/*" style="display:none"/></div>';
+        var drop = document.getElementById('kuDrop'), file = document.getElementById('kuFile'), nameEl = document.getElementById('kuName');
+        function pick(f) { st.file = f; nameEl.textContent = f.name; drop.classList.add('drag'); var t = document.getElementById('kuTitle'); if (!t.value.trim()) t.value = f.name.replace(/\.[^.]+$/, ''); }
+        drop.addEventListener('click', function () { file.click(); });
+        file.addEventListener('change', function () { if (this.files[0]) pick(this.files[0]); });
+        drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('drag'); });
+        drop.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]); });
+      } else if (st.src === 'link') {
+        body.innerHTML = '<label>Link</label><input id="kuUrl" placeholder="https://example.com/notes  ·  or a YouTube link" /><div class="kb-hint">Paste a web page (Dale reads its text) or a <b>YouTube</b> link (Dale learns from its captions). Direct file links like PDFs should be uploaded as a file.</div>';
+      } else {
+        body.innerHTML = '<label>Voice note</label><div class="kb-rec"><button class="kb-rec-btn" id="kuRecBtn" type="button">🎙️</button><div class="kb-rec-info"><div class="kb-rec-time" id="kuRecTime">0:00</div><div class="kb-rec-hint" id="kuRecHint">Tap to record — Dale transcribes it</div></div></div><audio id="kuRecAudio" controls style="display:none;width:100%;margin-top:10px"></audio>';
+        wireRecord();
+      }
+    }
+    function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+    function wireRecord() {
+      var btn = document.getElementById('kuRecBtn'), timeEl = document.getElementById('kuRecTime'), hintEl = document.getElementById('kuRecHint'), audioEl = document.getElementById('kuRecAudio');
+      btn.addEventListener('click', function () {
+        if (st.rec && st.rec.state === 'recording') { stopStream(); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { window.snack('This browser can’t record audio.', 'error'); return; }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+          st.stream = stream; st.chunks = []; st.blob = null; st.secs = 0;
+          st.rec = new MediaRecorder(stream);
+          st.rec.ondataavailable = function (e) { if (e.data && e.data.size) st.chunks.push(e.data); };
+          st.rec.onstop = function () {
+            st.blob = new Blob(st.chunks, { type: 'audio/webm' });
+            if (audioEl) { audioEl.src = URL.createObjectURL(st.blob); audioEl.style.display = 'block'; }
+            btn.classList.remove('on'); btn.textContent = '🎙️'; if (hintEl) hintEl.textContent = 'Recorded ' + fmt(st.secs) + ' · tap to re-record';
+          };
+          st.rec.start();
+          btn.classList.add('on'); btn.textContent = '⏹'; if (hintEl) hintEl.textContent = 'Recording… tap to stop';
+          st.timer = setInterval(function () { st.secs++; if (timeEl) timeEl.textContent = fmt(st.secs); }, 1000);
+        }).catch(function () { window.snack('Microphone access was blocked.', 'error'); });
+      });
+    }
+    document.getElementById('kuTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-src]'); if (!b) return; stopStream(); st.src = b.getAttribute('data-src'); this.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-src') === st.src); }); drawBody(); });
+    drawBody();
+    document.getElementById('kuSend').addEventListener('click', function () {
+      var btn = this, title = document.getElementById('kuTitle').value.trim(), subject = document.getElementById('kuSubject').value.trim();
+      if (st.src === 'file') {
+        if (!st.file) { window.snack('Choose a file to upload.', 'error'); return; }
+        if (!title) { window.snack('Give the material a title.', 'error'); return; }
+        btn.disabled = true; btn.textContent = 'Training…'; uploadKnowledge(st.file, title, subject, btn);
+      } else if (st.src === 'link') {
+        var url = (document.getElementById('kuUrl').value || '').trim();
+        if (!url) { window.snack('Paste a link.', 'error'); return; }
+        btn.disabled = true; btn.textContent = 'Reading link…'; uploadKnowledgeUrl(url, title, subject, btn);
+      } else {
+        if (!st.blob) { window.snack('Record something first.', 'error'); return; }
+        stopStream();
+        var f = new File([st.blob], 'recording.webm', { type: 'audio/webm' });
+        btn.disabled = true; btn.textContent = 'Transcribing…'; uploadKnowledge(f, title || 'Voice note', subject, btn);
+      }
+    });
+  }
+  function uploadKnowledgeUrl(url, title, subject, btn) {
+    fetch(API + '/ai/knowledge/upload-url/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ url: url, title: title, subject: subject }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (btn) { btn.disabled = false; btn.textContent = 'Train Dale ✨'; } if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Couldn’t train from that link.', 'error'); return; } closeModal(); window.snack('Dale trained from the link ✨', 'ok'); loadKnowledgeConsole(); })
+      .catch(function () { if (btn) { btn.disabled = false; btn.textContent = 'Train Dale ✨'; } window.snack('Couldn’t reach the server.', 'error'); });
+  }
+  function uploadKnowledge(file, title, subject, btn) {
+    var fd = new FormData(); fd.append('file', file); if (title) fd.append('title', title); if (subject) fd.append('subject', subject);
+    fetch(API + '/ai/knowledge/upload/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { if (btn) { btn.disabled = false; btn.textContent = 'Train Dale ✨'; } if (!res.ok) { window.snack((res.d && (res.d.error || res.d.detail)) || 'Upload failed.', 'error'); return; } closeModal(); window.snack('Dale trained on “' + (title || file.name) + '” ✨', 'ok'); loadKnowledgeConsole(); })
+      .catch(function () { if (btn) { btn.disabled = false; btn.textContent = 'Train Dale ✨'; } window.snack('Upload failed.', 'error'); });
+  }
+  var STAFF_TABS = { home: renderStaffHome, protect: renderStaffProtect, connect: renderStaffConnect, campus: renderStaffCampus, dale: renderStaffDale };
+
+  // ═══════════════════ VISITOR · CAMPUS SHOWCASE ═══════════════════
+  // The only screen a visitor / parent sees: a read-only showcase of public
+  // club posts & events, plus an "Ask Dale" scoped to clubs & events only.
+  var IS_VISITOR = false;
+  var VIS = { posts: [], page: 1, dale: [] };
+  var THUMB_UP = '<svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9a2 2 0 0 0 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>';
+  var THUMB_DOWN = '<svg viewBox="0 0 24 24"><path d="M15 3H6a2 2 0 0 0-1.84 1.22L1.14 11.27c-.09.23-.14.47-.14.73v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59A2 2 0 0 0 17 15V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></svg>';
+  function isVisitorRole(r) { r = String(r || '').toLowerCase().trim(); return r === 'visitor' || r === 'parent'; }
+  function initVisitor() {
+    IS_VISITOR = true;
+    document.documentElement.classList.add('vis');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    renderShowcase();
+  }
+  function renderShowcase() {
+    var u = cachedUser() || {};
+    view.innerHTML =
+      '<div class="vs-top"><div class="vs-brand"><span class="vs-brand-mark">TCS</span><span class="vs-brand-sub">Campus Showcase</span></div>' +
+        '<div class="vs-top-actions"><button class="dale-btn" id="vsDale">' + DALE_LOTTIE + ' Ask Dale</button>' +
+        '<button class="vs-logout" id="vsLogout">Log out</button></div></div>' +
+      '<div class="vs-hero"><div class="vs-hero-eyebrow">TAYLORS COLLEGE SYDNEY</div>' +
+        '<h1 class="vs-hero-title">Campus Showcase</h1>' +
+        '<p class="vs-hero-sub">A window into life at TCS — clubs, events and the moments that make campus, ' + esc((u.name || 'friend').split(' ')[0]) + '.</p></div>' +
+      '<div id="vsFeed"><div class="loading"><div class="spin"></div></div></div>';
+    document.getElementById('vsDale').addEventListener('click', openVisitorDale);
+    document.getElementById('vsLogout').addEventListener('click', function () {
+      if (!confirm('Log out of the Campus Showcase?')) return;
+      clearSession(); window.snack('Signed out', 'ok', 900); setTimeout(function () { location.href = 'auth.html'; }, 500);
+    });
+    loadShowcase();
+  }
+  function loadShowcase() {
+    authFetch('/showcase/feed/?page=1').then(function (r) {
+      var el = document.getElementById('vsFeed'); if (!el) return;
+      if (!r.ok) { el.innerHTML = empty((r.d && (r.d.detail || r.d.error)) || 'Couldn’t load the showcase.'); return; }
+      VIS.posts = listOf(r.d);
+      if (!VIS.posts.length) { el.innerHTML = '<div class="vs-empty"><div class="vs-empty-ic">🎉</div><div class="vs-empty-t">Nothing posted yet</div><div class="vs-empty-s">Club posts and events will show up here.</div></div>'; return; }
+      el.innerHTML = '<div class="vs-feed">' + VIS.posts.map(showcaseCard).join('') + '</div>';
+      el.querySelectorAll('.vs-card').forEach(function (card) {
+        card.querySelectorAll('[data-react]').forEach(function (b) { b.addEventListener('click', function () { reactShowcase(card, b.getAttribute('data-react')); }); });
+      });
+    }).catch(function () { var el = document.getElementById('vsFeed'); if (el) el.innerHTML = empty('Couldn’t reach the showcase.'); });
+  }
+  function showcaseCard(p) {
+    var mine = p.my_reaction;
+    var img = p.image ? '<div class="vs-media" style="background-image:url(' + esc(p.image) + ')"></div>' : '';
+    return '<article class="vs-card" data-sid="' + esc(p.id) + '" data-mine="' + esc(mine || '') + '">' +
+      '<div class="vs-card-head">' + avatar(p.club_logo, p.club_name || 'TCS', 'vs-club') +
+        '<div class="vs-club-meta"><div class="vs-club-name">' + esc(p.club_name || 'TCS Campus') + '</div><div class="vs-club-time">' + esc(timeAgo(p.created_at)) + '</div></div>' +
+        '<span class="vs-badge">Campus</span></div>' +
+      (p.text ? '<div class="vs-text">' + esc(p.text) + '</div>' : '') + img +
+      '<div class="vs-react"><button class="vs-rbtn like' + (mine === 'like' ? ' on' : '') + '" data-react="like">' + THUMB_UP + '<span>' + num(p.likes) + '</span></button>' +
+      '<button class="vs-rbtn dislike' + (mine === 'dislike' ? ' on' : '') + '" data-react="dislike">' + THUMB_DOWN + '<span>' + num(p.dislikes) + '</span></button></div></article>';
+  }
+  function reactShowcase(card, reaction) {
+    var id = card.getAttribute('data-sid'), prev = card.getAttribute('data-mine') || '';
+    var likeB = card.querySelector('.vs-rbtn.like'), disB = card.querySelector('.vs-rbtn.dislike');
+    var likeN = likeB.querySelector('span'), disN = disB.querySelector('span');
+    var next = (prev === reaction) ? '' : reaction;
+    // optimistic
+    if (prev === 'like') likeN.textContent = Math.max(0, +likeN.textContent - 1);
+    if (prev === 'dislike') disN.textContent = Math.max(0, +disN.textContent - 1);
+    if (next === 'like') likeN.textContent = +likeN.textContent + 1;
+    if (next === 'dislike') disN.textContent = +disN.textContent + 1;
+    likeB.classList.toggle('on', next === 'like'); disB.classList.toggle('on', next === 'dislike');
+    card.setAttribute('data-mine', next);
+    fetch(API + '/showcase/' + id + '/react/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ reaction: reaction }) })
+      .then(function (r) { if (!r.ok) throw 0; }).catch(function () { window.snack('Couldn’t save your reaction.', 'error'); loadShowcase(); });
+  }
+  function openVisitorDale() {
+    var sugg = ['What clubs does TCS have?', 'What events are coming up?', 'How do I join a club?', 'Tell me about campus life'];
+    openModal('<div class="modal-head"><div class="vs-dale-mi">' + DALE_LOTTIE + '</div><div><h2 style="margin:0">Ask Dale</h2><div class="faint" style="font-family:Momo;font-size:11.5px">Clubs &amp; events only</div></div>' +
+      '<button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="vs-dale-thread" id="vsDaleThread">' + (VIS.dale.length ? VIS.dale.map(daleLine).join('') :
+        '<div class="vs-dale-hint">Try asking…</div><div class="vs-dale-sugg">' + sugg.map(function (s) { return '<button class="vs-sugg" data-q="' + esc(s) + '">' + esc(s) + '</button>'; }).join('') + '</div>') + '</div>' +
+      '<div class="vs-dale-input"><input id="vsDaleInput" placeholder="Ask about clubs or events…" autocomplete="off" />' +
+        '<button class="vs-dale-send" id="vsDaleSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="currentColor"/></svg></button></div>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    var input = document.getElementById('vsDaleInput');
+    function wireSugg() { document.querySelectorAll('.vs-sugg').forEach(function (b) { b.addEventListener('click', function () { sendVisitorDale(b.getAttribute('data-q')); }); }); }
+    wireSugg();
+    document.getElementById('vsDaleSend').addEventListener('click', function () { sendVisitorDale(input.value); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendVisitorDale(input.value); });
+    input.focus();
+  }
+  function daleLine(m) {
+    if (m.role === 'user') return '<div class="vs-msg me">' + esc(m.content) + '</div>';
+    return '<div class="vs-msg dale"><span class="vs-msg-av">' + DALE_LOTTIE + '</span><span>' + esc(m.content) + '</span></div>';
+  }
+  function sendVisitorDale(text) {
+    text = (text || '').trim(); if (!text) return;
+    var thread = document.getElementById('vsDaleThread'); var input = document.getElementById('vsDaleInput'); if (input) input.value = '';
+    VIS.dale.push({ role: 'user', content: text });
+    thread.innerHTML = VIS.dale.map(daleLine).join('') + '<div class="vs-msg dale typing" id="vsTyping"><span class="vs-msg-av">' + DALE_LOTTIE + '</span><span class="vs-dots"><i></i><i></i><i></i></span></div>';
+    thread.scrollTop = thread.scrollHeight;
+    var hist = VIS.dale.slice(0, -1).map(function (m) { return { role: m.role, content: m.content }; });
+    fetch(API + '/showcase/ai/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ message: text, history: hist }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        var reply = res.ok ? (res.d.response || '…') : (res.d && res.d.error) || 'Dale is unavailable right now.';
+        VIS.dale.push({ role: 'assistant', content: reply });
+        var t = document.getElementById('vsDaleThread'); if (t) { t.innerHTML = VIS.dale.map(daleLine).join(''); t.scrollTop = t.scrollHeight; }
+      })
+      .catch(function () {
+        VIS.dale.push({ role: 'assistant', content: 'Dale is busy — try again in a moment.' });
+        var t = document.getElementById('vsDaleThread'); if (t) t.innerHTML = VIS.dale.map(daleLine).join('');
+      });
+  }
+
   var TABS = { home: renderHome, studyhub: renderStudyhub, messages: renderMessages, clubs: renderClubs, profile: renderProfile };
   function setTab(name) {
-    if (!TABS[name]) name = 'home';
+    var tabs = IS_STAFF ? STAFF_TABS : TABS;
+    if (!tabs[name]) name = 'home';
     var arc = document.getElementById('arcadeBtn'); if (arc) arc.classList.remove('active');
     document.querySelectorAll('.nav-item[data-tab]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
     try { localStorage.setItem('tcs_tab', name); } catch (e) {}
-    TABS[name]();
+    tabs[name]();
   }
   document.getElementById('nav').addEventListener('click', function (e) {
     var b = e.target.closest('.nav-item[data-tab]'); if (b) setTab(b.getAttribute('data-tab'));
@@ -3899,15 +4943,106 @@
     var list = document.getElementById('notifList'); if (!list) return;
     var items = NOTIF.items.filter(function (x) { return notifBucket(x.created_at) === NOTIF.seg; });
     if (!items.length) { list.innerHTML = '<div class="notif-empty">' + (NOTIF.seg === 'today' ? 'You’re all caught up 🎉' : NOTIF.seg === 'yesterday' ? 'Nothing from yesterday' : 'Nothing earlier') + '</div>'; return; }
-    list.innerHTML = items.map(function (x) {
+    list.innerHTML = items.map(function (x, i) {
       var gl = notifGlyph(x.notif_type); var unread = !x.is_read;
       var icon = x.actor_avatar ? avatar(x.actor_avatar, x.actor_name || '', 'notif-avc') : '<span class="notif-ic" style="background:' + gl[1] + '22;color:' + gl[1] + '">' + gl[0] + '</span>';
-      return '<div class="notif-item' + (unread ? ' unread' : '') + '">' + icon +
+      return '<div class="notif-item' + (unread ? ' unread' : '') + '" data-nix="' + i + '">' + icon +
         '<div class="notif-body"><div class="t">' + esc(x.title || 'Notification') + '</div>' +
         (x.body ? '<div class="b">' + esc(x.body) + '</div>' : '') +
         '<div class="notif-time">' + esc(timeAgo(x.created_at)) + '</div></div>' +
         (unread ? '<span class="notif-udot"></span>' : '') + '</div>';
     }).join('');
+    list.querySelectorAll('[data-nix]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var n = items[+el.getAttribute('data-nix')]; if (!n) return;
+        if (!n.is_read && n.id) {
+          n.is_read = true; el.classList.remove('unread');
+          var d = el.querySelector('.notif-udot'); if (d) d.remove();
+          fetch(API + '/notifications/' + n.id + '/read/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() } }).then(loadNotifCount).catch(function () {});
+        }
+        document.getElementById('notifPanel').classList.remove('open');
+        routeNotif(n);
+      });
+    });
+  }
+  // Open the chat room a notification points at, loading the rooms list first.
+  function openRoomById(roomId, name, type) {
+    if (!roomId) return;
+    setTab(IS_STAFF ? 'connect' : 'messages');
+    authFetch('/chat/rooms/').then(function (rr) {
+      if (rr.ok) MSG.rooms = listOf(rr.d);
+      if (!MSG.rooms.some(function (m) { return m.id === roomId; })) MSG.rooms.unshift({ id: roomId, name: name || 'Chat', room_type: type || 'direct' });
+      if (typeof drawRows === 'function') drawRows();
+      openConversation(roomId);
+    }).catch(function () { openConversation(roomId); });
+  }
+  function notifInfoModal(title, body) {
+    openModal('<div class="modal-head"><h2>' + esc(title || 'Notification') + '</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<p class="sub" style="line-height:1.55;white-space:pre-wrap">' + esc(body || '') + '</p>');
+    document.getElementById('mClose').addEventListener('click', closeModal);
+  }
+  // Mirror of the mobile _routeFor(): notif_type (+ target_type/target_id) → the thing it's about.
+  function routeNotif(n) {
+    var id = n.target_id || '', tt = n.target_type || '', ty = n.notif_type || '';
+    switch (ty) {
+      case 'chat_message':
+      case 'request_accepted':
+        if (tt === 'room' && id) openRoomById(id, n.title, 'direct');
+        else if (id) openUserProfile(id);
+        break;
+      case 'chat_request':
+      case 'request_declined':
+        setTab(IS_STAFF ? 'connect' : 'messages');
+        setTimeout(function () { if (typeof openRequests === 'function') openRequests(); }, 60);
+        break;
+      case 'group_message':
+      case 'group_material':
+      case 'study_group_invite':
+      case 'group_add':
+        if (tt === 'room' && id) openRoomById(id, n.title, 'group');
+        else setTab('studyhub');
+        break;
+      case 'study_buddy_request':
+        setTab('studyhub');
+        break;
+      case 'event_reminder':
+      case 'club_event':
+        if (id) authFetch('/events/' + id + '/').then(function (r) { if (r.ok) openEvent(r.d); else notifInfoModal(n.title, n.body); }).catch(function () { notifInfoModal(n.title, n.body); });
+        break;
+      case 'highlight':
+        if (tt === 'event' && id) authFetch('/events/' + id + '/').then(function (r) { if (r.ok) openEvent(r.d); }).catch(function () {});
+        break;
+      case 'quiz_published':
+        if (id) openQuizPlay(id);
+        break;
+      case 'emergency':
+        if (IS_STAFF) { STAFF.protect = 'emergency'; setTab('protect'); }
+        else if (id) authFetch('/safety/emergency/' + id + '/').then(function (r) { notifInfoModal((r.ok && r.d.title) || n.title || 'Emergency alert', (r.ok && r.d.message) || n.body); }).catch(function () { notifInfoModal(n.title, n.body); });
+        else notifInfoModal(n.title, n.body);
+        break;
+      case 'follow':
+        if (id) openUserProfile(id);
+        break;
+      case 'suggestion':
+        if (IS_STAFF) { STAFF.campus = 'suggestions'; setTab('campus'); }
+        break;
+      case 'wellbeing':
+        if (IS_STAFF) { STAFF.protect = 'wellbeing'; setTab('protect'); }
+        break;
+      case 'announcement':
+        notifInfoModal(n.title, n.body);
+        break;
+      case 'birthday':
+        window.snack('🎂 Happy birthday! Dale made you a note.', 'ok');
+        break;
+      case 'like':
+      case 'comment':
+      case 'mention':
+        if (id) authFetch('/posts/' + id + '/').then(function (r) { if (r.ok) openPostDetail(r.d); else notifInfoModal(n.title, n.body); }).catch(function () { notifInfoModal(n.title, n.body); });
+        break;
+      default:
+        if (n.body) notifInfoModal(n.title, n.body);
+    }
   }
   function loadNotifCount() {
     authFetch('/notifications/unread-count/').then(function (r) {
@@ -3934,6 +5069,13 @@
     applyTheme(cur === 'light' ? 'dark' : 'light');
   });
 
+  // Route by role: visitors → Campus Showcase; staff → Staff Console; else student app.
+  (function () {
+    var u = cachedUser() || {}; var role = u.role || u.staff_type;
+    if (isVisitorRole(u.role)) initVisitor();
+    else if (isStaffRole(role)) initStaff();
+  })();
+
   // Fresh app open → Home. Only a page refresh keeps the current tab.
   var isReload = false;
   try {
@@ -3942,8 +5084,11 @@
   } catch (e) {}
   var start = 'home';
   if (isReload) { try { start = localStorage.getItem('tcs_tab') || 'home'; } catch (e) {} }
-  if (start === 'arcade') { document.getElementById('arcadeBtn').classList.add('active'); renderArcade(); } else setTab(start);
-  loadNotifCount();
+  if (IS_VISITOR) { /* showcase already rendered by initVisitor */ }
+  else if (IS_STAFF) { if (!STAFF_TABS[start]) start = 'home'; setTab(start); }
+  else if (start === 'arcade') { document.getElementById('arcadeBtn').classList.add('active'); renderArcade(); }
+  else setTab(start);
+  if (!IS_VISITOR) loadNotifCount();
 </script>
 </body>
 </html>

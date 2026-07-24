@@ -4,11 +4,14 @@
 // backend extracts + chunks them, and active docs feed Dale's answers (RAG).
 // Staff can toggle a doc active/inactive or delete it.
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tcs_app/theme/app_colors.dart';
 import 'package:tcs_app/widgets/t_text.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:tcs_app/services/api_service.dart';
 import 'package:tcs_app/services/cache_store.dart';
 import 'package:tcs_app/widgets/dale_loader.dart';
@@ -90,7 +93,11 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
   Future<void> _upload() async {
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['pdf', 'doc', 'docx'],
+      allowedExtensions: const [
+        'pdf', 'doc', 'docx',
+        'mp3', 'm4a', 'wav', 'ogg', 'oga', 'flac', 'mpga',   // audio
+        'mp4', 'webm', 'mpeg',                                // video
+      ],
       allowMultiple: false,
       withData: false,
     );
@@ -128,9 +135,7 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
     if (ok != true) return;
 
     final ext  = (pf.extension ?? '').toLowerCase();
-    final mime = ext == 'pdf'
-        ? 'application/pdf'
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    final mime = _mimeFor(ext);
 
     setState(() => _busy = true);
     HapticFeedback.mediumImpact();
@@ -140,6 +145,229 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
           extraFields: {'title': titleCtrl.text.trim(), 'subject': subjectCtrl.text.trim()});
       await _refresh();
       _snack('Added to Dale\'s knowledge ✓');
+    } catch (e) {
+      _snack('Upload failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _mimeFor(String ext) {
+    switch (ext) {
+      case 'pdf': return 'application/pdf';
+      case 'doc':
+      case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'mp3':
+      case 'mpga': return 'audio/mpeg';
+      case 'm4a': return 'audio/m4a';
+      case 'wav': return 'audio/wav';
+      case 'ogg':
+      case 'oga': return 'audio/ogg';
+      case 'flac': return 'audio/flac';
+      case 'mp4': return 'video/mp4';
+      case 'webm': return 'video/webm';
+      case 'mpeg': return 'video/mpeg';
+      default: return 'application/octet-stream';
+    }
+  }
+
+  // ── Source chooser: file · link · recording ────────────────────────
+  void _showTrainSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(color: AppC.text.withOpacity(.18),
+                  borderRadius: BorderRadius.circular(3))),
+          Padding(padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
+              child: Align(alignment: Alignment.centerLeft,
+                  child: T('Train Dale', style: TextStyle(fontFamily: 'Alfa',
+                      fontSize: 17, color: AppC.text)))),
+          _trainTile(Icons.description_rounded, 'Upload a file',
+              'PDF, DOCX, or an audio / video recording', _kG1,
+              () { Navigator.pop(ctx); _upload(); }),
+          _trainTile(Icons.link_rounded, 'Add a link',
+              'A web page or a YouTube video', _kG2,
+              () { Navigator.pop(ctx); _uploadLink(); }),
+          _trainTile(Icons.mic_rounded, 'Record a voice note',
+              'Speak and Dale transcribes it', _kRed,
+              () { Navigator.pop(ctx); _recordVoice(); }),
+          const SizedBox(height: 10),
+        ]),
+      ),
+    );
+  }
+
+  Widget _trainTile(IconData icon, String title, String sub, Color color, VoidCallback onTap) =>
+      ListTile(
+        onTap: onTap,
+        leading: Container(width: 44, height: 44,
+            decoration: BoxDecoration(color: color.withOpacity(.18),
+                borderRadius: BorderRadius.circular(13)),
+            child: Icon(icon, color: color)),
+        title: T(title, style: TextStyle(fontFamily: 'Arch',
+            fontWeight: FontWeight.bold, color: AppC.text, fontSize: 15)),
+        subtitle: Text(sub, style: TextStyle(fontFamily: 'Momo', fontSize: 11.5,
+            color: AppC.text.withOpacity(.55))),
+      );
+
+  // ── Train from a web / YouTube link ────────────────────────────────
+  Future<void> _uploadLink() async {
+    final urlCtrl     = TextEditingController();
+    final titleCtrl   = TextEditingController();
+    final subjectCtrl = TextEditingController();
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _card,
+        title: T('Train Dale from a link',
+            style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: urlCtrl, style: TextStyle(color: AppC.text),
+              keyboardType: TextInputType.url, autofocus: true,
+              decoration: _dec('Web or YouTube link')),
+          const SizedBox(height: 10),
+          TextField(controller: titleCtrl, style: TextStyle(color: AppC.text),
+              decoration: _dec('Title (optional)')),
+          const SizedBox(height: 10),
+          TextField(controller: subjectCtrl, style: TextStyle(color: AppC.text),
+              decoration: _dec('Subject (optional)')),
+          const SizedBox(height: 8),
+          Text('Dale reads a page\'s text, or a YouTube video\'s captions.',
+              style: TextStyle(fontFamily: 'Momo', fontSize: 11,
+                  color: AppC.text.withOpacity(.5))),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: T('Cancel', style: TextStyle(color: AppC.sub))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const T('Train Dale', style: TextStyle(color: _kG1))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final url = urlCtrl.text.trim();
+    if (url.isEmpty) { _snack('Paste a link first.', error: true); return; }
+
+    setState(() => _busy = true);
+    HapticFeedback.mediumImpact();
+    try {
+      await _api.post('/ai/knowledge/upload-url/', body: {
+        'url': url,
+        'title': titleCtrl.text.trim(),
+        'subject': subjectCtrl.text.trim(),
+      });
+      await _refresh();
+      _snack('Dale trained from the link ✓');
+    } catch (e) {
+      _snack('Couldn\'t train from that link: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  // ── Record a voice note, then transcribe + train ───────────────────
+  Future<void> _recordVoice() async {
+    final recorder = AudioRecorder();
+    if (!await recorder.hasPermission()) {
+      _snack('Microphone permission is needed to record.', error: true);
+      await recorder.dispose();
+      return;
+    }
+    final dir  = await getTemporaryDirectory();
+    final path = '${dir.path}/dale_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final titleCtrl   = TextEditingController();
+    final subjectCtrl = TextEditingController();
+    bool recording = false, hasRec = false;
+    int secs = 0;
+    Timer? timer;
+    String fmt(int s) => '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+    if (!mounted) { await recorder.dispose(); return; }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        Future<void> toggle() async {
+          if (recording) {
+            timer?.cancel();
+            try { await recorder.stop(); } catch (_) {}
+            HapticFeedback.lightImpact();
+            setD(() { recording = false; hasRec = true; });
+          } else {
+            try {
+              await recorder.start(
+                  const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+            } catch (_) { _snack('Couldn\'t start recording.', error: true); return; }
+            HapticFeedback.mediumImpact();
+            setD(() { recording = true; hasRec = false; secs = 0; });
+            timer = Timer.periodic(const Duration(seconds: 1),
+                (_) => setD(() => secs++));
+          }
+        }
+        return AlertDialog(
+          backgroundColor: _card,
+          title: T('Record a voice note',
+              style: TextStyle(fontFamily: 'Alfa', color: AppC.text, fontSize: 17)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            GestureDetector(onTap: toggle, child: Container(
+                width: 76, height: 76,
+                decoration: BoxDecoration(shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: recording
+                        ? const [_kRed, _kG2] : const [_kG2, _kG1])),
+                child: Icon(recording ? Icons.stop_rounded : Icons.mic_rounded,
+                    color: Colors.white, size: 34))),
+            const SizedBox(height: 10),
+            Text(fmt(secs), style: TextStyle(fontFamily: 'Alfa', fontSize: 22,
+                color: AppC.text)),
+            Text(recording
+                    ? 'Recording… tap to stop'
+                    : hasRec ? 'Recorded ${fmt(secs)} · tap to re-record'
+                             : 'Tap to record',
+                style: TextStyle(fontFamily: 'Momo', fontSize: 12,
+                    color: AppC.text.withOpacity(.6))),
+            const SizedBox(height: 14),
+            TextField(controller: titleCtrl, style: TextStyle(color: AppC.text),
+                decoration: _dec('Title (optional)')),
+            const SizedBox(height: 10),
+            TextField(controller: subjectCtrl, style: TextStyle(color: AppC.text),
+                decoration: _dec('Subject (optional)')),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () async {
+                  timer?.cancel();
+                  if (recording) { try { await recorder.stop(); } catch (_) {} }
+                  if (ctx.mounted) Navigator.pop(ctx, false);
+                },
+                child: T('Cancel', style: TextStyle(color: AppC.sub))),
+            TextButton(
+                onPressed: hasRec ? () => Navigator.pop(ctx, true) : null,
+                child: T('Train Dale', style: TextStyle(
+                    color: hasRec ? _kG1 : AppC.text.withOpacity(.3)))),
+          ],
+        );
+      }),
+    );
+    await recorder.dispose();
+    if (ok != true || !hasRec) return;
+
+    setState(() => _busy = true);
+    HapticFeedback.mediumImpact();
+    try {
+      await _api.uploadFile('/ai/knowledge/upload/',
+          filePath: path, field: 'file', mimeType: 'audio/m4a',
+          extraFields: {
+            'title': titleCtrl.text.trim().isEmpty ? 'Voice note' : titleCtrl.text.trim(),
+            'subject': subjectCtrl.text.trim(),
+          });
+      await _refresh();
+      _snack('Dale trained on your voice note ✓');
     } catch (e) {
       _snack('Upload failed: $e', error: true);
     } finally {
@@ -263,9 +491,9 @@ class _StaffKnowledgeScreenState extends State<StaffKnowledgeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _kG2,
-        onPressed: _busy ? null : _upload,
-        icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
-        label: const T('Upload material',
+        onPressed: _busy ? null : _showTrainSheet,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const T('Train Dale',
             style: TextStyle(fontFamily: 'Arch', fontWeight: FontWeight.bold, color: Colors.white)),
       ),
       body: (_loading || _tick)
