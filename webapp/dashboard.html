@@ -870,6 +870,27 @@
   .dale-orb { width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
     background: linear-gradient(135deg, #A9BC95, #6E8159); }
   .dale-orb dotlottie-wc { width: 42px; height: 42px; display: block; }
+  /* Dale model / companion picker */
+  .dale-models { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; margin: -6px 0 2px; scrollbar-width: none; }
+  .dale-models::-webkit-scrollbar { height: 0; }
+  .dale-model { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; cursor: pointer;
+    border: 1px solid var(--hair); background: var(--glass); color: var(--sub); border-radius: 999px;
+    padding: 4px 13px 4px 4px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px; white-space: nowrap; transition: border-color .12s, color .12s; }
+  .dale-model:hover { color: var(--ink); }
+  .dale-model.on { border-color: var(--hair-2); color: var(--ink); background: var(--glass-2); }
+  .dm-ic { width: 27px; height: 27px; flex: 0 0 27px; display: grid; place-items: center; border-radius: 50%; font-size: 15px; color: #fff; }
+  /* Create-post media */
+  .cp-add { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 12px;
+    border: 1.5px dashed var(--hair-2); background: var(--glass); color: var(--sub); border-radius: 12px;
+    padding: 10px 15px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; }
+  .cp-add:hover { color: var(--ink); border-color: var(--g2); }
+  .cp-add svg { width: 18px; height: 18px; fill: currentColor; }
+  .cp-previews { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .cp-prev { position: relative; width: 84px; height: 84px; border-radius: 12px; overflow: hidden; border: 1px solid var(--hair); background: #000; }
+  .cp-prev img, .cp-prev video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cp-vid { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 22px; text-shadow: 0 1px 4px rgba(0,0,0,.6); pointer-events: none; }
+  .cp-prev-x { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; display: grid; place-items: center; }
   #daleQ { width: 100%; resize: vertical; min-height: 52px; background: var(--glass-2); color: var(--ink);
     border: 1.5px solid rgba(110,129,89,0.55); border-radius: 14px; padding: 12px 14px; font-family: 'Momo', sans-serif; font-size: 14px; outline: none; }
   #daleQ:focus { border-color: #6E8159; }
@@ -1926,29 +1947,67 @@
   function openCreateFweet() { openCreatePost('fweet'); }
   function openCreatePost(kind) {
     var fweet = kind === 'fweet';
+    var files = [];
     openModal(
       '<div class="modal-head"><div class="mi" style="background:linear-gradient(135deg,var(--g2),var(--g1))"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></div>' +
       '<h2>New ' + (fweet ? 'fweet' : 'post') + '</h2><button class="ghost x" id="mClose" style="margin-left:auto;padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
       '<p class="sub">' + (fweet ? 'Drop a quick fweet — short and sweet.' : 'Share something with campus.') + '</p>' +
       '<textarea id="cpText" rows="' + (fweet ? 3 : 5) + '" placeholder="' + (fweet ? 'Say it in a fweet…' : 'What’s on your mind?') + '"' + (fweet ? ' maxlength="280"' : '') + '></textarea>' +
+      (fweet ? '' :
+        '<button class="cp-add" id="cpAddMedia" type="button"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z"/></svg> Add photos / video</button>' +
+        '<input type="file" id="cpFiles" accept="image/*,video/*" multiple style="display:none" />' +
+        '<div class="cp-previews" id="cpPreviews"></div>') +
       '<button class="btn" id="cpSubmit" style="margin-top:18px"><span class="spinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:none"></span><span>' + (fweet ? 'Fweet' : 'Post') + '</span></button>'
     );
     document.getElementById('mClose').addEventListener('click', closeModal);
+    if (!fweet) {
+      var addBtn = document.getElementById('cpAddMedia'), fileInput = document.getElementById('cpFiles'), prev = document.getElementById('cpPreviews');
+      function drawPreviews() {
+        prev.innerHTML = files.map(function (f, i) {
+          var isVid = /^video/.test(f.type); var url = URL.createObjectURL(f);
+          return '<div class="cp-prev">' + (isVid ? '<video src="' + url + '" muted playsinline></video><span class="cp-vid">▶</span>' : '<img src="' + url + '" alt="" />') + '<button class="cp-prev-x" data-rm="' + i + '" type="button">×</button></div>';
+        }).join('');
+        prev.querySelectorAll('[data-rm]').forEach(function (b) { b.addEventListener('click', function () { files.splice(+b.getAttribute('data-rm'), 1); drawPreviews(); }); });
+      }
+      addBtn.addEventListener('click', function () { fileInput.click(); });
+      fileInput.addEventListener('change', function () {
+        Array.prototype.forEach.call(this.files, function (f) { if (files.length < 5) files.push(f); });
+        this.value = ''; drawPreviews();
+      });
+    }
     document.getElementById('cpSubmit').addEventListener('click', function () {
       var text = document.getElementById('cpText').value.trim();
-      if (!text) { window.snack('Write something first.', 'error'); return; }
+      if (!text && !files.length) { window.snack(fweet ? 'Write something first.' : 'Write something or add a photo/video.', 'error'); return; }
       var btn = this; btn.disabled = true; btn.querySelector('.spinner').style.display = 'inline-block'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweeting…' : 'Posting…';
+      var resetBtn = function () { btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweet' : 'Post'; };
+      var done = function () {
+        closeModal(); window.snack(fweet ? 'Fweeted!' : 'Posted!', 'ok');
+        if (document.getElementById('pfTabBody')) { PROFILE.tab = fweet ? 'fweets' : 'posts'; loadProfileTab(); var tb = document.getElementById('pfTabs'); if (tb) tb.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); }
+        else if (HOME.tab === 'all' || HOME.tab === 'following') { var s = document.getElementById('feedSearch'); if (s) s.value = ''; loadFeedTab(); }
+      };
       fetch(API + '/posts/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' },
         body: JSON.stringify({ post_type: fweet ? 'fweet' : 'post', content: text, visibility: 'public' }) })
         .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
         .then(function (res) {
-          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post — please try again.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweet' : 'Post'; return; }
-          closeModal(); window.snack(fweet ? 'Fweeted!' : 'Posted!', 'ok');
-          if (document.getElementById('pfTabBody')) { PROFILE.tab = fweet ? 'fweets' : 'posts'; loadProfileTab(); var tb = document.getElementById('pfTabs'); if (tb) tb.querySelectorAll('.feed-tab').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-pt') === PROFILE.tab); }); }
-          else if (HOME.tab === 'all' || HOME.tab === 'following') { var s = document.getElementById('feedSearch'); if (s) s.value = ''; loadFeedTab(); }
+          if (!res.ok) { window.snack((res.d && (res.d.detail || res.d.error)) || 'Couldn’t post — please try again.', 'error'); resetBtn(); return; }
+          var postId = res.d && res.d.id;
+          if (files.length && postId) {
+            btn.querySelector('span:last-child').textContent = 'Uploading media…';
+            uploadPostMedia(postId, files, 0, done);
+          } else { done(); }
         })
-        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); btn.disabled = false; btn.querySelector('.spinner').style.display = 'none'; btn.querySelector('span:last-child').textContent = fweet ? 'Fweet' : 'Post'; });
+        .catch(function () { window.snack('Couldn’t reach the server.', 'error'); resetBtn(); });
     });
+  }
+  // Upload each selected photo/video to an existing post, sequentially.
+  function uploadPostMedia(postId, files, i, done) {
+    if (i >= files.length) { done(); return; }
+    var f = files[i]; var fd = new FormData();
+    fd.append('post_id', postId); fd.append('file', f);
+    fd.append('media_type', /^video/.test(f.type) ? 'video' : 'image');
+    fetch(API + '/posts/upload/', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok() }, body: fd })
+      .then(function () { uploadPostMedia(postId, files, i + 1, done); })
+      .catch(function () { uploadPostMedia(postId, files, i + 1, done); });
   }
 
   function openSuggestionBox() {
@@ -2615,38 +2674,78 @@
   }
 
   var STUDY_DALE = [];
+  var DALE_STATE = { model: null, conv: null, companions: [], loaded: false };
   function openStudyDale() {
-    openModal('<div class="dale-sheet"><div class="dale-head"><span class="dale-orb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' +
-      '<div style="flex:1;min-width:0"><h2 style="font-family:Alfa;font-size:17px">Study with Dale</h2><div class="faint" style="font-family:Momo;font-size:12px;margin-top:2px">Ask anything — explain a topic, make a plan, quiz you</div></div>' +
+    STUDY_DALE = []; DALE_STATE.conv = null;
+    openModal('<div class="dale-sheet"><div class="dale-head"><span class="dale-orb" id="daleOrb"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>' +
+      '<div style="flex:1;min-width:0"><h2 id="daleTitle" style="font-family:Alfa;font-size:17px">Study with Dale</h2><div class="faint" id="daleSub" style="font-family:Momo;font-size:12px;margin-top:2px">Ask anything — explain a topic, make a plan, quiz you</div></div>' +
       '<button class="ghost x" id="mClose" style="padding:8px 10px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>' +
+      '<div class="dale-models" id="daleModels"><span class="faint" style="font-family:Momo;font-size:11px;padding:4px">Loading models…</span></div>' +
       '<div class="sdale-body" id="sdaleBody"></div>' +
       '<div class="sdale-input"><input id="sdaleQ" placeholder="Ask Dale a study question…" autocomplete="off" /><button class="send" id="sdaleSend"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div></div>');
     document.getElementById('mClose').addEventListener('click', closeModal);
     var bodyEl = document.getElementById('sdaleBody');
+    function aiAvatar() {
+      var m = DALE_STATE.model;
+      return m ? '<span class="av mav dale-mini" style="display:grid;place-items:center;font-size:15px;background:linear-gradient(135deg,' + esc(m.gradient_start || '#8E54E9') + ',' + esc(m.gradient_end || '#6DD5FA') + ')">' + esc(m.avatar_emoji || '🤖') + '</span>'
+                 : '<span class="av mav dale-mini"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>';
+    }
     function paint() {
-      if (!STUDY_DALE.length) { bodyEl.innerHTML = '<div class="sdale-hint faint">Try: “Explain photosynthesis simply” or “Make me a 5-day revision plan for Maths”.</div>'; return; }
+      var who = DALE_STATE.model ? esc(DALE_STATE.model.name) : 'Dale';
+      if (!STUDY_DALE.length) { bodyEl.innerHTML = '<div class="sdale-hint faint">' + (DALE_STATE.model ? 'Chatting with <b>' + who + '</b> — ' + esc(DALE_STATE.model.description || 'ask away.') : 'Try: “Explain photosynthesis simply” or “Make me a 5-day revision plan for Maths”.') + '</div>'; return; }
       bodyEl.innerHTML = STUDY_DALE.map(function (m) {
-        return '<div class="msg-row ' + (m.role === 'me' ? 'me' : 'them') + '">' + (m.role === 'me' ? '' : '<span class="av mav dale-mini"><dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc></span>') +
-          '<div class="bubble ' + (m.role === 'me' ? 'me' : 'ai') + '">' + (m.pending ? '<span class="typing">Dale is thinking…</span>' : esc(m.text)) + '</div></div>';
+        return '<div class="msg-row ' + (m.role === 'me' ? 'me' : 'them') + '">' + (m.role === 'me' ? '' : aiAvatar()) +
+          '<div class="bubble ' + (m.role === 'me' ? 'me' : 'ai') + '">' + (m.pending ? '<span class="typing">' + who + ' is thinking…</span>' : esc(m.text)) + '</div></div>';
       }).join('');
       bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+    function updateHeader() {
+      var m = DALE_STATE.model, orb = document.getElementById('daleOrb'), title = document.getElementById('daleTitle'), sub = document.getElementById('daleSub');
+      if (!orb) return;
+      if (!m) { orb.innerHTML = '<dotlottie-wc src="' + DALE + '" autoplay loop></dotlottie-wc>'; orb.style.background = ''; title.textContent = 'Study with Dale'; sub.textContent = 'Ask anything — explain a topic, make a plan, quiz you'; }
+      else { orb.innerHTML = '<span style="font-size:24px">' + esc(m.avatar_emoji || '🤖') + '</span>'; orb.style.background = 'linear-gradient(135deg,' + esc(m.gradient_start || '#8E54E9') + ',' + esc(m.gradient_end || '#6DD5FA') + ')'; title.textContent = m.name; sub.textContent = m.description || 'AI companion'; }
+    }
+    function drawModels() {
+      var el = document.getElementById('daleModels'); if (!el) return;
+      var cur = DALE_STATE.model ? DALE_STATE.model.id : 'dale';
+      el.innerHTML = '<button class="dale-model' + (cur === 'dale' ? ' on' : '') + '" data-model="dale"><span class="dm-ic" style="background:linear-gradient(135deg,var(--g2),var(--g1))">🎓</span>Dale</button>' +
+        DALE_STATE.companions.map(function (c) {
+          return '<button class="dale-model' + (cur === c.id ? ' on' : '') + '" data-model="' + esc(c.id) + '"><span class="dm-ic" style="background:linear-gradient(135deg,' + esc(c.gradient_start || '#8E54E9') + ',' + esc(c.gradient_end || '#6DD5FA') + ')">' + esc(c.avatar_emoji || '🤖') + '</span>' + esc(c.name) + '</button>';
+        }).join('');
+      el.querySelectorAll('[data-model]').forEach(function (b) { b.addEventListener('click', function () {
+        var id = b.getAttribute('data-model');
+        DALE_STATE.model = id === 'dale' ? null : (DALE_STATE.companions.filter(function (c) { return String(c.id) === id; })[0] || null);
+        DALE_STATE.conv = null; STUDY_DALE = [];
+        updateHeader(); drawModels(); paint(); var q = document.getElementById('sdaleQ'); if (q) q.focus();
+      }); });
     }
     paint();
     var input = document.getElementById('sdaleQ'); input.focus();
     function send() {
       var t = input.value.trim(); if (!t) return; input.value = '';
       STUDY_DALE.push({ role: 'me', text: t }); STUDY_DALE.push({ role: 'ai', pending: true }); paint();
-      fetch(API + '/ai/chat/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify({ message: t, stream: false }) })
+      var url, payload;
+      if (DALE_STATE.model) { url = API + '/ai/companions/' + DALE_STATE.model.id + '/chat/'; payload = { message: t, conversation_id: DALE_STATE.conv, stream: false }; }
+      else { url = API + '/ai/chat/'; payload = { message: t, stream: false }; }
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/json' }, body: JSON.stringify(payload) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
           STUDY_DALE = STUDY_DALE.filter(function (m) { return !m.pending; });
-          if (!res.ok) { STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.error || res.d.detail)) || 'Dale couldn’t reply right now.' }); }
-          else { STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.response || res.d.reply || res.d.text)) || 'Hmm, I didn’t catch that — try again.' }); }
+          if (!res.ok) { STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.error || res.d.detail)) || 'Couldn’t reply right now.' }); }
+          else { if (res.d && res.d.conversation_id) DALE_STATE.conv = res.d.conversation_id; STUDY_DALE.push({ role: 'ai', text: (res.d && (res.d.response || res.d.reply || res.d.text)) || 'Hmm, I didn’t catch that — try again.' }); }
           paint();
-        }).catch(function () { STUDY_DALE = STUDY_DALE.filter(function (m) { return !m.pending; }); STUDY_DALE.push({ role: 'ai', text: 'Couldn’t reach Dale right now.' }); paint(); });
+        }).catch(function () { STUDY_DALE = STUDY_DALE.filter(function (m) { return !m.pending; }); STUDY_DALE.push({ role: 'ai', text: 'Couldn’t reach the AI right now.' }); paint(); });
     }
     document.getElementById('sdaleSend').addEventListener('click', send);
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+    // Load the roster of AI models (companions) once, then render the picker.
+    if (DALE_STATE.loaded) { drawModels(); }
+    else {
+      authFetch('/ai/companions/').then(function (r) {
+        DALE_STATE.companions = (r.ok && (r.d.companions || listOf(r.d))) || [];
+        DALE_STATE.loaded = true; drawModels();
+      }).catch(function () { var el = document.getElementById('daleModels'); if (el) el.innerHTML = ''; });
+    }
   }
   // ── MESSAGES (master-detail) ─────────────────────────────────
   var MSG = { tab: 'inbox', rooms: [], me: '', active: null, activeRoom: null, lastCount: -1, poll: null, buddies: [], buddiesLoaded: false };
