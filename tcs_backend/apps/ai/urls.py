@@ -2,7 +2,7 @@
 from django.urls import path
 from . import views
 from .router_views import ai_router_status
-from .knowledge_views import (knowledge_list, knowledge_upload,
+from .knowledge_views import (knowledge_list, knowledge_upload, knowledge_upload_url,
                               knowledge_toggle, knowledge_delete,
                               knowledge_chunks, knowledge_analytics)
 from .translate_views import ai_translate
@@ -28,6 +28,7 @@ urlpatterns = [
     # Phase 4 RAG knowledge base (staff-only)
     path("knowledge/",                  knowledge_list,   name="ai-knowledge-list"),
     path("knowledge/upload/",           knowledge_upload, name="ai-knowledge-upload"),
+    path("knowledge/upload-url/",       knowledge_upload_url, name="ai-knowledge-upload-url"),
     path("knowledge/analytics/",        knowledge_analytics, name="ai-knowledge-analytics"),
     path("knowledge/<uuid:pk>/chunks/", knowledge_chunks, name="ai-knowledge-chunks"),
     path("knowledge/<uuid:pk>/toggle/", knowledge_toggle, name="ai-knowledge-toggle"),

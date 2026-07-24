@@ -34,6 +34,15 @@ urlpatterns = [
     path("requests/<uuid:req_id>/decline/",       views.decline_chat_request,          name="chat-request-decline"),
     path("requests/<uuid:req_id>/cancel/",        views.cancel_chat_request,           name="chat-request-cancel"),
 
+    # Bubbles (public group chats) + invites
+    path("bubbles/",                              bubble_views.create_bubble,          name="bubble-create"),
+    path("bubbles/discover/",                     bubble_views.discover_bubbles,       name="bubble-discover"),
+    path("bubbles/<uuid:room_id>/join/",          bubble_views.join_public_bubble,     name="bubble-join"),
+    path("bubbles/<uuid:room_id>/invite/",        bubble_views.invite_to_bubble,       name="bubble-invite"),
+    path("invites/",                              bubble_views.my_invites,             name="bubble-invites"),
+    path("invites/<uuid:invite_id>/accept/",      bubble_views.accept_invite,          name="bubble-invite-accept"),
+    path("invites/<uuid:invite_id>/decline/",     bubble_views.decline_invite,         name="bubble-invite-decline"),
+
     # Study buddy
     path("study-buddy/",                          views.study_buddy_list,              name="study-buddy-list"),
     path("study-buddy/start/",                    views.start_study_buddy_chat,        name="study-buddy-chat"),

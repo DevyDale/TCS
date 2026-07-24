@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Terms & Conditions · TCS</title>
+<meta name="theme-color" content="#0D0D1A" />
+<link rel="stylesheet" href="assets/onboarding.css" />
+<style>
+  .wrap { width: 100%; max-width: 720px; margin: 0 auto; min-height: 100dvh;
+          padding: max(env(safe-area-inset-top), 22px) 22px max(env(safe-area-inset-bottom), 40px); }
+  .topbar { display: flex; }
+  .back { padding: 10px 14px; }
+  .head { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+  .head .mark { width: 52px; height: 52px; border-radius: 16px; }
+  .head .mark svg { width: 27px; height: 27px; }
+  .head h1 { font-family: 'Alfa', serif; font-size: clamp(24px, 6vw, 30px); line-height: 1.1; }
+  .meta { font-family: 'Momo', sans-serif; font-size: 12px; color: var(--faint); margin-top: 6px; }
+  .doc { margin-top: 22px; padding: 24px; }
+  .doc h2 { font-family: 'Arch', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink);
+            margin: 22px 0 8px; letter-spacing: 0.2px; }
+  .doc h2:first-child { margin-top: 0; }
+  .doc p, .doc li { font-family: 'Momo', sans-serif; font-size: 13.5px; line-height: 1.7; color: var(--sub); }
+  .doc ul { margin: 6px 0 0 18px; display: flex; flex-direction: column; gap: 4px; }
+  .doc .lead { color: var(--ink); }
+  .doc a { color: var(--g1); text-decoration: none; } .doc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="blob p"></div><div class="blob o"></div>
+
+  <main class="wrap layer">
+    <div class="topbar">
+      <button class="ghost back" type="button" onclick="if(history.length>1){history.back()}else{location.href='visitor.html'}">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Back
+      </button>
+    </div>
+
+    <div class="head">
+      <div class="mark brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg></div>
+      <div>
+        <h1>Terms &amp; Conditions</h1>
+        <div class="meta">TCS — Taylors College Social &amp; Arcade · Last updated 2026</div>
+      </div>
+    </div>
+
+    <article class="doc glass">
+      <p class="lead">Welcome to TCS. By creating an account or using the platform you agree to these Terms. Please read them carefully — visitor and parent accounts should pay particular attention to section 6.</p>
+
+      <h2>1. Who can use TCS</h2>
+      <p>TCS is provided for the Taylors College community — students, staff, and approved guests, parents and community members. You must provide accurate details when registering and keep your login secure. You are responsible for activity that happens under your account.</p>
+
+      <h2>2. Your account</h2>
+      <p>You agree not to share your credentials or impersonate another person. Student and staff accounts are verified against college records; guest accounts are self-registered. We may suspend or remove accounts that breach these Terms or college policy.</p>
+
+      <h2>3. Acceptable use</h2>
+      <ul>
+        <li>Be respectful. No harassment, hate speech, bullying, or threats.</li>
+        <li>No illegal content, spam, scams, or attempts to disrupt the service.</li>
+        <li>Do not post others’ private information without consent.</li>
+        <li>Content you post must be yours to share and must follow college conduct standards.</li>
+      </ul>
+
+      <h2>4. Content &amp; moderation</h2>
+      <p>You keep ownership of what you post, but grant TCS a licence to display it within the platform. We use automated and human moderation to keep the community safe, and may remove content or route safety concerns to the college’s safeguarding team.</p>
+
+      <h2>5. Privacy &amp; data</h2>
+      <p>We store the information needed to run your account (such as your name, email and activity). We do not sell your personal data. Your information is handled in line with the college’s privacy policy and applicable data-protection law.</p>
+
+      <h2>6. Visitor &amp; parent accounts</h2>
+      <p>Guest accounts have limited access: you can view <span class="lead">public club and event posts only</span>. You will not see student feeds, private groups, chats, or arcade multiplayer. These limits exist to protect students and comply with child-safety obligations.</p>
+
+      <h2>7. Availability &amp; changes</h2>
+      <p>We work to keep TCS available but cannot guarantee uninterrupted service. Features may change, and we may update these Terms. Significant changes will be signposted in the app; continued use means you accept the updated Terms.</p>
+
+      <h2>8. Liability</h2>
+      <p>TCS is provided “as is”. To the extent permitted by law, we are not liable for user-generated content or for losses arising from use of the platform beyond what the law requires.</p>
+
+      <h2>9. Contact</h2>
+      <p>Questions about these Terms? Reach the TCS team through the college’s official support channels.</p>
+    </article>
+  </main>
+</body>
+</html>

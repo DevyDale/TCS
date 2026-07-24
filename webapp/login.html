@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sign in · TCS</title>
+<meta name="theme-color" content="#0D0D1A" />
+<link rel="stylesheet" href="assets/onboarding.css" />
+<style>
+  .wrap {
+    width: 100%; max-width: 440px; margin: 0 auto; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    padding: max(env(safe-area-inset-top), 22px) 22px max(env(safe-area-inset-bottom), 26px);
+  }
+  .topbar { display: flex; }
+  .back { padding: 10px 14px; }
+
+  .hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 14px; }
+  .role-icon { width: 88px; height: 88px; border-radius: 28px; animation: bob 3s ease-in-out infinite; }
+  .role-icon svg { width: 46px; height: 46px; }
+  @keyframes bob { 0%,100% { transform: translateY(-6px); } 50% { transform: translateY(6px); } }
+  .eyebrow {
+    margin-top: 20px; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--faint);
+  }
+  .title { font-family: 'Alfa', serif; font-size: clamp(28px, 8vw, 33px); margin-top: 8px; line-height: 1.1; }
+  .lede { font-family: 'Momo', sans-serif; font-size: 13.5px; color: var(--sub); margin-top: 10px; line-height: 1.5; max-width: 30ch; }
+
+  form { margin-top: 24px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  #fields { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Staff-type segmented control */
+  .seg { display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 5px; border-radius: 14px; border: 1px solid var(--hair); }
+  .seg button {
+    flex: 1; height: 40px; border: 0; cursor: pointer; border-radius: 10px; background: none;
+    font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--sub);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .seg button[aria-pressed="true"] { background: linear-gradient(90deg, var(--g2), var(--g1)); color: #fff; }
+
+  .field label {
+    display: block; font-family: 'Arch', sans-serif; font-weight: 700; font-size: 12px;
+    color: var(--ink); margin-bottom: 6px; letter-spacing: 0.3px;
+  }
+  .input {
+    display: flex; align-items: center; height: 52px; border-radius: 14px;
+    background: rgba(255,255,255,0.05); border: 1.5px solid var(--hair);
+    overflow: hidden; transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .input:focus-within { border-color: var(--g2); background: rgba(255,255,255,0.09); }
+  .input .ic { width: 50px; height: 100%; flex: 0 0 auto; display: grid; place-items: center;
+               border-right: 1px solid var(--hair); }
+  .input .ic svg { width: 21px; height: 21px; fill: var(--faint); }
+  .input:focus-within .ic svg { fill: var(--sub); }
+  .input input {
+    flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none;
+    padding: 0 15px; font-family: 'Momo', sans-serif; font-size: 15px; color: var(--ink);
+  }
+  .input input::placeholder { color: var(--faint); }
+  /* Make the native date control legible on dark */
+  .input input[type="date"] { color-scheme: dark; }
+  .input input:-webkit-autofill { -webkit-text-fill-color: var(--ink); transition: background-color 9999s; }
+
+  .msg { min-height: 18px; font-family: 'Momo', sans-serif; font-size: 12.5px; }
+  .msg.error { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+
+  /* Terms & Conditions agreement */
+  .terms-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 4px 2px 16px;
+    font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); line-height: 1.5; user-select: none; }
+  .terms-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .terms-box { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px;
+    border: 2px solid var(--faint); display: grid; place-items: center; transition: all .15s; }
+  .terms-box::after { content: ''; width: 10px; height: 10px; border-radius: 3px; transform: scale(0);
+    background: linear-gradient(135deg, var(--g2), var(--g1)); transition: transform .15s; }
+  .terms-row input:checked ~ .terms-box { border-color: var(--g2); }
+  .terms-row input:checked ~ .terms-box::after { transform: scale(1); }
+  .terms-row input:focus-visible ~ .terms-box { box-shadow: 0 0 0 3px rgba(142,84,233,0.3); }
+  .terms-txt a { color: var(--g1); font-weight: 700; text-decoration: none; }
+  .terms-txt a:hover { text-decoration: underline; }
+  .terms-row.shake { animation: shake .45s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.45); border-top-color: #fff;
+             border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  .btn.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .alt { text-align: center; font-family: 'Momo', sans-serif; font-size: 13px; color: var(--sub); margin-top: 18px; }
+  .alt a { color: var(--g1); font-weight: 700; text-decoration: none; }
+  .alt a:hover { text-decoration: underline; }
+
+  .secure {
+    margin-top: auto; padding-top: 24px; text-align: center;
+    display: inline-flex; align-self: center; align-items: center; gap: 6px;
+    font-family: 'Momo', sans-serif; font-size: 11px; color: var(--faint); letter-spacing: 0.3px;
+  }
+  .secure svg { width: 13px; height: 13px; fill: var(--faint); }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="blob p"></div><div class="blob o"></div><div class="blob c"></div>
+  <canvas id="particles"></canvas>
+
+  <main class="wrap layer">
+    <div class="topbar">
+      <button class="ghost back" type="button" onclick="location.href='auth.html'">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg> Back
+      </button>
+    </div>
+
+    <div class="hero">
+      <div class="role-icon brand-mark" id="roleIcon"></div>
+      <div class="eyebrow" id="eyebrow">Student</div>
+      <h1 class="title">Welcome <span class="grad-text">back</span></h1>
+      <p class="lede" id="lede">Sign in with the details on your record.</p>
+    </div>
+
+    <form class="glass" id="form" novalidate>
+      <div id="fields"></div>
+      <label class="terms-row" id="termsRow">
+        <input type="checkbox" id="agree" />
+        <span class="terms-box" aria-hidden="true"></span>
+        <span class="terms-txt">I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+      </label>
+      <button class="btn" id="submit" type="submit">
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="submitLabel">Sign in</span>
+      </button>
+    </form>
+
+    <p class="alt" id="alt"></p>
+
+    <div class="secure">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      Secured · Role-verified
+    </div>
+  </main>
+
+<script src="assets/particles.js"></script>
+<script src="assets/snackbar.js"></script>
+<script>
+  var API = 'https://tcs-nsw.duckdns.org/api';
+
+  var ICONS = {
+    student: '<svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>',
+    staff:   '<svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2zm2 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>',
+    visitor: '<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
+  };
+  var GRADS = {
+    student: 'linear-gradient(135deg,#4FC3F7,#0288D1)',
+    staff:   'linear-gradient(135deg,#81C784,#388E3C)',
+    visitor: 'linear-gradient(135deg,#F7971E,#FF5858)',
+  };
+  var ID_ICON = '<svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2zm2 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>';
+  var CAKE_ICON = '<svg viewBox="0 0 24 24"><path d="M12 6a2 2 0 0 0 2-2c0-.38-.1-.73-.29-1.03L12 0l-1.71 2.97c-.19.3-.29.65-.29 1.03a2 2 0 0 0 2 2zm6 6c-.83 0-1.58-.34-2.12-.88a3 3 0 0 0-4.24 0 3.01 3.01 0 0 1-4.24 0A2.99 2.99 0 0 0 5 11c-1.66 0-3 1.34-3 3v8h20v-8c0-1.66-1.34-3-3-3zM6 8h2v3H6V8zm5 0h2v3h-2V8zm5 0h2v3h-2V8z"/></svg>';
+  var MAIL_ICON = '<svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>';
+  var LOCK_ICON = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6zm3 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
+
+  var params = new URLSearchParams(location.search);
+  var role = params.get('role') || (function () { try { return localStorage.getItem('tcs_role'); } catch (e) { return null; } })() || 'student';
+  // Visitors have their own tabbed sign-up / sign-in screen.
+  if (role === 'visitor') { location.replace('visitor.html'); }
+  if (['student', 'staff'].indexOf(role) < 0) role = 'student';
+
+  var staffType = 'teaching_staff';
+
+  document.getElementById('roleIcon').innerHTML = ICONS[role];
+  document.getElementById('roleIcon').style.background = GRADS[role];
+  document.getElementById('roleIcon').style.boxShadow = '0 16px 34px rgba(142,84,233,0.35)';
+
+  function fieldHTML(id, label, type, ph, icon, extra) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' +
+      '<div class="input">' +
+        '<span class="ic">' + icon + '</span>' +
+        '<input id="' + id + '" type="' + type + '" placeholder="' + (ph || '') + '" ' + (extra || '') + ' autocomplete="off" />' +
+      '</div></div>';
+  }
+
+  var eyebrow = document.getElementById('eyebrow');
+  var lede = document.getElementById('lede');
+  var alt = document.getElementById('alt');
+  var fields = document.getElementById('fields');
+
+  if (role === 'visitor') {
+    eyebrow.textContent = 'Visitor & Parents';
+    lede.textContent = 'For guests, parents and the wider community.';
+    fields.innerHTML =
+      fieldHTML('email', 'Email', 'email', 'you@example.com', MAIL_ICON, 'inputmode="email"') +
+      fieldHTML('password', 'Password', 'password', '••••••••', LOCK_ICON);
+    alt.innerHTML = 'New here? <a href="register.html">Create an account</a>';
+  } else if (role === 'staff') {
+    eyebrow.textContent = 'Staff';
+    lede.textContent = 'Teaching and non-teaching staff.';
+    fields.innerHTML =
+      '<div class="field"><label>Staff type</label>' +
+        '<div class="seg" id="seg">' +
+          '<button type="button" data-t="teaching_staff" aria-pressed="true">Teaching</button>' +
+          '<button type="button" data-t="non_teaching_staff" aria-pressed="false">Non-teaching</button>' +
+        '</div></div>' +
+      fieldHTML('user_id', 'Staff ID', 'text', 'e.g. TSC12345', ID_ICON, 'inputmode="numeric"') +
+      fieldHTML('dob', 'Date of birth', 'date', '', CAKE_ICON);
+    document.getElementById('seg').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-t]'); if (!b) return;
+      staffType = b.getAttribute('data-t');
+      this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  } else {
+    eyebrow.textContent = 'Student';
+    lede.textContent = 'Use the Student ID and date of birth on your record.';
+    fields.innerHTML =
+      fieldHTML('user_id', 'Student ID', 'text', 'e.g. STU12345', ID_ICON, 'inputmode="numeric"') +
+      fieldHTML('dob', 'Date of birth', 'date', '', CAKE_ICON);
+  }
+
+  var submitEl = document.getElementById('submit');
+  function setMsg(t, k) { if (t) window.snack(t, k === 'ok' ? 'ok' : (k === 'error' ? 'error' : 'info')); }
+  function apiError(d, fallback) {
+    if (!d) return fallback;
+    if (d.detail) return d.detail;
+    if (d.error) return d.error;
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors.length) return d.non_field_errors[0];
+    for (var k in d) { if (Array.isArray(d[k]) && d[k].length) return d[k][0]; }
+    return fallback;
+  }
+  function loading(on) {
+    submitEl.disabled = on; submitEl.classList.toggle('loading', on);
+    document.getElementById('submitLabel').textContent = on ? 'Signing in…' : 'Sign in';
+  }
+
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault(); setMsg('');
+    if (!document.getElementById('agree').checked) {
+      setMsg('Please agree to the Terms & Conditions to continue.', 'error');
+      var tr = document.getElementById('termsRow'); if (tr) { tr.classList.add('shake'); setTimeout(function () { tr.classList.remove('shake'); }, 500); }
+      return;
+    }
+    var url, body;
+    if (role === 'visitor') {
+      var email = document.getElementById('email').value.trim();
+      var pw = document.getElementById('password').value;
+      if (!email || !pw) { setMsg('Enter your email and password.', 'error'); return; }
+      url = API + '/accounts/login-password/'; body = { identifier: email, password: pw };
+    } else {
+      var uid = document.getElementById('user_id').value.trim();
+      var dob = document.getElementById('dob').value;
+      if (!uid || !dob) { setMsg('Enter your ID and date of birth.', 'error'); return; }
+      url = API + '/accounts/login/'; body = { user_id: uid, date_of_birth: dob, role: role === 'staff' ? staffType : 'student' };
+    }
+    loading(true);
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { setMsg(apiError(res.d, 'Those details didn’t match. Please try again.'), 'error'); loading(false); return; }
+        try {
+          if (res.d.access) localStorage.setItem('tcs_access', res.d.access);
+          if (res.d.refresh) localStorage.setItem('tcs_refresh', res.d.refresh);
+          if (res.d.user) localStorage.setItem('tcs_user', JSON.stringify(res.d.user));
+        } catch (e) {}
+        window.snack('Signed in — welcome back!', 'ok', 1400);
+        setTimeout(function () { location.href = 'dashboard.html'; }, 700);
+      })
+      .catch(function () { setMsg('Couldn’t reach the server. Check your connection and try again.', 'error'); loading(false); });
+  });
+</script>
+</body>
+</html>

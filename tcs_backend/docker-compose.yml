@@ -99,6 +99,7 @@ services:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ../webapp:/usr/share/nginx/webapp:ro   # static web app (staff console, visitor showcase, auth pages)
     depends_on:
       - web
 
