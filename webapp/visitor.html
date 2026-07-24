@@ -126,7 +126,9 @@
     } else {
       fieldsEl.innerHTML =
         field('identifier', 'Email or username', 'text', 'you@example.com', AT) +
-        field('password', 'Password', 'password', 'Your password', LOCK, 'autocomplete="current-password"');
+        field('password', 'Password', 'password', 'Your password', LOCK, 'autocomplete="current-password"') +
+        '<label class="terms"><input type="checkbox" id="tc" />' +
+          '<span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Visitor Terms &amp; Conditions</a>.</span></label>';
       submitLabel.textContent = 'Sign in';
     }
   }
@@ -175,6 +177,8 @@
     if (mode === 'signin') {
       var ident = v('identifier'), pw = document.getElementById('password').value;
       if (!ident || !pw) { setMsg('Enter your email/username and password.', 'error'); return; }
+      var tcEl = document.getElementById('tc');
+      if (tcEl && !tcEl.checked) { setMsg('Please accept the Visitor Terms & Conditions to continue.', 'error'); return; }
       loading(true);
       loginPassword(ident, pw).then(function (res) {
         if (!res.ok) { setMsg(apiError(res.d, 'Those details didn’t match.'), 'error'); loading(false); return; }

@@ -65,6 +65,22 @@
   .msg.error { color: var(--err); }
   .msg.ok { color: var(--ok); }
 
+  /* Terms & Conditions agreement */
+  .terms-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 4px 2px 16px;
+    font-family: 'Momo', sans-serif; font-size: 12.5px; color: var(--sub); line-height: 1.5; user-select: none; }
+  .terms-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .terms-box { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px;
+    border: 2px solid var(--faint); display: grid; place-items: center; transition: all .15s; }
+  .terms-box::after { content: ''; width: 10px; height: 10px; border-radius: 3px; transform: scale(0);
+    background: linear-gradient(135deg, var(--g2), var(--g1)); transition: transform .15s; }
+  .terms-row input:checked ~ .terms-box { border-color: var(--g2); }
+  .terms-row input:checked ~ .terms-box::after { transform: scale(1); }
+  .terms-row input:focus-visible ~ .terms-box { box-shadow: 0 0 0 3px rgba(142,84,233,0.3); }
+  .terms-txt a { color: var(--g1); font-weight: 700; text-decoration: none; }
+  .terms-txt a:hover { text-decoration: underline; }
+  .terms-row.shake { animation: shake .45s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+
   .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.45); border-top-color: #fff;
              border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
   .btn.loading .spinner { display: inline-block; }
@@ -103,6 +119,11 @@
 
     <form class="glass" id="form" novalidate>
       <div id="fields"></div>
+      <label class="terms-row" id="termsRow">
+        <input type="checkbox" id="agree" />
+        <span class="terms-box" aria-hidden="true"></span>
+        <span class="terms-txt">I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+      </label>
       <button class="btn" id="submit" type="submit">
         <span class="spinner" aria-hidden="true"></span>
         <span id="submitLabel">Sign in</span>
@@ -210,6 +231,11 @@
 
   document.getElementById('form').addEventListener('submit', function (e) {
     e.preventDefault(); setMsg('');
+    if (!document.getElementById('agree').checked) {
+      setMsg('Please agree to the Terms & Conditions to continue.', 'error');
+      var tr = document.getElementById('termsRow'); if (tr) { tr.classList.add('shake'); setTimeout(function () { tr.classList.remove('shake'); }, 500); }
+      return;
+    }
     var url, body;
     if (role === 'visitor') {
       var email = document.getElementById('email').value.trim();
