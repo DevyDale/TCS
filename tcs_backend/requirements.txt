@@ -13,7 +13,7 @@ redis==5.1.1
 celery==5.4.0
 django-celery-results==2.5.1
 django-celery-beat==2.7.0
-django-storages==1.14.4
+django-storages==1.14.6
 boto3==1.35.36
 python-magic==0.4.27
 django-filter==24.3
